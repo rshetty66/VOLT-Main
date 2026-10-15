@@ -45,6 +45,8 @@ jobs:
           fi
 
   stale:
+    # VOLT-Main: ECC project operations; only run in the upstream ECC repository.
+    if: github.repository == 'affaan-m/ECC'
     name: Stale Issues/PRs
     runs-on: ubuntu-latest
     steps:

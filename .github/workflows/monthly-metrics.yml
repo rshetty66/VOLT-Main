@@ -11,6 +11,8 @@ permissions:
 
 jobs:
   snapshot:
+    # VOLT-Main: ECC project operations; only run in the upstream ECC repository.
+    if: github.repository == 'affaan-m/ECC'
     name: Update metrics issue
     runs-on: ubuntu-latest
     steps:

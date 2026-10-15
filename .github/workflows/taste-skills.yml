@@ -20,6 +20,7 @@ permissions:
 
 jobs:
   offline:
+    if: github.repository == 'affaan-m/ECC'  # VOLT-Main: ECC's full matrix runs upstream only; see volt.yml
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:

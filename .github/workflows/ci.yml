@@ -18,6 +18,7 @@ permissions:
 
 jobs:
   test:
+    if: github.repository == 'affaan-m/ECC'  # VOLT-Main: ECC's full matrix runs upstream only; see volt.yml
     name: Test (${{ matrix.os }}, Node ${{ matrix.node }}, ${{ matrix.pm }})
     runs-on: ${{ matrix.os }}
     # The complete cross-platform suite reaches its final installer cases at
@@ -142,6 +143,7 @@ jobs:
             !tests/node_modules/
 
   pack-installer:
+    if: github.repository == 'affaan-m/ECC'  # VOLT-Main: ECC's full matrix runs upstream only; see volt.yml
     name: Pack Installer Artifact
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -177,6 +179,7 @@ jobs:
           if-no-files-found: error
 
   packed-install-lifecycle:
+    if: github.repository == 'affaan-m/ECC'  # VOLT-Main: ECC's full matrix runs upstream only; see volt.yml
     name: Packed Install (${{ matrix.os }})
     needs: pack-installer
     runs-on: ${{ matrix.os }}
@@ -210,6 +213,7 @@ jobs:
         run: node tests/ci/packed-artifact-lifecycle.js
 
   validate:
+    if: github.repository == 'affaan-m/ECC'  # VOLT-Main: ECC's full matrix runs upstream only; see volt.yml
     name: Validate Components
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -277,6 +281,7 @@ jobs:
         continue-on-error: false
 
   pi-core:
+    if: github.repository == 'affaan-m/ECC'  # VOLT-Main: ECC's full matrix runs upstream only; see volt.yml
     name: Pi Core Profile
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -315,6 +320,7 @@ jobs:
           node scripts/ci/pi-core-load-test.js
 
   python-tests:
+    if: github.repository == 'affaan-m/ECC'  # VOLT-Main: ECC's full matrix runs upstream only; see volt.yml
     name: Python Lint, Type Check & Test
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -348,6 +354,7 @@ jobs:
           python -m pytest tests/test_provider_tools.py tests/test_atlas_provider.py tests/test_astraflow_provider.py tests/test_resolver.py
 
   security:
+    if: github.repository == 'affaan-m/ECC'  # VOLT-Main: ECC's full matrix runs upstream only; see volt.yml
     name: Security Scan
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -377,6 +384,7 @@ jobs:
         run: npm run security:ioc-scan
 
   coverage:
+    if: github.repository == 'affaan-m/ECC'  # VOLT-Main: ECC's full matrix runs upstream only; see volt.yml
     name: Coverage
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -413,6 +421,7 @@ jobs:
           path: coverage/
 
   lint:
+    if: github.repository == 'affaan-m/ECC'  # VOLT-Main: ECC's full matrix runs upstream only; see volt.yml
     name: Lint
     runs-on: ubuntu-latest
     timeout-minutes: 5

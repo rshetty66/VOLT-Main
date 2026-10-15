@@ -1,0 +1,19 @@
+{
+ "api-design": "ecc",
+ "deep-research": "ecc",
+ "design-system": "ecc",
+ "git-workflow": "ecc",
+ "docx": "document-skills@anthropic-agent-skills",
+ "pptx": "document-skills@anthropic-agent-skills",
+ "xlsx": "document-skills@anthropic-agent-skills",
+ "pdf": "document-skills@anthropic-agent-skills",
+ "brand-guidelines": "example-skills@anthropic-agent-skills",
+ "canvas-design": "example-skills@anthropic-agent-skills",
+ "internal-comms": "example-skills@anthropic-agent-skills",
+ "mcp-builder": "example-skills@anthropic-agent-skills",
+ "skill-creator": "example-skills@anthropic-agent-skills",
+ "slack-gif-creator": "example-skills@anthropic-agent-skills",
+ "theme-factory": "example-skills@anthropic-agent-skills",
+ "webapp-testing": "example-skills@anthropic-agent-skills",
+ "karpathy-guidelines": "andrej-karpathy-skills@karpathy-skills"
+}

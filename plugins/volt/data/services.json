@@ -1,0 +1,1099 @@
+[
+ {
+  "code": "MC-FT-001",
+  "name": "Finance Transformation Strategy",
+  "practice": "Management Consulting",
+  "subPractice": "Finance Transformation",
+  "description": "End-to-end finance transformation: target operating model, process redesign, shared services, and finance technology roadmap.",
+  "agents": [
+   "si-finance-process-lead",
+   "si-functional-lead",
+   "transformation-diagnostician",
+   "financial-modeling-agent"
+  ],
+  "workflows": [
+   "finance-assessment",
+   "erp-implementation"
+  ],
+  "skills": [
+   "budgeting-forecasting",
+   "period-close"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "MC-FT-002",
+  "name": "Close Optimization & Record-to-Report",
+  "practice": "Management Consulting",
+  "subPractice": "Finance Transformation",
+  "description": "Accelerate period-end close, automate reconciliations, and streamline record-to-report processes.",
+  "agents": [
+   "accounting-hub-architect",
+   "consolidation-reporting-agent",
+   "oracle-gl-specialist"
+  ],
+  "workflows": [
+   "close-optimization"
+  ],
+  "skills": [
+   "period-close",
+   "general-ledger",
+   "consolidation-skill"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "MC-FT-003",
+  "name": "Finance Assessment & Diagnostics",
+  "practice": "Management Consulting",
+  "subPractice": "Finance Transformation",
+  "description": "Comprehensive maturity assessment of finance function across people, process, technology, and data dimensions.",
+  "agents": [
+   "transformation-diagnostician",
+   "si-finance-process-lead",
+   "si-data-analytics-lead"
+  ],
+  "workflows": [
+   "finance-assessment"
+  ],
+  "skills": [
+   "fit-gap-matrix"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "MC-FT-004",
+  "name": "Revenue Recognition & ASC 606",
+  "practice": "Management Consulting",
+  "subPractice": "Finance Transformation",
+  "description": "Design and implement ASC 606/IFRS 15 revenue recognition frameworks, policies, and controls.",
+  "agents": [
+   "revenue-recognition-agent",
+   "accounting-policy-engine"
+  ],
+  "workflows": [],
+  "skills": [],
+  "coverage": "partial"
+ },
+ {
+  "code": "MC-FT-005",
+  "name": "Lease Accounting (IFRS 16 / ASC 842)",
+  "practice": "Management Consulting",
+  "subPractice": "Finance Transformation",
+  "description": "Implementation of lease accounting standards including data extraction, calculation engine, and disclosure.",
+  "agents": [
+   "lease-accounting-agent",
+   "accounting-policy-engine"
+  ],
+  "workflows": [],
+  "skills": [
+   "fixed-assets"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "MC-FT-006",
+  "name": "ESG & Sustainability Reporting",
+  "practice": "Management Consulting",
+  "subPractice": "Finance Transformation",
+  "description": "Design ESG reporting frameworks aligned to GRI, SASB, TCFD, and CSRD standards with data lineage.",
+  "agents": [
+   "esg-reporting-agent",
+   "si-data-analytics-lead"
+  ],
+  "workflows": [],
+  "skills": [],
+  "coverage": "partial"
+ },
+ {
+  "code": "MC-FT-007",
+  "name": "Treasury & Cash Management",
+  "practice": "Management Consulting",
+  "subPractice": "Finance Transformation",
+  "description": "Optimize treasury operations, cash forecasting, bank connectivity, and working capital management.",
+  "agents": [
+   "treasury-management-agent",
+   "financial-modeling-agent"
+  ],
+  "workflows": [],
+  "skills": [],
+  "coverage": "partial"
+ },
+ {
+  "code": "MC-FT-008",
+  "name": "Internal Audit Transformation",
+  "practice": "Management Consulting",
+  "subPractice": "Finance Transformation",
+  "description": "Modernize internal audit with continuous monitoring, data analytics, and risk-based audit planning.",
+  "agents": [
+   "internal-audit-agent",
+   "si-security-controls-lead"
+  ],
+  "workflows": [],
+  "skills": [
+   "security-roles"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "MC-FT-009",
+  "name": "EPM & Financial Planning",
+  "practice": "Management Consulting",
+  "subPractice": "Finance Transformation",
+  "description": "Enterprise Performance Management including budgeting, forecasting, consolidation, and management reporting.",
+  "agents": [
+   "oracle-pbcs-epbcs-lead",
+   "oracle-fccs-lead",
+   "oracle-arcs-lead",
+   "onestream-specialist",
+   "anaplan-specialist"
+  ],
+  "workflows": [
+   "oracle-epm-implementation",
+   "epm-specialty-planning",
+   "epm-cloud-migration"
+  ],
+  "skills": [
+   "budgeting-forecasting"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "MC-FT-010",
+  "name": "Payroll-to-GL Integration",
+  "practice": "Management Consulting",
+  "subPractice": "Finance Transformation",
+  "description": "Streamline payroll processing, GL mapping, tax compliance, and cross-module reconciliation.",
+  "agents": [
+   "workday-payroll-lead",
+   "oracle-payroll-lead",
+   "sap-fico-specialist"
+  ],
+  "workflows": [
+   "payroll-to-gl"
+  ],
+  "skills": [
+   "payroll",
+   "general-ledger"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "MC-OP-001",
+  "name": "Source-to-Pay Transformation",
+  "practice": "Management Consulting",
+  "subPractice": "Operations and Procurement",
+  "description": "End-to-end procurement transformation from strategic sourcing through purchase-to-pay and supplier management.",
+  "agents": [
+   "procurement-transformation-lead",
+   "sap-ariba-specialist",
+   "oracle-procurement-specialist",
+   "coupa-specialist"
+  ],
+  "workflows": [
+   "source-to-pay"
+  ],
+  "skills": [
+   "procurement",
+   "vendor-management"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "MC-OP-002",
+  "name": "Supply Chain Planning & Optimization",
+  "practice": "Management Consulting",
+  "subPractice": "Operations and Procurement",
+  "description": "Demand planning, inventory optimization, logistics network design, and S&OP process improvement.",
+  "agents": [
+   "sap-ewm-tm-specialist",
+   "sap-pp-pm-specialist"
+  ],
+  "workflows": [],
+  "skills": [
+   "demand-planning",
+   "inventory",
+   "logistics",
+   "production-planning"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "MC-OP-003",
+  "name": "Digital Procurement (Ariba/Coupa)",
+  "practice": "Management Consulting",
+  "subPractice": "Operations and Procurement",
+  "description": "Implement and optimize digital procurement platforms including SAP Ariba, Coupa, and Oracle Procurement.",
+  "agents": [
+   "sap-ariba-specialist",
+   "coupa-specialist",
+   "oracle-procurement-specialist"
+  ],
+  "workflows": [
+   "source-to-pay"
+  ],
+  "skills": [
+   "procurement"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "MC-OP-004",
+  "name": "Process Mining & Optimization",
+  "practice": "Management Consulting",
+  "subPractice": "Operations and Procurement",
+  "description": "Discover, analyze, and optimize business processes using process mining, automation, and lean methodologies.",
+  "agents": [
+   "process-flow-generator",
+   "process-flow",
+   "apqc-researcher"
+  ],
+  "workflows": [],
+  "skills": [
+   "workflow-automation"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "MC-WT-001",
+  "name": "Hire-to-Retire Process Design",
+  "practice": "Management Consulting",
+  "subPractice": "Workforce Transformation",
+  "description": "End-to-end HR process transformation from talent acquisition through retirement and offboarding.",
+  "agents": [
+   "sap-sf-core-hr-lead",
+   "workday-hcm-lead",
+   "oracle-hcm-core-lead",
+   "job-architecture-lead"
+  ],
+  "workflows": [
+   "hire-to-retire"
+  ],
+  "skills": [
+   "recruitment",
+   "onboarding",
+   "performance-reviews",
+   "offboarding"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "MC-WT-002",
+  "name": "Job Architecture & Compensation Design",
+  "practice": "Management Consulting",
+  "subPractice": "Workforce Transformation",
+  "description": "Design job families, competency frameworks, pay structures, and total rewards strategy.",
+  "agents": [
+   "job-architecture-lead",
+   "sap-sf-compensation-lead",
+   "workday-compensation-lead",
+   "oracle-compensation-lead"
+  ],
+  "workflows": [
+   "job-architecture-design"
+  ],
+  "skills": [
+   "benefits"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "MC-WT-003",
+  "name": "Learning & Development Strategy",
+  "practice": "Management Consulting",
+  "subPractice": "Workforce Transformation",
+  "description": "Design learning ecosystems, skills frameworks, career paths, and digital learning experiences.",
+  "agents": [
+   "sap-sf-learning-lead",
+   "workday-learning-lead",
+   "oracle-learning-lead",
+   "learning-path-designer"
+  ],
+  "workflows": [],
+  "skills": [
+   "training-development"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "MC-WT-004",
+  "name": "Workforce Analytics & Planning",
+  "practice": "Management Consulting",
+  "subPractice": "Workforce Transformation",
+  "description": "Strategic workforce planning using analytics, predictive modeling, and skills gap analysis.",
+  "agents": [
+   "sap-sf-workforce-analytics-lead",
+   "epm-workforce-planning-lead"
+  ],
+  "workflows": [],
+  "skills": [],
+  "coverage": "partial"
+ },
+ {
+  "code": "MC-WT-005",
+  "name": "Technology-Enabled Change Management",
+  "practice": "Management Consulting",
+  "subPractice": "Workforce Transformation",
+  "description": "Persona-based change management leveraging digital adoption platforms, AI analytics, and business readiness frameworks.",
+  "agents": [
+   "persona-based-change-lead",
+   "business-readiness-lead",
+   "agentic-change-orchestrator",
+   "digital-adoption-platform-architect"
+  ],
+  "workflows": [
+   "persona-based-change-management",
+   "organizational-readiness",
+   "ai-change-management"
+  ],
+  "skills": [
+   "erp-change-management"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "MC-CB-001",
+  "name": "Customer Experience Transformation",
+  "practice": "Management Consulting",
+  "subPractice": "Customer and BMR",
+  "description": "Redesign customer journeys, implement CRM, and enable omnichannel engagement strategies.",
+  "agents": [
+   "crm-connector"
+  ],
+  "workflows": [],
+  "skills": [
+   "customer-360",
+   "lead-management",
+   "campaign-management"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "MC-CB-002",
+  "name": "Business Model Reinvention",
+  "practice": "Management Consulting",
+  "subPractice": "Customer and BMR",
+  "description": "Strategic business model redesign leveraging digital capabilities, new revenue streams, and market positioning.",
+  "agents": [
+   "transformation-diagnostician",
+   "deep-researcher"
+  ],
+  "workflows": [],
+  "skills": [],
+  "coverage": "partial"
+ },
+ {
+  "code": "EA-OR-001",
+  "name": "Finance Technology - Oracle Core ERP",
+  "practice": "Enterprise Applications",
+  "subPractice": "Oracle",
+  "description": "Design, implementation, and configuration of Oracle Cloud ERP including GL, AP, AR, FA, Projects, and Procurement.",
+  "agents": [
+   "oracle-erp-configurator",
+   "oracle-gl-specialist",
+   "oracle-ap-ar-specialist",
+   "oracle-fa-specialist",
+   "oracle-projects-specialist",
+   "oracle-procurement-specialist"
+  ],
+  "workflows": [
+   "oracle-erp-cloud",
+   "erp-implementation"
+  ],
+  "skills": [
+   "general-ledger",
+   "accounts-payable",
+   "accounts-receivable",
+   "fixed-assets"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-OR-002",
+  "name": "Oracle SCM & Supply Chain",
+  "practice": "Enterprise Applications",
+  "subPractice": "Oracle",
+  "description": "Oracle Cloud SCM implementation including procurement, inventory, order management, and manufacturing.",
+  "agents": [
+   "oracle-scm-configurator",
+   "oracle-procurement-specialist"
+  ],
+  "workflows": [
+   "oracle-erp-cloud"
+  ],
+  "skills": [
+   "procurement",
+   "inventory",
+   "logistics"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-OR-003",
+  "name": "Oracle EPM Cloud",
+  "practice": "Enterprise Applications",
+  "subPractice": "Oracle",
+  "description": "Enterprise Performance Management: PBCS/EPBCS, FCCS, ARCS, EDMCS, Narrative Reporting, and Profitability.",
+  "agents": [
+   "oracle-pbcs-epbcs-lead",
+   "oracle-fccs-lead",
+   "oracle-arcs-lead",
+   "oracle-edmcs-lead",
+   "oracle-narrative-reporting-lead",
+   "oracle-pcm-lead"
+  ],
+  "workflows": [
+   "oracle-epm-implementation",
+   "epm-cloud-migration"
+  ],
+  "skills": [
+   "budgeting-forecasting",
+   "consolidation-skill"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-OR-004",
+  "name": "Oracle HCM Cloud",
+  "practice": "Enterprise Applications",
+  "subPractice": "Oracle",
+  "description": "Oracle Cloud HCM implementation: Core HR, Talent, Recruiting, Compensation, Payroll, and Learning.",
+  "agents": [
+   "oracle-hcm-core-lead",
+   "oracle-recruiting-lead",
+   "oracle-compensation-lead",
+   "oracle-payroll-lead",
+   "oracle-learning-lead",
+   "oracle-talent-mgmt-lead"
+  ],
+  "workflows": [
+   "oracle-hcm-implementation",
+   "hire-to-retire"
+  ],
+  "skills": [
+   "recruitment",
+   "onboarding",
+   "payroll",
+   "performance-reviews"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-OR-005",
+  "name": "Oracle Cloud Migration (PeopleSoft/JDE)",
+  "practice": "Enterprise Applications",
+  "subPractice": "Oracle",
+  "description": "Migrate from PeopleSoft, JD Edwards, or E-Business Suite to Oracle Cloud ERP/HCM/EPM.",
+  "agents": [
+   "erp-solution-architect",
+   "erp-data-migration-lead",
+   "oracle-erp-configurator"
+  ],
+  "workflows": [
+   "erp-cloud-migration",
+   "data-conversion"
+  ],
+  "skills": [
+   "data-migration",
+   "migration-runbook"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-SAP-001",
+  "name": "Finance Technology - SAP Core ERP",
+  "practice": "Enterprise Applications",
+  "subPractice": "SAP",
+  "description": "SAP S/4HANA Finance (FICO) implementation: GL, AP, AR, Asset Accounting, Cost Management, and Treasury.",
+  "agents": [
+   "sap-fico-specialist",
+   "sap-basis-architect",
+   "sap-mm-sd-specialist"
+  ],
+  "workflows": [
+   "sap-s4hana-implementation",
+   "erp-implementation"
+  ],
+  "skills": [
+   "general-ledger",
+   "accounts-payable",
+   "accounts-receivable"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-SAP-002",
+  "name": "SAP S/4HANA Supply Chain",
+  "practice": "Enterprise Applications",
+  "subPractice": "SAP",
+  "description": "SAP S/4HANA supply chain: MM, SD, PP, PM, EWM, TM — procurement through fulfillment.",
+  "agents": [
+   "sap-mm-sd-specialist",
+   "sap-pp-pm-specialist",
+   "sap-ewm-tm-specialist"
+  ],
+  "workflows": [
+   "sap-s4hana-implementation"
+  ],
+  "skills": [
+   "procurement",
+   "inventory",
+   "logistics",
+   "production-planning",
+   "warehouse"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-SAP-003",
+  "name": "SAP SuccessFactors HCM",
+  "practice": "Enterprise Applications",
+  "subPractice": "SAP",
+  "description": "SAP SuccessFactors implementation: Employee Central, Recruiting, Performance, Compensation, Learning, Succession.",
+  "agents": [
+   "sap-sf-core-hr-lead",
+   "sap-sf-recruiting-lead",
+   "sap-sf-performance-lead",
+   "sap-sf-compensation-lead",
+   "sap-sf-learning-lead",
+   "sap-sf-succession-lead",
+   "sap-sf-workforce-analytics-lead"
+  ],
+  "workflows": [
+   "sap-successfactors-implementation",
+   "hire-to-retire"
+  ],
+  "skills": [
+   "recruitment",
+   "onboarding",
+   "performance-reviews",
+   "training-development"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-SAP-004",
+  "name": "SAP Bank Analyzer & FPSL",
+  "practice": "Enterprise Applications",
+  "subPractice": "SAP",
+  "description": "SAP Banking: Bank Analyzer for sub-ledger accounting, FPSL for insurance and financial products accounting.",
+  "agents": [
+   "sap-bank-analyzer-lead",
+   "sap-bca-specialist",
+   "sap-fpsl-lead",
+   "sap-insurance-accounting-specialist"
+  ],
+  "workflows": [
+   "sap-bank-analyzer",
+   "sap-fpsl"
+  ],
+  "skills": [],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-SAP-005",
+  "name": "SAP Concur Travel & Expense",
+  "practice": "Enterprise Applications",
+  "subPractice": "SAP",
+  "description": "SAP Concur implementation: Expense, Travel, Invoice management, and ERP integration.",
+  "agents": [
+   "sap-concur-expense-lead",
+   "sap-concur-travel-lead",
+   "sap-concur-invoice-lead"
+  ],
+  "workflows": [
+   "sap-concur"
+  ],
+  "skills": [],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-SAP-006",
+  "name": "SAP S/4HANA Migration (ECC/R3)",
+  "practice": "Enterprise Applications",
+  "subPractice": "SAP",
+  "description": "Migrate from legacy SAP ECC/R3 to S/4HANA using brownfield, greenfield, or selective data transition approaches.",
+  "agents": [
+   "sap-basis-architect",
+   "erp-solution-architect",
+   "erp-data-migration-lead"
+  ],
+  "workflows": [
+   "sap-s4hana-implementation",
+   "erp-cloud-migration"
+  ],
+  "skills": [
+   "data-migration",
+   "migration-runbook"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-WD-001",
+  "name": "Workday HCM Implementation",
+  "practice": "Enterprise Applications",
+  "subPractice": "Workday",
+  "description": "Workday HCM: Core HR, Recruiting, Compensation, Benefits, Payroll, Time & Absence, and Talent.",
+  "agents": [
+   "workday-hcm-lead",
+   "workday-recruiting-lead",
+   "workday-compensation-lead",
+   "workday-payroll-lead",
+   "workday-learning-lead",
+   "workday-absence-time-lead"
+  ],
+  "workflows": [
+   "workday-hcm-implementation",
+   "hire-to-retire"
+  ],
+  "skills": [
+   "recruitment",
+   "onboarding",
+   "payroll",
+   "leave-attendance"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-WD-002",
+  "name": "Workday Financials",
+  "practice": "Enterprise Applications",
+  "subPractice": "Workday",
+  "description": "Workday Financial Management: GL, AP, AR, procurement, projects, grants, and reporting.",
+  "agents": [
+   "workday-financials-specialist"
+  ],
+  "workflows": [],
+  "skills": [
+   "general-ledger",
+   "accounts-payable",
+   "accounts-receivable"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "EA-WD-003",
+  "name": "Workday Adaptive Planning",
+  "practice": "Enterprise Applications",
+  "subPractice": "Workday",
+  "description": "Workday Adaptive Planning for budgeting, forecasting, workforce planning, and financial modeling.",
+  "agents": [
+   "workday-financials-specialist",
+   "epm-workforce-planning-lead"
+  ],
+  "workflows": [],
+  "skills": [
+   "budgeting-forecasting"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "EA-SF-001",
+  "name": "Salesforce CRM Implementation",
+  "practice": "Enterprise Applications",
+  "subPractice": "Salesforce",
+  "description": "Salesforce Sales Cloud, Service Cloud, Marketing Cloud implementation and optimization.",
+  "agents": [
+   "crm-connector"
+  ],
+  "workflows": [],
+  "skills": [
+   "customer-360",
+   "lead-management",
+   "pipeline-forecasting",
+   "campaign-management"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "EA-SF-002",
+  "name": "Salesforce CPQ & Revenue Cloud",
+  "practice": "Enterprise Applications",
+  "subPractice": "Salesforce",
+  "description": "Configure-Price-Quote, contract lifecycle management, and revenue recognition on Salesforce platform.",
+  "agents": [
+   "crm-connector"
+  ],
+  "workflows": [],
+  "skills": [
+   "quoting-cpq",
+   "contracts-renewals",
+   "commissions"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "EA-AES-001",
+  "name": "Application Managed Services",
+  "practice": "Enterprise Applications",
+  "subPractice": "Application Evolution Services",
+  "description": "Managed services for monitoring, maintaining, and supporting enterprise applications across ERP, CRM, and HCM.",
+  "agents": [
+   "erp-test-lead",
+   "erp-solution-architect"
+  ],
+  "workflows": [],
+  "skills": [
+   "observability",
+   "disaster-recovery",
+   "performance-optimization"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "EA-AES-002",
+  "name": "Application Modernization",
+  "practice": "Enterprise Applications",
+  "subPractice": "Application Evolution Services",
+  "description": "Legacy application modernization including cloud migration, re-platforming, and API-first architecture.",
+  "agents": [
+   "solution-architect",
+   "dev-toolkit"
+  ],
+  "workflows": [
+   "erp-cloud-migration"
+  ],
+  "skills": [
+   "api-design",
+   "integrations"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "EA-AES-003",
+  "name": "ERP Platform Selection",
+  "practice": "Enterprise Applications",
+  "subPractice": "Application Evolution Services",
+  "description": "Vendor evaluation, fit-gap analysis, and platform selection advisory for ERP, HCM, and EPM technologies.",
+  "agents": [
+   "erp-solution-architect",
+   "transformation-diagnostician"
+  ],
+  "workflows": [
+   "erp-platform-selection"
+  ],
+  "skills": [
+   "fit-gap-matrix",
+   "requirements-traceability"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "EA-AES-004",
+  "name": "Testing & Quality Assurance",
+  "practice": "Enterprise Applications",
+  "subPractice": "Application Evolution Services",
+  "description": "End-to-end testing strategy, test automation, performance testing, and UAT management for enterprise applications.",
+  "agents": [
+   "erp-test-lead",
+   "erp-test-automation"
+  ],
+  "workflows": [],
+  "skills": [
+   "testing-validation"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "IG-CD-001",
+  "name": "Data Modernization & Engineering",
+  "practice": "Investment & Growth",
+  "subPractice": "Cloud, Data and AI",
+  "description": "Data platform modernization, lakehouse architecture, ETL/ELT pipelines, and data warehouse optimization.",
+  "agents": [
+   "si-data-architect",
+   "databricks-pipeline-agent"
+  ],
+  "workflows": [
+   "data-conversion"
+  ],
+  "skills": [
+   "data-modeling",
+   "data-migration"
+  ],
+  "coverage": "full"
+ },
+ {
+  "code": "IG-CD-002",
+  "name": "Data Strategy, MDM & Governance",
+  "practice": "Investment & Growth",
+  "subPractice": "Cloud, Data and AI",
+  "description": "Enterprise data strategy, master data management, data quality, and governance frameworks.",
+  "agents": [
+   "si-data-architect",
+   "si-data-analytics-lead",
+   "bcar-data-governance"
+  ],
+  "workflows": [],
+  "skills": [
+   "master-data-management",
+   "data-modeling"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "IG-CD-003",
+  "name": "AI-Driven Automation & Cognitive Solutions",
+  "practice": "Investment & Growth",
+  "subPractice": "Cloud, Data and AI",
+  "description": "Design and development of AI/ML solutions including predictive models, NLP, computer vision, and intelligent automation.",
+  "agents": [
+   "data-automation",
+   "deep-researcher"
+  ],
+  "workflows": [],
+  "skills": [],
+  "coverage": "partial"
+ },
+ {
+  "code": "IG-CD-004",
+  "name": "Cloud Infrastructure & Migration",
+  "practice": "Investment & Growth",
+  "subPractice": "Cloud, Data and AI",
+  "description": "Cloud strategy, infrastructure design, workload migration, and multi-cloud/hybrid architecture on AWS, Azure, and GCP.",
+  "agents": [
+   "devops-connector",
+   "solution-architect"
+  ],
+  "workflows": [],
+  "skills": [
+   "deployment-golive",
+   "disaster-recovery"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "IG-CD-005",
+  "name": "Analytics & Business Intelligence",
+  "practice": "Investment & Growth",
+  "subPractice": "Cloud, Data and AI",
+  "description": "BI strategy, dashboard design, self-service analytics, and embedded analytics for enterprise reporting.",
+  "agents": [
+   "si-data-analytics-lead",
+   "capital-analytics"
+  ],
+  "workflows": [],
+  "skills": [
+   "reports-dashboards"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "IG-TS-001",
+  "name": "Digital Transformation Strategy",
+  "practice": "Investment & Growth",
+  "subPractice": "Technology Strategy",
+  "description": "Enterprise digital strategy, technology roadmap, IT operating model, and digital maturity assessment.",
+  "agents": [
+   "transformation-diagnostician",
+   "solution-architect"
+  ],
+  "workflows": [],
+  "skills": [],
+  "coverage": "partial"
+ },
+ {
+  "code": "IG-TS-002",
+  "name": "IT Operating Model Design",
+  "practice": "Investment & Growth",
+  "subPractice": "Technology Strategy",
+  "description": "Design target IT operating model including shared services, CoEs, governance, and vendor management.",
+  "agents": [
+   "transformation-diagnostician"
+  ],
+  "workflows": [],
+  "skills": [],
+  "coverage": "partial"
+ },
+ {
+  "code": "IG-TS-003",
+  "name": "Cybersecurity & Risk",
+  "practice": "Investment & Growth",
+  "subPractice": "Technology Strategy",
+  "description": "Cybersecurity strategy, risk assessment, identity management, and security architecture design.",
+  "agents": [
+   "security-forensics",
+   "si-security-controls-lead"
+  ],
+  "workflows": [],
+  "skills": [
+   "security-roles"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "IG-MS-001",
+  "name": "Dynamics 365 Finance & Operations",
+  "practice": "Investment & Growth",
+  "subPractice": "Microsoft",
+  "description": "Microsoft Dynamics 365 F&O implementation for finance, supply chain, manufacturing, and HR.",
+  "agents": [
+   "dynamics365-specialist"
+  ],
+  "workflows": [],
+  "skills": [
+   "general-ledger",
+   "accounts-payable",
+   "procurement"
+  ],
+  "coverage": "partial"
+ },
+ {
+  "code": "IG-MS-002",
+  "name": "Microsoft Power Platform",
+  "practice": "Investment & Growth",
+  "subPractice": "Microsoft",
+  "description": "Power Apps, Power Automate, Power BI, and Power Virtual Agents for citizen development and automation.",
+  "agents": [],
+  "workflows": [],
+  "skills": [],
+  "coverage": "gap"
+ },
+ {
+  "code": "IG-MS-003",
+  "name": "Microsoft 365 & Collaboration",
+  "practice": "Investment & Growth",
+  "subPractice": "Microsoft",
+  "description": "Microsoft 365 deployment, Teams governance, SharePoint strategy, and Copilot enablement.",
+  "agents": [],
+  "workflows": [],
+  "skills": [],
+  "coverage": "gap"
+ },
+ {
+  "code": "IG-IN-001",
+  "name": "Financial Services — OSFI & Capital Reporting",
+  "practice": "Investment & Growth",
+  "subPractice": "Industry Solutions",
+  "description": "OSFI BCAR, IFRS 9/17, Basel III/IV capital adequacy reporting, stress testing, and regulatory compliance for Canadian FIs.",
+  "agents": [
+   "osfi-bcar-master",
+   "osfi-regulatory-monitor",
+   "capital-calculation-engine",
+   "irb-expected-loss",
+   "market-risk-frtb",
+   "oprisk-sma",
+   "stress-testing",
+   "bcar-submission-quality",
+   "financial-services-specialist"
+  ],
+  "workflows": [
+   "bcar-capital-reporting",
+   "pillar-3-disclosure"
+  ],
+  "skills": [],
+  "coverage": "full"
+ },
+ {
+  "code": "IG-IN-002",
+  "name": "Public Sector — Municipal & Government Finance",
+  "practice": "Investment & Growth",
+  "subPractice": "Industry Solutions",
+  "description": "PSAB-compliant fund accounting, grants management, capital project tracking, and public sector ERP for municipalities.",
+  "agents": [
+   "public-sector-finance-lead",
+   "grants-management-specialist",
+   "municipal-erp-specialist"
+  ],
+  "workflows": [],
+  "skills": [],
+  "coverage": "partial"
+ },
+ {
+  "code": "IG-IN-003",
+  "name": "Public Sector — Higher Education",
+  "practice": "Investment & Growth",
+  "subPractice": "Industry Solutions",
+  "description": "University finance and HR systems: fund accounting, research grants, student financial services, and GASB compliance.",
+  "agents": [
+   "higher-education-specialist",
+   "grants-management-specialist",
+   "public-sector-finance-lead"
+  ],
+  "workflows": [],
+  "skills": [],
+  "coverage": "partial"
+ },
+ {
+  "code": "IG-IN-004",
+  "name": "Public Sector — Healthcare Finance",
+  "practice": "Investment & Growth",
+  "subPractice": "Industry Solutions",
+  "description": "Healthcare finance transformation: patient revenue cycle, cost accounting, regulatory reporting, and MIS compliance.",
+  "agents": [
+   "healthcare-finance-specialist",
+   "public-sector-finance-lead"
+  ],
+  "workflows": [],
+  "skills": [],
+  "coverage": "partial"
+ },
+ {
+  "code": "IG-IN-005",
+  "name": "Financial Services — Banking Technology",
+  "practice": "Investment & Growth",
+  "subPractice": "Industry Solutions",
+  "description": "Banking technology transformation: SAP Bank Analyzer, core banking modernization, and regulatory technology.",
+  "agents": [
+   "sap-bank-analyzer-lead",
+   "sap-bca-specialist",
+   "financial-services-specialist"
+  ],
+  "workflows": [
+   "sap-bank-analyzer"
+  ],
+  "skills": [],
+  "coverage": "full"
+ },
+ {
+  "code": "IG-MA-001",
+  "name": "M&A Finance Integration",
+  "practice": "Investment & Growth",
+  "subPractice": "Deals & M&A Finance",
+  "description": "Post-merger finance integration: Day 1 readiness, chart of accounts harmonization, system consolidation, and TSA exit.",
+  "agents": [
+   "ma-day1-readiness-lead",
+   "ma-day2-finance-integration-lead",
+   "ma-synergy-value-architect",
+   "ma-tsa-standalone-finance-lead"
+  ],
+  "workflows": [
+   "ma-finance-transformation"
+  ],
+  "skills": [],
+  "coverage": "full"
+ },
+ {
+  "code": "IG-MA-002",
+  "name": "Financial Due Diligence",
+  "practice": "Investment & Growth",
+  "subPractice": "Deals & M&A Finance",
+  "description": "Buy-side and sell-side financial due diligence, quality of earnings, and working capital analysis.",
+  "agents": [
+   "ma-financial-due-diligence-lead",
+   "ma-due-diligence-agent",
+   "ma-purchase-price-allocation-lead"
+  ],
+  "workflows": [
+   "ma-due-diligence"
+  ],
+  "skills": [],
+  "coverage": "full"
+ },
+ {
+  "code": "IG-MA-003",
+  "name": "Carve-Out & Separation",
+  "practice": "Investment & Growth",
+  "subPractice": "Deals & M&A Finance",
+  "description": "Financial carve-out planning, standalone cost analysis, separation of shared services, and Day 1 standalone readiness.",
+  "agents": [
+   "ma-carve-out-finance-lead",
+   "ma-tsa-standalone-finance-lead"
+  ],
+  "workflows": [
+   "ma-finance-transformation"
+  ],
+  "skills": [],
+  "coverage": "full"
+ }
+]

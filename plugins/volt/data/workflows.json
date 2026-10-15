@@ -1,0 +1,1715 @@
+[
+ {
+  "id": "finance-assessment",
+  "name": "Finance Function Assessment",
+  "description": "Full current-state assessment with APQC benchmarks, gap analysis, and recommendations.",
+  "agents": [
+   "apqc-researcher",
+   "si-finance-process-lead",
+   "internal-audit-agent",
+   "accounting-policy-engine",
+   "esg-reporting-agent",
+   "financial-modeling-agent",
+   "creative-designer",
+   "fact-check-agent"
+  ],
+  "phases": [
+   {
+    "name": "Current State",
+    "agents": [
+     "apqc-researcher",
+     "si-finance-process-lead",
+     "internal-audit-agent"
+    ]
+   },
+   {
+    "name": "Gap Analysis",
+    "agents": [
+     "apqc-researcher",
+     "accounting-policy-engine",
+     "esg-reporting-agent"
+    ]
+   },
+   {
+    "name": "Recommendations",
+    "agents": [
+     "financial-modeling-agent",
+     "si-finance-process-lead"
+    ]
+   },
+   {
+    "name": "Executive Report",
+    "agents": [
+     "creative-designer",
+     "fact-check-agent"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "erp-implementation",
+  "name": "ERP Implementation",
+  "description": "Full ERP implementation support across all SI workstreams.",
+  "agents": [
+   "rudra",
+   "coa-designer",
+   "si-finance-process-lead",
+   "si-functional-lead",
+   "si-data-architect",
+   "si-integration-lead",
+   "si-security-controls-lead",
+   "si-change-management-lead",
+   "si-data-analytics-lead",
+   "apqc-researcher"
+  ],
+  "phases": [
+   {
+    "name": "Discovery",
+    "agents": [
+     "apqc-researcher",
+     "si-finance-process-lead",
+     "si-data-architect"
+    ]
+   },
+   {
+    "name": "Design",
+    "agents": [
+     "coa-designer",
+     "si-functional-lead",
+     "si-integration-lead",
+     "si-security-controls-lead"
+    ]
+   },
+   {
+    "name": "Build & Test",
+    "agents": [
+     "si-functional-lead",
+     "si-data-architect",
+     "si-integration-lead",
+     "si-data-analytics-lead"
+    ]
+   },
+   {
+    "name": "Deploy",
+    "agents": [
+     "si-change-management-lead",
+     "internal-audit-agent",
+     "apqc-researcher"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "ma-due-diligence",
+  "name": "M&A Due Diligence",
+  "description": "Buy-side/sell-side due diligence with QoE, valuation, and integration planning.",
+  "agents": [
+   "ma-due-diligence-agent",
+   "financial-modeling-agent",
+   "revenue-recognition-agent",
+   "tax-accounting-agent",
+   "treasury-management-agent",
+   "consolidation-reporting-agent",
+   "coa-designer",
+   "creative-designer",
+   "fact-check-agent"
+  ],
+  "phases": [
+   {
+    "name": "Scoping",
+    "agents": [
+     "ma-due-diligence-agent",
+     "financial-modeling-agent"
+    ]
+   },
+   {
+    "name": "Financial Analysis",
+    "agents": [
+     "ma-due-diligence-agent",
+     "revenue-recognition-agent",
+     "tax-accounting-agent",
+     "treasury-management-agent"
+    ]
+   },
+   {
+    "name": "Integration Plan",
+    "agents": [
+     "consolidation-reporting-agent",
+     "coa-designer"
+    ]
+   },
+   {
+    "name": "Report",
+    "agents": [
+     "creative-designer",
+     "fact-check-agent"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "implementation-mobilization",
+  "name": "Implementation Mobilization",
+  "description": "Project mobilization: charter, governance, policy review, workshop planning.",
+  "agents": [
+   "pmo-tracker",
+   "project-knowledge-base",
+   "policy-harmonization",
+   "workshop-facilitator",
+   "si-finance-process-lead",
+   "si-functional-lead",
+   "data-safeguard",
+   "apqc-researcher",
+   "creative-designer",
+   "fact-check-agent"
+  ],
+  "phases": [
+   {
+    "name": "Project Planning & Mobilization",
+    "agents": [
+     "pmo-tracker",
+     "project-knowledge-base",
+     "data-safeguard"
+    ]
+   },
+   {
+    "name": "Requirements & Policy Gathering",
+    "agents": [
+     "policy-harmonization",
+     "project-knowledge-base",
+     "si-finance-process-lead",
+     "apqc-researcher"
+    ]
+   },
+   {
+    "name": "Design Workshop Planning",
+    "agents": [
+     "workshop-facilitator",
+     "si-functional-lead",
+     "creative-designer"
+    ]
+   },
+   {
+    "name": "Quality Assurance & Delivery",
+    "agents": [
+     "fact-check-agent",
+     "data-safeguard",
+     "pmo-tracker"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "oracle-erp-cloud",
+  "name": "Oracle ERP Cloud Implementation",
+  "description": "End-to-end Oracle Fusion ERP Cloud implementation with AI-assisted configuration.",
+  "agents": [
+   "oracle-erp-configurator",
+   "oracle-scm-configurator",
+   "oracle-hcm-configurator",
+   "erp-data-loader",
+   "erp-test-automation",
+   "si-functional-lead",
+   "si-integration-lead",
+   "si-security-controls-lead",
+   "si-data-architect",
+   "oracle-config-agent",
+   "si-change-management-lead"
+  ],
+  "phases": [
+   {
+    "name": "Discovery & Setup Tasks",
+    "agents": [
+     "oracle-erp-configurator",
+     "si-functional-lead",
+     "apqc-researcher"
+    ]
+   },
+   {
+    "name": "Configure & Build",
+    "agents": [
+     "oracle-erp-configurator",
+     "oracle-scm-configurator",
+     "oracle-hcm-configurator",
+     "oracle-config-agent"
+    ]
+   },
+   {
+    "name": "Data Migration",
+    "agents": [
+     "erp-data-loader",
+     "si-data-architect"
+    ]
+   },
+   {
+    "name": "Test & Validate",
+    "agents": [
+     "erp-test-automation",
+     "si-security-controls-lead"
+    ]
+   },
+   {
+    "name": "Deploy & Cutover",
+    "agents": [
+     "si-integration-lead",
+     "si-change-management-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "data-conversion",
+  "name": "Data Conversion & Migration",
+  "description": "Legacy GL balances, current-year transactions, COA mapping, reconciliation.",
+  "agents": [
+   "erp-data-loader",
+   "coa-designer",
+   "si-data-architect",
+   "consolidation-reporting-agent",
+   "accounting-policy-engine",
+   "erp-test-automation",
+   "fact-check-agent"
+  ],
+  "phases": [
+   {
+    "name": "Legacy Data Extraction & Profiling",
+    "agents": [
+     "si-data-architect",
+     "erp-data-loader"
+    ]
+   },
+   {
+    "name": "COA Mapping & Transformation Rules",
+    "agents": [
+     "coa-designer",
+     "accounting-policy-engine"
+    ]
+   },
+   {
+    "name": "GL Balance Migration (2-Year + Current)",
+    "agents": [
+     "erp-data-loader",
+     "consolidation-reporting-agent"
+    ]
+   },
+   {
+    "name": "Reconciliation & Validation",
+    "agents": [
+     "erp-test-automation",
+     "fact-check-agent"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "organizational-readiness",
+  "name": "Organizational Readiness & Training",
+  "description": "Change management, SOPs, training manuals, learning paths, adoption tracking.",
+  "agents": [
+   "ocm-accelerator",
+   "sop-generator",
+   "training-content-builder",
+   "learning-path-designer",
+   "si-change-management-lead",
+   "creative-designer"
+  ],
+  "phases": [
+   {
+    "name": "Change Impact Assessment",
+    "agents": [
+     "ocm-accelerator",
+     "si-change-management-lead"
+    ]
+   },
+   {
+    "name": "SOP & Process Documentation",
+    "agents": [
+     "sop-generator",
+     "process-flow"
+    ]
+   },
+   {
+    "name": "Training Content Development",
+    "agents": [
+     "training-content-builder",
+     "creative-designer"
+    ]
+   },
+   {
+    "name": "Learning Path & Adoption",
+    "agents": [
+     "learning-path-designer",
+     "ocm-accelerator"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "close-optimization",
+  "name": "Finance Close Optimization",
+  "description": "Reduce close cycle — diagnosis, target model, implementation roadmap.",
+  "agents": [
+   "apqc-researcher",
+   "consolidation-reporting-agent",
+   "si-finance-process-lead",
+   "accounting-hub-architect",
+   "coa-designer",
+   "si-functional-lead",
+   "financial-modeling-agent",
+   "creative-designer"
+  ],
+  "phases": [
+   {
+    "name": "Diagnosis",
+    "agents": [
+     "apqc-researcher",
+     "consolidation-reporting-agent",
+     "si-finance-process-lead"
+    ]
+   },
+   {
+    "name": "Target Model",
+    "agents": [
+     "accounting-hub-architect",
+     "coa-designer",
+     "si-functional-lead"
+    ]
+   },
+   {
+    "name": "Roadmap",
+    "agents": [
+     "financial-modeling-agent",
+     "si-change-management-lead"
+    ]
+   },
+   {
+    "name": "Deliverable",
+    "agents": [
+     "creative-designer",
+     "fact-check-agent"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "pillar-3-disclosure",
+  "name": "Pillar 3 Disclosure & Reporting",
+  "description": "OSFI Pillar 3 enhanced disclosure — KM1, CC1, OV1, CR, MR, OR templates and narrative.",
+  "agents": [
+   "osfi-bcar-master",
+   "capital-analytics",
+   "bcar-submission-quality",
+   "capital-calculation-engine",
+   "irb-expected-loss",
+   "market-risk-frtb",
+   "oprisk-sma",
+   "creative-designer"
+  ],
+  "phases": [
+   {
+    "name": "Data Aggregation & Validation",
+    "agents": [
+     "capital-calculation-engine",
+     "irb-expected-loss",
+     "market-risk-frtb",
+     "oprisk-sma"
+    ]
+   },
+   {
+    "name": "Template Population",
+    "agents": [
+     "osfi-bcar-master",
+     "capital-analytics"
+    ]
+   },
+   {
+    "name": "Narrative & Visualization",
+    "agents": [
+     "capital-analytics",
+     "creative-designer"
+    ]
+   },
+   {
+    "name": "Quality Assurance & Publication",
+    "agents": [
+     "bcar-submission-quality",
+     "osfi-bcar-master"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "bcar-capital-reporting",
+  "name": "BCAR Capital Adequacy Reporting",
+  "description": "End-to-end OSFI BCAR capital reporting — GL extraction to D-SIB submission.",
+  "agents": [
+   "osfi-bcar-master",
+   "gl-capital-reconciliation",
+   "capital-calculation-engine",
+   "irb-expected-loss",
+   "market-risk-frtb",
+   "oprisk-sma",
+   "capital-analytics",
+   "bcar-submission-quality",
+   "stress-testing",
+   "bcar-data-governance",
+   "osfi-regulatory-monitor"
+  ],
+  "phases": [
+   {
+    "name": "Data Extraction & Reconciliation",
+    "agents": [
+     "gl-capital-reconciliation",
+     "bcar-data-governance",
+     "osfi-regulatory-monitor"
+    ]
+   },
+   {
+    "name": "Capital Calculation & RWA",
+    "agents": [
+     "capital-calculation-engine",
+     "irb-expected-loss",
+     "market-risk-frtb",
+     "oprisk-sma"
+    ]
+   },
+   {
+    "name": "Analytics & Stress Testing",
+    "agents": [
+     "capital-analytics",
+     "stress-testing"
+    ]
+   },
+   {
+    "name": "Submission & QC",
+    "agents": [
+     "bcar-submission-quality",
+     "osfi-bcar-master"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "client-deliverable",
+  "name": "Client Deliverable Production",
+  "description": "End-to-end deliverable creation — research, draft, design, format, export.",
+  "agents": [
+   "deep-researcher",
+   "comms-writer",
+   "creative-studio",
+   "document-factory",
+   "fact-check-agent"
+  ],
+  "phases": [
+   {
+    "name": "Research & Analysis",
+    "agents": [
+     "deep-researcher",
+     "comms-writer"
+    ]
+   },
+   {
+    "name": "Content Drafting",
+    "agents": [
+     "comms-writer",
+     "fact-check-agent"
+    ]
+   },
+   {
+    "name": "Visual Design",
+    "agents": [
+     "creative-studio"
+    ]
+   },
+   {
+    "name": "Document Assembly & Export",
+    "agents": [
+     "document-factory",
+     "fact-check-agent"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "consulting-ops",
+  "name": "Consulting Operations Automation",
+  "description": "Automate engagement ops — CRM updates, PM sync, comms, document distribution.",
+  "agents": [
+   "crm-connector",
+   "pm-connector",
+   "comms-connector",
+   "ops-connector",
+   "pmo-tracker"
+  ],
+  "phases": [
+   {
+    "name": "Client & Pipeline Update",
+    "agents": [
+     "crm-connector"
+    ]
+   },
+   {
+    "name": "Project Tracking Sync",
+    "agents": [
+     "pm-connector",
+     "pmo-tracker"
+    ]
+   },
+   {
+    "name": "Team Communication",
+    "agents": [
+     "comms-connector"
+    ]
+   },
+   {
+    "name": "Document & Calendar Ops",
+    "agents": [
+     "ops-connector"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "platform-dev-sprint",
+  "name": "Platform Development Sprint",
+  "description": "VOLT platform development — design, build, test, deploy, monitor.",
+  "agents": [
+   "dev-toolkit",
+   "devops-connector",
+   "security-forensics",
+   "data-automation"
+  ],
+  "phases": [
+   {
+    "name": "Architecture & Design",
+    "agents": [
+     "dev-toolkit"
+    ]
+   },
+   {
+    "name": "Build & Test",
+    "agents": [
+     "dev-toolkit",
+     "data-automation"
+    ]
+   },
+   {
+    "name": "Security Review",
+    "agents": [
+     "security-forensics"
+    ]
+   },
+   {
+    "name": "Deploy & Monitor",
+    "agents": [
+     "devops-connector"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "competitive-intel",
+  "name": "Competitive Intelligence Brief",
+  "description": "Research competitors, analyze market position, produce branded intel report.",
+  "agents": [
+   "deep-researcher",
+   "data-automation",
+   "comms-writer",
+   "creative-studio",
+   "document-factory"
+  ],
+  "phases": [
+   {
+    "name": "Data Gathering",
+    "agents": [
+     "deep-researcher",
+     "data-automation"
+    ]
+   },
+   {
+    "name": "Analysis & Synthesis",
+    "agents": [
+     "deep-researcher",
+     "comms-writer"
+    ]
+   },
+   {
+    "name": "Report Design & Export",
+    "agents": [
+     "creative-studio",
+     "document-factory"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "sap-s4hana-implementation",
+  "name": "SAP S/4HANA Implementation",
+  "description": "Full SAP S/4HANA implementation across FI/CO, MM, SD, Basis, PP/PM, EWM/TM.",
+  "agents": [
+   "sap-fico-specialist",
+   "sap-mm-sd-specialist",
+   "sap-basis-architect",
+   "sap-pp-pm-specialist",
+   "sap-ewm-tm-specialist",
+   "erp-test-lead",
+   "erp-data-migration-lead",
+   "erp-cutover-go-live-lead",
+   "erp-solution-architect"
+  ],
+  "phases": [
+   {
+    "name": "Discovery & Architecture",
+    "agents": [
+     "erp-solution-architect",
+     "sap-basis-architect",
+     "transformation-diagnostician"
+    ]
+   },
+   {
+    "name": "Configure & Build",
+    "agents": [
+     "sap-fico-specialist",
+     "sap-mm-sd-specialist",
+     "sap-pp-pm-specialist",
+     "sap-ewm-tm-specialist"
+    ]
+   },
+   {
+    "name": "Data Migration & Test",
+    "agents": [
+     "erp-data-migration-lead",
+     "erp-test-lead"
+    ]
+   },
+   {
+    "name": "Cutover & Go-Live",
+    "agents": [
+     "erp-cutover-go-live-lead",
+     "sap-basis-architect"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "oracle-epm-implementation",
+  "name": "Oracle EPM Cloud Implementation",
+  "description": "Full Oracle EPM suite — PBCS, FCCS, ARCS, EDMCS, Narrative Reporting, PCM.",
+  "agents": [
+   "oracle-pbcs-epbcs-lead",
+   "oracle-fccs-lead",
+   "oracle-arcs-lead",
+   "oracle-edmcs-lead",
+   "oracle-narrative-reporting-lead",
+   "oracle-pcm-lead"
+  ],
+  "phases": [
+   {
+    "name": "Planning & Budgeting",
+    "agents": [
+     "oracle-pbcs-epbcs-lead"
+    ]
+   },
+   {
+    "name": "Consolidation & Close",
+    "agents": [
+     "oracle-fccs-lead",
+     "oracle-arcs-lead"
+    ]
+   },
+   {
+    "name": "Data Governance & Reporting",
+    "agents": [
+     "oracle-edmcs-lead",
+     "oracle-narrative-reporting-lead"
+    ]
+   },
+   {
+    "name": "Profitability & Cost Mgmt",
+    "agents": [
+     "oracle-pcm-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "ma-finance-transformation",
+  "name": "M&A Finance Transformation",
+  "description": "Complete M&A finance lifecycle — due diligence, Day 1, Day 2, carve-out, TSA.",
+  "agents": [
+   "ma-financial-due-diligence-lead",
+   "ma-purchase-price-allocation-lead",
+   "ma-day1-readiness-lead",
+   "ma-day2-finance-integration-lead",
+   "ma-synergy-value-architect",
+   "ma-carve-out-finance-lead",
+   "ma-tsa-standalone-finance-lead"
+  ],
+  "phases": [
+   {
+    "name": "Pre-Close Due Diligence",
+    "agents": [
+     "ma-financial-due-diligence-lead",
+     "ma-synergy-value-architect"
+    ]
+   },
+   {
+    "name": "Close & PPA",
+    "agents": [
+     "ma-purchase-price-allocation-lead",
+     "ma-day1-readiness-lead"
+    ]
+   },
+   {
+    "name": "Post-Close Integration",
+    "agents": [
+     "ma-day2-finance-integration-lead",
+     "ma-tsa-standalone-finance-lead"
+    ]
+   },
+   {
+    "name": "Carve-Out (if applicable)",
+    "agents": [
+     "ma-carve-out-finance-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "ai-change-management",
+  "name": "AI-Driven Change Management",
+  "description": "Agentic AI change management — impact assessment, resistance analytics, DAP, learning, measurement.",
+  "agents": [
+   "agentic-change-orchestrator",
+   "change-impact-assessment-lead",
+   "ai-resistance-analytics-lead",
+   "digital-adoption-platform-architect",
+   "ai-learning-experience-architect",
+   "change-measurement-value-lead"
+  ],
+  "phases": [
+   {
+    "name": "Impact Assessment & Design",
+    "agents": [
+     "agentic-change-orchestrator",
+     "change-impact-assessment-lead"
+    ]
+   },
+   {
+    "name": "Resistance Management",
+    "agents": [
+     "ai-resistance-analytics-lead"
+    ]
+   },
+   {
+    "name": "Digital Adoption & Learning",
+    "agents": [
+     "digital-adoption-platform-architect",
+     "ai-learning-experience-architect"
+    ]
+   },
+   {
+    "name": "Measurement & Value",
+    "agents": [
+     "change-measurement-value-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "erp-platform-selection",
+  "name": "ERP/EPM Platform Selection",
+  "description": "Vendor evaluation — Oracle vs. SAP vs. Workday vs. D365 vs. NetSuite.",
+  "agents": [
+   "solution-architect",
+   "transformation-diagnostician",
+   "oracle-gl-specialist",
+   "sap-fico-specialist",
+   "workday-financials-specialist",
+   "dynamics365-specialist",
+   "netsuite-specialist",
+   "oracle-pbcs-epbcs-lead",
+   "onestream-specialist",
+   "anaplan-specialist"
+  ],
+  "phases": [
+   {
+    "name": "Maturity Assessment",
+    "agents": [
+     "transformation-diagnostician"
+    ]
+   },
+   {
+    "name": "Requirements & Architecture",
+    "agents": [
+     "solution-architect"
+    ]
+   },
+   {
+    "name": "ERP Vendor Evaluation",
+    "agents": [
+     "oracle-gl-specialist",
+     "sap-fico-specialist",
+     "workday-financials-specialist",
+     "dynamics365-specialist",
+     "netsuite-specialist"
+    ]
+   },
+   {
+    "name": "EPM Vendor Evaluation",
+    "agents": [
+     "oracle-pbcs-epbcs-lead",
+     "onestream-specialist",
+     "anaplan-specialist"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "epm-specialty-planning",
+  "name": "Workforce & Capital Planning",
+  "description": "Specialized EPM — workforce headcount planning and capital expenditure management.",
+  "agents": [
+   "epm-workforce-planning-lead",
+   "epm-capital-planning-lead",
+   "oracle-pbcs-epbcs-lead",
+   "financial-modeling-agent"
+  ],
+  "phases": [
+   {
+    "name": "Workforce Planning",
+    "agents": [
+     "epm-workforce-planning-lead",
+     "oracle-pbcs-epbcs-lead"
+    ]
+   },
+   {
+    "name": "Capital Planning & NPV",
+    "agents": [
+     "epm-capital-planning-lead",
+     "financial-modeling-agent"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "hire-to-retire",
+  "name": "Hire to Retire",
+  "description": "Full employee lifecycle — recruitment, onboarding, performance, development, offboarding.",
+  "agents": [
+   "sap-sf-core-hr-lead",
+   "sap-sf-recruiting-lead",
+   "sap-sf-performance-lead",
+   "sap-sf-compensation-lead",
+   "sap-sf-learning-lead",
+   "sap-sf-succession-lead",
+   "job-architecture-lead",
+   "ocm-accelerator"
+  ],
+  "phases": [
+   {
+    "name": "Workforce Planning & Job Architecture",
+    "agents": [
+     "job-architecture-lead",
+     "sap-sf-core-hr-lead"
+    ]
+   },
+   {
+    "name": "Talent Acquisition & Onboarding",
+    "agents": [
+     "sap-sf-recruiting-lead",
+     "ocm-accelerator"
+    ]
+   },
+   {
+    "name": "Performance & Development",
+    "agents": [
+     "sap-sf-performance-lead",
+     "sap-sf-learning-lead"
+    ]
+   },
+   {
+    "name": "Compensation & Rewards",
+    "agents": [
+     "sap-sf-compensation-lead"
+    ]
+   },
+   {
+    "name": "Succession & Career Planning",
+    "agents": [
+     "sap-sf-succession-lead"
+    ]
+   },
+   {
+    "name": "Separation & Offboarding",
+    "agents": [
+     "sap-sf-core-hr-lead",
+     "ocm-accelerator"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "payroll-to-gl",
+  "name": "Payroll to General Ledger",
+  "description": "End-to-end payroll processing and GL integration — payroll run, costing, reconciliation, posting.",
+  "agents": [
+   "workday-payroll-lead",
+   "oracle-payroll-lead",
+   "sap-fico-specialist",
+   "consolidation-reporting-agent",
+   "erp-test-lead"
+  ],
+  "phases": [
+   {
+    "name": "Payroll Configuration & Rules",
+    "agents": [
+     "workday-payroll-lead",
+     "oracle-payroll-lead"
+    ]
+   },
+   {
+    "name": "Payroll Costing & Account Mapping",
+    "agents": [
+     "sap-fico-specialist",
+     "coa-designer"
+    ]
+   },
+   {
+    "name": "Payroll-GL Reconciliation",
+    "agents": [
+     "consolidation-reporting-agent"
+    ]
+   },
+   {
+    "name": "Testing & Parallel Runs",
+    "agents": [
+     "erp-test-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "job-architecture-design",
+  "name": "Job Architecture Design",
+  "description": "Job families, grading, competency frameworks, career paths, and HRIS mapping.",
+  "agents": [
+   "job-architecture-lead",
+   "sap-sf-core-hr-lead",
+   "workday-hcm-lead",
+   "oracle-hcm-core-lead",
+   "sap-sf-compensation-lead"
+  ],
+  "phases": [
+   {
+    "name": "Current State Assessment",
+    "agents": [
+     "job-architecture-lead"
+    ]
+   },
+   {
+    "name": "Job Family & Level Design",
+    "agents": [
+     "job-architecture-lead"
+    ]
+   },
+   {
+    "name": "Competency Framework",
+    "agents": [
+     "job-architecture-lead",
+     "sap-sf-performance-lead"
+    ]
+   },
+   {
+    "name": "HRIS Configuration & Mapping",
+    "agents": [
+     "sap-sf-core-hr-lead",
+     "workday-hcm-lead",
+     "oracle-hcm-core-lead"
+    ]
+   },
+   {
+    "name": "Compensation Alignment",
+    "agents": [
+     "sap-sf-compensation-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "sap-successfactors-implementation",
+  "name": "SAP SuccessFactors Implementation",
+  "description": "Full SAP SuccessFactors suite — EC, Recruiting, Performance, Compensation, Learning, Succession.",
+  "agents": [
+   "sap-sf-core-hr-lead",
+   "sap-sf-recruiting-lead",
+   "sap-sf-performance-lead",
+   "sap-sf-compensation-lead",
+   "sap-sf-learning-lead",
+   "sap-sf-succession-lead",
+   "sap-sf-workforce-analytics-lead",
+   "sap-basis-architect",
+   "erp-test-lead",
+   "erp-data-migration-lead",
+   "si-change-management-lead"
+  ],
+  "phases": [
+   {
+    "name": "Discovery & Employee Central",
+    "agents": [
+     "sap-sf-core-hr-lead",
+     "sap-basis-architect"
+    ]
+   },
+   {
+    "name": "Talent Management Suite",
+    "agents": [
+     "sap-sf-recruiting-lead",
+     "sap-sf-performance-lead",
+     "sap-sf-succession-lead"
+    ]
+   },
+   {
+    "name": "Compensation & Learning",
+    "agents": [
+     "sap-sf-compensation-lead",
+     "sap-sf-learning-lead"
+    ]
+   },
+   {
+    "name": "Analytics & Reporting",
+    "agents": [
+     "sap-sf-workforce-analytics-lead"
+    ]
+   },
+   {
+    "name": "Data Migration & Testing",
+    "agents": [
+     "erp-data-migration-lead",
+     "erp-test-lead"
+    ]
+   },
+   {
+    "name": "Change Management & Go-Live",
+    "agents": [
+     "si-change-management-lead",
+     "erp-cutover-go-live-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "workday-hcm-implementation",
+  "name": "Workday HCM Implementation",
+  "description": "Full Workday HCM — Core HR, Recruiting, Compensation, Payroll, Learning, Time & Absence.",
+  "agents": [
+   "workday-hcm-lead",
+   "workday-recruiting-lead",
+   "workday-compensation-lead",
+   "workday-payroll-lead",
+   "workday-learning-lead",
+   "workday-absence-time-lead",
+   "erp-test-lead",
+   "erp-data-migration-lead",
+   "si-change-management-lead"
+  ],
+  "phases": [
+   {
+    "name": "Discovery & Core HCM",
+    "agents": [
+     "workday-hcm-lead"
+    ]
+   },
+   {
+    "name": "Recruiting & Onboarding",
+    "agents": [
+     "workday-recruiting-lead"
+    ]
+   },
+   {
+    "name": "Compensation & Payroll",
+    "agents": [
+     "workday-compensation-lead",
+     "workday-payroll-lead"
+    ]
+   },
+   {
+    "name": "Learning & Time/Absence",
+    "agents": [
+     "workday-learning-lead",
+     "workday-absence-time-lead"
+    ]
+   },
+   {
+    "name": "Data Migration & Testing",
+    "agents": [
+     "erp-data-migration-lead",
+     "erp-test-lead"
+    ]
+   },
+   {
+    "name": "Change Management & Go-Live",
+    "agents": [
+     "si-change-management-lead",
+     "erp-cutover-go-live-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "oracle-hcm-implementation",
+  "name": "Oracle HCM Cloud Implementation",
+  "description": "Full Oracle HCM Cloud — Core HR, Recruiting, Talent, Compensation, Payroll, Learning.",
+  "agents": [
+   "oracle-hcm-core-lead",
+   "oracle-recruiting-lead",
+   "oracle-talent-mgmt-lead",
+   "oracle-compensation-lead",
+   "oracle-payroll-lead",
+   "oracle-learning-lead",
+   "erp-test-lead",
+   "erp-data-migration-lead",
+   "si-change-management-lead"
+  ],
+  "phases": [
+   {
+    "name": "Discovery & Core HR",
+    "agents": [
+     "oracle-hcm-core-lead"
+    ]
+   },
+   {
+    "name": "Recruiting & Onboarding",
+    "agents": [
+     "oracle-recruiting-lead"
+    ]
+   },
+   {
+    "name": "Talent & Performance",
+    "agents": [
+     "oracle-talent-mgmt-lead"
+    ]
+   },
+   {
+    "name": "Compensation & Payroll",
+    "agents": [
+     "oracle-compensation-lead",
+     "oracle-payroll-lead"
+    ]
+   },
+   {
+    "name": "Learning & Development",
+    "agents": [
+     "oracle-learning-lead"
+    ]
+   },
+   {
+    "name": "Data Migration & Testing",
+    "agents": [
+     "erp-data-migration-lead",
+     "erp-test-lead"
+    ]
+   },
+   {
+    "name": "Change Management & Go-Live",
+    "agents": [
+     "si-change-management-lead",
+     "erp-cutover-go-live-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "source-to-pay",
+  "name": "Source-to-Pay Transformation",
+  "description": "End-to-end procurement — sourcing, contracting, purchasing, invoicing, payment.",
+  "agents": [
+   "procurement-transformation-lead",
+   "sap-ariba-specialist",
+   "oracle-procurement-specialist",
+   "coupa-specialist",
+   "sap-fico-specialist",
+   "erp-test-lead"
+  ],
+  "phases": [
+   {
+    "name": "Procurement Strategy & Category Mgmt",
+    "agents": [
+     "procurement-transformation-lead"
+    ]
+   },
+   {
+    "name": "Sourcing & Supplier Management",
+    "agents": [
+     "sap-ariba-specialist",
+     "oracle-procurement-specialist"
+    ]
+   },
+   {
+    "name": "Procure-to-Pay Configuration",
+    "agents": [
+     "sap-ariba-specialist",
+     "coupa-specialist"
+    ]
+   },
+   {
+    "name": "AP Integration & Testing",
+    "agents": [
+     "sap-fico-specialist",
+     "erp-test-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "erp-cloud-migration",
+  "name": "ERP Cloud Migration (On-Prem to Cloud)",
+  "description": "Migrate from on-premises ERP (PeopleSoft, JDE, E-Business Suite, legacy SAP) to cloud ERP.",
+  "agents": [
+   "solution-architect",
+   "transformation-diagnostician",
+   "oracle-erp-configurator",
+   "sap-fico-specialist",
+   "workday-financials-specialist",
+   "erp-data-migration-lead",
+   "si-data-architect",
+   "erp-test-lead",
+   "si-change-management-lead"
+  ],
+  "phases": [
+   {
+    "name": "Legacy Assessment & Cloud Readiness",
+    "agents": [
+     "transformation-diagnostician",
+     "solution-architect"
+    ]
+   },
+   {
+    "name": "Target Architecture & Platform Selection",
+    "agents": [
+     "solution-architect",
+     "oracle-erp-configurator",
+     "sap-fico-specialist"
+    ]
+   },
+   {
+    "name": "Data Migration Strategy & Execution",
+    "agents": [
+     "erp-data-migration-lead",
+     "si-data-architect"
+    ]
+   },
+   {
+    "name": "Configuration & Gap Remediation",
+    "agents": [
+     "oracle-erp-configurator",
+     "sap-fico-specialist",
+     "workday-financials-specialist"
+    ]
+   },
+   {
+    "name": "Testing & Parallel Runs",
+    "agents": [
+     "erp-test-lead"
+    ]
+   },
+   {
+    "name": "Cutover & Change Management",
+    "agents": [
+     "si-change-management-lead",
+     "erp-cutover-go-live-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "epm-cloud-migration",
+  "name": "EPM Cloud Migration (Hyperion/Excel to Cloud EPM)",
+  "description": "Migrate from Hyperion Planning/HFM or Excel-based budgeting to Oracle EPM, OneStream, or Anaplan.",
+  "agents": [
+   "oracle-pbcs-epbcs-lead",
+   "oracle-fccs-lead",
+   "onestream-specialist",
+   "anaplan-specialist",
+   "transformation-diagnostician",
+   "financial-modeling-agent",
+   "erp-data-migration-lead",
+   "si-change-management-lead"
+  ],
+  "phases": [
+   {
+    "name": "Current State Assessment (Hyperion/Excel)",
+    "agents": [
+     "transformation-diagnostician",
+     "financial-modeling-agent"
+    ]
+   },
+   {
+    "name": "Target EPM Platform Selection",
+    "agents": [
+     "oracle-pbcs-epbcs-lead",
+     "onestream-specialist",
+     "anaplan-specialist"
+    ]
+   },
+   {
+    "name": "Planning Model Redesign",
+    "agents": [
+     "oracle-pbcs-epbcs-lead",
+     "financial-modeling-agent"
+    ]
+   },
+   {
+    "name": "Data Migration & Integration",
+    "agents": [
+     "erp-data-migration-lead"
+    ]
+   },
+   {
+    "name": "Consolidation & Reporting Setup",
+    "agents": [
+     "oracle-fccs-lead"
+    ]
+   },
+   {
+    "name": "Training & Adoption",
+    "agents": [
+     "si-change-management-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "onestream-fpa",
+  "name": "OneStream FP&A Transformation",
+  "description": "OneStream planning, budgeting and forecasting (PB&F) implementation — blueprint, build (R1: HC/Expense, R2: Allocation/Reports), test, train, go-live.",
+  "agents": [
+   "onestream-specialist",
+   "si-finance-process-lead",
+   "financial-modeling-agent",
+   "coa-designer",
+   "si-data-architect",
+   "erp-data-migration-lead",
+   "erp-test-lead",
+   "si-change-management-lead",
+   "creative-designer",
+   "fact-check-agent"
+  ],
+  "phases": [
+   {
+    "name": "Blueprint Design",
+    "agents": [
+     "onestream-specialist",
+     "si-finance-process-lead",
+     "coa-designer",
+     "si-data-architect"
+    ]
+   },
+   {
+    "name": "Release 1 — Configure & Build (HC, S&B, Expense)",
+    "agents": [
+     "onestream-specialist",
+     "financial-modeling-agent",
+     "coa-designer"
+    ]
+   },
+   {
+    "name": "Release 1 — Data Integration & Go-Live",
+    "agents": [
+     "si-data-architect",
+     "erp-data-migration-lead",
+     "onestream-specialist"
+    ]
+   },
+   {
+    "name": "Release 2 — Configure & Build (Allocation, Reports)",
+    "agents": [
+     "onestream-specialist",
+     "financial-modeling-agent",
+     "creative-designer"
+    ]
+   },
+   {
+    "name": "Testing (SIT & UAT)",
+    "agents": [
+     "erp-test-lead",
+     "fact-check-agent",
+     "onestream-specialist"
+    ]
+   },
+   {
+    "name": "Training, Cutover & Hypercare",
+    "agents": [
+     "si-change-management-lead",
+     "onestream-specialist"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "persona-based-change-management",
+  "name": "Technology-Enabled Change Management",
+  "description": "Persona-based change management with digital adoption, business readiness, and modern learning.",
+  "agents": [
+   "persona-based-change-lead",
+   "business-readiness-lead",
+   "agentic-change-orchestrator",
+   "change-impact-assessment-lead",
+   "digital-adoption-platform-architect",
+   "ai-learning-experience-architect",
+   "change-measurement-value-lead"
+  ],
+  "phases": [
+   {
+    "name": "Persona Discovery & Journey Mapping",
+    "agents": [
+     "persona-based-change-lead",
+     "change-impact-assessment-lead"
+    ]
+   },
+   {
+    "name": "Role-Specific Communication & Training",
+    "agents": [
+     "persona-based-change-lead",
+     "ai-learning-experience-architect"
+    ]
+   },
+   {
+    "name": "Digital Adoption Platform Setup",
+    "agents": [
+     "digital-adoption-platform-architect"
+    ]
+   },
+   {
+    "name": "Business Readiness Assessment",
+    "agents": [
+     "business-readiness-lead"
+    ]
+   },
+   {
+    "name": "Measurement & Continuous Improvement",
+    "agents": [
+     "change-measurement-value-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "sap-bank-analyzer",
+  "name": "SAP Bank Analyzer Implementation",
+  "description": "SAP Bank Analyzer / FSDP — financial instruments, risk analytics, subledger, regulatory reporting.",
+  "agents": [
+   "sap-bank-analyzer-lead",
+   "sap-bca-specialist",
+   "sap-fico-specialist",
+   "sap-basis-architect",
+   "erp-test-lead",
+   "erp-data-migration-lead",
+   "erp-cutover-go-live-lead"
+  ],
+  "phases": [
+   {
+    "name": "Discovery & Architecture",
+    "agents": [
+     "sap-bank-analyzer-lead",
+     "sap-basis-architect"
+    ]
+   },
+   {
+    "name": "Source Data & Instrument Modeling",
+    "agents": [
+     "sap-bank-analyzer-lead",
+     "sap-bca-specialist"
+    ]
+   },
+   {
+    "name": "Subledger & FI Integration",
+    "agents": [
+     "sap-fico-specialist",
+     "sap-bank-analyzer-lead"
+    ]
+   },
+   {
+    "name": "Data Migration & Testing",
+    "agents": [
+     "erp-data-migration-lead",
+     "erp-test-lead"
+    ]
+   },
+   {
+    "name": "Cutover & Go-Live",
+    "agents": [
+     "erp-cutover-go-live-lead",
+     "sap-basis-architect"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "sap-fpsl",
+  "name": "SAP FPSL Implementation",
+  "description": "SAP Financial Products Subledger — IFRS 17, IFRS 9, insurance & financial instrument accounting.",
+  "agents": [
+   "sap-fpsl-lead",
+   "sap-insurance-accounting-specialist",
+   "sap-fico-specialist",
+   "sap-basis-architect",
+   "erp-test-lead",
+   "erp-data-migration-lead",
+   "erp-cutover-go-live-lead"
+  ],
+  "phases": [
+   {
+    "name": "Discovery & IFRS Gap Analysis",
+    "agents": [
+     "sap-fpsl-lead",
+     "sap-insurance-accounting-specialist"
+    ]
+   },
+   {
+    "name": "Data Model & Instrument Setup",
+    "agents": [
+     "sap-fpsl-lead",
+     "sap-basis-architect"
+    ]
+   },
+   {
+    "name": "Accounting Engine Configuration",
+    "agents": [
+     "sap-insurance-accounting-specialist",
+     "sap-fico-specialist"
+    ]
+   },
+   {
+    "name": "Data Migration & Testing",
+    "agents": [
+     "erp-data-migration-lead",
+     "erp-test-lead"
+    ]
+   },
+   {
+    "name": "Cutover & Go-Live",
+    "agents": [
+     "erp-cutover-go-live-lead",
+     "sap-basis-architect"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "sap-concur",
+  "name": "SAP Concur Implementation",
+  "description": "End-to-end SAP Concur — Expense, Travel, Invoice, ERP integration, policy & compliance.",
+  "agents": [
+   "sap-concur-expense-lead",
+   "sap-concur-travel-lead",
+   "sap-concur-invoice-lead",
+   "sap-fico-specialist",
+   "sap-basis-architect",
+   "erp-test-lead",
+   "erp-cutover-go-live-lead"
+  ],
+  "phases": [
+   {
+    "name": "Discovery & Policy Design",
+    "agents": [
+     "sap-concur-expense-lead",
+     "sap-concur-travel-lead",
+     "sap-concur-invoice-lead"
+    ]
+   },
+   {
+    "name": "Expense Configuration",
+    "agents": [
+     "sap-concur-expense-lead"
+    ]
+   },
+   {
+    "name": "Travel & Invoice Setup",
+    "agents": [
+     "sap-concur-travel-lead",
+     "sap-concur-invoice-lead"
+    ]
+   },
+   {
+    "name": "ERP Integration & SSO",
+    "agents": [
+     "sap-fico-specialist",
+     "sap-basis-architect"
+    ]
+   },
+   {
+    "name": "Testing & Go-Live",
+    "agents": [
+     "erp-test-lead",
+     "erp-cutover-go-live-lead"
+    ]
+   }
+  ]
+ },
+ {
+  "id": "finance-ai-strategy",
+  "name": "Finance AI Strategy & Roadmap",
+  "description": "Comprehensive Finance 2.0 AI Strategy — current state diagnostic, Big Rock opportunity mapping, peer benchmarking, AI roadmap, and CFO-ready deliverable for enterprise controllership transformation.",
+  "agents": [
+   "rudra",
+   "apqc-researcher",
+   "si-finance-process-lead",
+   "coa-designer",
+   "consolidation-reporting-agent",
+   "accounting-hub-architect",
+   "financial-modeling-agent",
+   "internal-audit-agent",
+   "si-data-analytics-lead",
+   "creative-designer",
+   "fact-check-agent"
+  ],
+  "phases": [
+   {
+    "name": "Strategic Framing & Current State Diagnostic",
+    "agents": [
+     "rudra",
+     "apqc-researcher",
+     "si-finance-process-lead"
+    ]
+   },
+   {
+    "name": "Big Rock Deep Dives — Close, Reporting, Compensation, Technical Accounting, Governance",
+    "agents": [
+     "consolidation-reporting-agent",
+     "coa-designer",
+     "accounting-hub-architect",
+     "internal-audit-agent"
+    ]
+   },
+   {
+    "name": "FP&A Automation & Regulatory Streamlining",
+    "agents": [
+     "si-finance-process-lead",
+     "si-data-analytics-lead"
+    ]
+   },
+   {
+    "name": "Peer Benchmarking",
+    "agents": [
+     "apqc-researcher",
+     "financial-modeling-agent"
+    ]
+   },
+   {
+    "name": "AI Opportunity Roadmap & Value Case",
+    "agents": [
+     "financial-modeling-agent",
+     "si-finance-process-lead"
+    ]
+   },
+   {
+    "name": "Executive Deliverable Assembly",
+    "agents": [
+     "creative-designer",
+     "fact-check-agent"
+    ]
+   }
+  ]
+ }
+]
