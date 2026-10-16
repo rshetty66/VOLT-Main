@@ -22,6 +22,8 @@ This repository is VOLT-Main: the VOLT finance transformation plugin (`plugins/v
   calling anything done. Do not use ECC's planning or TDD loops alongside it.
 - GSD is installed but off. Switch a project to it only for long, multi-day, multi-file work, and turn Superpowers off
   in that project when you do.
+- Multi-stage work follows the harness rules in `plugins/volt/memory/harness-rules.md` (see `docs/volt/HARNESS.md`);
+  `/volt:harness <task>` runs the full harness.
 
 ### Working on the VOLT plugin
 

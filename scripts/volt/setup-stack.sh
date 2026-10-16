@@ -8,6 +8,7 @@
 #   4. GSD                          NOT installed: enable only for long multi-day work, never with Superpowers
 #   5. Anthropic document skills    document-skills@anthropic-agent-skills
 #   +  VOLT                         volt@volt-main, from this repository's plugins/ marketplace
+#   +  Harness rules                ~/.claude/volt-harness.md, imported from ~/.claude/CLAUDE.md
 #
 # Usage: bash scripts/volt/setup-stack.sh [--dry-run]
 set -euo pipefail
@@ -38,6 +39,9 @@ run claude plugin install andrej-karpathy-skills@karpathy-skills
 run claude plugin install superpowers@claude-plugins-official
 run claude plugin install document-skills@anthropic-agent-skills
 run claude plugin install volt@volt-main
+
+echo "== User memory (harness rules for every project)"
+bash "$REPO/scripts/volt/install-memory.sh" $DRY
 
 echo
 echo "Done. GSD is intentionally not installed; see VOLT_STACK.md before enabling it on a long-running project."

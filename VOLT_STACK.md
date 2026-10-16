@@ -13,6 +13,7 @@ before it was written down (see "How this was verified").
 | 4 | Context engineering (secondary) | [open-gsd/gsd-core](https://github.com/open-gsd/gsd-core) | Plugin `gsd-core@gsd-core` (or `npx @opengsd/gsd-core@latest`, per its README) | Registered but **off**. Enable only for long, multi-day, multi-file work |
 | 5 | Official skills and plugins | [anthropics/skills](https://github.com/anthropics/skills), [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official) | Plugin `document-skills@anthropic-agent-skills` | On. docx, pptx, xlsx and pdf for client deliverables |
 | + | VOLT practice | this repository | Plugin `volt@volt-main` from `plugins/` | On. Agents, workflows, skills, Skill Finder |
+| + | Harness rules | this repository | `scripts/volt/install-memory` imports them into `~/.claude/CLAUDE.md` | On in every project. Full run: `/volt:harness`. See [docs/volt/HARNESS.md](docs/volt/HARNESS.md) |
 
 ## Set it up
 
