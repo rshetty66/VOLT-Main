@@ -88,6 +88,8 @@ export const saveCostSettings = (patch: Partial<CostSettings>) => send<CostSetti
 export const resetCostSettings = (keys: (keyof CostSettings)[]) => send<CostSettingsResponse>("POST", "/api/settings/cost/reset", { keys });
 export const setUserBudget = (id: string, monthlyBudgetUsd: number | null) => send<{ ok: boolean }>("PUT", `/api/users/${id}/budget`, { monthlyBudgetUsd });
 
+export const setEngagementRetention = (id: string, retentionDays: number | null) => send<Engagement>("PATCH", `/api/engagements/${id}`, { retentionDays });
+export const deleteEngagement = (id: string) => send<{ deleted: boolean; runs: number; files: number }>("DELETE", `/api/engagements/${id}`);
 export const setEngagementTemplate = (id: string, templateId: string | null) => send<Engagement>("PATCH", `/api/engagements/${id}`, { templateId });
 
 export interface TemplateForm {

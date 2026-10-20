@@ -10,7 +10,7 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
+import { DEFAULT_PLUGIN_DIR } from "./paths.js";
 
 export interface AgentDef {
   id: string;
@@ -82,8 +82,7 @@ export interface CatalogHealth {
   servicesByCoverage: Record<string, number>;
 }
 
-const here = path.dirname(fileURLToPath(import.meta.url));
-const PLUGIN_DIR = process.env.VOLT_PLUGIN_DIR ?? path.resolve(here, "../../../plugins/volt");
+const PLUGIN_DIR = process.env.VOLT_PLUGIN_DIR ?? DEFAULT_PLUGIN_DIR;
 
 const readJson = <T>(dir: string, rel: string): T => JSON.parse(fs.readFileSync(path.join(dir, rel), "utf8")) as T;
 

@@ -23,6 +23,7 @@ function toEngagement(r: Row): Engagement {
     templateName: r.template_name ?? null,
     ownerId: r.owner_id ?? null,
     ownerName: r.owner_name ?? null,
+    retentionDays: r.retention_days == null ? null : Number(r.retention_days),
     costUsd: Number(r.cost_usd ?? 0),
   };
 }

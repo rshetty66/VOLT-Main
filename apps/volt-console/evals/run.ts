@@ -9,6 +9,9 @@
 import "../server/env.js";
 import { runEvals, writeReport } from "./evals.js";
 
+// Each eval run would log its start and finish; the report says what matters.
+process.env.VOLT_LOG_LEVEL ??= "warn";
+
 const args = process.argv.slice(2);
 const flag = (name: string) => args.includes(`--${name}`);
 const value = (name: string) => {

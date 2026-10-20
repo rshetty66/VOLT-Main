@@ -10,10 +10,11 @@ import { ORCHESTRATOR_LANE, type VoltEvent } from "../shared/events.js";
 import type { RunStatus } from "../shared/records.js";
 import type { Db } from "./db.js";
 import { appendEvents, createRun, finishRun, updateRunUsage, type NewRun, type RunUsage } from "./store.js";
+import { log } from "./log.js";
 
 export interface Recorder {
   emit: (e: VoltEvent) => void;
-  finish: (opts: { aborted: boolean }) => Promise<void>;
+  finish: (opts: { aborted: boolean }) => Promise<{ status: RunStatus; usage: Required<RunUsage> }>;
 }
 
 export async function recordRun(db: Db, run: NewRun, downstream: (e: VoltEvent) => void, flushMs = 1000): Promise<Recorder> {
@@ -39,7 +40,7 @@ export async function recordRun(db: Db, run: NewRun, downstream: (e: VoltEvent) 
         await appendEvents(db, run.id, first, batch);
         if (snapshot) await updateRunUsage(db, run.id, snapshot);
       })
-      .catch((err) => console.error(`Could not save events for run ${run.id}:`, err));
+      .catch((err) => log.error("could not save run events", { runId: run.id, err }));
     return writes;
   };
   const timer = setInterval(flush, flushMs);
@@ -69,6 +70,7 @@ export async function recordRun(db: Db, run: NewRun, downstream: (e: VoltEvent) 
     await flush();
     const status: RunStatus = aborted ? "stopped" : leadError && !finalText ? "error" : "done";
     await finishRun(db, run.id, { status, finalText, error: leadError, ...usage });
+    return { status, usage: { ...usage } };
   };
 
   return { emit, finish };

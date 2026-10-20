@@ -30,9 +30,16 @@
  *   GET  /api/skills/:id           one skill's SKILL.md
  *   POST /api/run                  Server-Sent Events stream of a run (see shared/events.ts). The run
  *                                  continues and is saved if this connection closes; only /stop halts it.
- *   GET  /api/healthz
+ *   GET  /api/healthz              the process is up
+ *   GET  /api/readyz               database, migrations, catalogue and credentials are ready (503 if not)
+ *   DELETE /api/engagements/:id    owner or admin: delete it with its runs and client files
+ *
+ * Every response has an X-Request-Id; changes from other sites are refused (guard.ts),
+ * and requests are rate-limited per user.
  */
+import fs from "node:fs";
 import express, { type Request, type Response } from "express";
+import helmet from "helmet";
 import { z } from "zod";
 import { loadSkillBody, rankSkills, type Catalog } from "./catalog.js";
 import { runLocalTool, schemas, type ContextTool, type ToolName } from "./tools.js";
@@ -84,6 +91,11 @@ import type { User } from "../shared/records.js";
 import { FILE_LIMITS, FileError, addFile, deleteFile, getFile, getFileData, getFileText, listFiles, splitParts } from "./files.js";
 import { DEFAULT_SETTINGS, SettingsPatch, getSettings, resetSettings, updateSettings } from "./settings.js";
 import { budgetBlock, budgetFor, estimateRun, setUserBudget, usageSummary } from "./usage.js";
+import { log } from "./log.js";
+import { allowedOrigins, byIp, byUserOrIp, generalLimit, originCheck, rateLimit, requestLog } from "./guard.js";
+import { MIGRATIONS_DIR } from "./paths.js";
+import { credentialsConfigured } from "./config.js";
+import { BusyError, RETENTION_CHOICES, deleteEngagement, setRetention } from "./retention.js";
 
 export interface AppContext {
   db: Db;
@@ -91,11 +103,40 @@ export interface AppContext {
   mode: RunMode;
 }
 
-const PUBLIC = new Set(["/healthz", "/auth/status", "/auth/login", "/auth/setup"]);
+const PUBLIC = new Set(["/healthz", "/readyz", "/auth/status", "/auth/login", "/auth/setup"]);
 const userOf = (res: Response) => res.locals.user as User;
 
 export function createApp({ db, catalog, mode }: AppContext): express.Express {
   const app = express();
+  app.disable("x-powered-by");
+  // Behind a reverse proxy (A6 docs), set VOLT_TRUST_PROXY=1 so rate limits see client addresses.
+  if (process.env.VOLT_TRUST_PROXY) app.set("trust proxy", Number(process.env.VOLT_TRUST_PROXY) || process.env.VOLT_TRUST_PROXY);
+  app.use(requestLog);
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          scriptSrc: ["'self'"],
+          styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+          fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+          imgSrc: ["'self'", "data:", "blob:"],
+          connectSrc: ["'self'"],
+          objectSrc: ["'none'"],
+          frameAncestors: ["'none'"],
+          baseUri: ["'self'"],
+          formAction: ["'self'"],
+          // Served over plain http on localhost; a proxy that adds TLS can add this itself.
+          upgradeInsecureRequests: null,
+        },
+      },
+      // Local http has no TLS to pin; set HSTS at the TLS proxy instead.
+      strictTransportSecurity: false,
+    }),
+  );
+  app.use("/api", originCheck(allowedOrigins()));
+  // Sign-in and first-run setup: per address, before anyone is known.
+  app.use(["/api/auth/login", "/api/auth/setup"], rateLimit("sign-in", 20, byIp));
   // 2 MB leaves room for a 1 MB template logo sent as base64.
   app.use(express.json({ limit: "2mb" }));
 
@@ -108,6 +149,11 @@ export function createApp({ db, catalog, mode }: AppContext): express.Express {
     res.locals.user = user;
     next();
   });
+
+  // Per person, after sign-in: the API as a whole, and tighter limits on what costs money or space.
+  app.use("/api", rateLimit("api", generalLimit(), byUserOrIp));
+  app.post("/api/run", rateLimit("runs", 20, byUserOrIp));
+  app.post("/api/engagements/:id/files", rateLimit("uploads", 60, byUserOrIp));
 
   /** Ends the request with 403 unless the signed-in user's role allows changes. */
   const requireWriter = (res: Response) => {
@@ -124,6 +170,25 @@ export function createApp({ db, catalog, mode }: AppContext): express.Express {
 
   app.get("/api/healthz", (_req, res) => {
     res.json({ ok: true, mode, model: MODEL, agents: catalog.agents.length });
+  });
+
+  /** Ready to serve: for a process manager or load balancer. Says what is wrong, never secrets. */
+  app.get("/api/readyz", async (_req, res) => {
+    const checks: Record<string, { ok: boolean; detail?: string }> = {};
+    try {
+      await db.query("select 1");
+      checks.database = { ok: true };
+      const files = fs.readdirSync(MIGRATIONS_DIR).filter((f) => f.endsWith(".sql"));
+      const applied = new Set((await db.query<{ name: string }>("select name from schema_migrations")).rows.map((r) => r.name));
+      const missing = files.filter((f) => !applied.has(f));
+      checks.migrations = missing.length ? { ok: false, detail: `not applied: ${missing.join(", ")}` } : { ok: true, detail: `${files.length} applied` };
+    } catch (err) {
+      checks.database = { ok: false, detail: (err as Error).message };
+    }
+    checks.catalog = catalog.agents.length ? { ok: true, detail: `${catalog.agents.length} agents, ${catalog.workflows.length} workflows` } : { ok: false, detail: "no agents loaded" };
+    checks.credentials = mode === "demo" ? { ok: true, detail: "demo mode" } : credentialsConfigured() ? { ok: true } : { ok: false, detail: "live mode without Claude credentials" };
+    const ready = Object.values(checks).every((c) => c.ok);
+    res.status(ready ? 200 : 503).json({ ready, mode, checks });
   });
 
   app.get("/api/auth/status", async (req, res) => {
@@ -346,23 +411,53 @@ export function createApp({ db, catalog, mode }: AppContext): express.Express {
   });
 
   app.patch("/api/engagements/:id", async (req, res) => {
-    const parsed = z.object({ templateId: TemplateRef }).safeParse(req.body);
+    const parsed = z
+      .object({ templateId: TemplateRef.optional(), retentionDays: z.union([z.literal(RETENTION_CHOICES), z.null()]).optional() })
+      .refine((b) => b.templateId !== undefined || b.retentionDays !== undefined, "Nothing to change.")
+      .safeParse(req.body);
     if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
-    if (!(await visibleEngagement(res, req.params.id, "write"))) return;
-    if (parsed.data.templateId && !(await getTemplate(db, parsed.data.templateId))) return void res.status(400).json({ error: "unknown template" });
-    await audit(db, userOf(res).id, "engagement_template_set", { type: "engagement", id: req.params.id }, { templateId: parsed.data.templateId });
-    res.json(await setEngagementTemplate(db, req.params.id, parsed.data.templateId));
+    const { templateId, retentionDays } = parsed.data;
+    if (retentionDays !== undefined) {
+      if (!(await ownerOrAdmin(res, req.params.id, "change how long its data is kept"))) return;
+    } else if (!(await visibleEngagement(res, req.params.id, "write"))) return;
+    if (templateId !== undefined) {
+      if (templateId && !(await getTemplate(db, templateId))) return void res.status(400).json({ error: "unknown template" });
+      await setEngagementTemplate(db, req.params.id, templateId);
+      await audit(db, userOf(res).id, "engagement_template_set", { type: "engagement", id: req.params.id }, { templateId });
+    }
+    if (retentionDays !== undefined) {
+      await setRetention(db, req.params.id, retentionDays);
+      await audit(db, userOf(res).id, "engagement_retention_set", { type: "engagement", id: req.params.id }, { retentionDays });
+    }
+    res.json(await getEngagement(db, req.params.id));
   });
 
-  /** Members are managed by the engagement's owner and by admins. */
-  async function canManageMembers(res: Response, id: string) {
+  /** Deletes the engagement with its runs, client files and members. The owner or an admin. */
+  app.delete("/api/engagements/:id", async (req, res) => {
+    const found = await ownerOrAdmin(res, req.params.id, "delete it");
+    if (!found) return;
+    try {
+      const counts = await deleteEngagement(db, found.engagement.id);
+      await audit(db, userOf(res).id, "engagement_deleted", { type: "engagement", id: found.engagement.id }, { clientName: found.engagement.clientName, title: found.engagement.title, ...counts });
+      log.info("engagement deleted", { reqId: res.locals.reqId, engagementId: found.engagement.id, userId: userOf(res).id, ...counts });
+      res.json({ deleted: true, ...counts });
+    } catch (e) {
+      if (e instanceof BusyError) return void res.status(409).json({ error: e.message });
+      throw e;
+    }
+  });
+
+  /** The engagement, when the caller is its owner (and may write) or an admin; else ends the request. */
+  async function ownerOrAdmin(res: Response, id: string, what: string) {
     const found = await visibleEngagement(res, id, "write");
-    if (!found) return false;
+    if (!found) return null;
     const me = userOf(res);
-    if (me.role === "admin" || found.engagement.ownerId === me.id) return true;
-    res.status(403).json({ error: "Only the engagement's owner or an admin can change its members." });
-    return false;
+    if (me.role === "admin" || found.engagement.ownerId === me.id) return found;
+    res.status(403).json({ error: `Only the engagement's owner or an admin can ${what}.` });
+    return null;
   }
+  /** Members are managed by the engagement's owner and by admins. */
+  const canManageMembers = async (res: Response, id: string) => !!(await ownerOrAdmin(res, id, "change its members"));
 
   app.post("/api/engagements/:id/members", async (req, res) => {
     const parsed = z.object({ userId: z.string().uuid() }).safeParse(req.body);
@@ -430,7 +525,7 @@ export function createApp({ db, catalog, mode }: AppContext): express.Express {
         res.status(201).json(file);
       } catch (e) {
         if (e instanceof FileError) return void res.status(e.status).json({ error: e.message });
-        console.error("Upload failed:", e);
+        log.error("upload failed", { reqId: res.locals.reqId, engagementId: req.params.id, err: e });
         res.status(500).json({ error: "The upload failed; the server log has the details." });
       }
     });
@@ -625,7 +720,7 @@ export function createApp({ db, catalog, mode }: AppContext): express.Express {
       res.setHeader("Content-Disposition", `attachment; filename="${fileStem(run.title, run.startedAt)}.${req.params.format}"`);
       res.send(file);
     } catch (err) {
-      console.error(`Export ${req.params.format} of run ${run.id} failed:`, err);
+      log.error("export failed", { reqId: res.locals.reqId, runId: run.id, format: req.params.format, err });
       res.status(500).type("text/plain").send("The export failed; the server log has the details.");
     }
   });

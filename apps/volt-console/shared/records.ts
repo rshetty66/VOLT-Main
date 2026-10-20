@@ -1,5 +1,5 @@
 /** Saved engagements and runs, as the API returns them. */
-import type { RunKind, RunMode, VoltEvent } from "./events";
+import type { RunKind, RunMode, VoltEvent } from "./events.js";
 
 export interface Engagement {
   id: string;
@@ -15,6 +15,8 @@ export interface Engagement {
   templateName: string | null;
   ownerId: string | null;
   ownerName: string | null;
+  /** Days its runs and client files are kept before they are deleted; null keeps them until deleted by hand. */
+  retentionDays: number | null;
   /** Estimated USD cost of all its runs. */
   costUsd: number;
 }

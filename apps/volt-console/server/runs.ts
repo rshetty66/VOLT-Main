@@ -18,6 +18,7 @@ import { getSettings } from "./settings.js";
 import { loadSession, saveSession } from "./store.js";
 import { budgetFor, budgetGuard } from "./usage.js";
 import type { StoredRun } from "../shared/records.js";
+import { log } from "./log.js";
 
 export interface RunContext {
   db: Db;
@@ -84,7 +85,7 @@ export async function startRun(
       try {
         l(e);
       } catch (err) {
-        console.error(`Run ${runId}: a listener failed:`, err);
+        log.error("a run listener failed", { runId, err });
       }
     }
   };
@@ -111,6 +112,8 @@ export async function startRun(
     }
   };
 
+  const t0 = Date.now();
+  log.info("run started", { runId, kind, workflowId: body.workflowId, agentId: body.agentId, engagementId: body.engagementId, userId: ctx.userId, mode: runMode, resumedFrom: body.resumeFrom, autoResumed: opts.autoResumed || undefined });
   const finished = (async () => {
     emit({ type: "run_start", runId, sessionId: session.id, mode: runMode, model, kind, title: runTitle });
     if (opts.autoResumed) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Resumed automatically: the server restarted while this workflow was running" });
@@ -126,9 +129,10 @@ export async function startRun(
     emit({ type: "done", sessionId: session.id });
     try {
       if (runMode === "live") await saveSession(db, { ...session, userId: ctx.userId });
-      await recorder.finish({ aborted: controller.signal.aborted });
+      const end = await recorder.finish({ aborted: controller.signal.aborted });
+      log.info("run finished", { runId, status: end.status, seconds: Math.round((Date.now() - t0) / 1000), costUsd: Math.round(end.usage.costUsd * 1000) / 1000, inputTokens: end.usage.inputTokens, cacheReadTokens: end.usage.cacheReadTokens, cacheWriteTokens: end.usage.cacheWriteTokens, outputTokens: end.usage.outputTokens });
     } catch (err) {
-      console.error(`Could not save run ${runId}:`, err);
+      log.error("could not save run", { runId, err });
     } finally {
       active.delete(runId);
     }

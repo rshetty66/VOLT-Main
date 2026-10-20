@@ -11,10 +11,11 @@ import type { BudgetStatus, CostSettings, Estimate, UsageSummary } from "../shar
 type Row = Record<string, any>;
 
 
-/** What a person has spent this calendar month (server time), including runs still going. */
+/** What a person has spent this calendar month (server time), including runs still going and runs since deleted. */
 export async function monthSpent(db: Db, userId: string): Promise<number> {
   const { rows } = await db.query<{ usd: number }>(
-    "select coalesce(sum(cost_usd), 0)::float8 as usd from runs where user_id = $1 and started_at >= date_trunc('month', now())",
+    `select (select coalesce(sum(cost_usd), 0) from runs where user_id = $1 and started_at >= date_trunc('month', now()))
+          + (select coalesce(sum(cost_usd), 0) from deleted_spend where user_id = $1 and month = date_trunc('month', now())::date) as usd`,
     [userId],
   );
   return Number(rows[0].usd);
@@ -135,12 +136,17 @@ export async function usageSummary(db: Db, settings: CostSettings, me: { id: str
   const month = "r.started_at >= date_trunc('month', now())";
 
   const total = (await db.query<Row>(`select coalesce(sum(r.cost_usd), 0)::float8 as usd, count(*)::int as n from runs r where ${who} and ${month} and r.mode = 'live'`, args)).rows[0];
+  // Spend from runs deleted since (an engagement deleted, or retention): still counts toward the month.
+  const gone = (
+    await db.query<Row>(`select coalesce(sum(d.cost_usd), 0)::float8 as usd, coalesce(sum(d.runs), 0)::int as n from deleted_spend d where ${who.replace("r.", "d.")} and d.month = date_trunc('month', now())::date`, args)
+  ).rows[0];
 
   const people = everyone
     ? (
         await db.query<Row>(
           `select u.id, u.name, u.email, u.disabled, u.monthly_budget_usd,
-                  coalesce(sum(r.cost_usd) filter (where ${month} and r.mode = 'live'), 0)::float8 as usd,
+                  coalesce(sum(r.cost_usd) filter (where ${month} and r.mode = 'live'), 0)::float8
+                    + (select coalesce(sum(d.cost_usd), 0) from deleted_spend d where d.user_id = u.id and d.month = date_trunc('month', now())::date) as usd,
                   count(r.id) filter (where ${month} and r.mode = 'live')::int as n
            from users u left join runs r on r.user_id = u.id
            group by u.id order by usd desc, lower(u.name)`,
@@ -180,8 +186,8 @@ export async function usageSummary(db: Db, settings: CostSettings, me: { id: str
   return {
     month: new Date().toISOString().slice(0, 7),
     scope: everyone ? "everyone" : "you",
-    monthTotalUsd: roundUsd(Number(total.usd)),
-    monthRuns: total.n,
+    monthTotalUsd: roundUsd(Number(total.usd) + Number(gone.usd)),
+    monthRuns: total.n + gone.n,
     budget: await budgetFor(db, settings, me.id),
     byPerson: people.map((p) => ({
       userId: p.id,

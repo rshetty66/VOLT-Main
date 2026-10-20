@@ -1,6 +1,6 @@
 /**
  * The console in a real browser, in demo mode: sign-in, engagements, client files,
- * templates, workflow runs, Stop and Resume, exports, usage, and a viewer's limits.
+ * templates, workflow runs, Stop and Resume, exports, usage, a viewer's limits, and deletion.
  * One story in order, since each step builds on the last.
  */
 import JSZip from "jszip";
@@ -142,4 +142,19 @@ test("usage and people: the admin adds a viewer, who can read but not run", asyn
   await page.getByRole("cell", { name: CLIENT }).click();
   await expect(page.getByText("view only", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Upload files" })).toHaveCount(0);
+});
+
+test("client data: the owner sets retention, then deletes the engagement", async () => {
+  await page.getByRole("button", { name: "Sign out" }).click();
+  await signIn("admin@example.com");
+  await nav(/Engagements/);
+  await page.getByRole("cell", { name: CLIENT }).click();
+  await page.getByLabel("Keep runs and client files for").selectOption({ label: "90 days" });
+  await expect(page.getByLabel("Keep runs and client files for")).toHaveValue("90");
+  await page.getByRole("button", { name: "Delete engagement" }).click();
+  const confirm = page.getByRole("button", { name: "Delete permanently" });
+  await expect(confirm).toBeDisabled();
+  await page.getByLabel("Type the client name to confirm").fill(CLIENT);
+  await confirm.click();
+  await expect(page.getByText("No engagements yet")).toBeVisible();
 });

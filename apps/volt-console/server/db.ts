@@ -9,17 +9,18 @@
  */
 import fs from "node:fs";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { PGlite } from "@electric-sql/pglite";
+import { DEFAULT_DATA_DIR, MIGRATIONS_DIR } from "./paths.js";
 
 export interface Db {
   query<T = Record<string, unknown>>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
   exec(sql: string): Promise<unknown>;
+  /** Runs fn in one transaction: all its queries apply, or none if it throws. */
+  transaction<T>(fn: (tx: Pick<Db, "query" | "exec">) => Promise<T>): Promise<T>;
   close(): Promise<void>;
 }
 
-const MIGRATIONS_DIR = fileURLToPath(new URL("./migrations", import.meta.url));
-export const DEFAULT_DATA_DIR = fileURLToPath(new URL("../.volt-data", import.meta.url));
+export { DEFAULT_DATA_DIR };
 
 export async function openDb(dataDir?: string): Promise<Db> {
   if (dataDir) fs.mkdirSync(dataDir, { recursive: true });

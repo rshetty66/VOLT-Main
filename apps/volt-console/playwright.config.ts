@@ -24,7 +24,7 @@ export default defineConfig({
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_PATH } : {},
   },
   webServer: {
-    command: "npm run build && node --import tsx server/index.ts",
+    command: "npm run build && node build/server/index.js",
     url: `http://127.0.0.1:${port}/api/healthz`,
     timeout: 120_000,
     reuseExistingServer: false,

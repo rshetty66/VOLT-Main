@@ -223,6 +223,10 @@ export function App({ onSignedOut }: { onSignedOut: () => void }) {
               setEngagementId(e.id);
               refreshEngagements();
             }}
+            onDeleted={(id) => {
+              if (id === engagementId) setEngagementId("");
+              refreshEngagements();
+            }}
             onContinue={continueRun}
             onResume={resumeRun}
             onOpenAgent={setOpenAgent}

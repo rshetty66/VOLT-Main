@@ -5,7 +5,6 @@
  * shell are kept. Without a .env file this does nothing (CI, containers).
  */
 import fs from "node:fs";
-import { fileURLToPath } from "node:url";
+import { ENV_FILE } from "./paths.js";
 
-const envFile = fileURLToPath(new URL("../.env", import.meta.url));
-if (fs.existsSync(envFile)) process.loadEnvFile(envFile);
+if (fs.existsSync(ENV_FILE)) process.loadEnvFile(ENV_FILE);

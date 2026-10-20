@@ -12,6 +12,7 @@ import { promisify } from "node:util";
 import type { AuditEntry, Role, RunSummary, User } from "../shared/records.js";
 import type { Db } from "./db.js";
 import { isMember, isUuid, type Scope } from "./store.js";
+import { log } from "./log.js";
 
 const scrypt = promisify(crypto.scrypt) as (pw: string, salt: Buffer, keylen: number, opts: crypto.ScryptOptions) => Promise<Buffer>;
 const SCRYPT = { N: 16384, r: 8, p: 1, keylen: 32 };
@@ -218,7 +219,7 @@ export async function audit(db: Db, userId: string | null, action: string, targe
       detail ? JSON.stringify(detail) : null,
     ]);
   } catch (err) {
-    console.error(`Could not write audit entry ${action}:`, err);
+    log.error("could not write audit entry", { action, err });
   }
 }
 

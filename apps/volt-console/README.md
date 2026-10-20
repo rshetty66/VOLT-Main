@@ -32,7 +32,8 @@ cp .env.example .env   # set ANTHROPIC_API_KEY for live mode; leave it empty for
 npm run dev            # API on :8787, UI on http://localhost:5173
 ```
 
-Production: `npm run build && npm start` serves the built UI and the API together on `PORT` (default 8787).
+Production: `npm run build && npm start` compiles the server to `build/` and serves the built UI and the API
+together on `PORT` (default 8787) with plain `node`, logging one JSON object per line.
 
 - **Demo mode** (no credentials, or the *demo* toggle on) runs offline. Routing, the Skill Finder, benchmarks and
   workflow sequencing are real; agent prose is assembled from the registry and labelled as simulated.
@@ -85,6 +86,25 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
 - **Resume.** A stopped or failed workflow run can be resumed from its saved page: specialists that finished are
   reused as they are, only the unfinished ones run again, then Rudra writes the synthesis. The resumed run is saved
   as a new run in the same engagement; the original is kept.
+- **Settings check.** On start the server checks its settings (from the environment and `.env`) and stops with a
+  clear list if one is wrong: a mistyped number, a model id with spaces, a key pasted with quotes, live mode
+  without credentials, a data folder it cannot write. Names close to a real setting (`VOLT_RUN_BUDGET_UDS`) are
+  warned about. `GET /api/readyz` reports the database, migrations, catalogue and credentials (503 if not ready);
+  `GET /api/healthz` only says the process is up.
+- **Protection.** Responses carry a Content Security Policy and the usual security headers (helmet). Requests that
+  change data are refused (403) when the browser says they come from another site; list extra origins in
+  `VOLT_ALLOWED_ORIGINS` if the console sits behind a different host name. Rate limits: 20 sign-in attempts a
+  minute per address, `VOLT_RATE_LIMIT` API requests a minute per person (default 600), 20 runs and 60 uploads a
+  minute per person. Behind a reverse proxy set `VOLT_TRUST_PROXY=1` so limits see client addresses.
+- **Logs.** Readable lines in development, JSON lines in production (`VOLT_LOG_FORMAT=json|pretty`,
+  `VOLT_LOG_LEVEL=debug|info|warn|error`). Every response has an `X-Request-Id`; changes and errors are logged with
+  it, and each run logs its start and finish with its id, status, duration, tokens and cost. Prompts, file
+  contents, keys and passwords are never logged.
+- **Client data.** An engagement's owner or an admin can set how long its runs and client files are kept (30 days
+  to 2 years, or until deleted); older ones are deleted at start and every six hours. They can also delete the
+  engagement outright (typing the client name to confirm), which removes its runs, event streams, lead-agent
+  conversations, client files and members. Spend from deleted runs still counts toward budgets. Threats and
+  mitigations are in [docs/threat-model.md](docs/threat-model.md).
 
 ## Test
 
@@ -94,7 +114,7 @@ npm run typecheck
 npm run eval        # golden-prompt evals: every workflow against a mock Messages API (free, about 15 seconds)
 npm run eval -- --live --workflow close-optimization --judge   # on Claude with your key, scored by Claude too
 npx playwright install chromium   # once per machine, for the browser tests
-npm run test:e2e    # the console in a real browser, demo mode, on a temporary data folder
+npm run test:e2e    # the compiled console in a real browser, demo mode, on a temporary data folder
 ```
 
 - **Evals.** `evals/golden.json` holds one fixed request per workflow, all for fictional clients. Each run goes through

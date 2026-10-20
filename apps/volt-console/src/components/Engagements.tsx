@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { CatalogResponse } from "../../shared/events";
 import type { Engagement, RunSummary, StoredRun, Template } from "../../shared/records";
-import { addMember, createEngagement, getEngagementDetail, getStoredRun, listTemplates, listUsers, removeMember, setEngagementTemplate, stopRun, type EngagementDetail, type Member } from "../api";
+import { addMember, createEngagement, deleteEngagement, getEngagementDetail, setEngagementRetention, getStoredRun, listTemplates, listUsers, removeMember, setEngagementTemplate, stopRun, type EngagementDetail, type Member } from "../api";
 import { usd } from "../money";
 import { VIEW_ONLY, useCanWrite, useUser } from "../user";
 import { Previews } from "./Templates";
@@ -15,6 +15,7 @@ interface Props {
   currentId: string;
   onSelect: (id: string) => void;
   onCreated: (e: Engagement) => void;
+  onDeleted: (id: string) => void;
   onContinue: (run: RunSummary) => void;
   onResume: (run: RunSummary) => void;
   onOpenAgent: (id: string) => void;
@@ -24,7 +25,7 @@ interface Props {
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "-");
 
-export function Engagements({ catalog, engagements, currentId, onSelect, onCreated, onContinue, onResume, onOpenAgent, openRun }: Props) {
+export function Engagements({ catalog, engagements, currentId, onSelect, onCreated, onDeleted, onContinue, onResume, onOpenAgent, openRun }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -45,6 +46,10 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
         templates={templates}
         onSelect={() => onSelect(openId)}
         onBack={() => setOpenId(null)}
+        onDeleted={() => {
+          onDeleted(openId);
+          setOpenId(null);
+        }}
         onOpenRun={setRunId}
       />
     );
@@ -179,6 +184,7 @@ function EngagementPage({
   templates,
   onSelect,
   onBack,
+  onDeleted,
   onOpenRun,
 }: {
   id: string;
@@ -186,6 +192,7 @@ function EngagementPage({
   templates: Template[];
   onSelect: () => void;
   onBack: () => void;
+  onDeleted: () => void;
   onOpenRun: (id: string) => void;
 }) {
   const [e, setE] = useState<EngagementDetail | null>(null);
@@ -291,7 +298,83 @@ function EngagementPage({
               </table>
             </div>
           )}
+          <DataControls engagement={e} onChange={(updated) => setE({ ...e, ...updated, runs: e.runs, members: e.members, access: e.access })} onDeleted={onDeleted} onError={setErr} />
         </>
+      )}
+    </div>
+  );
+}
+
+const RETENTION: [number | null, string][] = [
+  [null, "Keep until deleted"],
+  [30, "30 days"],
+  [90, "90 days"],
+  [180, "180 days"],
+  [365, "1 year"],
+  [730, "2 years"],
+];
+
+/** How long the engagement's data is kept, and deleting it. Its owner and admins only. */
+function DataControls({ engagement, onChange, onDeleted, onError }: { engagement: EngagementDetail; onChange: (e: Engagement) => void; onDeleted: () => void; onError: (msg: string) => void }) {
+  const me = useUser();
+  const [confirming, setConfirming] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [busy, setBusy] = useState(false);
+  if (engagement.access !== "write" || !(me?.role === "admin" || engagement.ownerId === me?.id)) return null;
+  const fail = (x: unknown) => onError(x instanceof Error ? x.message : String(x));
+  const running = engagement.runs.some((r) => r.status === "running");
+  return (
+    <div className="card stack" style={{ marginTop: 8 }}>
+      <div className="micro">Client data</div>
+      <div className="row" style={{ gap: 8 }}>
+        <label className="body" htmlFor="retention">Keep runs and client files for</label>
+        <select
+          id="retention"
+          className="select"
+          style={{ width: "auto" }}
+          value={engagement.retentionDays ?? ""}
+          onChange={(ev) => setEngagementRetention(engagement.id, ev.target.value ? Number(ev.target.value) : null).then(onChange, fail)}
+        >
+          {RETENTION.map(([days, label]) => (
+            <option key={label} value={days ?? ""}>
+              {label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <p className="muted" style={{ fontSize: 12, margin: 0 }}>
+        With a period set, runs and client files older than it are deleted automatically (checked every few hours). Their cost still counts toward this month's budgets.
+      </p>
+      {!confirming ? (
+        <button className="btn sm danger" style={{ alignSelf: "flex-start" }} onClick={() => setConfirming(true)}>
+          Delete engagement
+        </button>
+      ) : (
+        <div className="stack" style={{ gap: 6 }}>
+          <p className="body" style={{ margin: 0 }}>
+            This permanently deletes the engagement, its {engagement.runs.length} run(s), their outputs and its client files. Type <b>{engagement.clientName}</b> to confirm.
+          </p>
+          <div className="row" style={{ gap: 8 }}>
+            <input className="input" style={{ maxWidth: 360 }} aria-label="Type the client name to confirm" value={typed} onChange={(ev) => setTyped(ev.target.value)} />
+            <button
+              className="btn sm danger"
+              disabled={busy || running || typed.trim() !== engagement.clientName}
+              title={running ? "A run is still going; stop it first." : undefined}
+              onClick={() => {
+                setBusy(true);
+                deleteEngagement(engagement.id).then(onDeleted, (x) => {
+                  setBusy(false);
+                  fail(x);
+                });
+              }}
+            >
+              Delete permanently
+            </button>
+            <button className="btn sm ghost" onClick={() => (setConfirming(false), setTyped(""))}>
+              Cancel
+            </button>
+          </div>
+        </div>
       )}
     </div>
   );

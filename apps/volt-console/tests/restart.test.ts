@@ -21,7 +21,7 @@ let log = "";
 function start(extra: Record<string, string> = {}) {
   server = spawn(process.execPath, ["--import", "tsx", "server/index.ts"], {
     cwd: path.resolve(__dirname, ".."),
-    env: { ...process.env, PORT: String(port), VOLT_DATA_DIR: dataDir, VOLT_MODE: "live", ANTHROPIC_API_KEY: "test-key", ANTHROPIC_BASE_URL: mock.url, NODE_ENV: "test", ...extra },
+    env: { ...process.env, PORT: String(port), VOLT_DATA_DIR: dataDir, VOLT_MODE: "live", ANTHROPIC_API_KEY: "test-key", ANTHROPIC_BASE_URL: mock.url, NODE_ENV: "test", VOLT_LOG_LEVEL: "info", ...extra },
     stdio: ["ignore", "pipe", "pipe"],
   });
   server.stdout!.on("data", (d) => (log += d));
