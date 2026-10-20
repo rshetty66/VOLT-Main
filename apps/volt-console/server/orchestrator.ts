@@ -27,7 +27,24 @@ const ORCHESTRATOR_EFFORT = (process.env.VOLT_ORCHESTRATOR_EFFORT ?? "high") as 
 const SPECIALIST_EFFORT = (process.env.VOLT_SPECIALIST_EFFORT ?? "medium") as Effort;
 const USE_FALLBACKS = (process.env.VOLT_FALLBACKS ?? "on") !== "off";
 const MAX_TURNS = 16;
+/** Default cap on a specialist's model calls; the last one is asked to answer without more tools. */
+export const DEFAULT_SPECIALIST_STEPS = Number(process.env.VOLT_SPECIALIST_MAX_STEPS ?? 6);
 const MAX_CONSULT_CHARS = 14_000;
+/** Earlier-phase context handed to later specialists: their handoff summary, or the opening of their output. */
+const HANDOFF_CHARS = 1_400;
+const LEAD_CHARS = 1_500;
+const SYNTHESIS_CHARS = 8_000;
+const FINAL_STEP_NOTE = "Tool step limit reached: write your final deliverable now, without calling any more tools.";
+
+/** Per-run choices that come from the admin settings rather than the environment. */
+export interface LiveOptions {
+  /** Workflow lane id (`<workflow>:<phase index>:<agent id>`) to a specialist output from an earlier run, reused as is. */
+  reuse?: Map<string, string>;
+  /** Model for specialists; the lead agent always uses MODEL. */
+  specialistModel?: string;
+  /** Cap on each specialist's model calls. */
+  specialistMaxSteps?: number;
+}
 
 export interface Session {
   id: string;
@@ -82,6 +99,15 @@ ${workflows}
 ${rosterText(catalog)}`;
 }
 
+/** Rudra for the workflow synthesis: no roster or workflow list, which it does not need to merge outputs. */
+function synthesisSystem(catalog: Catalog): string {
+  const rudra = catalog.agentById.get("rudra");
+  return `${rudra?.systemPrompt ?? "You are Rudra, VOLT's master orchestrator and consulting partner."}
+
+## How you work in this console
+You are synthesising the outputs of a VOLT workflow your specialists have just run. Reconcile disagreements, keep what is decision-relevant, and attribute key points to the specialist that raised them. Never do finance arithmetic in your head: benchmarks, maturity scores, NPV/IRR and value cases come from the apqc_benchmark, score_maturity, appraise_investment and build_value_case tools. Write an executive-grade consulting deliverable in Markdown. State assumptions and data gaps plainly instead of inventing client facts.`;
+}
+
 function specialistSystem(catalog: Catalog, agent: AgentDef): string {
   const shipped = agent.skills.filter((s) => catalog.skillById.has(s));
   return `${agent.systemPrompt}
@@ -103,6 +129,11 @@ interface LoopOptions {
   effort: Effort;
   emit: Emit;
   signal: AbortSignal;
+  model?: string;
+  /** Cap on model calls (default MAX_TURNS). The last call is asked to answer without tools. */
+  maxSteps?: number;
+  /** Passed down to consult_agent specialists. */
+  live?: LiveOptions;
 }
 
 /**
@@ -115,13 +146,18 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
   if (USE_FALLBACKS) betas.push("server-side-fallback-2026-07-01");
   let finalText = "";
   let jsonRetries = 0;
+  const maxSteps = Math.max(1, opts.maxSteps ?? MAX_TURNS);
+  const model = opts.model ?? MODEL;
 
-  for (let turn = 0; turn < MAX_TURNS; turn++) {
+  for (let turn = 0; turn < maxSteps; turn++) {
     const stream = getClient().beta.messages.stream(
       {
-        model: MODEL,
+        model,
         max_tokens: 64000,
+        // The system prompt is cached on its own (shared by every call of this agent), and the top-level
+        // cache_control caches the whole conversation so far, so each tool step re-reads it at the cache rate.
         system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
+        cache_control: { type: "ephemeral" },
         messages,
         tools: toolDefs(opts.tools),
         thinking: { type: "adaptive", display: "updates" },
@@ -163,9 +199,11 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
     emit({
       type: "usage",
       lane,
+      model: message.model || model,
       inputTokens: message.usage.input_tokens,
       outputTokens: message.usage.output_tokens,
       cacheReadTokens: message.usage.cache_read_input_tokens ?? 0,
+      cacheWriteTokens: message.usage.cache_creation_input_tokens ?? 0,
     });
 
     if (message.stop_reason === "refusal") {
@@ -186,11 +224,21 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
       return finalText;
     }
 
+    if (turn === maxSteps - 1) {
+      // Out of steps and still calling tools: keep whatever text it wrote, drop the unanswered calls.
+      messages.pop();
+      if (finalText) messages.push({ role: "assistant", content: finalText });
+      emit({ type: "status", lane, text: `Stopped at the ${maxSteps}-step limit` });
+      if (!finalText) emit({ type: "error", lane, message: `Stopped after ${maxSteps} steps without a final answer.` });
+      return finalText;
+    }
+
     // Execute every tool call of this turn concurrently; reply with all results in one message.
-    const results = await Promise.all(toolUses.map((tu) => executeTool(catalog, lane, tu, emit, signal)));
+    const results: Anthropic.Beta.BetaContentBlockParam[] = await Promise.all(toolUses.map((tu) => executeTool(catalog, lane, tu, emit, signal, opts.live)));
+    // On the last allowed step, ask for the answer. Adding text (rather than changing tool_choice) keeps the cache valid.
+    if (turn === maxSteps - 2 && opts.maxSteps !== undefined) results.push({ type: "text", text: FINAL_STEP_NOTE });
     messages.push({ role: "user", content: results });
   }
-  emit({ type: "error", lane, message: `Stopped after ${MAX_TURNS} turns.` });
   return finalText;
 }
 
@@ -213,6 +261,7 @@ async function executeTool(
   tu: Anthropic.Beta.BetaToolUseBlock,
   emit: Emit,
   signal: AbortSignal,
+  live?: LiveOptions,
 ): Promise<Anthropic.Beta.BetaToolResultBlockParam> {
   const name = tu.name as ToolName;
   emit({ type: "tool_call", lane, callId: tu.id, name, input: tu.input });
@@ -232,7 +281,7 @@ async function executeTool(
     const agent = catalog.agentById.get(agent_id);
     if (!agent) return fail(`Unknown agent '${agent_id}'. Use find_agents to look it up.`);
     try {
-      const text = await runSpecialist(catalog, agent, brief, tu.id, lane, emit, signal);
+      const text = await runSpecialist(catalog, agent, brief, tu.id, lane, emit, signal, live);
       emit({ type: "tool_result", lane, callId: tu.id, name, summary: `${agent.name} delivered ${text.length.toLocaleString()} chars` });
       return { type: "tool_result", tool_use_id: tu.id, content: `## ${agent.name} (${agent.layer})\n\n${text.slice(0, MAX_CONSULT_CHARS)}` };
     } catch (err) {
@@ -255,6 +304,7 @@ async function runSpecialist(
   parentLane: string,
   emit: Emit,
   signal: AbortSignal,
+  live: LiveOptions = {},
 ): Promise<string> {
   emit({ type: "agent_start", lane, parentLane, agentId: agent.id, name: agent.name, layer: agent.layer, icon: agent.icon, brief });
   try {
@@ -267,6 +317,8 @@ async function runSpecialist(
       effort: SPECIALIST_EFFORT,
       emit,
       signal,
+      model: live.specialistModel,
+      maxSteps: live.specialistMaxSteps ?? DEFAULT_SPECIALIST_STEPS,
     });
     emit({ type: "agent_end", lane, agentId: agent.id, ok: true });
     return text;
@@ -288,15 +340,11 @@ export function getSession(id?: string, saved?: { messages: unknown[]; agentId?:
   return s;
 }
 
-/**
- * `reuse` maps a workflow lane id (`<workflow>:<phase index>:<agent id>`) to a specialist
- * output from an earlier run; those specialists are not run again.
- */
-export async function runLive(catalog: Catalog, req: RunRequest, session: Session, emit: Emit, signal: AbortSignal, reuse?: Map<string, string>) {
+export async function runLive(catalog: Catalog, req: RunRequest, session: Session, emit: Emit, signal: AbortSignal, live: LiveOptions = {}) {
   if (req.workflowId) {
     const wf = catalog.workflowById.get(req.workflowId);
     if (!wf) throw new Error(`Unknown workflow '${req.workflowId}'`);
-    await runWorkflow(catalog, wf, req, session, emit, signal, reuse);
+    await runWorkflow(catalog, wf, req, session, emit, signal, live);
     return;
   }
 
@@ -330,6 +378,7 @@ export async function runLive(catalog: Catalog, req: RunRequest, session: Sessio
     effort: ORCHESTRATOR_EFFORT,
     emit,
     signal,
+    live,
   });
 }
 
@@ -344,14 +393,29 @@ function intakeText(catalog: Catalog, wf: WorkflowDef, answers: Record<string, s
   return lines.length ? `\n\nEngagement intake:\n${lines.join("\n")}` : "";
 }
 
-async function runWorkflow(catalog: Catalog, wf: WorkflowDef, req: RunRequest, session: Session, emit: Emit, signal: AbortSignal, reuse?: Map<string, string>) {
+/**
+ * What a later phase sees of an earlier specialist: the "Handoff summary" it was asked to end with,
+ * or, when it has none (older outputs, reused ones), the opening of its output, which leads with the answer.
+ */
+export function handoffOf(text: string): string {
+  const m = text.match(/^#{1,6}\s*Handoff summary\s*$/im);
+  if (m && m.index !== undefined) {
+    const after = text.slice(m.index + m[0].length).trim();
+    if (after) return after.slice(0, HANDOFF_CHARS).trim();
+  }
+  const lead = text.slice(0, LEAD_CHARS);
+  return text.length > LEAD_CHARS ? `${lead.slice(0, lead.lastIndexOf("\n") > 500 ? lead.lastIndexOf("\n") : LEAD_CHARS).trim()}\n[...]` : lead.trim();
+}
+
+async function runWorkflow(catalog: Catalog, wf: WorkflowDef, req: RunRequest, session: Session, emit: Emit, signal: AbortSignal, live: LiveOptions) {
+  const reuse = live.reuse;
   const context = `${req.prompt}${intakeText(catalog, wf, req.intake)}`;
   const outputs: { phase: string; agent: AgentDef; text: string }[] = [];
 
   for (const [index, phase] of wf.phases.entries()) {
     emit({ type: "phase_start", index, name: phase.name, agents: phase.agents });
     const prior = outputs.length
-      ? `\n\n## Outputs from earlier phases\n${outputs.map((o) => `### ${o.phase} — ${o.agent.name}\n${o.text.slice(0, 5000)}`).join("\n\n")}`
+      ? `\n\n## Handoffs from earlier phases\n${outputs.map((o) => `### ${o.phase} — ${o.agent.name}\n${handoffOf(o.text)}`).join("\n\n")}`
       : "";
     const settled = await Promise.allSettled(
       phase.agents.map(async (agentId) => {
@@ -373,8 +437,9 @@ Workflow purpose: ${wf.description}
 Client request:
 ${context}${prior}
 
-Deliver your ${phase.name} contribution from the ${agent.name} perspective. Build on earlier phases rather than repeating them.`;
-        const text = await runSpecialist(catalog, agent, brief, lane, ORCHESTRATOR_LANE, emit, signal);
+Deliver your ${phase.name} contribution from the ${agent.name} perspective. Build on earlier phases rather than repeating them.
+End with a "## Handoff summary" section of at most 120 words: the conclusions, figures and open questions later phases need from you.`;
+        const text = await runSpecialist(catalog, agent, brief, lane, ORCHESTRATOR_LANE, emit, signal, live);
         outputs.push({ phase: phase.name, agent, text });
       }),
     );
@@ -388,7 +453,7 @@ Deliver your ${phase.name} contribution from the ${agent.name} perspective. Buil
 ${context}
 
 Specialist outputs, by phase:
-${outputs.map((o) => `### ${o.phase} — ${o.agent.name}\n${o.text.slice(0, 8000)}`).join("\n\n")}
+${outputs.map((o) => `### ${o.phase} — ${o.agent.name}\n${o.text.slice(0, SYNTHESIS_CHARS)}`).join("\n\n")}
 
 Synthesise the final executive deliverable for the client: an executive summary, the integrated findings by phase, a recommendations table (recommendation, owner workstream, priority, value/risk), key risks and assumptions, and next steps. Resolve any conflicts between specialists explicitly. Use the analytics tools for any figures you add.`;
   session.messages.push({ role: "user", content: synthesisPrompt });
@@ -396,7 +461,7 @@ Synthesise the final executive deliverable for the client: an executive summary,
   await runAgentLoop({
     catalog,
     lane: ORCHESTRATOR_LANE,
-    system: orchestratorSystem(catalog),
+    system: synthesisSystem(catalog),
     messages: session.messages,
     tools: ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case"],
     effort: ORCHESTRATOR_EFFORT,

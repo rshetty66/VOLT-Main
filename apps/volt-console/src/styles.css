@@ -193,3 +193,19 @@ code, pre { font-family: var(--mono); font-size: 13px; }
 .empty { color: var(--muted); padding: 24px; text-align: center; }
 .spinner { width: 14px; height: 14px; border: 2px solid var(--line-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Cost control (A2). Amber is used only for budget warnings, so it stands out in the monochrome UI. */
+:root { --alert: #fbbf24; }
+.cost-line { font-size: 12px; color: var(--body); }
+.cost-line.warn { color: var(--alert); }
+.cost-line.error { color: var(--alert); font-weight: 600; }
+.badge.warn { color: var(--alert); border-color: var(--alert); text-transform: none; letter-spacing: 0; }
+.meter { height: 6px; border-radius: 3px; background: var(--elevated); overflow: hidden; margin-top: 6px; }
+.meter > span { display: block; height: 100%; background: var(--heading); }
+.meter.near > span { background: var(--alert); }
+.months { display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; align-items: end; height: 110px; }
+.months .col { display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; font-size: 11px; color: var(--muted); }
+.months .bar { width: 60%; min-height: 2px; background: var(--heading); border-radius: 3px 3px 0 0; }
+.months .col b { color: var(--body); font-weight: 600; }
+.num { font-variant-numeric: tabular-nums; text-align: right; }
+.input.num-in { width: 96px; text-align: right; padding: 6px 8px; }

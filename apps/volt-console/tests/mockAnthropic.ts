@@ -15,8 +15,16 @@ const sse = (res: http.ServerResponse, events: any[]) => {
   for (const e of events) res.write(`event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`);
   res.end();
 };
-const msg = (id: string, blocks: any[], stop: string) => {
-  const ev: any[] = [{ type: "message_start", message: { id, type: "message", role: "assistant", model: "claude-opus-5-5", content: [], stop_reason: null, usage: { input_tokens: 100, output_tokens: 0, cache_read_input_tokens: 50 } } }];
+/** Switches tests can flip between requests. */
+export interface MockOptions {
+  /** Specialists call a tool on every turn, never answering on their own. */
+  specialistAlwaysTools: boolean;
+  /** Reported cache_creation_input_tokens per call. */
+  cacheWriteTokens: number;
+}
+
+const msg = (id: string, blocks: any[], stop: string, cacheWrite = 0) => {
+  const ev: any[] = [{ type: "message_start", message: { id, type: "message", role: "assistant", model: "claude-opus-5-5", content: [], stop_reason: null, usage: { input_tokens: 100, output_tokens: 0, cache_read_input_tokens: 50, cache_creation_input_tokens: cacheWrite } } }];
   blocks.forEach((b: any, i: number) => {
     if (b.type === "text") {
       ev.push({ type: "content_block_start", index: i, content_block: { type: "text", text: "" } });
@@ -36,8 +44,9 @@ const msg = (id: string, blocks: any[], stop: string) => {
   return ev;
 };
 
-export async function startMockAnthropic(): Promise<{ url: string; requests: Captured[]; close: () => void }> {
+export async function startMockAnthropic(): Promise<{ url: string; requests: Captured[]; options: MockOptions; close: () => void }> {
   const requests: Captured[] = [];
+  const options: MockOptions = { specialistAlwaysTools: false, cacheWriteTokens: 0 };
   const server = http.createServer((req, res) => {
   let body = "";
   req.on("data", (c) => (body += c));
@@ -48,19 +57,22 @@ export async function startMockAnthropic(): Promise<{ url: string; requests: Cap
     const last = b.messages.at(-1);
     const hasResults = Array.isArray(last.content) && last.content.some((c: any) => c.type === "tool_result");
     n++;
+    const reply = (id: string, blocks: any[], stop: string) => msg(id, blocks, stop, options.cacheWriteTokens);
+    if (!isRudra && options.specialistAlwaysTools && !b.system[0].text.includes("synthesising"))
+      return sse(res, reply(`m${n}`, [{ type: "text", text: `Partial view ${n}. ` }, { type: "tool_use", id: `tu_s${n}`, name: "find_skills", input: { query: "close" } }], "tool_use"));
     if (isRudra && !hasResults)
-      return sse(res, msg(`m${n}`, [
+      return sse(res, reply(`m${n}`, [
         { type: "thinking", thinking: "Routing to FI/CO and ARCS leads in parallel" },
         { type: "tool_use", id: "tu_a", name: "consult_agent", input: { agent_id: "sap-fico-specialist", brief: "Close acceleration on S/4" } },
         { type: "tool_use", id: "tu_b", name: "consult_agent", input: { agent_id: "oracle-arcs-lead", brief: "Recon automation" } },
         { type: "tool_use", id: "tu_c", name: "apqc_benchmark", input: { metric: "days_to_close", client_value: 12 } },
       ], "tool_use"));
-    if (isRudra) return sse(res, msg(`m${n}`, [{ type: "text", text: "## Synthesis\nFinal answer from Rudra." }], "end_turn"));
-    if (!hasResults) return sse(res, msg(`m${n}`, [{ type: "tool_use", id: `tu_s${n}`, name: "find_skills", input: { query: "close management" } }], "tool_use"));
-    return sse(res, msg(`m${n}`, [{ type: "text", text: "Specialist deliverable." }], "end_turn"));
+    if (isRudra) return sse(res, reply(`m${n}`, [{ type: "text", text: "## Synthesis\nFinal answer from Rudra." }], "end_turn"));
+    if (!hasResults) return sse(res, reply(`m${n}`, [{ type: "tool_use", id: `tu_s${n}`, name: "find_skills", input: { query: "close management" } }], "tool_use"));
+    return sse(res, reply(`m${n}`, [{ type: "text", text: "Specialist deliverable." }], "end_turn"));
   });
 });
   await new Promise<void>((r) => server.listen(0, r));
   const { port } = server.address() as AddressInfo;
-  return { url: `http://127.0.0.1:${port}`, requests, close: () => server.close() };
+  return { url: `http://127.0.0.1:${port}`, requests, options, close: () => server.close() };
 }

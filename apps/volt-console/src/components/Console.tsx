@@ -4,6 +4,8 @@ import type { ActivityItem, Lane, Run } from "../runState";
 import { Markdown } from "./Markdown";
 import { runExportUrl, runMarkdownUrl } from "../api";
 import { VIEW_ONLY, useCanWrite } from "../user";
+import { ktok, usd } from "../money";
+import { CostEstimate } from "./CostEstimate";
 
 /** Download links for a saved run: Word report, Excel workbook, PowerPoint deck, Markdown. */
 export function ExportLinks({ runId }: { runId: string }) {
@@ -42,6 +44,7 @@ interface Props {
 
 export function Console({ catalog, runs, target, setTarget, live, onStart, onStop, onOpenAgent }: Props) {
   const [prompt, setPrompt] = useState("");
+  const [overBudget, setOverBudget] = useState(false);
   const canWrite = useCanWrite();
   const endRef = useRef<HTMLDivElement>(null);
   const running = runs.some((r) => r.state === "running");
@@ -129,8 +132,14 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
           <div className="row" style={{ justifyContent: "space-between" }}>
             <span className="muted" style={{ fontSize: 12 }}>
               Ctrl/⌘ + Enter to send{runs.length > 0 ? " · follow-ups keep the conversation" : ""}
+              {canWrite && live && (
+                <>
+                  <br />
+                  <CostEstimate live={live} agentId={target === "rudra" ? undefined : target} refresh={running} onBlocked={setOverBudget} />
+                </>
+              )}
             </span>
-            <button className="btn primary" disabled={!prompt.trim() || running || !canWrite} onClick={() => submit()}>
+            <button className="btn primary" disabled={!prompt.trim() || running || !canWrite || (live && overBudget)} onClick={() => submit()}>
               {running ? "Working…" : "Run"}
             </button>
           </div>
@@ -157,9 +166,18 @@ export function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catal
         <span className={`dot ${run.state === "running" ? "running" : "done"}`} />
         <span className="micro">{run.title}</span>
         <div className="prompt">{run.prompt}</div>
-        <span className="usage">
-          {elapsed}s{run.mode === "live" ? ` · ${run.usage.input.toLocaleString()} in / ${run.usage.output.toLocaleString()} out · ${run.usage.cacheRead.toLocaleString()} cached` : run.mode === "demo" ? " · demo" : ""}
+        <span
+          className="usage"
+          title={
+            run.mode === "live"
+              ? `Input ${run.usage.input.toLocaleString()} new, ${run.usage.cacheWrite.toLocaleString()} written to cache, ${run.usage.cacheRead.toLocaleString()} read from cache · output ${run.usage.output.toLocaleString()} · cost estimated from the price table`
+              : undefined
+          }
+        >
+          {elapsed}s
+          {run.mode === "live" ? ` · ${usd(run.usage.costUsd)} · ${ktok(run.usage.input + run.usage.cacheWrite + run.usage.cacheRead)} in (${ktok(run.usage.cacheRead)} cached) / ${ktok(run.usage.output)} out` : run.mode === "demo" ? " · demo" : ""}
         </span>
+        {run.budgetNote && run.state === "running" && <span className="badge warn" title="An admin sets budgets under Usage">{run.budgetNote}</span>}
         {run.state === "running" && canWrite && (
           <button className="btn sm" onClick={onStop}>
             Stop
@@ -187,6 +205,11 @@ export function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catal
           </div>
         )}
         <div className="answer">
+          {run.stoppedReason && (
+            <div className="card body" style={{ borderColor: "var(--alert)", marginBottom: 12 }}>
+              <b>Stopped:</b> {run.stoppedReason}
+            </div>
+          )}
           {run.text ? <Markdown text={run.text} /> : run.state === "running" ? <p className="muted"><span className="spinner" /> Rudra is working…</p> : null}
         </div>
         <aside>

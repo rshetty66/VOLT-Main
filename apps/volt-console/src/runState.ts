@@ -40,7 +40,11 @@ export interface Run {
   lanes: Record<string, Lane>;
   laneOrder: string[];
   phases: { name: string; agents: string[]; state: "running" | "done" }[];
-  usage: { input: number; output: number; cacheRead: number };
+  usage: { input: number; output: number; cacheRead: number; cacheWrite: number; costUsd: number };
+  /** The latest budget warning from the server, if any. */
+  budgetNote?: string;
+  /** Why the server stopped the run (a budget), if it did. */
+  stoppedReason?: string;
   state: "running" | "done" | "stopped";
   startedAt: number;
   finishedAt?: number;
@@ -57,7 +61,7 @@ export function newRun(prompt: string, title: string, kind: RunKind): Run {
     lanes: {},
     laneOrder: [],
     phases: [],
-    usage: { input: 0, output: 0, cacheRead: 0 },
+    usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0 },
     state: "running",
     startedAt: Date.now(),
   };
@@ -109,6 +113,7 @@ export function applyEvent(run: Run, e: VoltEvent): Run {
     }
     case "status":
       pushActivity(e.lane, { id: crypto.randomUUID(), kind: "status", text: e.text });
+      if (e.text.startsWith("Budget:")) r.budgetNote = e.text.slice(8).trim();
       return r;
     case "tool_call":
       pushActivity(e.lane, { id: e.callId, kind: "tool", text: e.name, detail: summariseInput(e.input), pending: true });
@@ -120,13 +125,20 @@ export function applyEvent(run: Run, e: VoltEvent): Run {
       pushActivity(e.lane, { id: crypto.randomUUID(), kind: "fallback", text: `Fallback ${e.from} → ${e.to}` });
       return r;
     case "usage":
-      r.usage = { input: r.usage.input + e.inputTokens, output: r.usage.output + e.outputTokens, cacheRead: r.usage.cacheRead + e.cacheReadTokens };
+      r.usage = {
+        input: r.usage.input + e.inputTokens,
+        output: r.usage.output + e.outputTokens,
+        cacheRead: r.usage.cacheRead + e.cacheReadTokens,
+        cacheWrite: r.usage.cacheWrite + (e.cacheWriteTokens ?? 0),
+        costUsd: r.usage.costUsd + (e.costUsd ?? 0),
+      };
       return r;
     case "error":
       pushActivity(e.lane, { id: crypto.randomUUID(), kind: "error", text: e.message, isError: true });
+      if (e.message.startsWith("Stopped:")) r.stoppedReason = e.message.slice(8).trim();
       return r;
     case "done":
-      return { ...r, sessionId: e.sessionId, state: r.state === "stopped" ? "stopped" : "done", finishedAt: Date.now() };
+      return { ...r, sessionId: e.sessionId, state: r.state === "stopped" || r.stoppedReason ? "stopped" : "done", finishedAt: Date.now() };
   }
 }
 

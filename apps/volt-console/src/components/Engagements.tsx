@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { CatalogResponse } from "../../shared/events";
 import type { Engagement, RunSummary, StoredRun, Template } from "../../shared/records";
 import { addMember, createEngagement, getEngagementDetail, getStoredRun, listTemplates, listUsers, removeMember, setEngagementTemplate, stopRun, type EngagementDetail, type Member } from "../api";
+import { usd } from "../money";
 import { VIEW_ONLY, useCanWrite, useUser } from "../user";
 import { Previews } from "./Templates";
 import { replayRun } from "../runState";
@@ -16,11 +17,13 @@ interface Props {
   onContinue: (run: RunSummary) => void;
   onResume: (run: RunSummary) => void;
   onOpenAgent: (id: string) => void;
+  /** Opens a saved run when set (from the Usage view); `n` makes repeat requests distinct. */
+  openRun?: { id: string; n: number } | null;
 }
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "-");
 
-export function Engagements({ catalog, engagements, currentId, onSelect, onCreated, onContinue, onResume, onOpenAgent }: Props) {
+export function Engagements({ catalog, engagements, currentId, onSelect, onCreated, onContinue, onResume, onOpenAgent, openRun }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
@@ -28,6 +31,9 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
   useEffect(() => {
     listTemplates().then(setTemplates, () => {});
   }, []);
+  useEffect(() => {
+    if (openRun) setRunId(openRun.id);
+  }, [openRun]);
 
   if (runId) return <SavedRun catalog={catalog} runId={runId} onBack={() => setRunId(null)} onContinue={onContinue} onResume={onResume} onOpenAgent={onOpenAgent} />;
   if (openId)
@@ -72,6 +78,7 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
                 <th>Client</th>
                 <th>Engagement</th>
                 <th>Runs</th>
+                <th>Cost</th>
                 <th>Last run</th>
                 <th>Owner</th>
                 <th>Template</th>
@@ -86,6 +93,7 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
                   </td>
                   <td>{e.title}</td>
                   <td>{e.runCount}</td>
+                  <td className="muted">{e.costUsd ? usd(e.costUsd) : "-"}</td>
                   <td className="muted">{when(e.lastRunAt)}</td>
                   <td className="muted">{e.ownerName ?? "-"}</td>
                   <td className="muted">{e.templateName ?? "VOLT standard"}</td>
@@ -207,6 +215,7 @@ function EngagementPage({
               <h1 className="page-title">{e.clientName}</h1>
               <p className="page-sub">
                 {e.title} · created {when(e.createdAt)}
+                {e.costUsd > 0 && ` · ${usd(e.costUsd)} of Claude use so far`}
               </p>
               {e.description && <p className="body" style={{ whiteSpace: "pre-wrap" }}>{e.description}</p>}
               <div className="row" style={{ marginTop: 8 }}>
@@ -247,7 +256,7 @@ function EngagementPage({
                     <th>Run</th>
                     <th>Status</th>
                     <th>Mode</th>
-                    <th>Tokens in / out</th>
+                    <th>Cost</th>
                     <th />
                   </tr>
                 </thead>
@@ -262,7 +271,14 @@ function EngagementPage({
                       </td>
                       <td><span className="badge">{r.status}</span></td>
                       <td>{r.mode}</td>
-                      <td className="muted">{r.mode === "live" ? `${r.inputTokens.toLocaleString()} / ${r.outputTokens.toLocaleString()}` : "-"}</td>
+                      <td
+                        className="muted"
+                        style={{ whiteSpace: "nowrap" }}
+                        title={r.mode === "live" ? `Input ${r.inputTokens.toLocaleString()} new, ${r.cacheWriteTokens.toLocaleString()} cache writes, ${r.cacheReadTokens.toLocaleString()} cache reads · output ${r.outputTokens.toLocaleString()}` : undefined}
+                      >
+                        {r.mode === "live" ? usd(r.costUsd) : "-"}
+                        {r.mode === "live" && r.cacheWriteTokens === 0 && r.costUsd > 0 && <span title="Saved before cache writes were recorded; slightly understated"> *</span>}
+                      </td>
                       <td>
                         {r.status !== "running" && <ExportLinks runId={r.id} />}
                       </td>

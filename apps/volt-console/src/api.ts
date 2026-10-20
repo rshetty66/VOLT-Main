@@ -1,5 +1,5 @@
 import type { CatalogResponse, RunRequest, VoltEvent } from "../shared/events";
-import type { AuditEntry, Engagement, Role, RunSummary, StoredRun, Template, User } from "../shared/records";
+import type { AuditEntry, BudgetStatus, CostSettings, Engagement, Estimate, Role, RunSummary, StoredRun, Template, UsageSummary, User } from "../shared/records";
 
 /** Fired when the server answers 401: the session ended, so the app shows the sign-in screen. */
 export const SIGNED_OUT = "volt:signed-out";
@@ -53,6 +53,20 @@ export const resetPassword = (id: string, password: string) => send<{ ok: boolea
 export const listAudit = (limit = 200) => getJSON<AuditEntry[]>(`/api/audit?limit=${limit}`);
 export const addMember = (engagementId: string, userId: string) => send<Member[]>("POST", `/api/engagements/${engagementId}/members`, { userId });
 export const removeMember = (engagementId: string, userId: string) => send<Member[]>("DELETE", `/api/engagements/${engagementId}/members/${userId}`);
+
+// Usage and cost control
+export const getUsage = () => getJSON<UsageSummary>("/api/usage");
+export const getEstimate = (q: { workflowId?: string; agentId?: string }) =>
+  getJSON<{ estimate: Estimate; budget: BudgetStatus; mode: string }>(`/api/usage/estimate?${new URLSearchParams(Object.entries(q).filter(([, v]) => v) as [string, string][])}`);
+export interface CostSettingsResponse {
+  settings: CostSettings;
+  defaults: CostSettings;
+  leadModel: string;
+}
+export const getCostSettings = () => getJSON<CostSettingsResponse>("/api/settings/cost");
+export const saveCostSettings = (patch: Partial<CostSettings>) => send<CostSettingsResponse>("PUT", "/api/settings/cost", patch);
+export const resetCostSettings = (keys: (keyof CostSettings)[]) => send<CostSettingsResponse>("POST", "/api/settings/cost/reset", { keys });
+export const setUserBudget = (id: string, monthlyBudgetUsd: number | null) => send<{ ok: boolean }>("PUT", `/api/users/${id}/budget`, { monthlyBudgetUsd });
 
 export const setEngagementTemplate = (id: string, templateId: string | null) => send<Engagement>("PATCH", `/api/engagements/${id}`, { templateId });
 

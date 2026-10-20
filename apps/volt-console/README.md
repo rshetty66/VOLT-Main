@@ -64,6 +64,16 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
   hashes; sessions are HttpOnly cookies that last 14 days from last use; five wrong passwords lock an account for
   15 minutes. Accounts are disabled rather than deleted, and the Users view shows recent activity from the audit
   log. If nobody can sign in, stop the server and run `npm run reset-password -- <email>`.
+- **Cost control.** Every model call is priced from a price table (Anthropic list prices by default; editable
+  under Usage) and the run's estimated cost shows live in the console, on the engagement page and in the Usage view
+  (spend this month by engagement and person, the costliest runs, six-month trend). Before a run the console shows an
+  estimate: the median of recent finished runs of the same kind, or a rough figure until there are some. A run stops
+  at the per-run limit (default $10) or when its owner reaches their monthly budget (default $100; admins can give a
+  person their own), with a warning at 80%; a stopped workflow keeps its finished specialists for Resume. Admins set
+  the limits, the specialist model and the specialist step limit under Usage. To spend less, each agent's
+  conversation is prompt-cached, later workflow phases get each earlier specialist's short handoff summary rather
+  than its full output, and Rudra's synthesis uses a prompt without the 236-agent roster. Costs are estimates, not
+  an invoice; runs saved before this change are costed at Opus list prices without cache writes.
 - **Resume.** A stopped or failed workflow run can be resumed from its saved page: specialists that finished are
   reused as they are, only the unfinished ones run again, then Rudra writes the synthesis. The resumed run is saved
   as a new run in the same engagement; the original is kept.

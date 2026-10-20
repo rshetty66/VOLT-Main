@@ -1,21 +1,24 @@
 import { useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 import { VIEW_ONLY, useCanWrite } from "../user";
+import { CostEstimate } from "./CostEstimate";
 
 type Workflow = CatalogResponse["workflows"][number];
 
 interface Props {
   catalog: CatalogResponse;
+  /** Live mode (real Claude calls): shows the cost estimate before launching. */
+  live: boolean;
   onLaunch: (req: RunRequest, title: string, kind: RunKind) => void;
   onOpenAgent: (id: string) => void;
 }
 
-export function Workflows({ catalog, onLaunch, onOpenAgent }: Props) {
+export function Workflows({ catalog, live, onLaunch, onOpenAgent }: Props) {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Workflow | null>(null);
   const filtered = catalog.workflows.filter((w) => `${w.name} ${w.description} ${w.id}`.toLowerCase().includes(q.toLowerCase()));
 
-  if (selected) return <WorkflowLauncher catalog={catalog} wf={selected} onBack={() => setSelected(null)} onLaunch={onLaunch} onOpenAgent={onOpenAgent} />;
+  if (selected) return <WorkflowLauncher catalog={catalog} live={live} wf={selected} onBack={() => setSelected(null)} onLaunch={onLaunch} onOpenAgent={onOpenAgent} />;
 
   return (
     <div className="stack">
@@ -56,10 +59,11 @@ export function Workflows({ catalog, onLaunch, onOpenAgent }: Props) {
   );
 }
 
-function WorkflowLauncher({ catalog, wf, onBack, onLaunch, onOpenAgent }: { catalog: CatalogResponse; wf: Workflow; onBack: () => void } & Omit<Props, "catalog">) {
+function WorkflowLauncher({ catalog, live, wf, onBack, onLaunch, onOpenAgent }: { catalog: CatalogResponse; wf: Workflow; onBack: () => void } & Omit<Props, "catalog">) {
   const questions = catalog.intake[wf.id] ?? catalog.intake["default"] ?? [];
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [prompt, setPrompt] = useState("");
+  const [overBudget, setOverBudget] = useState(false);
   const canWrite = useCanWrite();
   const name = (id: string) => catalog.agents.find((a) => a.id === id);
   const agentCalls = wf.phases.reduce((n, p) => n + p.agents.length, 0);
@@ -120,10 +124,11 @@ function WorkflowLauncher({ catalog, wf, onBack, onLaunch, onOpenAgent }: { cata
           <textarea className="textarea" rows={5} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Client, industry, scale, platforms, pain points, what the deliverable must answer…" />
         </label>
         <div className="row" style={{ justifyContent: "flex-end" }}>
+          {canWrite && <CostEstimate live={live} workflowId={wf.id} onBlocked={setOverBudget} />}
           {!canWrite && <span className="muted" style={{ fontSize: 12 }}>{VIEW_ONLY}</span>}
           <button
             className="btn primary"
-            disabled={!prompt.trim() || !canWrite}
+            disabled={!prompt.trim() || !canWrite || (live && overBudget)}
             onClick={() => onLaunch({ prompt: prompt.trim(), workflowId: wf.id, intake: answers }, `${wf.icon} ${wf.name}`, "workflow")}
           >
             Launch workflow

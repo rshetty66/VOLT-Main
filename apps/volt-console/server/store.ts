@@ -23,6 +23,7 @@ function toEngagement(r: Row): Engagement {
     templateName: r.template_name ?? null,
     ownerId: r.owner_id ?? null,
     ownerName: r.owner_name ?? null,
+    costUsd: Number(r.cost_usd ?? 0),
   };
 }
 
@@ -43,13 +44,17 @@ function toRunSummary(r: Row): RunSummary {
     error: r.error,
     inputTokens: r.input_tokens,
     outputTokens: r.output_tokens,
+    cacheReadTokens: r.cache_read_tokens ?? 0,
+    cacheWriteTokens: r.cache_write_tokens ?? 0,
+    costUsd: Number(r.cost_usd ?? 0),
     startedAt: iso(r.started_at)!,
     finishedAt: iso(r.finished_at),
   };
 }
 
 const ENGAGEMENT_SELECT = `
-  select e.*, t.name as template_name, u.name as owner_name, count(r.id)::int as run_count, max(r.started_at) as last_run_at
+  select e.*, t.name as template_name, u.name as owner_name, count(r.id)::int as run_count, max(r.started_at) as last_run_at,
+    coalesce(sum(r.cost_usd), 0)::float8 as cost_usd
   from engagements e left join runs r on r.engagement_id = e.id left join templates t on t.id = e.template_id
   left join users u on u.id = e.owner_id`;
 
@@ -148,16 +153,28 @@ export async function appendEvents(db: Db, runId: string, firstSeq: number, even
   await db.query(`insert into run_events (run_id, seq, event) values ${values}`, params);
 }
 
-export async function finishRun(
-  db: Db,
-  id: string,
-  result: { status: RunStatus; finalText: string; error?: string; inputTokens: number; outputTokens: number; cacheReadTokens: number },
-): Promise<void> {
+export interface RunUsage {
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens?: number;
+  costUsd?: number;
+}
+
+const USAGE_ARGS = (u: RunUsage) => [u.inputTokens, u.outputTokens, u.cacheReadTokens, u.cacheWriteTokens ?? 0, Math.round((u.costUsd ?? 0) * 10000) / 10000];
+
+export async function finishRun(db: Db, id: string, result: { status: RunStatus; finalText: string; error?: string } & RunUsage): Promise<void> {
   await db.query(
-    `update runs set status = $2, final_text = $3, error = $4, input_tokens = $5, output_tokens = $6, cache_read_tokens = $7, finished_at = now()
+    `update runs set status = $2, final_text = $3, error = $4, input_tokens = $5, output_tokens = $6, cache_read_tokens = $7,
+       cache_write_tokens = $8, cost_usd = $9, finished_at = now()
      where id = $1`,
-    [id, result.status, result.finalText, result.error ?? null, result.inputTokens, result.outputTokens, result.cacheReadTokens],
+    [id, result.status, result.finalText, result.error ?? null, ...USAGE_ARGS(result)],
   );
+}
+
+/** Saves a running run's token use and cost so far. */
+export async function updateRunUsage(db: Db, id: string, u: RunUsage): Promise<void> {
+  await db.query("update runs set input_tokens = $2, output_tokens = $3, cache_read_tokens = $4, cache_write_tokens = $5, cost_usd = $6 where id = $1 and status = 'running'", [id, ...USAGE_ARGS(u)]);
 }
 
 /** Runs left 'running' by a server that stopped mid-run can never finish: mark them. */

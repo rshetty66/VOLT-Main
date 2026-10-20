@@ -10,9 +10,12 @@ import { ORCHESTRATOR_LANE, type RunMode, type RunRequest, type VoltEvent } from
 import type { Catalog } from "./catalog.js";
 import type { Db } from "./db.js";
 import { runDemo } from "./demo.js";
+import { callCost } from "./cost.js";
 import { MODEL, errorMessage, getSession, runLive, type Emit } from "./orchestrator.js";
 import { recordRun } from "./recorder.js";
+import { getSettings } from "./settings.js";
 import { loadSession, saveSession } from "./store.js";
+import { budgetFor, budgetGuard } from "./usage.js";
 import type { StoredRun } from "../shared/records.js";
 
 export interface RunContext {
@@ -91,14 +94,28 @@ export async function startRun(
   );
   const controller = new AbortController();
   active.set(runId, controller);
-  const emit = recorder.emit;
+
+  // Price every model call as it lands, and stop the run at its own or the person's monthly budget.
+  const settings = await getSettings(db);
+  const guard = runMode === "live" && ctx.userId ? budgetGuard(await budgetFor(db, settings, ctx.userId), { resumable: kind === "workflow" }) : null;
+  const emit: Emit = (e) => {
+    if (e.type !== "usage") return recorder.emit(e);
+    const costUsd = callCost(settings.prices, e.model ?? model, e);
+    recorder.emit({ ...e, costUsd });
+    const check = guard?.add(costUsd);
+    if (check?.warn) recorder.emit({ type: "status", lane: ORCHESTRATOR_LANE, text: check.warn });
+    if (check?.stop && !controller.signal.aborted) {
+      recorder.emit({ type: "error", lane: ORCHESTRATOR_LANE, message: check.stop });
+      controller.abort();
+    }
+  };
 
   const finished = (async () => {
     emit({ type: "run_start", runId, sessionId: session.id, mode: runMode, model, kind, title: runTitle });
     if (opts.reuse?.size) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Resuming: reusing ${opts.reuse.size} finished specialist output(s) from the earlier run` });
     try {
       if (runMode === "demo") await runDemo(catalog, body, emit, controller.signal);
-      else await runLive(catalog, body, session, emit, controller.signal, opts.reuse);
+      else await runLive(catalog, body, session, emit, controller.signal, { reuse: opts.reuse, specialistModel: settings.specialistModel, specialistMaxSteps: settings.specialistMaxSteps });
     } catch (err) {
       if (!controller.signal.aborted) emit({ type: "error", lane: ORCHESTRATOR_LANE, message: errorMessage(err) });
     }

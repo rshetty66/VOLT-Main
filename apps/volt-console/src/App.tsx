@@ -12,6 +12,7 @@ import { Analytics } from "./components/Analytics";
 import { Health } from "./components/Health";
 import { Engagements } from "./components/Engagements";
 import { Templates } from "./components/Templates";
+import { Usage } from "./components/Usage";
 import { Users } from "./components/Users";
 import { ChangePassword } from "./AuthGate";
 import { useUser } from "./user";
@@ -25,7 +26,7 @@ const readStored = () => {
   }
 };
 
-export type View = "console" | "engagements" | "templates" | "users" | "workflows" | "agents" | "skills" | "services" | "analytics" | "health";
+export type View = "console" | "engagements" | "templates" | "usage" | "users" | "workflows" | "agents" | "skills" | "services" | "analytics" | "health";
 
 export function App({ onSignedOut }: { onSignedOut: () => void }) {
   const user = useUser()!;
@@ -34,6 +35,11 @@ export function App({ onSignedOut }: { onSignedOut: () => void }) {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [loadError, setLoadError] = useState("");
   const [view, setView] = useState<View>("console");
+  const [runToOpen, setRunToOpen] = useState<{ id: string; n: number } | null>(null);
+  const openRun = (id: string) => {
+    setRunToOpen({ id, n: Date.now() });
+    setView("engagements");
+  };
   const [runs, setRuns] = useState<Run[]>([]);
   const [target, setTarget] = useState<string>("rudra");
   const [forceDemo, setForceDemo] = useState(false);
@@ -136,6 +142,7 @@ export function App({ onSignedOut }: { onSignedOut: () => void }) {
     ["console", "Agent Console", runs.length || ""],
     ["engagements", "Engagements", engagements.length || ""],
     ["templates", "Templates", ""],
+    ["usage", "Usage", ""],
     ...(user.role === "admin" ? ([["users", "Users", ""]] as [View, string, string][]) : []),
     ["workflows", "Workflows", catalog.workflows.length],
     ["agents", "Agents", catalog.agents.length],
@@ -219,11 +226,13 @@ export function App({ onSignedOut }: { onSignedOut: () => void }) {
             onContinue={continueRun}
             onResume={resumeRun}
             onOpenAgent={setOpenAgent}
+            openRun={runToOpen}
           />
         )}
         {view === "templates" && <Templates onChanged={refreshEngagements} />}
+        {view === "usage" && <Usage live={catalog.mode === "live"} onOpenRun={openRun} />}
         {view === "users" && user.role === "admin" && <Users />}
-        {view === "workflows" && <Workflows catalog={catalog} onLaunch={start} onOpenAgent={setOpenAgent} />}
+        {view === "workflows" && <Workflows catalog={catalog} live={live} onLaunch={start} onOpenAgent={setOpenAgent} />}
         {view === "agents" && <Agents catalog={catalog} onOpen={setOpenAgent} />}
         {view === "skills" && <SkillFinder catalog={catalog} onOpenAgent={setOpenAgent} />}
         {view === "services" && <Services catalog={catalog} onOpenAgent={setOpenAgent} onLaunch={start} />}

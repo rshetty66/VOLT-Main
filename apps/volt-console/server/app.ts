@@ -81,6 +81,8 @@ import {
 } from "./auth.js";
 import type { CatalogResponse, RunMode, VoltEvent } from "../shared/events.js";
 import type { User } from "../shared/records.js";
+import { DEFAULT_SETTINGS, SettingsPatch, getSettings, resetSettings, updateSettings } from "./settings.js";
+import { budgetBlock, budgetFor, estimateRun, setUserBudget, usageSummary } from "./usage.js";
 
 export interface AppContext {
   db: Db;
@@ -233,6 +235,59 @@ export function createApp({ db, catalog, mode }: AppContext): express.Express {
     if (!target) return void res.status(404).json({ error: "unknown user" });
     await setPassword(db, target.id, parsed.data.password);
     await audit(db, userOf(res).id, "password_reset", { type: "user", id: target.id });
+    res.json({ ok: true });
+  });
+
+  // ── Usage and cost control ───────────────────────────────────────────────────
+
+  app.get("/api/usage", async (_req, res) => {
+    res.json(await usageSummary(db, await getSettings(db), userOf(res)));
+  });
+
+  /** The cost estimate shown before a run, with the person's budget. */
+  app.get("/api/usage/estimate", async (req, res) => {
+    const q = z.object({ workflowId: z.string().max(100).optional(), agentId: z.string().max(100).optional() }).safeParse(req.query);
+    if (!q.success) return void res.status(400).json({ error: q.error.message });
+    const settings = await getSettings(db);
+    res.json({ estimate: await estimateRun(db, catalog, settings, q.data), budget: await budgetFor(db, settings, userOf(res).id), mode });
+  });
+
+  app.get("/api/settings/cost", async (_req, res) => {
+    if (!requireAdmin(res)) return;
+    res.json({ settings: await getSettings(db), defaults: DEFAULT_SETTINGS, leadModel: MODEL });
+  });
+
+  app.put("/api/settings/cost", async (req, res) => {
+    if (!requireAdmin(res)) return;
+    const parsed = SettingsPatch.safeParse(req.body);
+    if (!parsed.success) return void res.status(400).json({ error: parsed.error.issues.map((i) => `${i.path.join(".") || "settings"}: ${i.message}`).join("; ") });
+    const prices = parsed.data.prices ?? (await getSettings(db)).prices;
+    if (parsed.data.specialistModel && !prices[parsed.data.specialistModel]) {
+      return void res.status(400).json({ error: `Add a price for ${parsed.data.specialistModel} before using it, so its runs are costed.` });
+    }
+    const settings = await updateSettings(db, parsed.data, userOf(res).id);
+    await audit(db, userOf(res).id, "cost_settings_updated", undefined, { changed: Object.keys(parsed.data) });
+    res.json({ settings, defaults: DEFAULT_SETTINGS, leadModel: MODEL });
+  });
+
+  app.post("/api/settings/cost/reset", async (req, res) => {
+    if (!requireAdmin(res)) return;
+    const keys = z.array(z.enum(["prices", "runBudgetUsd", "monthlyBudgetUsd", "warnAt", "specialistModel", "specialistMaxSteps"])).safeParse(req.body?.keys);
+    if (!keys.success) return void res.status(400).json({ error: "Name the settings to reset." });
+    const settings = await resetSettings(db, keys.data);
+    await audit(db, userOf(res).id, "cost_settings_reset", undefined, { keys: keys.data });
+    res.json({ settings, defaults: DEFAULT_SETTINGS, leadModel: MODEL });
+  });
+
+  /** A person's own monthly budget; null returns them to the default. */
+  app.put("/api/users/:id/budget", async (req, res) => {
+    if (!requireAdmin(res)) return;
+    const parsed = z.object({ monthlyBudgetUsd: z.number().min(0).max(1_000_000).nullable() }).safeParse(req.body);
+    if (!parsed.success) return void res.status(400).json({ error: "Enter a monthly budget in dollars (0 for no limit), or clear it to use the default." });
+    const target = await getUser(db, req.params.id);
+    if (!target) return void res.status(404).json({ error: "unknown user" });
+    await setUserBudget(db, target.id, parsed.data.monthlyBudgetUsd);
+    await audit(db, userOf(res).id, "budget_set", { type: "user", id: target.id }, { monthlyBudgetUsd: parsed.data.monthlyBudgetUsd });
     res.json({ ok: true });
   });
 
@@ -534,6 +589,10 @@ export function createApp({ db, catalog, mode }: AppContext): express.Express {
       const runs = await runsForSession(db, body.sessionId);
       const allowed = runs.length > 0 && (await Promise.all(runs.map((r) => runAccess(db, me, r)))).includes("write");
       if (!allowed) return void res.status(403).json({ error: "That conversation belongs to someone else." });
+    }
+    if (!body.demo && mode === "live") {
+      const blocked = budgetBlock(await budgetFor(db, await getSettings(db), me.id));
+      if (blocked) return void res.status(403).json({ error: blocked });
     }
 
     res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });

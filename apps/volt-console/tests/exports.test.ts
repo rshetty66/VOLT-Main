@@ -51,10 +51,10 @@ const events: VoltEvent[] = [
 
 const run: StoredRun = {
   id: "00000000-0000-4000-8000-000000000001", engagementId: null, userId: null, sessionId: "s", kind: "workflow", title: "Finance Close Optimization", prompt: "11-day close",
-  workflowId: "close-optimization", agentId: null, mode: "live", model: "claude-opus-5-5", status: "done", error: null, inputTokens: 1, outputTokens: 1,
+  workflowId: "close-optimization", agentId: null, mode: "live", model: "claude-opus-5-5", status: "done", error: null, inputTokens: 1, outputTokens: 1, cacheReadTokens: 0, cacheWriteTokens: 0, costUsd: 0,
   startedAt: "2026-10-20T17:55:07.809Z", finishedAt: "2026-10-20T18:05:00.000Z", intake: { audience: "C-Suite / Board" }, finalText: deliverable, events,
 };
-const engagement = { id: "e", clientName: "Maple Harbour Financial", title: "Close optimization", description: "", createdAt: "", updatedAt: "", runCount: 1, lastRunAt: null, templateId: null, templateName: null, ownerId: null, ownerName: null };
+const engagement = { id: "e", clientName: "Maple Harbour Financial", title: "Close optimization", description: "", createdAt: "", updatedAt: "", runCount: 1, lastRunAt: null, templateId: null, templateName: null, ownerId: null, ownerName: null, costUsd: 0 };
 const content = runContent(run, engagement);
 
 describe("markdown parsing", () => {
