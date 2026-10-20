@@ -1,4 +1,5 @@
 import { ORCHESTRATOR_LANE, type RunKind, type RunMode, type VoltEvent } from "../shared/events";
+import type { StoredRun } from "../shared/records";
 
 export interface ActivityItem {
   id: string;
@@ -32,6 +33,8 @@ export interface Run {
   mode?: RunMode;
   model?: string;
   sessionId?: string;
+  /** The server's id for this run; set once the run is saved. */
+  serverRunId?: string;
   text: string;
   activity: ActivityItem[];
   lanes: Record<string, Lane>;
@@ -78,7 +81,7 @@ export function applyEvent(run: Run, e: VoltEvent): Run {
 
   switch (e.type) {
     case "run_start":
-      return { ...r, mode: e.mode, model: e.model, sessionId: e.sessionId, title: e.title, kind: e.kind };
+      return { ...r, mode: e.mode, model: e.model, sessionId: e.sessionId, serverRunId: e.runId, title: e.title, kind: e.kind };
     case "phase_start":
       r.phases = [...r.phases];
       r.phases[e.index] = { name: e.name, agents: e.agents, state: "running" };
@@ -125,6 +128,18 @@ export function applyEvent(run: Run, e: VoltEvent): Run {
     case "done":
       return { ...r, sessionId: e.sessionId, state: r.state === "stopped" ? "stopped" : "done", finishedAt: Date.now() };
   }
+}
+
+/** Rebuilds a saved run's view by replaying its stored events. */
+export function replayRun(stored: StoredRun): Run {
+  const base: Run = { ...newRun(stored.prompt, stored.title, stored.kind), startedAt: Date.parse(stored.startedAt) };
+  const r = stored.events.reduce(applyEvent, base);
+  return {
+    ...r,
+    title: stored.title,
+    state: stored.status === "stopped" ? "stopped" : "done",
+    finishedAt: stored.finishedAt ? Date.parse(stored.finishedAt) : r.finishedAt,
+  };
 }
 
 function summariseInput(input: unknown): string {

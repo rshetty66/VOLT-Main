@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 import type { ActivityItem, Lane, Run } from "../runState";
 import { Markdown } from "./Markdown";
+import { runMarkdownUrl } from "../api";
 
 const EXAMPLES = [
   "Our month-end close takes 12 days on SAP S/4HANA and DSO is 55. Build a plan to reach a 5-day close.",
@@ -119,7 +120,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   );
 }
 
-function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: CatalogResponse; onStop: () => void; onOpenAgent: (id: string) => void }) {
+export function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: CatalogResponse; onStop: () => void; onOpenAgent: (id: string) => void }) {
   const lanes = run.laneOrder.map((id) => run.lanes[id]);
   const elapsed = Math.round(((run.finishedAt ?? Date.now()) - run.startedAt) / 1000);
   const [, tick] = useState(0);
@@ -144,6 +145,11 @@ function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: Cat
           </button>
         )}
         {run.state === "stopped" && <span className="badge">stopped</span>}
+        {run.serverRunId && run.state !== "running" && (
+          <a className="btn sm" style={{ textDecoration: "none" }} href={runMarkdownUrl(run.serverRunId)} download>
+            Download
+          </a>
+        )}
       </div>
       <div className="run-body">
         {run.phases.length > 0 && (

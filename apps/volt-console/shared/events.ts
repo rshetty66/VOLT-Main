@@ -33,6 +33,8 @@ export interface RunRequest {
   agentId?: string;
   /** Force the offline simulator even when credentials exist. */
   demo?: boolean;
+  /** Save the run under this engagement. */
+  engagementId?: string;
 }
 
 export interface CatalogAgent {

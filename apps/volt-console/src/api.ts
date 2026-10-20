@@ -1,4 +1,18 @@
 import type { CatalogResponse, RunRequest, VoltEvent } from "../shared/events";
+import type { Engagement, RunSummary, StoredRun } from "../shared/records";
+
+export type EngagementDetail = Engagement & { runs: RunSummary[] };
+
+export const listEngagements = () => getJSON<Engagement[]>("/api/engagements");
+export const getEngagementDetail = (id: string) => getJSON<EngagementDetail>(`/api/engagements/${id}`);
+export const getStoredRun = (id: string) => getJSON<StoredRun>(`/api/runs/${id}`);
+export const runMarkdownUrl = (id: string) => `/api/runs/${id}/markdown`;
+
+export async function createEngagement(input: { clientName: string; title: string; description?: string }): Promise<Engagement> {
+  const r = await fetch("/api/engagements", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
+  if (!r.ok) throw new Error(`Could not create the engagement (${r.status})`);
+  return r.json();
+}
 
 export async function fetchCatalog(): Promise<CatalogResponse> {
   const r = await fetch("/api/catalog");

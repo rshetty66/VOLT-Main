@@ -29,7 +29,7 @@ const USE_FALLBACKS = (process.env.VOLT_FALLBACKS ?? "on") !== "off";
 const MAX_TURNS = 16;
 const MAX_CONSULT_CHARS = 14_000;
 
-interface Session {
+export interface Session {
   id: string;
   /** Conversation with the lead agent (Rudra, or the directly-addressed agent). */
   messages: Anthropic.Beta.BetaMessageParam[];
@@ -278,10 +278,12 @@ async function runSpecialist(
 
 // ── Run kinds ────────────────────────────────────────────────────────────────
 
-export function getSession(id?: string): Session {
+/** Returns the in-memory session, else rebuilds it from a saved copy, else starts a new one. */
+export function getSession(id?: string, saved?: { messages: unknown[]; agentId?: string } | null): Session {
   const existing = id ? sessions.get(id) : undefined;
   if (existing) return existing;
-  const s: Session = { id: id ?? crypto.randomUUID(), messages: [] };
+  const messages = (saved?.messages ?? []) as Anthropic.Beta.BetaMessageParam[];
+  const s: Session = { id: id ?? crypto.randomUUID(), messages, agentId: saved?.agentId };
   sessions.set(s.id, s);
   return s;
 }
