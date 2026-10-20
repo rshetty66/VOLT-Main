@@ -35,6 +35,8 @@ export interface RunRequest {
   demo?: boolean;
   /** Save the run under this engagement. */
   engagementId?: string;
+  /** Resume a stopped or failed workflow run: reuse its finished specialist outputs, run the rest. */
+  resumeFrom?: string;
 }
 
 export interface CatalogAgent {

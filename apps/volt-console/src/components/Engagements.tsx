@@ -12,16 +12,17 @@ interface Props {
   onSelect: (id: string) => void;
   onCreated: (e: Engagement) => void;
   onContinue: (run: RunSummary) => void;
+  onResume: (run: RunSummary) => void;
   onOpenAgent: (id: string) => void;
 }
 
 const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" }) : "-");
 
-export function Engagements({ catalog, engagements, currentId, onSelect, onCreated, onContinue, onOpenAgent }: Props) {
+export function Engagements({ catalog, engagements, currentId, onSelect, onCreated, onContinue, onResume, onOpenAgent }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
 
-  if (runId) return <SavedRun catalog={catalog} runId={runId} onBack={() => setRunId(null)} onContinue={onContinue} onOpenAgent={onOpenAgent} />;
+  if (runId) return <SavedRun catalog={catalog} runId={runId} onBack={() => setRunId(null)} onContinue={onContinue} onResume={onResume} onOpenAgent={onOpenAgent} />;
   if (openId)
     return (
       <EngagementPage
@@ -195,7 +196,21 @@ function EngagementPage({ id, isCurrent, onSelect, onBack, onOpenRun }: { id: st
   );
 }
 
-function SavedRun({ catalog, runId, onBack, onContinue, onOpenAgent }: { catalog: CatalogResponse; runId: string; onBack: () => void; onContinue: (run: RunSummary) => void; onOpenAgent: (id: string) => void }) {
+function SavedRun({
+  catalog,
+  runId,
+  onBack,
+  onContinue,
+  onResume,
+  onOpenAgent,
+}: {
+  catalog: CatalogResponse;
+  runId: string;
+  onBack: () => void;
+  onContinue: (run: RunSummary) => void;
+  onResume: (run: RunSummary) => void;
+  onOpenAgent: (id: string) => void;
+}) {
   const [stored, setStored] = useState<StoredRun | null>(null);
   const [err, setErr] = useState("");
   const load = () => getStoredRun(runId).then(setStored, (x) => setErr(String(x)));
@@ -218,7 +233,12 @@ function SavedRun({ catalog, runId, onBack, onContinue, onOpenAgent }: { catalog
         </button>
         {stored && (
           <div className="row">
-            {stored.mode === "live" && (
+            {stored.kind === "workflow" && (stored.status === "stopped" || stored.status === "error") && (
+              <button className="btn primary sm" title="Reuse the specialists that finished; run only the rest and the synthesis" onClick={() => onResume(stored)}>
+                Resume
+              </button>
+            )}
+            {stored.mode === "live" && stored.status === "done" && (
               <button className="btn sm" onClick={() => onContinue(stored)}>
                 Continue this conversation
               </button>

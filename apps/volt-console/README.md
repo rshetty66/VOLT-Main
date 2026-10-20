@@ -47,6 +47,9 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
 - **Runs outlive the browser.** A run keeps going on the server, and is saved in full, if the tab is closed or
   refreshed or the laptop sleeps; reopen it from Engagements, where it updates while still running. Only the Stop
   button (`POST /api/runs/:id/stop`) halts a run.
+- **Resume.** A stopped or failed workflow run can be resumed from its saved page: specialists that finished are
+  reused as they are, only the unfinished ones run again, then Rudra writes the synthesis. The resumed run is saved
+  as a new run in the same engagement; the original is kept.
 
 ## Test
 

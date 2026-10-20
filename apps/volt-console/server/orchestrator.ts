@@ -288,11 +288,15 @@ export function getSession(id?: string, saved?: { messages: unknown[]; agentId?:
   return s;
 }
 
-export async function runLive(catalog: Catalog, req: RunRequest, session: Session, emit: Emit, signal: AbortSignal) {
+/**
+ * `reuse` maps a workflow lane id (`<workflow>:<phase index>:<agent id>`) to a specialist
+ * output from an earlier run; those specialists are not run again.
+ */
+export async function runLive(catalog: Catalog, req: RunRequest, session: Session, emit: Emit, signal: AbortSignal, reuse?: Map<string, string>) {
   if (req.workflowId) {
     const wf = catalog.workflowById.get(req.workflowId);
     if (!wf) throw new Error(`Unknown workflow '${req.workflowId}'`);
-    await runWorkflow(catalog, wf, req, session, emit, signal);
+    await runWorkflow(catalog, wf, req, session, emit, signal, reuse);
     return;
   }
 
@@ -340,7 +344,7 @@ function intakeText(catalog: Catalog, wf: WorkflowDef, answers: Record<string, s
   return lines.length ? `\n\nEngagement intake:\n${lines.join("\n")}` : "";
 }
 
-async function runWorkflow(catalog: Catalog, wf: WorkflowDef, req: RunRequest, session: Session, emit: Emit, signal: AbortSignal) {
+async function runWorkflow(catalog: Catalog, wf: WorkflowDef, req: RunRequest, session: Session, emit: Emit, signal: AbortSignal, reuse?: Map<string, string>) {
   const context = `${req.prompt}${intakeText(catalog, wf, req.intake)}`;
   const outputs: { phase: string; agent: AgentDef; text: string }[] = [];
 
@@ -353,6 +357,16 @@ async function runWorkflow(catalog: Catalog, wf: WorkflowDef, req: RunRequest, s
       phase.agents.map(async (agentId) => {
         const agent = catalog.agentById.get(agentId);
         if (!agent) throw new Error(`Agent ${agentId} missing from registry`);
+        const lane = `${wf.id}:${index}:${agentId}`;
+        const saved = reuse?.get(lane);
+        if (saved !== undefined) {
+          emit({ type: "agent_start", lane, parentLane: ORCHESTRATOR_LANE, agentId, name: agent.name, layer: agent.layer, icon: agent.icon, brief: `${phase.name}: reused from the earlier run` });
+          emit({ type: "status", lane, text: "Reused from the earlier run, not run again" });
+          emit({ type: "text_delta", lane, text: saved });
+          emit({ type: "agent_end", lane, agentId, ok: true });
+          outputs.push({ phase: phase.name, agent, text: saved });
+          return;
+        }
         const brief = `VOLT workflow: ${wf.name} — phase ${index + 1}/${wf.phases.length}: ${phase.name}.
 Workflow purpose: ${wf.description}
 
@@ -360,7 +374,7 @@ Client request:
 ${context}${prior}
 
 Deliver your ${phase.name} contribution from the ${agent.name} perspective. Build on earlier phases rather than repeating them.`;
-        const text = await runSpecialist(catalog, agent, brief, `${wf.id}:${index}:${agentId}`, ORCHESTRATOR_LANE, emit, signal);
+        const text = await runSpecialist(catalog, agent, brief, lane, ORCHESTRATOR_LANE, emit, signal);
         outputs.push({ phase: phase.name, agent, text });
       }),
     );

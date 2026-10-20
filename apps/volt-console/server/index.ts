@@ -30,7 +30,7 @@ import { BENCHMARKS } from "./analytics.js";
 import { MODEL, intakeFor } from "./orchestrator.js";
 import { DEFAULT_DATA_DIR, openDb } from "./db.js";
 import { createEngagement, getEngagement, getRun, isUuid, listEngagements, listRuns, markInterruptedRuns } from "./store.js";
-import { startRun, stopRun } from "./runs.js";
+import { finishedOutputs, startRun, stopRun } from "./runs.js";
 import { runToMarkdown } from "./export.js";
 import type { CatalogResponse, RunMode, VoltEvent } from "../shared/events.js";
 
@@ -171,12 +171,23 @@ const RunBody = z.object({
   agentId: z.string().optional(),
   demo: z.boolean().optional(),
   engagementId: z.string().uuid().optional(),
+  resumeFrom: z.string().uuid().optional(),
 });
 
 app.post("/api/run", async (req, res) => {
   const parsed = RunBody.safeParse(req.body);
   if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
-  const body = parsed.data;
+  let body = parsed.data;
+  let reuse: Map<string, string> | undefined;
+  if (body.resumeFrom) {
+    // Resume takes the request, intake and engagement from the earlier run, not from the body.
+    const source = await getRun(db, body.resumeFrom);
+    if (!source) return void res.status(404).json({ error: "unknown run" });
+    if (source.kind !== "workflow" || !source.workflowId) return void res.status(400).json({ error: "only workflow runs can be resumed" });
+    if (source.status !== "stopped" && source.status !== "error") return void res.status(409).json({ error: `run is ${source.status}; only stopped or failed runs can be resumed` });
+    reuse = finishedOutputs(source);
+    body = { prompt: source.prompt, workflowId: source.workflowId, intake: source.intake ?? undefined, engagementId: source.engagementId ?? undefined, demo: body.demo, resumeFrom: source.id };
+  }
   if (body.engagementId && !(await getEngagement(db, body.engagementId))) return void res.status(400).json({ error: "unknown engagement" });
 
   res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
@@ -184,7 +195,7 @@ app.post("/api/run", async (req, res) => {
     if (res.writableEnded) return;
     res.write(`data: ${JSON.stringify(e)}\n\n`);
     if (e.type === "done") res.end();
-  });
+  }, { reuse });
   // A closed connection only stops the streaming; the run finishes and is saved.
   res.on("close", run.detach);
 });

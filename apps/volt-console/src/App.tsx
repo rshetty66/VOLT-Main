@@ -62,7 +62,8 @@ export function App() {
 
   const start = useCallback(
     async (req: RunRequest, title: string, kind: RunKind) => {
-      const scope = engagementId || "none";
+      const runEngagement = req.engagementId ?? engagementId;
+      const scope = runEngagement || "none";
       const sessionKey = `${scope}:${req.workflowId ? `workflow:${crypto.randomUUID()}` : req.agentId && req.agentId !== "rudra" ? `agent:${req.agentId}` : "rudra"}`;
       const run = newRun(req.prompt, title, kind);
       const controller = new AbortController();
@@ -71,7 +72,7 @@ export function App() {
       setView("console");
       const update = (fn: (r: Run) => Run) => setRuns((rs) => rs.map((r) => (r.id === run.id ? fn(r) : r)));
       try {
-        const body = { ...req, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined, engagementId: engagementId || undefined };
+        const body = { ...req, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined, engagementId: runEngagement || undefined };
         for await (const e of streamRun(body, controller.signal)) {
           if (e.type === "run_start") serverIds.current.set(run.id, e.runId);
           if (e.type === "done") {
@@ -96,6 +97,12 @@ export function App() {
     },
     [forceDemo, engagementId, refreshEngagements],
   );
+
+  /** Resumes a stopped or failed workflow run in the console, filed under the same engagement. */
+  const resumeRun = (run: RunSummary) => {
+    setEngagementId(run.engagementId ?? "");
+    void start({ prompt: run.prompt, workflowId: run.workflowId ?? undefined, engagementId: run.engagementId ?? "", resumeFrom: run.id }, `${run.title} (resumed)`, "workflow");
+  };
 
   /** Reopens a saved conversation: the next message to that agent continues it. */
   const continueRun = (run: RunSummary) => {
@@ -188,6 +195,7 @@ export function App() {
               refreshEngagements();
             }}
             onContinue={continueRun}
+            onResume={resumeRun}
             onOpenAgent={setOpenAgent}
           />
         )}
