@@ -101,7 +101,8 @@ test("Stop, then Resume: the resumed run reuses finished specialists and complet
   await page.locator("textarea").fill("Second pass: stop part-way.");
   await page.getByRole("button", { name: "Launch workflow" }).click();
   const run = page.locator(".run").last();
-  await expect(run.locator(".lane").nth(2)).toBeVisible({ timeout: 30_000 });
+  // Stop once at least one specialist has finished, so Resume has something to reuse (timing differs by machine).
+  await expect(run.locator(".lane .dot.done").first()).toBeVisible({ timeout: 30_000 });
   // The card keeps re-rendering while text streams in, so it never looks "stable"; click without waiting for that.
   await run.getByRole("button", { name: "Stop" }).click({ force: true });
   await expect(run.getByText("stopped", { exact: true })).toBeVisible({ timeout: 30_000 });
