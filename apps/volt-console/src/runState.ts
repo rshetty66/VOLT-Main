@@ -137,7 +137,7 @@ export function replayRun(stored: StoredRun): Run {
   return {
     ...r,
     title: stored.title,
-    state: stored.status === "stopped" ? "stopped" : "done",
+    state: stored.status === "running" ? "running" : stored.status === "stopped" ? "stopped" : "done",
     finishedAt: stored.finishedAt ? Date.parse(stored.finishedAt) : r.finishedAt,
   };
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { CatalogResponse } from "../../shared/events";
 import type { Engagement, RunSummary, StoredRun } from "../../shared/records";
-import { createEngagement, getEngagementDetail, getStoredRun, runMarkdownUrl, type EngagementDetail } from "../api";
+import { createEngagement, getEngagementDetail, getStoredRun, runMarkdownUrl, stopRun, type EngagementDetail } from "../api";
 import { replayRun } from "../runState";
 import { RunView } from "./Console";
 
@@ -123,6 +123,13 @@ function EngagementPage({ id, isCurrent, onSelect, onBack, onOpenRun }: { id: st
   useEffect(() => {
     getEngagementDetail(id).then(setE, (x) => setErr(String(x)));
   }, [id]);
+  // While any run is still going on the server, refresh the list every few seconds.
+  const anyRunning = e?.runs.some((r) => r.status === "running") ?? false;
+  useEffect(() => {
+    if (!anyRunning) return;
+    const t = setInterval(() => getEngagementDetail(id).then(setE, () => {}), 4000);
+    return () => clearInterval(t);
+  }, [id, anyRunning]);
 
   return (
     <div className="stack" style={{ maxWidth: 1000 }}>
@@ -191,9 +198,17 @@ function EngagementPage({ id, isCurrent, onSelect, onBack, onOpenRun }: { id: st
 function SavedRun({ catalog, runId, onBack, onContinue, onOpenAgent }: { catalog: CatalogResponse; runId: string; onBack: () => void; onContinue: (run: RunSummary) => void; onOpenAgent: (id: string) => void }) {
   const [stored, setStored] = useState<StoredRun | null>(null);
   const [err, setErr] = useState("");
+  const load = () => getStoredRun(runId).then(setStored, (x) => setErr(String(x)));
   useEffect(() => {
-    getStoredRun(runId).then(setStored, (x) => setErr(String(x)));
+    load();
   }, [runId]);
+  // A run still going on the server is saved as it goes: reload it every few seconds until it ends.
+  const running = stored?.status === "running";
+  useEffect(() => {
+    if (!running) return;
+    const t = setInterval(load, 3000);
+    return () => clearInterval(t);
+  }, [runId, running]);
 
   return (
     <div className="console">
@@ -213,7 +228,8 @@ function SavedRun({ catalog, runId, onBack, onContinue, onOpenAgent }: { catalog
       </div>
       {err && <div className="card">{err}</div>}
       {stored?.error && <div className="card body">This run ended with a problem: {stored.error}</div>}
-      {!stored ? !err && <div className="empty"><span className="spinner" /> Loading...</div> : <RunView run={replayRun(stored)} catalog={catalog} onStop={() => {}} onOpenAgent={onOpenAgent} />}
+      {running && <div className="card body">Still running on the server. This page updates every few seconds; you can leave and come back.</div>}
+      {!stored ? !err && <div className="empty"><span className="spinner" /> Loading...</div> : <RunView run={replayRun(stored)} catalog={catalog} onStop={() => void stopRun(stored.id).then(load)} onOpenAgent={onOpenAgent} />}
     </div>
   );
 }

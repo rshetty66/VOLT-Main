@@ -8,6 +8,11 @@ export const getEngagementDetail = (id: string) => getJSON<EngagementDetail>(`/a
 export const getStoredRun = (id: string) => getJSON<StoredRun>(`/api/runs/${id}`);
 export const runMarkdownUrl = (id: string) => `/api/runs/${id}/markdown`;
 
+/** Asks the server to halt a run; closing the page alone does not stop it. */
+export async function stopRun(id: string): Promise<void> {
+  await fetch(`/api/runs/${id}/stop`, { method: "POST" });
+}
+
 export async function createEngagement(input: { clientName: string; title: string; description?: string }): Promise<Engagement> {
   const r = await fetch("/api/engagements", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
   if (!r.ok) throw new Error(`Could not create the engagement (${r.status})`);

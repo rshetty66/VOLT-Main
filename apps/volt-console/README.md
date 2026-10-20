@@ -44,6 +44,9 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
   Postgres (PGlite) in `VOLT_DATA_DIR` (default `apps/volt-console/.volt-data`, git-ignored). Runs survive restarts;
   a run cut off by a stopped server is marked as such on the next start. Delete the folder to start empty.
   Choose the current engagement in the top bar; new runs are filed under it.
+- **Runs outlive the browser.** A run keeps going on the server, and is saved in full, if the tab is closed or
+  refreshed or the laptop sleeps; reopen it from Engagements, where it updates while still running. Only the Stop
+  button (`POST /api/runs/:id/stop`) halts a run.
 
 ## Test
 

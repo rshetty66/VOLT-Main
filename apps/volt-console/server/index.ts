@@ -7,10 +7,12 @@
  *   GET  /api/runs                 recent runs (?engagementId=)
  *   GET  /api/runs/:id             one saved run with its full event stream
  *   GET  /api/runs/:id/markdown    the run as a Markdown file for review
+ *   POST /api/runs/:id/stop        halt a run that is still going
  *   GET  /api/catalog   agents, workflows, services, skills, intake, health
  *   GET  /api/agents/:id   one agent incl. its VOLT system prompt
  *   GET  /api/skills/:id   one skill's SKILL.md
- *   POST /api/run       Server-Sent Events stream of a run (see shared/events.ts)
+ *   POST /api/run       Server-Sent Events stream of a run (see shared/events.ts). The run
+ *                       continues and is saved if this connection closes; only /stop halts it.
  *   GET  /api/healthz
  *
  * In production it also serves the built React app from dist/.
@@ -19,20 +21,18 @@ import "./env.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { z } from "zod";
 import { loadCatalog, loadSkillBody, rankSkills } from "./catalog.js";
 import { runLocalTool, schemas, type ToolName } from "./tools.js";
 import { BENCHMARKS } from "./analytics.js";
-import { MODEL, errorMessage, getSession, intakeFor, runLive, type Emit } from "./orchestrator.js";
+import { MODEL, intakeFor } from "./orchestrator.js";
 import { DEFAULT_DATA_DIR, openDb } from "./db.js";
-import { createEngagement, getEngagement, getRun, isUuid, listEngagements, listRuns, loadSession, markInterruptedRuns, saveSession } from "./store.js";
-import { recordRun } from "./recorder.js";
+import { createEngagement, getEngagement, getRun, isUuid, listEngagements, listRuns, markInterruptedRuns } from "./store.js";
+import { startRun, stopRun } from "./runs.js";
 import { runToMarkdown } from "./export.js";
-import { runDemo } from "./demo.js";
-import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
+import type { CatalogResponse, RunMode, VoltEvent } from "../shared/events.js";
 
 const catalog = loadCatalog();
 const dataDir = process.env.VOLT_DATA_DIR || DEFAULT_DATA_DIR;
@@ -180,44 +180,19 @@ app.post("/api/run", async (req, res) => {
   if (body.engagementId && !(await getEngagement(db, body.engagementId))) return void res.status(400).json({ error: "unknown engagement" });
 
   res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
-  const controller = new AbortController();
-  res.on("close", () => controller.abort());
-  const send: Emit = (e: VoltEvent) => {
-    if (!res.writableEnded) res.write(`data: ${JSON.stringify(e)}\n\n`);
-  };
+  const run = await startRun({ db, catalog, mode }, body, (e: VoltEvent) => {
+    if (res.writableEnded) return;
+    res.write(`data: ${JSON.stringify(e)}\n\n`);
+    if (e.type === "done") res.end();
+  });
+  // A closed connection only stops the streaming; the run finishes and is saved.
+  res.on("close", run.detach);
+});
 
-  const runMode: RunMode = body.demo || mode === "demo" ? "demo" : "live";
-  const session = getSession(body.sessionId, body.sessionId ? await loadSession(db, body.sessionId) : null);
-  const kind = body.workflowId ? "workflow" : body.agentId && body.agentId !== "rudra" ? "agent" : "orchestrate";
-  const title = body.workflowId
-    ? catalog.workflowById.get(body.workflowId)?.name ?? body.workflowId
-    : body.agentId
-      ? catalog.agentById.get(body.agentId)?.name ?? body.agentId
-      : "Rudra orchestration";
-  const runId = crypto.randomUUID();
-  const model = runMode === "live" ? MODEL : "simulator";
-  const recorder = await recordRun(
-    db,
-    { id: runId, engagementId: body.engagementId, sessionId: session.id, kind, title, prompt: body.prompt, workflowId: body.workflowId, agentId: body.agentId, intake: body.intake, mode: runMode, model },
-    send,
-  );
-  const emit = recorder.emit;
-  emit({ type: "run_start", runId, sessionId: session.id, mode: runMode, model, kind, title });
-
-  try {
-    if (runMode === "demo") await runDemo(catalog, body, emit, controller.signal);
-    else await runLive(catalog, body, session, emit, controller.signal);
-  } catch (err) {
-    if (!controller.signal.aborted) emit({ type: "error", lane: ORCHESTRATOR_LANE, message: errorMessage(err) });
-  }
-  emit({ type: "done", sessionId: session.id });
-  res.end();
-  try {
-    if (runMode === "live") await saveSession(db, session);
-    await recorder.finish({ aborted: controller.signal.aborted });
-  } catch (err) {
-    console.error(`Could not save run ${runId}:`, err);
-  }
+app.post("/api/runs/:id/stop", async (req, res) => {
+  if (stopRun(req.params.id)) return void res.json({ ok: true });
+  const run = await getRun(db, req.params.id);
+  res.status(run ? 409 : 404).json({ error: run ? `run is already ${run.status}` : "unknown run" });
 });
 
 if (process.env.NODE_ENV === "production") {

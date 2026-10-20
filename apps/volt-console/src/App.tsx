@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../shared/events";
 import type { Engagement, RunSummary } from "../shared/records";
-import { fetchCatalog, listEngagements, streamRun } from "./api";
+import { fetchCatalog, listEngagements, stopRun, streamRun } from "./api";
 import { applyEvent, newRun, type Run } from "./runState";
 import { Console } from "./components/Console";
 import { Workflows } from "./components/Workflows";
@@ -33,6 +33,8 @@ export function App() {
   const [openAgent, setOpenAgent] = useState<string | null>(null);
   const sessions = useRef(new Map<string, string>());
   const controllers = useRef(new Map<string, AbortController>());
+  /** Console run id -> the server's run id, needed to stop a run on the server. */
+  const serverIds = useRef(new Map<string, string>());
   const [engagements, setEngagements] = useState<Engagement[]>([]);
   const [engagementId, setEngagementIdState] = useState<string>(readStored);
 
@@ -71,6 +73,7 @@ export function App() {
       try {
         const body = { ...req, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined, engagementId: engagementId || undefined };
         for await (const e of streamRun(body, controller.signal)) {
+          if (e.type === "run_start") serverIds.current.set(run.id, e.runId);
           if (e.type === "done") {
             sessions.current.set(sessionKey, e.sessionId);
             // Follow-ups to Rudra continue from a finished workflow's synthesis.
@@ -80,7 +83,10 @@ export function App() {
         }
       } catch (err) {
         if (!controller.signal.aborted) {
-          update((r) => applyEvent(r, { type: "error", lane: "rudra", message: String(err) }));
+          const message = serverIds.current.has(run.id)
+            ? "Lost the connection to the server. The run carries on there and is saved: open it from Engagements."
+            : String(err);
+          update((r) => applyEvent(r, { type: "error", lane: "rudra", message }));
         }
         update((r) => ({ ...r, state: controller.signal.aborted ? "stopped" : "done", finishedAt: Date.now() }));
       } finally {
@@ -102,6 +108,8 @@ export function App() {
   };
 
   const stop = (runId: string) => {
+    const serverId = serverIds.current.get(runId);
+    if (serverId) void stopRun(serverId).catch(() => {});
     controllers.current.get(runId)?.abort();
     setRuns((rs) => rs.map((r) => (r.id === runId ? { ...r, state: "stopped", finishedAt: Date.now() } : r)));
   };
