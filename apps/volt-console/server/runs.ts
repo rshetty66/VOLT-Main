@@ -63,7 +63,7 @@ export async function startRun(
   ctx: RunContext,
   body: RunRequest,
   listener: (e: VoltEvent) => void,
-  opts: { reuse?: Map<string, string> } = {},
+  opts: { reuse?: Map<string, string>; autoResumed?: boolean } = {},
 ): Promise<RunHandle> {
   const { db, catalog } = ctx;
   const runMode: RunMode = body.demo || ctx.mode === "demo" ? "demo" : "live";
@@ -74,7 +74,7 @@ export async function startRun(
     : body.agentId
       ? catalog.agentById.get(body.agentId)?.name ?? body.agentId
       : "Rudra orchestration";
-  const runTitle = body.resumeFrom ? `${title} (resumed)` : title;
+  const runTitle = opts.autoResumed ? `${title} (resumed after restart)` : body.resumeFrom ? `${title} (resumed)` : title;
   const runId = crypto.randomUUID();
   const model = runMode === "live" ? MODEL : "simulator";
 
@@ -90,7 +90,7 @@ export async function startRun(
   };
   const recorder = await recordRun(
     db,
-    { id: runId, engagementId: body.engagementId, userId: ctx.userId, sessionId: session.id, kind, prompt: body.prompt, workflowId: body.workflowId, agentId: body.agentId, intake: body.intake, mode: runMode, model, title: runTitle },
+    { id: runId, engagementId: body.engagementId, userId: ctx.userId, sessionId: session.id, kind, prompt: body.prompt, workflowId: body.workflowId, agentId: body.agentId, intake: body.intake, mode: runMode, model, title: runTitle, resumedFrom: body.resumeFrom, autoResumed: opts.autoResumed },
     broadcast,
   );
   const controller = new AbortController();
@@ -113,6 +113,7 @@ export async function startRun(
 
   const finished = (async () => {
     emit({ type: "run_start", runId, sessionId: session.id, mode: runMode, model, kind, title: runTitle });
+    if (opts.autoResumed) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Resumed automatically: the server restarted while this workflow was running" });
     if (opts.reuse?.size) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Resuming: reusing ${opts.reuse.size} finished specialist output(s) from the earlier run` });
     try {
       const files = await fileAccess(db, body.engagementId);

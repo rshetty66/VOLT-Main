@@ -42,6 +42,8 @@ function toRunSummary(r: Row): RunSummary {
     model: r.model,
     status: r.status,
     error: r.error,
+    resumedFrom: r.resumed_from ?? null,
+    autoResumed: !!r.auto_resumed,
     inputTokens: r.input_tokens,
     outputTokens: r.output_tokens,
     cacheReadTokens: r.cache_read_tokens ?? 0,
@@ -134,13 +136,17 @@ export interface NewRun {
   intake?: Record<string, string>;
   mode: RunMode;
   model: string;
+  /** The stopped or interrupted run this one continues. */
+  resumedFrom?: string;
+  /** Resumed by the server itself after a restart, not by a person. */
+  autoResumed?: boolean;
 }
 
 export async function createRun(db: Db, run: NewRun): Promise<void> {
   await db.query(
-    `insert into runs (id, engagement_id, session_id, kind, title, prompt, workflow_id, agent_id, intake, mode, model, user_id)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
-    [run.id, run.engagementId ?? null, run.sessionId, run.kind, run.title, run.prompt, run.workflowId ?? null, run.agentId ?? null, run.intake ? JSON.stringify(run.intake) : null, run.mode, run.model, run.userId ?? null],
+    `insert into runs (id, engagement_id, session_id, kind, title, prompt, workflow_id, agent_id, intake, mode, model, user_id, resumed_from, auto_resumed)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`,
+    [run.id, run.engagementId ?? null, run.sessionId, run.kind, run.title, run.prompt, run.workflowId ?? null, run.agentId ?? null, run.intake ? JSON.stringify(run.intake) : null, run.mode, run.model, run.userId ?? null, run.resumedFrom ?? null, run.autoResumed ?? false],
   );
   if (run.engagementId) await db.query("update engagements set updated_at = now() where id = $1", [run.engagementId]);
 }
@@ -178,11 +184,12 @@ export async function updateRunUsage(db: Db, id: string, u: RunUsage): Promise<v
 }
 
 /** Runs left 'running' by a server that stopped mid-run can never finish: mark them. */
-export async function markInterruptedRuns(db: Db): Promise<number> {
+/** Runs left 'running' by a server that stopped mid-run can never finish: mark them, and return their ids. */
+export async function markInterruptedRuns(db: Db): Promise<string[]> {
   const { rows } = await db.query<Row>(
     "update runs set status = 'error', error = 'The server stopped before this run finished.', finished_at = now() where status = 'running' returning id",
   );
-  return rows.length;
+  return rows.map((r) => r.id);
 }
 
 export async function listRuns(db: Db, opts: { engagementId?: string; limit?: number; scope?: Scope } = {}): Promise<RunSummary[]> {

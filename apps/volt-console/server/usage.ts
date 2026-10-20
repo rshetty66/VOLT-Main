@@ -110,7 +110,7 @@ export async function estimateRun(db: Db, catalog: Catalog, settings: CostSettin
   const where = q.workflowId ? "workflow_id = $1" : q.agentId && q.agentId !== "rudra" ? "kind = 'agent' and agent_id = $1" : "kind = 'orchestrate' and $1::text is null";
   const { rows } = await db.query<{ usd: number }>(
     `select cost_usd::float8 as usd from runs
-     where ${where} and mode = 'live' and status = 'done' and cost_usd > 0 and cache_write_tokens > 0 and title not like '% (resumed)'
+     where ${where} and mode = 'live' and status = 'done' and cost_usd > 0 and cache_write_tokens > 0 and resumed_from is null and title not like '% (resumed)'
      order by started_at desc limit 5`,
     [q.workflowId ?? (q.agentId && q.agentId !== "rudra" ? q.agentId : null)],
   );

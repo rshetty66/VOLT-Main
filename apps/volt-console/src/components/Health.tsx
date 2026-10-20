@@ -1,4 +1,5 @@
 import type { CatalogResponse } from "../../shared/events";
+import { labelOf } from "../../shared/labels";
 
 /** Integrity checks run on the VOLT package at load time. */
 export function Health({ catalog, onOpenAgent }: { catalog: CatalogResponse; onOpenAgent: (id: string) => void }) {
@@ -87,7 +88,7 @@ export function Health({ catalog, onOpenAgent }: { catalog: CatalogResponse; onO
         <div className="row">
           {unusedAgents.map((a) => (
             <span key={a.id} className="chip click" onClick={() => onOpenAgent(a.id)}>
-              {a.icon} {a.name}
+              {labelOf(a)}
             </span>
           ))}
         </div>

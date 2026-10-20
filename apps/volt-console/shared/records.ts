@@ -78,6 +78,9 @@ export interface RunSummary {
   model: string;
   status: RunStatus;
   error: string | null;
+  /** The run this one resumed, if any; autoResumed when the server did it after a restart. */
+  resumedFrom: string | null;
+  autoResumed: boolean;
   inputTokens: number;
   outputTokens: number;
   cacheReadTokens: number;

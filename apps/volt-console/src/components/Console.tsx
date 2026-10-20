@@ -243,7 +243,7 @@ function LaneCard({ lane, onOpenAgent }: { lane: Lane; catalog: CatalogResponse;
     <div className={`lane ${expanded ? "expanded" : ""}`}>
       <div className="lane-head" onClick={() => setExpanded((x) => !x)}>
         <span className={`dot ${lane.state}`} />
-        <span>{lane.icon}</span>
+        {lane.icon && <span>{lane.icon}</span>}
         <div style={{ minWidth: 0, flex: 1 }}>
           <div className="name">{lane.name}</div>
           <div className="muted" style={{ fontSize: 11 }}>

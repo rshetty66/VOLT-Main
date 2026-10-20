@@ -78,6 +78,10 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
   conversation is prompt-cached, later workflow phases get each earlier specialist's short handoff summary rather
   than its full output, and Rudra's synthesis uses a prompt without the 236-agent roster. Costs are estimates, not
   an invoice; runs saved before this change are costed at Opus list prices without cache writes.
+- **Restarts.** Runs execute inside the server, so a crash or restart interrupts them. On start, the server resumes
+  each interrupted workflow run started in the last 12 hours as a new run, "(resumed after restart)", reusing the
+  specialists that had finished; the owner's budget applies, and a chain of automatic resumes stops at three.
+  Other runs are marked as stopped by the server. `VOLT_AUTO_RESUME=off` turns this off.
 - **Resume.** A stopped or failed workflow run can be resumed from its saved page: specialists that finished are
   reused as they are, only the unfinished ones run again, then Rudra writes the synthesis. The resumed run is saved
   as a new run in the same engagement; the original is kept.
@@ -85,6 +89,18 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
 ## Test
 
 ```bash
-npm test            # catalog, routing, Skill Finder, analytics, tool schemas, and the live agent loop against a mocked Messages API
+npm test            # unit and API tests, the live agent loop against a mocked Messages API, and a kill-and-restart check
 npm run typecheck
+npm run eval        # golden-prompt evals: every workflow against a mock Messages API (free, about 15 seconds)
+npm run eval -- --live --workflow close-optimization --judge   # on Claude with your key, scored by Claude too
+npx playwright install chromium   # once per machine, for the browser tests
+npm run test:e2e    # the console in a real browser, demo mode, on a temporary data folder
 ```
+
+- **Evals.** `evals/golden.json` holds one fixed request per workflow, all for fictional clients. Each run goes through
+  the console's own run pipeline on a throwaway database and is scored: it finished, every specialist finished, the
+  deliverable has an executive summary, a recommendations table, risks and next steps, nothing printed `undefined`,
+  plus (should) handoff summaries and the request's key terms. `--judge` adds a 1-to-5 Claude score on relevance,
+  specificity, consistency and actionability (`VOLT_JUDGE_MODEL`, default `claude-sonnet-5-5`). Reports go to
+  `evals/results/` and are compared with the previous run of the same mode; a failure or regression exits non-zero.
+  Live runs cost about $2 each and need `--workflow` or `--all`.

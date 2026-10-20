@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { labelOf } from "../../shared/labels";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 import { VIEW_ONLY, useCanWrite } from "../user";
 import { CostEstimate } from "./CostEstimate";
@@ -38,7 +39,7 @@ export function Workflows({ catalog, live, engagementId, onLaunch, onOpenAgent }
           <div key={w.id} className="card interactive stack" style={{ gap: 8 }} onClick={() => setSelected(w)}>
             <div className="row" style={{ justifyContent: "space-between" }}>
               <b>
-                {w.icon} {w.name}
+                {labelOf(w)}
               </b>
               <span className="micro">{w.phases.length} phases</span>
             </div>
@@ -78,7 +79,7 @@ function WorkflowLauncher({ catalog, live, engagementId, wf, onBack, onLaunch, o
       </button>
       <div>
         <h1 className="page-title">
-          {wf.icon} {wf.name}
+          {labelOf(wf)}
         </h1>
         <p className="page-sub">{wf.description}</p>
       </div>
@@ -96,7 +97,7 @@ function WorkflowLauncher({ catalog, live, engagementId, wf, onBack, onLaunch, o
               <div className="row">
                 {p.agents.map((a) => (
                   <span key={a} className="chip click" onClick={() => onOpenAgent(a)}>
-                    {name(a)?.icon} {name(a)?.name ?? a}
+                    {name(a) ? labelOf(name(a)!) : a}
                   </span>
                 ))}
               </div>
@@ -133,7 +134,7 @@ function WorkflowLauncher({ catalog, live, engagementId, wf, onBack, onLaunch, o
           <button
             className="btn primary"
             disabled={!prompt.trim() || !canWrite || (live && overBudget)}
-            onClick={() => onLaunch({ prompt: prompt.trim(), workflowId: wf.id, intake: answers }, `${wf.icon} ${wf.name}`, "workflow")}
+            onClick={() => onLaunch({ prompt: prompt.trim(), workflowId: wf.id, intake: answers }, labelOf(wf), "workflow")}
           >
             Launch workflow
           </button>

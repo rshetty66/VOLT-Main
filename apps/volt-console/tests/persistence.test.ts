@@ -120,7 +120,7 @@ describe("run recording", () => {
   it("marks runs left running by a stopped server", async () => {
     const id = crypto.randomUUID();
     await createRun(db, { id, sessionId: "x", kind: "orchestrate", title: "t", prompt: "p", mode: "demo", model: "simulator" });
-    expect(await markInterruptedRuns(db)).toBeGreaterThanOrEqual(1);
+    expect((await markInterruptedRuns(db)).length).toBeGreaterThanOrEqual(1);
     const run = await getRun(db, id);
     expect(run?.status).toBe("error");
     expect(run?.error).toMatch(/server stopped/);

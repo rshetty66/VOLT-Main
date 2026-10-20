@@ -14,6 +14,7 @@ import { DEFAULT_DATA_DIR, openDb } from "./db.js";
 import { markInterruptedRuns } from "./store.js";
 import { countUsers } from "./auth.js";
 import { createApp } from "./app.js";
+import { resumeInterrupted } from "./recovery.js";
 import type { RunMode } from "../shared/events.js";
 
 /** Live when any Claude credential source is configured; VOLT_MODE overrides. */
@@ -31,6 +32,7 @@ const db = await openDb(dataDir);
 const interrupted = await markInterruptedRuns(db);
 const mode = detectMode();
 const app = createApp({ db, catalog, mode });
+const recovery = await resumeInterrupted({ db, catalog, mode }, interrupted);
 
 if (process.env.NODE_ENV === "production") {
   const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../dist");
@@ -42,7 +44,9 @@ const port = Number(process.env.PORT ?? 8787);
 const users = await countUsers(db);
 app.listen(port, () => {
   console.log(`VOLT Agentic Console API on http://localhost:${port} (${mode} mode, model ${MODEL})`);
-  console.log(`Saved data: ${dataDir}${interrupted ? ` (${interrupted} interrupted run(s) marked)` : ""}`);
+  console.log(`Saved data: ${dataDir}${interrupted.length ? ` (${interrupted.length} run(s) interrupted by the last stop)` : ""}`);
+  for (const r of recovery.resumed) console.log(`Resumed after restart: ${r.title} (run ${r.from} continues as ${r.to})`);
+  for (const r of recovery.skipped) console.log(`Not resumed: ${r.title || r.id}: ${r.why}`);
   console.log(users ? `Sign-in: ${users} user(s)` : "Sign-in: no users yet; open the app to create the first admin account");
   console.log(`Catalog: ${catalog.agents.length} agents, ${catalog.workflows.length} workflows, ${catalog.skills.length} skills from ${catalog.source.name}@${catalog.source.commit?.slice(0, 7) ?? "?"}`);
 });

@@ -1,0 +1,499 @@
+{
+  "about": "Golden prompts for the VOLT console workflow evals: one fixed request per workflow, all for fictional clients. Change a prompt only on purpose: results are compared run to run.",
+  "version": 1,
+  "cases": [
+    {
+      "workflowId": "finance-assessment",
+      "prompt": "Maple Harbour Financial (fictional), a Canadian mid-size lender with CAD 1.2B revenue and 95 finance FTEs at CAD 120K loaded cost. Finance runs on SAP S/4HANA plus an Oracle EBS ledger from a 2024 acquisition. Close takes 11 business days, finance costs 1.4% of revenue, and DSO is 52. Assess the finance function against APQC benchmarks and recommend the priorities.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "benchmark",
+        "APQC",
+        "recommend"
+      ]
+    },
+    {
+      "workflowId": "erp-implementation",
+      "prompt": "Maple Harbour Financial (fictional), a Canadian mid-size lender with CAD 1.2B revenue and 95 finance FTEs at CAD 120K loaded cost. Plan the ERP implementation that consolidates the SAP S/4HANA and Oracle EBS ledgers onto one platform over 18 months, covering workstreams, design decisions, testing and cutover.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "cutover",
+        "testing",
+        "workstream"
+      ]
+    },
+    {
+      "workflowId": "ma-due-diligence",
+      "prompt": "Northwind Credit Union (fictional) is evaluating a buy-side acquisition of Lakeshore Leasing (fictional), CAD 140M revenue, reported EBITDA CAD 22M with CAD 3M of one-off items. Run due diligence: quality of earnings, valuation range and integration risks.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "quality of earnings",
+        "valuation",
+        "integration"
+      ]
+    },
+    {
+      "workflowId": "implementation-mobilization",
+      "prompt": "Maple Harbour Financial (fictional), a Canadian mid-size lender with CAD 1.2B revenue and 95 finance FTEs at CAD 120K loaded cost. Mobilize the finance transformation program across Canada and the US: charter, governance, policy review and the first design workshops.",
+      "intake": {
+        "objective": "Full program mobilization — charter, governance, and sprint planning",
+        "audience": "Steering Committee / C-Suite — executive summary focus",
+        "depth": "Working draft with section detail (5-10 pages)",
+        "priority_regions": "North America (USA, Canada)"
+      },
+      "mustMention": [
+        "charter",
+        "governance",
+        "workshop"
+      ]
+    },
+    {
+      "workflowId": "oracle-erp-cloud",
+      "prompt": "Cedar Ridge Utilities (fictional), CAD 900M revenue, is moving from Oracle E-Business Suite R12 to Oracle Fusion ERP Cloud for GL, AP, AR, FA and Projects across 6 legal entities. Plan the implementation.",
+      "intake": {
+        "objective": "Full Oracle ERP Cloud implementation planning",
+        "audience": "Steering Committee / C-Suite — executive summary focus",
+        "depth": "Working draft with section detail (5-10 pages)"
+      },
+      "mustMention": [
+        "Fusion",
+        "configuration",
+        "migration"
+      ]
+    },
+    {
+      "workflowId": "data-conversion",
+      "prompt": "Maple Harbour Financial (fictional), a Canadian mid-size lender with CAD 1.2B revenue and 95 finance FTEs at CAD 120K loaded cost. Convert legacy GL balances for 3 years, current-year transactions and the chart of accounts from Oracle EBS into SAP S/4HANA, with reconciliation at each step.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "mapping",
+        "reconciliation",
+        "balances"
+      ]
+    },
+    {
+      "workflowId": "organizational-readiness",
+      "prompt": "Maple Harbour Financial (fictional), a Canadian mid-size lender with CAD 1.2B revenue and 95 finance FTEs at CAD 120K loaded cost. 400 finance and operations users move to a new ERP in 9 months. Plan change management, SOPs, training and adoption tracking.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "training",
+        "adoption",
+        "change"
+      ]
+    },
+    {
+      "workflowId": "close-optimization",
+      "prompt": "Maple Harbour Financial (fictional), a Canadian mid-size lender with CAD 1.2B revenue and 95 finance FTEs at CAD 120K loaded cost. Month-end close takes 11 business days across SAP S/4HANA, an Oracle EBS ledger from a 2024 acquisition, and a legacy subledger. Intercompany is 35% automated; reconciliations live in spreadsheets. Leadership wants a 5-day close within 18 months. Diagnose the current close, design the target model and give a costed roadmap.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "close",
+        "reconcil",
+        "roadmap"
+      ]
+    },
+    {
+      "workflowId": "pillar-3-disclosure",
+      "prompt": "Granite Bay Bank (fictional), an OSFI-regulated Canadian D-SIB, must produce its enhanced Pillar 3 disclosure (KM1, CC1, OV1, credit, market and operational risk templates) for Q4. Plan the disclosure production and narrative.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "KM1",
+        "OSFI",
+        "disclosure"
+      ]
+    },
+    {
+      "workflowId": "bcar-capital-reporting",
+      "prompt": "Granite Bay Bank (fictional), an OSFI-regulated D-SIB, prepares its BCAR return from GL extracts that are reconciled manually. Design the end-to-end capital reporting process from GL extraction to submission.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "BCAR",
+        "capital",
+        "OSFI"
+      ]
+    },
+    {
+      "workflowId": "client-deliverable",
+      "prompt": "Maple Harbour Financial (fictional), a Canadian mid-size lender with CAD 1.2B revenue and 95 finance FTEs at CAD 120K loaded cost. Produce a board-ready deliverable summarizing the finance transformation business case: 12 pages, research-backed, branded and exported.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "board",
+        "business case",
+        "executive summary"
+      ]
+    },
+    {
+      "workflowId": "consulting-ops",
+      "prompt": "A 40-person finance advisory practice (fictional) runs 12 engagements at once. Automate engagement operations: CRM updates, project-plan sync, client communications and document distribution.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "CRM",
+        "automat",
+        "engagement"
+      ]
+    },
+    {
+      "workflowId": "platform-dev-sprint",
+      "prompt": "Plan a two-week sprint to add client file uploads to the VOLT console: design, build, test, deploy and monitor, with acceptance criteria.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "sprint",
+        "acceptance",
+        "deploy"
+      ]
+    },
+    {
+      "workflowId": "competitive-intel",
+      "prompt": "Prepare a competitive intelligence brief on mid-market finance transformation advisors in Canada for a fictional boutique firm, covering positioning, pricing signals and differentiation.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "competitor",
+        "position",
+        "differentiat"
+      ]
+    },
+    {
+      "workflowId": "sap-s4hana-implementation",
+      "prompt": "Lakeshore Manufacturing (fictional), CAD 2B revenue, implements SAP S/4HANA across FI/CO, MM, SD, PP/PM and EWM for 4 plants. Plan the implementation.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "FI/CO",
+        "S/4HANA",
+        "plants"
+      ]
+    },
+    {
+      "workflowId": "oracle-epm-implementation",
+      "prompt": "Maple Harbour Financial (fictional), a Canadian mid-size lender with CAD 1.2B revenue and 95 finance FTEs at CAD 120K loaded cost. Implement Oracle EPM Cloud: FCCS for consolidation, ARCS for reconciliations and PBCS for planning, replacing spreadsheets.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "FCCS",
+        "ARCS",
+        "planning"
+      ]
+    },
+    {
+      "workflowId": "ma-finance-transformation",
+      "prompt": "Northwind Credit Union (fictional) closes its acquisition of Lakeshore Leasing (fictional) in 90 days with a 12-month TSA. Plan the finance work for Day 1, Day 2 and TSA exit.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "Day 1",
+        "TSA",
+        "integration"
+      ]
+    },
+    {
+      "workflowId": "ai-change-management",
+      "prompt": "Maple Harbour Financial (fictional), a Canadian mid-size lender with CAD 1.2B revenue and 95 finance FTEs at CAD 120K loaded cost. Rolling out AI agents for reconciliations and journal review to 95 finance staff. Plan change management: impact, resistance, digital adoption, learning and measurement.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "resistance",
+        "adoption",
+        "measure"
+      ]
+    },
+    {
+      "workflowId": "erp-platform-selection",
+      "prompt": "Cedar Ridge Utilities (fictional), CAD 900M revenue, must replace Oracle E-Business Suite. Evaluate Oracle Fusion, SAP S/4HANA, Workday, Dynamics 365 and NetSuite and recommend a shortlist.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "Workday",
+        "evaluation",
+        "recommend"
+      ]
+    },
+    {
+      "workflowId": "epm-specialty-planning",
+      "prompt": "Maple Harbour Financial (fictional), a Canadian mid-size lender with CAD 1.2B revenue and 95 finance FTEs at CAD 120K loaded cost. Build workforce planning for 2,100 employees and a capital expenditure plan of CAD 60M a year in the EPM platform.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "workforce",
+        "capital",
+        "headcount"
+      ]
+    },
+    {
+      "workflowId": "hire-to-retire",
+      "prompt": "Pinecrest Health (fictional), 6,000 employees, wants to redesign hire-to-retire: recruitment, onboarding, performance, development and offboarding.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "onboarding",
+        "performance",
+        "offboarding"
+      ]
+    },
+    {
+      "workflowId": "payroll-to-gl",
+      "prompt": "Pinecrest Health (fictional) runs biweekly payroll for 6,000 employees and posts to the GL with manual journals. Design payroll costing, reconciliation and automated GL posting.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "payroll",
+        "GL",
+        "reconcil"
+      ]
+    },
+    {
+      "workflowId": "job-architecture-design",
+      "prompt": "Pinecrest Health (fictional) has 1,400 job titles. Design job families, grades, competency frameworks and career paths, and map them to the HRIS.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "job famil",
+        "grade",
+        "career"
+      ]
+    },
+    {
+      "workflowId": "sap-successfactors-implementation",
+      "prompt": "Lakeshore Manufacturing (fictional), 9,000 employees, implements SAP SuccessFactors: Employee Central, Recruiting, Performance, Compensation, Learning and Succession. Plan it.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "Employee Central",
+        "Recruiting",
+        "Succession"
+      ]
+    },
+    {
+      "workflowId": "workday-hcm-implementation",
+      "prompt": "Pinecrest Health (fictional), 6,000 employees, implements Workday HCM: Core HR, Recruiting, Compensation, Payroll, Learning, Time and Absence. Plan it.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "Workday",
+        "Core HR",
+        "Payroll"
+      ]
+    },
+    {
+      "workflowId": "oracle-hcm-implementation",
+      "prompt": "Cedar Ridge Utilities (fictional), 3,500 employees, implements Oracle HCM Cloud: Core HR, Recruiting, Talent, Compensation, Payroll and Learning. Plan it.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "Oracle HCM",
+        "Talent",
+        "Payroll"
+      ]
+    },
+    {
+      "workflowId": "source-to-pay",
+      "prompt": "Lakeshore Manufacturing (fictional) spends CAD 900M a year with 4,000 suppliers; 60% of invoices are processed manually. Transform source-to-pay end to end.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "sourcing",
+        "invoice",
+        "supplier"
+      ]
+    },
+    {
+      "workflowId": "erp-cloud-migration",
+      "prompt": "Cedar Ridge Utilities (fictional) runs PeopleSoft Financials on premises. Plan the migration to a cloud ERP: assessment, design, data, testing and cutover.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "PeopleSoft",
+        "migration",
+        "cutover"
+      ]
+    },
+    {
+      "workflowId": "epm-cloud-migration",
+      "prompt": "Maple Harbour Financial (fictional), a Canadian mid-size lender with CAD 1.2B revenue and 95 finance FTEs at CAD 120K loaded cost. Budgeting runs in Hyperion Planning and 200 Excel files. Plan the migration to cloud EPM, comparing Oracle EPM, OneStream and Anaplan.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "Hyperion",
+        "OneStream",
+        "Anaplan"
+      ]
+    },
+    {
+      "workflowId": "onestream-fpa",
+      "prompt": "Maple Harbour Financial (fictional), a Canadian mid-size lender with CAD 1.2B revenue and 95 finance FTEs at CAD 120K loaded cost. Implement OneStream planning, budgeting and forecasting: blueprint, build of headcount and expense planning, then allocations and reporting.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "OneStream",
+        "forecast",
+        "headcount"
+      ]
+    },
+    {
+      "workflowId": "persona-based-change-management",
+      "prompt": "Pinecrest Health (fictional) moves 2,000 managers to a new HR platform. Plan persona-based change management with digital adoption, business readiness and modern learning.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "persona",
+        "readiness",
+        "learning"
+      ]
+    },
+    {
+      "workflowId": "sap-bank-analyzer",
+      "prompt": "Granite Bay Bank (fictional) implements SAP Bank Analyzer for financial instruments, the accounting subledger, risk analytics and regulatory reporting. Plan it.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "Bank Analyzer",
+        "subledger",
+        "regulatory"
+      ]
+    },
+    {
+      "workflowId": "sap-fpsl",
+      "prompt": "Harbourview Insurance (fictional) implements SAP FPSL for IFRS 17 and IFRS 9 accounting across life and P&C portfolios. Plan it.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "IFRS 17",
+        "FPSL",
+        "IFRS 9"
+      ]
+    },
+    {
+      "workflowId": "sap-concur",
+      "prompt": "Lakeshore Manufacturing (fictional), 9,000 employees, implements SAP Concur Expense, Travel and Invoice integrated with S/4HANA. Plan policy, compliance and integration.",
+      "intake": {
+        "objective": "Strategic assessment and recommendations",
+        "audience": "C-Suite / Board",
+        "depth": "Working draft (5-10 pages)"
+      },
+      "mustMention": [
+        "Concur",
+        "expense",
+        "policy"
+      ]
+    },
+    {
+      "workflowId": "finance-ai-strategy",
+      "prompt": "Granite Bay Bank (fictional), a Canadian D-SIB with 1,100 finance staff, wants a Finance 2.0 AI strategy and roadmap: current-state diagnostic, highest-value AI opportunities, peer benchmarks and a business case.",
+      "intake": {
+        "objective": "Full Finance 2.0 AI Strategy & Roadmap — comprehensive CFO-ready deliverable",
+        "audience": "CFO / Finance Leadership Team — executive briefing focus",
+        "depth": "Working draft with section detail (10-15 pages)",
+        "big_rock_priority": "Close & Reporting (labor-intensive core processes)",
+        "client_context": "1,100 finance FTEs at CAD 130K loaded cost; close takes 9 days; peer group: the other five Canadian D-SIBs."
+      },
+      "mustMention": [
+        "AI",
+        "roadmap",
+        "business case"
+      ]
+    }
+  ]
+}

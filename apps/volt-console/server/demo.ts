@@ -7,11 +7,12 @@
  * same event stream. The prose is assembled from the VOLT registry and is
  * clearly labelled as simulated: no model is called.
  */
-import { type AgentDef, type Catalog, rankAgents, rankSkills } from "./catalog.js";
+import { type AgentDef, type Catalog, agentRemit, rankAgents, rankSkills } from "./catalog.js";
 import { compareToBenchmark } from "./analytics.js";
 import { intakeFor, type Emit } from "./orchestrator.js";
 import { ORCHESTRATOR_LANE, type RunRequest } from "../shared/events.js";
 import type { FileAccess } from "./files.js";
+import { labelOf } from "../shared/labels.js";
 
 const sleep = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
@@ -52,14 +53,14 @@ export function extractMetrics(prompt: string): { metric: string; value: number 
 }
 
 function lens(agent: AgentDef): string {
-  const sentences = agent.systemPrompt.replace(/\s+/g, " ").split(/(?<=\.)\s/).slice(0, 2).join(" ");
+  const sentences = agentRemit(agent.systemPrompt).replace(/\s+/g, " ").split(/(?<=\.)\s/).slice(0, 2).join(" ");
   return sentences.length > 420 ? sentences.slice(0, 420) + "…" : sentences;
 }
 
 function specialistNote(catalog: Catalog, agent: AgentDef, focus: string): string {
   const skills = agent.skills.filter((s) => catalog.skillById.has(s)).slice(0, 6);
   const missing = agent.skills.filter((s) => !catalog.skillById.has(s)).length;
-  return `**${agent.icon} ${agent.name}** · _${agent.layer}_
+  return `**${labelOf(agent)}** · _${agent.layer}_
 
 ${agent.description}
 
@@ -127,7 +128,7 @@ export async function runDemo(catalog: Catalog, req: RunRequest, emit: Emit, sig
     const bench = await benchmarkBlock(L, req.prompt, emit, signal);
     await streamText(
       L,
-      `## ${wf.icon} ${wf.name} — workflow deliverable (simulated)
+      `## ${labelOf(wf)} — workflow deliverable (simulated)
 
 **Request:** ${req.prompt}
 ${answered.length ? `\n**Intake:**\n${answered.map((q) => `- ${q.question} — ${req.intake![q.key]}`).join("\n")}\n` : ""}
@@ -202,13 +203,13 @@ I routed this across the VOLT registry and convened a panel of ${panel.length} s
 
 | Specialist | Layer | Why they are on the panel |
 |---|---|---|
-${panel.map((a) => `| ${a.icon} ${a.name} | ${a.layer} | ${a.description} |`).join("\n")}
+${panel.map((a) => `| ${labelOf(a)} | ${a.layer} | ${a.description} |`).join("\n")}
 ${bench}${read}
 ### Skill Finder
 ${skills.length ? skills.map((s) => `- \`${s.skill_id}\` — ${catalog.skillById.get(s.skill_id)?.description.slice(0, 160) ?? ""}`).join("\n") : "- No strong skill matches."}
 
 ### Recommended VOLT workflows
-${workflows.length ? workflows.map(({ w }) => `- **${w.icon} ${w.name}** (\`${w.id}\`): ${w.description}`).join("\n") : "- None matched this panel; ask Rudra in live mode for a tailored plan."}
+${workflows.length ? workflows.map(({ w }) => `- **${labelOf(w)}** (\`${w.id}\`): ${w.description}`).join("\n") : "- None matched this panel; ask Rudra in live mode for a tailored plan."}
 
 > Demo mode: routing, skill matching, benchmarks and workflow sequencing above are real VOLT logic; the narrative is assembled from the registry. Set \`ANTHROPIC_API_KEY\` for live multi-agent reasoning.
 `,

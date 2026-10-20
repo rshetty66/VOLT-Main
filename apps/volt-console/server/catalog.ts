@@ -93,6 +93,19 @@ function agentPrompt(dir: string, id: string): string {
   return text.replace(/^---\r?\n[\s\S]*?\r?\n---\r?\n?/, "").trim();
 }
 
+/**
+ * What an agent is for: the first plain paragraph of its prompt, skipping the
+ * Prompt Defense Baseline block every VOLT agent opens with, headings and lists.
+ */
+export function agentRemit(systemPrompt: string): string {
+  const withoutBaseline = systemPrompt.replace(/^#{1,6}\s*Prompt Defense Baseline[^\n]*\n(?:\s*\n|\s*[-*][^\n]*\n?)*/im, "");
+  const paragraph = withoutBaseline
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .find((p) => p && !/^(#|[-*] |\d+\. |>|\|)/.test(p));
+  return paragraph ?? "";
+}
+
 export function loadCatalog(pluginDir = PLUGIN_DIR): Catalog {
   if (!fs.existsSync(path.join(pluginDir, "data", "agents.json"))) {
     throw new Error(`VOLT plugin not found at ${pluginDir}. Set VOLT_PLUGIN_DIR or run plugins/volt/tools/import_volt.py.`);
@@ -107,7 +120,8 @@ export function loadCatalog(pluginDir = PLUGIN_DIR): Catalog {
   const raw = {
     source: { name: "volt plugin", ...readJson<{ commit?: string; ref?: string; built_utc?: string }>(pluginDir, "data/source.json") },
     agents,
-    workflows: readJson<WorkflowDef[]>(pluginDir, "data/workflows.json"),
+    // The registry's workflows carry no icons; keep the field a string so labels never print "undefined".
+    workflows: readJson<WorkflowDef[]>(pluginDir, "data/workflows.json").map((w) => ({ ...w, icon: w.icon ?? "" })),
     services: readJson<ServiceDef[]>(pluginDir, "data/services.json"),
     intake: readJson<Record<string, IntakeQuestion[]>>(pluginDir, "data/intake.json"),
     layerColors: {},

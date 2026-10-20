@@ -10,7 +10,10 @@ import type { AddressInfo } from "node:net";
 export interface Captured { headers: http.IncomingHttpHeaders; body: any }
 
 let n = 0;
-const sse = (res: http.ServerResponse, events: any[]) => {
+let delay = 0;
+const sse = async (res: http.ServerResponse, events: any[]) => {
+  if (delay) await new Promise((r) => setTimeout(r, delay));
+  if (res.destroyed) return;
   res.writeHead(200, { "content-type": "text/event-stream" });
   for (const e of events) res.write(`event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`);
   res.end();
@@ -23,6 +26,8 @@ export interface MockOptions {
   cacheWriteTokens: number;
   /** Specialists first read this client file (a ref such as "F1"), then answer citing it. */
   specialistReadsFile: string | null;
+  /** Wait this long before each reply, to keep a run going long enough to interrupt. */
+  delayMs: number;
 }
 
 const msg = (id: string, blocks: any[], stop: string, cacheWrite = 0) => {
@@ -48,12 +53,13 @@ const msg = (id: string, blocks: any[], stop: string, cacheWrite = 0) => {
 
 export async function startMockAnthropic(): Promise<{ url: string; requests: Captured[]; options: MockOptions; close: () => void }> {
   const requests: Captured[] = [];
-  const options: MockOptions = { specialistAlwaysTools: false, cacheWriteTokens: 0, specialistReadsFile: null };
+  const options: MockOptions = { specialistAlwaysTools: false, cacheWriteTokens: 0, specialistReadsFile: null, delayMs: 0 };
   const server = http.createServer((req, res) => {
   let body = "";
   req.on("data", (c) => (body += c));
   req.on("end", () => {
     const b = JSON.parse(body);
+    delay = options.delayMs;
     requests.push({ headers: req.headers, body: b });
     const isRudra = b.tools.some((t: any) => t.name === "consult_agent");
     const last = b.messages.at(-1);

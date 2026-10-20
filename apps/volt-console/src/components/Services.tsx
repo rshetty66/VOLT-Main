@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { labelOf } from "../../shared/labels";
 import { VIEW_ONLY, useCanWrite } from "../user";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 
@@ -82,7 +83,7 @@ export function Services({ catalog, onOpenAgent, onLaunch }: Props) {
                             title={canWrite ? undefined : VIEW_ONLY}
                             onClick={() => {
                               const prompt = window.prompt(`Describe the client situation for "${s.name}" (${wf(w)!.name})`);
-                              if (prompt?.trim()) onLaunch({ prompt: `${s.name}: ${prompt.trim()}`, workflowId: w }, `${wf(w)!.icon} ${wf(w)!.name}`, "workflow");
+                              if (prompt?.trim()) onLaunch({ prompt: `${s.name}: ${prompt.trim()}`, workflowId: w }, labelOf(wf(w)!), "workflow");
                             }}
                           >
                             ▸ {wf(w)!.name}

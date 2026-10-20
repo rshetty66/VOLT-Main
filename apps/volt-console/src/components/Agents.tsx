@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { labelOf } from "../../shared/labels";
 import type { CatalogResponse } from "../../shared/events";
 import { getJSON } from "../api";
 
@@ -37,7 +38,7 @@ export function Agents({ catalog, onOpen }: { catalog: CatalogResponse; onOpen: 
           <div key={a.id} className="card interactive" onClick={() => onOpen(a.id)}>
             <div className="row" style={{ justifyContent: "space-between", flexWrap: "nowrap" }}>
               <b>
-                {a.icon} {a.name}
+                {labelOf(a)}
               </b>
             </div>
             <div className="micro" style={{ margin: "4px 0 6px" }}>
@@ -87,7 +88,7 @@ export function AgentDrawer({ catalog, agentId, onClose, onChat }: { catalog: Ca
               <div>
                 <div className="micro">{a.layer}</div>
                 <h2 className="page-title">
-                  {a.icon} {a.name}
+                  {labelOf(a)}
                 </h2>
                 <div className="body">{a.description}</div>
               </div>
