@@ -7,6 +7,12 @@ import ExcelJS from "exceljs";
 import { plain, type Block } from "./markdown.js";
 import type { RunContent, ToolUse } from "./content.js";
 import { STANDARD_BRAND, fitLogo, textOn, type Brand } from "./brand.js";
+import { addChartsToXlsx, type XlsxChart } from "./xlsxCharts.js";
+
+/** Chart colours, swapped for the template's when the workbook is finished. */
+const CHART_PRIMARY = "@primary";
+const CHART_ACCENT = "@accent";
+const CHART_QUIET = "B4BCC8";
 
 /** Placeholder colour for titles and header fills while building; applyBrand swaps in the template's colour. */
 const NAVY = "FF1F3864";
@@ -83,13 +89,15 @@ function captionedTables(blocks: Block[], fallback: string) {
   return out;
 }
 
-function valueCaseSheet(wb: ExcelJS.Workbook, cases: ToolUse[]) {
+function valueCaseSheet(wb: ExcelJS.Workbook, cases: ToolUse[]): XlsxChart[] {
+  const charts: XlsxChart[] = [];
   const ws = wb.addWorksheet("Value case");
   ws.getColumn(1).width = 30;
   for (let c = 2; c <= 8; c++) ws.getColumn(c).width = 16;
   ws.getCell("A1").value = "Value cases the agents ran, rebuilt with live formulas";
   ws.getCell("A1").font = { bold: true, size: 14, color: { argb: NAVY } };
-  ws.getCell("A2").value = "Blue cells are inputs: change them and every figure below recalculates. Column H shows the agent tool's own result as a check.";
+  ws.getCell("A2").value = "Blue cells are inputs: change them and every figure below, and each chart, recalculates. Column H shows the agent tool's own result as a check.";
+  ws.getColumn(9).width = 16;
   ws.getCell("A2").font = { italic: true, color: { argb: "FF7F7F7F" } };
 
   let r = 4;
@@ -97,6 +105,7 @@ function valueCaseSheet(wb: ExcelJS.Workbook, cases: ToolUse[]) {
     const i = vc.input;
     const d = vc.data;
     const horizon = Number(i.horizon_years ?? d.yearly?.length ?? 5);
+    const top = r;
     ws.getCell(r, 1).value = `Scenario ${n + 1} (run by ${vc.by})`;
     ws.getCell(r, 1).font = { bold: true, size: 12, color: { argb: NAVY } };
     r++;
@@ -122,9 +131,12 @@ function valueCaseSheet(wb: ExcelJS.Workbook, cases: ToolUse[]) {
     r += inputs.length + 1;
 
     const head = ws.getRow(r);
-    ["Year", "Realisation", "Gross benefit", "Run cost", "Net cash flow", "Discount factor", "Present value", "Tool net flow"].forEach((h, k) => (head.getCell(k + 1).value = h));
+    ["Year", "Realisation", "Gross benefit", "Run cost", "Net cash flow", "Discount factor", "Present value", "Tool net flow", "Cumulative net"].forEach((h, k) => (head.getCell(k + 1).value = h));
     styleHeader(head);
     const first = r + 1;
+    const toolNet = [-Number(i.one_time_investment), ...(d.yearly ?? []).map((t: { netBenefit: number }) => t.netBenefit)];
+    let running = 0;
+    const toolCumulative = toolNet.map((v: number) => Math.round((running += v) * 100) / 100);
     for (let y = 0; y <= horizon; y++) {
       const row = r + 1 + y;
       const set = (col: number, formula: string, result: number | undefined, fmt: string) => {
@@ -150,8 +162,20 @@ function valueCaseSheet(wb: ExcelJS.Workbook, cases: ToolUse[]) {
       }
       set(6, `1/(1+${rate})^A${row}`, undefined, "0.0000");
       set(7, `E${row}*F${row}`, undefined, MONEY);
+      set(9, `SUM(E$${first}:E${row})`, toolCumulative[y], MONEY);
     }
     const last = r + 1 + horizon;
+    charts.push({
+      title: `Scenario ${n + 1}: net cash flow and cumulative position`,
+      anchor: { col: 10, row: top - 1, cols: 8, rows: 20 },
+      categories: { ref: `$A$${first}:$A$${last}`, cache: Array.from({ length: horizon + 1 }, (_, y) => y) },
+      series: [
+        { name: "Net cash flow", values: `$E$${first}:$E$${last}`, cache: toolNet.slice(0, horizon + 1), type: "bar", color: CHART_PRIMARY },
+        { name: "Cumulative net", values: `$I$${first}:$I$${last}`, cache: toolCumulative.slice(0, horizon + 1), type: "line", color: CHART_ACCENT },
+      ],
+      valueFormat: '[>=1000000]$#,##0.0,,"M";[<=-1000000]-$#,##0.0,,"M";$#,##0,"K"',
+      legend: true,
+    });
     r = last + 2;
     const result = (label: string, formula: string, value: number | null | undefined, fmt: string) => {
       ws.getCell(r, 1).value = label;
@@ -177,25 +201,49 @@ function valueCaseSheet(wb: ExcelJS.Workbook, cases: ToolUse[]) {
     ws.getCell(r, 2).value = d.paybackYears ?? "beyond horizon";
     ws.getCell(r, 7).value = "From the tool";
     ws.getCell(r, 7).font = { italic: true, color: { argb: "FF7F7F7F" } };
-    r += 3;
+    r = Math.max(r + 3, top + 21);
   });
+  return charts;
 }
 
-function benchmarkSheet(wb: ExcelJS.Workbook, rows: ToolUse[]) {
+function benchmarkSheet(wb: ExcelJS.Workbook, rows: ToolUse[]): XlsxChart[] {
   const ws = wb.addWorksheet("Benchmarks");
   ws.getCell("A1").value = "APQC benchmark positions";
   ws.getCell("A1").font = { bold: true, size: 14, color: { argb: NAVY } };
   const head = ws.getRow(3);
-  ["Metric", "Unit", "Client", "Top quartile", "Median", "Bottom quartile", "Position", "Gap to median", "Gap to top quartile", "Better when", "Looked up by"].forEach((h, k) => (head.getCell(k + 1).value = h));
+  // Quartiles then the client, side by side, so each chart reads one range of four cells.
+  const headers = ["Metric", "Unit", "Top quartile", "Median", "Bottom quartile", "Client", "Position", "Gap to median", "Gap to top quartile", "Better when", "Looked up by"];
+  headers.forEach((h, k) => (head.getCell(k + 1).value = h));
   styleHeader(head);
+  const charts: XlsxChart[] = [];
+  const chartsTop = 4 + rows.length + 1; // 0-based row index: one blank row under the table
   rows.forEach((b, k) => {
     const bm = b.data.benchmark ?? {};
-    const row = ws.getRow(4 + k);
-    row.values = [bm.metric, bm.unit, b.data.clientValue ?? null, bm.top25, bm.median, bm.bottom25, b.data.quartile ?? "", b.data.gapToMedian ?? null, b.data.gapToTop25 ?? null, bm.lowerIsBetter ? "lower" : "higher", b.by];
+    const r = 4 + k;
+    const row = ws.getRow(r);
+    const client = typeof b.data.clientValue === "number" ? b.data.clientValue : null;
+    row.values = [bm.metric, bm.unit, bm.top25, bm.median, bm.bottom25, client, b.data.quartile ?? "", b.data.gapToMedian ?? null, b.data.gapToTop25 ?? null, bm.lowerIsBetter ? "lower" : "higher", b.by];
     row.eachCell((c) => (c.border = box));
+    const left = k % 2 === 0;
+    charts.push({
+      // Some metric names carry their unit in brackets already, e.g. "Total cost (% of revenue)".
+      title: `${bm.metric}${bm.unit && !(String(bm.metric).match(/\(([^)]*)\)/)?.[1] ?? "").toLowerCase().includes(String(bm.unit).toLowerCase()) ? ` (${bm.unit})` : ""}, ${bm.lowerIsBetter ? "lower" : "higher"} is better`,
+      anchor: { col: left ? 0 : 2, row: chartsTop + Math.floor(k / 2) * 15, cols: left ? 2 : 5, rows: 14 },
+      categories: { ref: "$C$3:$F$3", cache: headers.slice(2, 6) },
+      series: [{ name: String(bm.metric ?? "Benchmark"), values: `$C$${r}:$F$${r}`, cache: [bm.top25, bm.median, bm.bottom25, client], type: "bar", color: CHART_QUIET, pointColors: { 3: CHART_ACCENT } }],
+      barDir: "bar",
+      labelled: true,
+      valueFormat: "#,##0.##",
+    });
   });
-  [44, 14, 10, 12, 10, 14, 18, 14, 18, 12, 22].forEach((w, i) => (ws.getColumn(i + 1).width = w));
+  [44, 14, 12, 10, 14, 10, 18, 14, 18, 12, 22].forEach((w, i) => (ws.getColumn(i + 1).width = w));
   ws.views = [{ state: "frozen", ySplit: 3 }];
+  if (rows.length) {
+    ws.getCell(chartsTop, 1).value = "Charts: APQC quartile values in grey, the client in colour. They read the table above.";
+    ws.getCell(chartsTop, 1).font = { italic: true, color: { argb: "FF7F7F7F" } };
+    charts.forEach((ch) => (ch.anchor.row += 1));
+  }
+  return charts;
 }
 
 /**
@@ -262,13 +310,14 @@ export async function buildXlsx(c: RunContent, brand: Brand = STANDARD_BRAND): P
   sum.getCell(r, 1).value = "Sheets in this workbook";
   sum.getCell(r, 1).font = { bold: true, size: 12, color: { argb: NAVY } };
   const contents: [string, string][] = [];
+  const charts: Record<string, XlsxChart[]> = {};
 
   if (c.valueCases.length) {
-    valueCaseSheet(wb, c.valueCases);
+    charts["Value case"] = valueCaseSheet(wb, c.valueCases);
     contents.push(["Value case", `${c.valueCases.length} scenario(s) the agents calculated, with live formulas`]);
   }
   if (c.benchmarks.length) {
-    benchmarkSheet(wb, c.benchmarks);
+    charts["Benchmarks"] = benchmarkSheet(wb, c.benchmarks);
     contents.push(["Benchmarks", `${c.benchmarks.length} APQC benchmark position(s)`]);
   }
   deliverableTables.forEach((t, n) => {
@@ -303,5 +352,13 @@ export async function buildXlsx(c: RunContent, brand: Brand = STANDARD_BRAND): P
     sum.getRow(1).height = Math.max(20, h * 0.75 + 4);
   }
   applyBrand(wb, brand);
-  return Buffer.from(await wb.xlsx.writeBuffer());
+  const book = Buffer.from(await wb.xlsx.writeBuffer());
+  const colour = (c: string) => (c === CHART_PRIMARY ? brand.primary : c === CHART_ACCENT ? brand.accent : c);
+  for (const list of Object.values(charts))
+    for (const ch of list)
+      for (const s of ch.series) {
+        s.color = colour(s.color);
+        if (s.pointColors) s.pointColors = Object.fromEntries(Object.entries(s.pointColors).map(([k, v]) => [k, colour(v)]));
+      }
+  return addChartsToXlsx(book, charts, brand.bodyFont);
 }

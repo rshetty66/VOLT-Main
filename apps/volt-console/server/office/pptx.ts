@@ -10,6 +10,7 @@ import JSZip from "jszip";
 import { plain, sections, type Block, type Inline } from "./markdown.js";
 import type { RunContent } from "./content.js";
 import { STANDARD_BRAND, fitLogo, joinLabels, textOn, type Brand } from "./brand.js";
+import { benchmarkCharts, deckValueCases, money, type BenchmarkChart, type ValueCaseChart } from "./charts.js";
 
 const GREY = "595959";
 const W = 13.333;
@@ -252,6 +253,84 @@ export async function buildPptx(c: RunContent, brand: Brand = STANDARD_BRAND): P
     emit();
   }
 
+  // Charts from the agents' tool results: APQC benchmark positions, then the value cases.
+  const benches = benchmarkCharts(c);
+  const fmt = (v: number, unit: string) => (unit === "%" ? `${v}%` : `${v.toLocaleString("en")}${unit && !/^\$|ratio/i.test(unit) ? ` ${unit}` : ""}`);
+  for (let i = 0; i < benches.length; i += 4) {
+    const group = benches.slice(i, i + 4);
+    const s = content(benches.length > 4 ? `APQC benchmark position (${i / 4 + 1} of ${Math.ceil(benches.length / 4)})` : "APQC benchmark position");
+    group.forEach((b, k) => benchmarkChart(s, b, 0.6 + (k % 2) * 6.15, 1.4 + Math.floor(k / 2) * 2.75, 5.95, 2.6));
+    s.addText("Bars: APQC quartile values; highlighted bar: the client. Source: the agents' apqc_benchmark tool results.", { x: 0.6, y: 6.65, w: W - 1.2, h: 0.3, fontFace: FONT, fontSize: 10, italic: true, color: GREY });
+    s.addNotes(group.map((b) => `${b.metric}: top quartile ${fmt(b.top25, b.unit)}, median ${fmt(b.median, b.unit)}, bottom quartile ${fmt(b.bottom25, b.unit)}${b.client !== null ? `; client ${fmt(b.client, b.unit)} (${b.quartile})` : ""}. Looked up by ${b.by}.`).join("\n"));
+  }
+
+  function benchmarkChart(s: PptxGenJS.Slide, b: BenchmarkChart, x: number, y: number, w: number, h: number) {
+    // A horizontal bar chart draws its first category at the bottom, so the list runs client first, top quartile last.
+    const labels = [...(b.client !== null ? ["Client"] : []), "Bottom quartile", "Median", "Top quartile"];
+    const quartiles = [...(b.client !== null ? [null] : []), b.bottom25, b.median, b.top25];
+    const data = [{ name: "APQC", labels, values: quartiles }];
+    if (b.client !== null) data.push({ name: "Client", labels, values: [b.client, null, null, null] });
+    s.addText(
+      [
+        { text: b.metric, options: { bold: true, color: "262626", breakLine: true } },
+        { text: `${b.unit ? `${b.unit}, ` : ""}${b.lowerIsBetter ? "lower is better" : "higher is better"}${b.client !== null ? `  |  client: ${b.quartile.toLowerCase()}` : ""}`, options: { color: GREY, fontSize: 10 } },
+      ],
+      { x, y, w, h: 0.5, fontFace: FONT, fontSize: 12, valign: "top", margin: 0 },
+    );
+    s.addChart(p.ChartType.bar, data as PptxGenJS.OptsChartData[], {
+      x, y: y + 0.5, w, h: h - 0.5,
+      barDir: "bar", barGrouping: "stacked", barGapWidthPct: 45,
+      chartColors: ["B4BCC8", ACCENT],
+      catAxisLabelFontFace: FONT, catAxisLabelFontSize: 10, catAxisLabelColor: "404040",
+      valAxisHidden: true, valGridLine: { style: "none" }, catAxisLineShow: false,
+      showValue: true, dataLabelFontFace: FONT, dataLabelFontSize: 10, dataLabelColor: "262626", dataLabelPosition: "inEnd", dataLabelFormatCode: "#,##0.##",
+      showLegend: false,
+    });
+  }
+
+  const cases = deckValueCases(c);
+  let lastCase: PptxGenJS.Slide | undefined;
+  for (const vc of cases.shown) lastCase = valueCaseSlide(vc);
+  if (lastCase && cases.distinct > cases.shown.length) {
+    lastCase.addText(`${cases.distinct - cases.shown.length} more value-case scenario(s) are in the Excel workbook.`, { x: 0.6, y: 6.65, w: W - 1.2, h: 0.3, fontFace: FONT, fontSize: 10, italic: true, color: GREY, align: "right" });
+  }
+
+  function valueCaseSlide(vc: ValueCaseChart) {
+    const s = content(`Value case: ${vc.label.toLowerCase()} (${vc.by})`);
+    const labels = vc.years.map((y) => (y === 0 ? "Invest" : `Year ${y}`));
+    // For a combo chart pptxgenjs takes the options as its second argument (its typings say otherwise).
+    (s.addChart as unknown as (types: unknown[], options: unknown) => void)(
+      [
+        { type: p.ChartType.bar, data: [{ name: "Net cash flow", labels, values: vc.net }], options: { chartColors: [NAVY], barGapWidthPct: 60 } },
+        { type: p.ChartType.line, data: [{ name: "Cumulative cash position", labels, values: vc.cumulative }], options: { chartColors: [ACCENT], lineSize: 2.5, lineDataSymbol: "circle", lineDataSymbolSize: 7 } },
+      ],
+      {
+        x: 0.6, y: 1.4, w: 8.4, h: 5.1,
+        catAxisLabelFontFace: FONT, catAxisLabelFontSize: 11, catAxisLabelColor: "404040", catAxisLabelPos: "low",
+        valAxisLabelFontFace: FONT, valAxisLabelFontSize: 10, valAxisLabelColor: "595959", valAxisLabelFormatCode: '[>=1000000]$#,##0.0,,"M";[<=-1000000]-$#,##0.0,,"M";$#,##0,"K"',
+        valGridLine: { color: "E6E6E6", size: 0.75 },
+        showLegend: true, legendPos: "b", legendFontFace: FONT, legendFontSize: 11,
+      },
+    );
+    const facts: [string, string][] = [
+      [`NPV at ${Math.round(vc.discountRate * 1000) / 10}%`, vc.npv === null ? "n/a" : money(vc.npv)],
+      ["IRR", vc.irrPct === null ? "n/a" : `${Math.round(vc.irrPct * 10) / 10}%`],
+      ["Payback", vc.paybackYears === null ? "beyond horizon" : `${Math.round(vc.paybackYears * 10) / 10} years`],
+      ["Steady-state annual saving", vc.steadyStateSaving === null ? "n/a" : money(vc.steadyStateSaving)],
+      ["One-time investment", money(vc.investment)],
+    ];
+    s.addText(
+      facts.flatMap(([k, v]) => [
+        { text: k, options: { fontSize: 11, color: GREY, breakLine: true } },
+        { text: v, options: { fontSize: 22, bold: true, color: NAVY, breakLine: true, paraSpaceAfter: 10 } },
+      ]),
+      { x: 9.4, y: 1.5, w: 3.4, h: 4.9, fontFace: FONT, valign: "top", margin: 0 },
+    );
+    s.addText(`From the build_value_case tool, run by ${vc.by}. The Excel workbook rebuilds this ${vc.label.toLowerCase()} with live formulas.`, { x: 0.6, y: 6.65, w: 8.4, h: 0.3, fontFace: FONT, fontSize: 10, italic: true, color: GREY });
+    s.addNotes(`${vc.label}: net cash flow by year ${vc.net.map((v, i) => `${labels[i]} ${money(v)}`).join(", ")}; cumulative ${vc.cumulative.map((v) => money(v)).join(", ")}.`);
+    return s;
+  }
+
   // Specialists consulted
   if (c.specialists.length) {
     const rows = c.specialists.map((s) => [s.name, s.layer, s.phase ?? ""]);
@@ -268,6 +347,10 @@ export async function buildPptx(c: RunContent, brand: Brand = STANDARD_BRAND): P
   const zip = await JSZip.loadAsync((await p.write({ outputType: "nodebuffer" })) as Buffer);
   for (const name of Object.keys(zip.files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n))) {
     zip.file(name, singleParagraphProperties(await zip.file(name)!.async("string")));
+  }
+  // Points left empty on purpose (the client bar's gaps) are written as empty values; drop them so no "0" is drawn.
+  for (const name of Object.keys(zip.files).filter((n) => /^ppt\/charts\/chart\d+\.xml$/.test(n))) {
+    zip.file(name, (await zip.file(name)!.async("string")).replace(/<c:pt idx="\d+">\s*<c:v>\s*<\/c:v>\s*<\/c:pt>/g, ""));
   }
   return zip.generateAsync({ type: "nodebuffer", compression: "DEFLATE", compressionOptions: { level: 6 } });
 }

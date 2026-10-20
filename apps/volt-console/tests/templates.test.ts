@@ -132,7 +132,14 @@ describe("exports follow the template", () => {
     expect((header!.fill as ExcelJS.FillPattern).fgColor?.argb).toBe("FF0B6E4F");
     expect(header!.font.name).toBe("Arial");
     expect(wb.getWorksheet("Summary")!.getCell("A1").font.name).toBe("Georgia");
-    expect(Object.keys((await JSZip.loadAsync(buf)).files).some((n) => n.startsWith("xl/media/"))).toBe(true);
+    const zip = await JSZip.loadAsync(buf);
+    expect(Object.keys(zip.files).some((n) => n.startsWith("xl/media/"))).toBe(true);
+    // Charts take the template's colours and body font; the logo's drawing and the charts' drawing coexist.
+    const chart = await zip.file("xl/charts/chart1.xml")!.async("string");
+    expect(chart).toContain('<a:srgbClr val="0B6E4F"/>');
+    expect(chart).toContain('<a:srgbClr val="C77D0A"/>');
+    expect(chart).toContain('typeface="Arial"');
+    expect(Object.keys(zip.files).filter((n) => /^xl\/drawings\/drawing\d+\.xml$/.test(n)).length).toBeGreaterThanOrEqual(2);
   });
 
   it("without a template the exports keep the VOLT standard", async () => {

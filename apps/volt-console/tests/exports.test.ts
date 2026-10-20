@@ -34,6 +34,8 @@ const deliverable = `# Close Optimization: Board Draft
 const vcInput = { finance_ftes: 95, loaded_cost_per_fte: 120000, automation_pct: 15, one_time_investment: 3200000, annual_run_cost: 600000, ramp_years: 2, discount_rate: 0.09, horizon_years: 5 };
 const vc = buildValueCase({ financeFtes: 95, loadedCostPerFte: 120000, automationPct: 15, oneTimeInvestment: 3200000, annualRunCost: 600000, rampYears: 2, discountRate: 0.09, horizonYears: 5 });
 const bm = compareToBenchmark("days_to_close", 11);
+/** The quartiles the benchmark tool returned. */
+const Q = (bm as { benchmark: { top25: number; median: number; bottom25: number } }).benchmark;
 
 const events: VoltEvent[] = [
   { type: "run_start", runId: "r", sessionId: "s", mode: "live", model: "claude-opus-5-5", kind: "workflow", title: "Finance Close Optimization" },
@@ -105,13 +107,69 @@ describe("office exports", () => {
   it("PowerPoint deck has section and table slides, one paragraph-properties element per paragraph, and notes", async () => {
     const zip = await JSZip.loadAsync(await buildPptx(content));
     const slides = Object.keys(zip.files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n));
-    expect(slides.length).toBe(4); // title, executive summary, roadmap table, specialists (no Contents for two sections)
+    expect(slides.length).toBe(6); // title, executive summary, roadmap table, benchmark chart, value case chart, specialists (no Contents for two sections)
     const all = (await Promise.all(slides.map((s) => zip.file(s)!.async("string")))).join("");
     expect(all).toContain("Executive summary");
     expect(all).toContain("3. Roadmap: 3.1 Waves");
     expect(all).toContain("Specialists consulted");
     for (const p of all.match(/<a:p>[\s\S]*?<\/a:p>/g) ?? []) expect((p.match(/<a:pPr\b/g) ?? []).length).toBeLessThanOrEqual(1);
     expect(Object.keys(zip.files).some((n) => n.startsWith("ppt/notesSlides/"))).toBe(true);
+  });
+
+  it("PowerPoint charts plot the benchmark and value case exactly as the tools returned them", async () => {
+    const zip = await JSZip.loadAsync(await buildPptx(content));
+    const charts = await Promise.all(Object.keys(zip.files).filter((n) => /^ppt\/charts\/chart\d+\.xml$/.test(n)).sort().map((n) => zip.file(n)!.async("string")));
+    expect(charts).toHaveLength(2);
+    const values = (xml: string) => [...xml.matchAll(/<c:val>[\s\S]*?<\/c:val>/g)].map((m) => [...m[0].matchAll(/<c:pt idx="(\d+)">\s*<c:v>([^<]*)<\/c:v>/g)].filter((p) => p[2] !== "").map((p) => Number(p[2])));
+    const [bench, value] = charts;
+    expect(values(bench).flat().sort((a, b) => a - b)).toEqual([Q.top25, Q.median, Q.bottom25, 11].sort((a, b) => a - b));
+    expect(bench).toContain("<c:barDir val=\"bar\"/>");
+    const net = [-3200000, ...vc.yearly.map((y) => y.netBenefit)];
+    let run = 0;
+    expect(values(value)).toEqual([net, net.map((v) => (run += v))]);
+    expect(value).toContain("<c:lineChart>");
+    const slides = (await Promise.all(Object.keys(zip.files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n)).map((n) => zip.file(n)!.async("string")))).join("");
+    expect(slides).toContain("APQC benchmark position");
+    expect(slides).toContain("Value case: scenario 1 (Rudra)");
+  });
+
+  it("Excel charts are bound to the live cells and cache the tool's figures", async () => {
+    const buf = await buildXlsx(content);
+    const zip = await JSZip.loadAsync(buf);
+    const parts = Object.keys(zip.files);
+    const charts = await Promise.all(parts.filter((n) => /^xl\/charts\/chart\d+\.xml$/.test(n)).sort().map((n) => zip.file(n)!.async("string")));
+    expect(charts).toHaveLength(2);
+    const types = await zip.file("[Content_Types].xml")!.async("string");
+    expect(types.match(/drawingml\.chart\+xml/g)).toHaveLength(2);
+    // Each sheet with charts links one drawing, placed after the page setup as the schema requires.
+    const sheets = await Promise.all(parts.filter((n) => /^xl\/worksheets\/sheet\d+\.xml$/.test(n)).map((n) => zip.file(n)!.async("string")));
+    expect(sheets.filter((x) => /<pageSetup[^>]*\/><drawing r:id="rId\d+"\/><\/worksheet>$/.test(x))).toHaveLength(2);
+
+    const [value, bench] = charts;
+    const refs = (xml: string) => [...xml.matchAll(/<c:f>([^<]+)<\/c:f>/g)].map((m) => m[1].replace(/&apos;/g, "'"));
+    const wb = new ExcelJS.Workbook();
+    await wb.xlsx.load(buf as unknown as Parameters<typeof wb.xlsx.load>[0]);
+    const cell = (sheet: string, addr: string) => {
+      const v = wb.getWorksheet(sheet)!.getCell(addr).value as ExcelJS.CellFormulaValue | number;
+      return typeof v === "object" ? v.result : v;
+    };
+    // Value case: years in A, net cash flow in E, the new cumulative column in I; each cell's result is the tool's number.
+    const [cat, net, cum] = refs(value).filter((r, i, a) => a.indexOf(r) === i);
+    expect(cat).toMatch(/^'Value case'!\$A\$\d+:\$A\$\d+$/);
+    const [, from, to] = net.match(/\$E\$(\d+):\$E\$(\d+)$/)!.map(Number);
+    expect(cum).toBe(`'Value case'!$I$${from}:$I$${to}`);
+    const tool = [-3200000, ...vc.yearly.map((y) => y.netBenefit)];
+    let run = 0;
+    tool.forEach((v, k) => {
+      expect(cell("Value case", `E${from + k}`)).toBeCloseTo(v, 2);
+      expect(cell("Value case", `I${from + k}`)).toBeCloseTo((run += v), 2);
+    });
+    expect((wb.getWorksheet("Value case")!.getCell(`I${to}`).value as ExcelJS.CellFormulaValue).formula).toBe(`SUM(E$${from}:E${to})`);
+    // Benchmark: quartiles then client, one range of a row, client bar in the accent colour.
+    expect(refs(bench)).toEqual(["'Benchmarks'!$C$3:$F$3", "'Benchmarks'!$C$4:$F$4"]);
+    expect(["C4", "D4", "E4", "F4"].map((a) => cell("Benchmarks", a))).toEqual([Q.top25, Q.median, Q.bottom25, 11]);
+    expect(bench).toContain('<c:dPt><c:idx val="3"/>');
+    expect(bench).toContain("Days to Close the Books (days), lower is better");
   });
 
   it("strips duplicate paragraph properties but keeps the first", () => {
