@@ -1,0 +1,177 @@
+{
+  "_readme": [
+    "Third-party skills vendored into the shipped tree, with provenance and licence.",
+    "",
+    "WHY THIS FILE EXISTS. `.claude/skills` is a directory junction pointing at this",
+    "tree (see scripts/sync_skills.py), so local Claude Code and VOLT read the same",
+    "files and cannot drift. The cost of that convenience is that `npx skills add X`",
+    "or `npx skillfish add X` writes STRAIGHT INTO the client-facing corpus.",
+    "",
+    "tests/test_skill_provenance.py fails if a skill directory appears here that is",
+    "not listed below and not VOLT-authored. That turns a silent corpus pollution",
+    "into a loud CI failure, and forces the licence check that `lev-os/agents` failed",
+    "(no LICENSE file at all -- all rights reserved -- so nothing from it is vendored).",
+    "",
+    "TO ADD A THIRD-PARTY SKILL: confirm the licence permits redistribution, copy the",
+    "directory in, add an entry here, include the upstream LICENCE text alongside, and",
+    "measure retrieval before/after with scripts/measure_retrieval.py -- a new skill",
+    "that displaces a purpose-built VOLT skill is a regression, not an addition."
+  ],
+  "sources": [
+    {
+      "id": "agentic-enterprises",
+      "repo": "https://github.com/daemon-blockint-tech/Agentic-Enteprises-Skill",
+      "commit": "526df1c1377ee392ce2448c370d597c42da75402",
+      "licence": "MIT",
+      "licence_file": "LICENSE-Agentic-Enteprises-Skill.txt",
+      "copyright": "Copyright (c) 2026 daemon",
+      "vendored_on": "2026-09-06",
+      "skills": [
+        "actuary",
+        "aml-cft",
+        "aml-compliance",
+        "financial-intelligence-unit",
+        "ifrs",
+        "life-health-insurance",
+        "pension-retirement-funds",
+        "property-casualty-insurance",
+        "str-report"
+      ],
+      "notes": [
+        "Descriptions are YAML block scalars, so every one of these indexed as a",
+        "single '|' character until the parser fix in c3c9d47.",
+        "",
+        "Retrieval measured before and after: 5 rank-1 corrections, 0 displacements",
+        "of a VOLT-authored skill. fair-value-hierarchy went from enterprise-value",
+        "0.102 to ifrs 0.268; FINTRAC-STR from llmquant-data 0.110 to str-report",
+        "0.148. revenue-recognition (0.492), lease-accounting (0.390) and",
+        "kyc-aml-financial-crime (0.213) all held rank 1 against the new skills.",
+        "",
+        "These descriptions end with a 'not for X' exclusion list. TF-IDF cannot",
+        "represent negation, so those words match POSITIVELY. _MAX_DESCRIPTION=800",
+        "happens to truncate most of that tail. If the cap is ever raised, re-measure."
+      ]
+    },
+    {
+      "id": "sapstack",
+      "repo": "https://github.com/BoxLogoDev/sapstack",
+      "commit": "cd876ecb1f174e09e8b8b1fbf27099c1915c4bc3",
+      "licence": "MIT",
+      "licence_file": "LICENSE-sapstack.txt",
+      "copyright": "Copyright (c) 2026 BoxLogoDev",
+      "vendored_on": "2026-09-07",
+      "skills": [
+        "sap-fi"
+      ],
+      "notes": [
+        "Requested as `/plugin install sap-fi@sapstack sap-session@sapstack`. A Claude",
+        "Code plugin installs into ~/.claude/plugins, which VOLT never reads, so the",
+        "plugin route would have changed nothing about a client answer. The skill",
+        "directory inside the plugin is what was vendored.",
+        "",
+        "sap-fi is T-code-level SAP FI troubleshooting -- posting errors, GR/IR,",
+        "period/year-end close, asset accounting, tax config. Measured: sap-fi takes",
+        "rank 1 on 'GR/IR clearing account not clearing after MIRO posting' (0.267)",
+        "and 'SAP FI year-end close and asset depreciation run AFAB' (0.341), both of",
+        "which previously returned nothing relevant. No existing skill was displaced.",
+        "",
+        "sap-session was requested and DELIBERATELY NOT VENDORED. It is a session-state",
+        "and evidence-bundle workflow tool, not domain content -- the same class as the",
+        "36 dev-workflow skills whose presence made `stress-test` outrank",
+        "banking-compliance on a bank capital question. Nothing in it would improve an",
+        "answer to a client; it would only compete for retrieval.",
+        "",
+        "Deviation from upstream: the de/ja/ko/vi/zh reference directories were dropped",
+        "(SKILL.md and the English/neutral references are byte-identical). Only SKILL.md",
+        "feeds the index, so the translations were inert weight that could still surface",
+        "in a deliverable. Re-add them if a non-English engagement needs them.",
+        "",
+        "The other 22 plugins in the repo (sap-co, sap-tr, sap-mm, sap-sd, sap-abap,",
+        "sap-s4-migration, ...) are the same shape and licence if a project needs them."
+      ]
+    },
+    {
+      "id": "strategy-consultant-5",
+      "repo": "https://github.com/ConrayGambit/Strategy-Consultant-5-Consulting-Frameworks",
+      "commit": "076a4171b7736af93913788d021a742becaf2cf5",
+      "licence": "MIT",
+      "licence_file": "LICENSE-Strategy-Consultant-5-Consulting-Frameworks.txt",
+      "copyright": "Copyright (c) 2026 Nathaniel Bricknell",
+      "vendored_on": "2026-09-14",
+      "skills": [
+        "five-whys",
+        "hypothesis-driven",
+        "issue-trees",
+        "mece-framework",
+        "pareto-principle",
+        "pyramid-principle",
+        "so-what-test",
+        "strategy-consultant-7"
+      ],
+      "notes": [
+        "Each is ONE framework with a mandated output format, which is why they were",
+        "taken over the repo's three overlapping strategy-consultant variants and its",
+        "eight industry packs (edtech/fintech/saas/... -- none of our industries).",
+        "strategy-consultant-7 is the chained orchestrator over the other seven.",
+        "",
+        "They do NOT replace management-consulting: that one carries the firm's exhibit",
+        "and citation conventions and the visual mapping. These carry the structuring",
+        "method, which the corpus described but never showed a required output shape for.",
+        "",
+        "Retrieval measured over eight representative queries (IFRS 18, controllership TOM,",
+        "close root-cause, insource/outsource structuring, FT savings sizing, Oracle ERP-EPM,",
+        "IFRS 17 CSM, utilities RFP): 0 displacements at rank 1, and these surface only where",
+        "structuring IS the ask -- five-whys at rank 2 on 'why is close taking 12 days',",
+        "pyramid-principle at rank 5 on 'structure the question of whether to insource'.",
+        "scripts/measure_retrieval.py referenced above does not exist in this tree; measured",
+        "directly against api.graph.skill_index.retrieve_skills instead."
+      ]
+    },
+    {
+      "id": "web-interface-guidelines",
+      "repo": "https://github.com/vercel-labs/web-interface-guidelines",
+      "commit": "4ecfb9fb8d1d3b7009674869b3aaee2f904042e1",
+      "licence": "MIT",
+      "licence_file": "LICENSE-web-interface-guidelines.txt",
+      "copyright": "Copyright (c) 2025 Vercel Labs",
+      "vendored_on": "2026-10-09",
+      "skills": [
+        "web-design-guidelines"
+      ],
+      "notes": [
+        "Adapted from web-interface-guidelines/command.md: the upstream rules are inlined into SKILL.md instead of",
+        "fetched at runtime, because VOLT chat cannot fetch URLs. Upstream lines are carried",
+        "verbatim; the frontmatter and the fetch instruction were replaced. Re-pull to update.",
+        "The commit is the last upstream change to command.md before the vendoring date."
+      ]
+    },
+    {
+      "id": "writing-guidelines",
+      "repo": "https://github.com/vercel-labs/writing-guidelines",
+      "commit": "11483f8b60f3a90aa396b07a3cfbc32d42741162",
+      "licence": "MIT",
+      "licence_file": "LICENSE-writing-guidelines.txt",
+      "copyright": "Copyright (c) 2026 Vercel Labs",
+      "vendored_on": "2026-10-09",
+      "skills": [
+        "writing-guidelines"
+      ],
+      "notes": [
+        "Adapted from writing-guidelines/command.md: the upstream rules are inlined into SKILL.md instead of",
+        "fetched at runtime, because VOLT chat cannot fetch URLs. Upstream lines are carried",
+        "verbatim; the frontmatter and the fetch instruction were replaced. Re-pull to update.",
+        "The commit is the last upstream change to command.md before the vendoring date.",
+        "A VOLT note at the top tells reviewers to skip the rules specific to the upstream docs site."
+      ]
+    }
+  ],
+  "rejected": [
+    {
+      "repo": "https://github.com/lev-os/agents",
+      "skill": "skills-db/legal/analyzing-insurance-financials",
+      "reason": "No LICENSE file in the repository (GitHub reports licence: null), so all rights are reserved and there is no grant to redistribute inside a commercial client deliverable.",
+      "content_quality": "Good -- combined ratio decomposition, Schedule P triangles, risk-based capital, NPW/PHS leverage.",
+      "resolution": "Not vendored. insurance-financial-analysis was written independently from the same public industry metrics and framed for Canadian regulation (OSFI MCT rather than US risk-based capital, IFRS 17 rather than US statutory accounting), which fits VOLT's client base better than the original."
+    }
+  ]
+}

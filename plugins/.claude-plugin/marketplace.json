@@ -1,0 +1,14 @@
+{
+  "name": "volt-main",
+  "description": "VOLT agentic solution plugins",
+  "owner": {
+    "name": "Rakesh Shetty"
+  },
+  "plugins": [
+    {
+      "name": "volt",
+      "source": "./volt",
+      "description": "VOLT finance transformation agents, workflows, skills and Skill Finder"
+    }
+  ]
+}

@@ -1,0 +1,221 @@
+{
+ "implementation-mobilization": [
+  {
+   "key": "objective",
+   "question": "What is the primary objective for this analysis?",
+   "options": [
+    "Full program mobilization — charter, governance, and sprint planning",
+    "Policy harmonization — analyze regional policies and recommend global standard",
+    "Workshop preparation — design and plan the first design workshops",
+    "Technical landscape — system configuration and integration mapping",
+    "Custom objective (describe below)"
+   ]
+  },
+  {
+   "key": "audience",
+   "question": "Who is the primary audience for the output?",
+   "options": [
+    "Steering Committee / C-Suite — executive summary focus",
+    "Project Team — detailed working documents",
+    "Client Stakeholders — presentation-ready deliverables",
+    "Internal Review — quality and methodology focus"
+   ]
+  },
+  {
+   "key": "depth",
+   "question": "What level of detail do you need?",
+   "options": [
+    "High-level strategic overview (2-3 pages)",
+    "Working draft with section detail (5-10 pages)",
+    "Comprehensive deliverable ready for refinement (10+ pages)"
+   ]
+  },
+  {
+   "key": "priority_regions",
+   "question": "Which regions should be prioritized in the analysis?",
+   "options": [
+    "North America (USA, Canada)",
+    "Europe (UK, Germany, France, Nordics)",
+    "Asia-Pacific (China, India, Japan, Korea, ANZ)",
+    "Latin America (Brazil, Mexico)",
+    "All regions equally"
+   ]
+  }
+ ],
+ "oracle-erp-cloud": [
+  {
+   "key": "objective",
+   "question": "What is the primary objective?",
+   "options": [
+    "Full Oracle ERP Cloud implementation planning",
+    "Module configuration design (GL, AP, AR, FA, Projects)",
+    "Data migration strategy and FBDI/HDL template design",
+    "Integration architecture and middleware mapping",
+    "Custom objective (describe below)"
+   ]
+  },
+  {
+   "key": "audience",
+   "question": "Who is the primary audience?",
+   "options": [
+    "Steering Committee / C-Suite — executive summary focus",
+    "Project Team — detailed working documents",
+    "Client Stakeholders — presentation-ready deliverables",
+    "Internal Review — quality and methodology focus"
+   ]
+  },
+  {
+   "key": "depth",
+   "question": "What level of detail do you need?",
+   "options": [
+    "High-level strategic overview (2-3 pages)",
+    "Working draft with section detail (5-10 pages)",
+    "Comprehensive deliverable ready for refinement (10+ pages)"
+   ]
+  }
+ ],
+ "finance-ai-strategy": [
+  {
+   "key": "objective",
+   "question": "What is the primary objective for this Finance AI Strategy engagement?",
+   "options": [
+    "Full Finance 2.0 AI Strategy & Roadmap — comprehensive CFO-ready deliverable",
+    "Big Rock prioritization — identify and sequence the highest-value AI opportunities",
+    "Peer benchmarking — compare against peer banks",
+    "AI business case development — ROI/NPV model for AI investments",
+    "Custom objective (describe below)"
+   ]
+  },
+  {
+   "key": "audience",
+   "question": "Who is the primary audience for this deliverable?",
+   "options": [
+    "CFO / Finance Leadership Team — executive briefing focus",
+    "Board of Directors — strategic overview with governance emphasis",
+    "Steering Committee — detailed roadmap with milestones",
+    "Finance Operations — tactical implementation playbook"
+   ]
+  },
+  {
+   "key": "depth",
+   "question": "What level of detail do you need?",
+   "options": [
+    "Executive summary (3-5 pages) — CFO meeting preparation",
+    "Working draft with section detail (10-15 pages)",
+    "Comprehensive deliverable ready for client presentation (20+ pages)"
+   ]
+  },
+  {
+   "key": "big_rock_priority",
+   "question": "Which Big Rock areas should be prioritized?",
+   "options": [
+    "All five equally (Compensation, Technical Accounting, Reporting, Close, Governance)",
+    "Close & Reporting (labor-intensive core processes)",
+    "Technical Accounting & Close (complexity + volume)",
+    "Governance & Compliance (risk reduction focus)",
+    "Custom priority (describe below)"
+   ]
+  },
+  {
+   "key": "client_context",
+   "question": "Client current state data (assessment metrics, labor costs, volume data, peer group, highest-volume entities):",
+   "type": "text_area",
+   "default": ""
+  }
+ ],
+ "default": [
+  {
+   "key": "objective",
+   "question": "What is the primary objective?",
+   "options": [
+    "Strategic assessment and recommendations",
+    "Detailed working document for the project team",
+    "Executive briefing for leadership",
+    "Technical analysis and design decisions"
+   ]
+  },
+  {
+   "key": "audience",
+   "question": "Who is the target audience?",
+   "options": [
+    "C-Suite / Board",
+    "Project Team",
+    "Client Stakeholders",
+    "Internal Review"
+   ]
+  },
+  {
+   "key": "depth",
+   "question": "What depth of analysis?",
+   "options": [
+    "High-level summary (2-3 pages)",
+    "Working draft (5-10 pages)",
+    "Comprehensive output (10+ pages)"
+   ]
+  }
+ ],
+ "reconciliation": [
+  {
+   "key": "recon_scope",
+   "question": "What is the scope of reconciliation required?",
+   "options": [
+    "Balance Sheet only (position reconciliation between trading and GL)",
+    "P&L only (daily P&L attribution — desk vs GL realized/unrealized)",
+    "Both BS and P&L (full position + P&L reconciliation)",
+    "Both BS and P&L + Cash/Settlement (nostro reconciliation included)",
+    "End-to-end: BS + P&L + Cash + Intercompany elimination"
+   ]
+  },
+  {
+   "key": "platform_landscape",
+   "question": "What are the source and target platforms involved?",
+   "options": [
+    "Murex (Derivatives, FX, Structured Products)",
+    "Calypso (Fixed Income, Credit Derivatives)",
+    "Bloomberg AIM / TOMS (Equities, ETFs)",
+    "Summit / Misys (Treasury, Money Markets)",
+    "PeopleSoft GL (General Ledger)",
+    "Oracle ERP GL (Fusion Cloud / E-Business Suite)",
+    "SAP FI (S/4HANA or ECC)",
+    "Intellimatch / Duco / Gresham (existing recon tool)",
+    "Other (specify in notes)"
+   ]
+  },
+  {
+   "key": "frequency",
+   "question": "What is the required reconciliation frequency?",
+   "options": [
+    "Real-time / Intraday (T+0 — continuous position monitoring)",
+    "Daily (T+1 — next-day break identification and resolution)",
+    "Weekly (end-of-week position and P&L sign-off)",
+    "Monthly (month-end close reconciliation and certification)",
+    "Quarterly (regulatory reporting periods only)"
+   ]
+  },
+  {
+   "key": "granularity",
+   "question": "What level of granularity is required?",
+   "options": [
+    "Trial Balance level (aggregate GL account balances vs subledger totals)",
+    "Cost Center / Entity level (balances by legal entity or business unit)",
+    "Trade-level (individual transaction matching — 1:1 or 1:many)",
+    "Position-level (net position by instrument/CUSIP/ISIN per book)",
+    "Full decomposition (trade + P&L attribution by risk factor: delta, gamma, theta, vega)"
+   ]
+  },
+  {
+   "key": "pain_points",
+   "question": "What are the top pain points with current reconciliation?",
+   "options": [
+    "Manual Excel-based process (no automation)",
+    "High break volume (200+ daily, many false positives)",
+    "Slow resolution (3-5+ days to close breaks)",
+    "No audit trail (regulators asking for evidence)",
+    "Valuation differences (front vs back office models)",
+    "Timing mismatches (T+0 trading vs T+1 GL posting)",
+    "Regulatory pressure (OSFI/BCBS 239 accuracy requirements)",
+    "Month-end bottleneck (recon delays close cycle)"
+   ]
+  }
+ ]
+}
