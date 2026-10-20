@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { VIEW_ONLY, useCanWrite } from "../user";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 
 interface Props {
@@ -9,6 +10,7 @@ interface Props {
 
 /** VOLT consulting services catalogue: practice → sub-practice → service, with agent/workflow coverage. */
 export function Services({ catalog, onOpenAgent, onLaunch }: Props) {
+  const canWrite = useCanWrite();
   const [practice, setPractice] = useState("");
   const practices = useMemo(() => [...new Set(catalog.services.map((s) => s.practice))], [catalog]);
   const services = catalog.services.filter((s) => !practice || s.practice === practice);
@@ -76,6 +78,8 @@ export function Services({ catalog, onOpenAgent, onLaunch }: Props) {
                           <button
                             key={w}
                             className="btn sm"
+                            disabled={!canWrite}
+                            title={canWrite ? undefined : VIEW_ONLY}
                             onClick={() => {
                               const prompt = window.prompt(`Describe the client situation for "${s.name}" (${wf(w)!.name})`);
                               if (prompt?.trim()) onLaunch({ prompt: `${s.name}: ${prompt.trim()}`, workflowId: w }, `${wf(w)!.icon} ${wf(w)!.name}`, "workflow");

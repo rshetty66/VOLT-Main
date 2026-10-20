@@ -3,6 +3,7 @@ import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 import type { ActivityItem, Lane, Run } from "../runState";
 import { Markdown } from "./Markdown";
 import { runExportUrl, runMarkdownUrl } from "../api";
+import { VIEW_ONLY, useCanWrite } from "../user";
 
 /** Download links for a saved run: Word report, Excel workbook, PowerPoint deck, Markdown. */
 export function ExportLinks({ runId }: { runId: string }) {
@@ -41,6 +42,7 @@ interface Props {
 
 export function Console({ catalog, runs, target, setTarget, live, onStart, onStop, onOpenAgent }: Props) {
   const [prompt, setPrompt] = useState("");
+  const canWrite = useCanWrite();
   const endRef = useRef<HTMLDivElement>(null);
   const running = runs.some((r) => r.state === "running");
   const targetAgent = catalog.agents.find((a) => a.id === target);
@@ -77,7 +79,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
           )}
           <div className="examples">
             {EXAMPLES.map((e) => (
-              <button key={e} className="btn ghost card" onClick={() => submit(e)}>
+              <button key={e} className="btn ghost card" disabled={!canWrite} onClick={() => submit(e)}>
                 {e}
               </button>
             ))}
@@ -116,7 +118,8 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
           </div>
           <textarea
             className="textarea"
-            placeholder={target === "rudra" ? "Describe the client situation and what you need…" : `Ask ${targetAgent?.name ?? target}…`}
+            disabled={!canWrite}
+            placeholder={!canWrite ? VIEW_ONLY : target === "rudra" ? "Describe the client situation and what you need…" : `Ask ${targetAgent?.name ?? target}…`}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => {
@@ -127,7 +130,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
             <span className="muted" style={{ fontSize: 12 }}>
               Ctrl/⌘ + Enter to send{runs.length > 0 ? " · follow-ups keep the conversation" : ""}
             </span>
-            <button className="btn primary" disabled={!prompt.trim() || running} onClick={() => submit()}>
+            <button className="btn primary" disabled={!prompt.trim() || running || !canWrite} onClick={() => submit()}>
               {running ? "Working…" : "Run"}
             </button>
           </div>
@@ -138,6 +141,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
 }
 
 export function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: CatalogResponse; onStop: () => void; onOpenAgent: (id: string) => void }) {
+  const canWrite = useCanWrite();
   const lanes = run.laneOrder.map((id) => run.lanes[id]);
   const elapsed = Math.round(((run.finishedAt ?? Date.now()) - run.startedAt) / 1000);
   const [, tick] = useState(0);
@@ -156,7 +160,7 @@ export function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catal
         <span className="usage">
           {elapsed}s{run.mode === "live" ? ` · ${run.usage.input.toLocaleString()} in / ${run.usage.output.toLocaleString()} out · ${run.usage.cacheRead.toLocaleString()} cached` : run.mode === "demo" ? " · demo" : ""}
         </span>
-        {run.state === "running" && (
+        {run.state === "running" && canWrite && (
           <button className="btn sm" onClick={onStop}>
             Stop
           </button>

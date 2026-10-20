@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { CatalogResponse } from "../../shared/events";
 import type { Engagement, RunSummary, StoredRun, Template } from "../../shared/records";
-import { createEngagement, getEngagementDetail, getStoredRun, listTemplates, setEngagementTemplate, stopRun, type EngagementDetail } from "../api";
+import { addMember, createEngagement, getEngagementDetail, getStoredRun, listTemplates, listUsers, removeMember, setEngagementTemplate, stopRun, type EngagementDetail, type Member } from "../api";
+import { VIEW_ONLY, useCanWrite, useUser } from "../user";
 import { Previews } from "./Templates";
 import { replayRun } from "../runState";
 import { ExportLinks, RunView } from "./Console";
@@ -23,6 +24,7 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
   const [openId, setOpenId] = useState<string | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
   const [templates, setTemplates] = useState<Template[]>([]);
+  const canWrite = useCanWrite();
   useEffect(() => {
     listTemplates().then(setTemplates, () => {});
   }, []);
@@ -49,13 +51,17 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
           runs, download them for review, or continue a conversation.
         </p>
       </div>
-      <NewEngagement
-        templates={templates}
-        onCreated={(e) => {
-          onCreated(e);
-          setOpenId(e.id);
-        }}
-      />
+      {canWrite ? (
+        <NewEngagement
+          templates={templates}
+          onCreated={(e) => {
+            onCreated(e);
+            setOpenId(e.id);
+          }}
+        />
+      ) : (
+        <div className="card body">{VIEW_ONLY} Engagements shared with you are listed below.</div>
+      )}
       {engagements.length === 0 ? (
         <div className="card muted">No engagements yet. Create one above.</div>
       ) : (
@@ -67,6 +73,7 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
                 <th>Engagement</th>
                 <th>Runs</th>
                 <th>Last run</th>
+                <th>Owner</th>
                 <th>Template</th>
                 <th />
               </tr>
@@ -80,6 +87,7 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
                   <td>{e.title}</td>
                   <td>{e.runCount}</td>
                   <td className="muted">{when(e.lastRunAt)}</td>
+                  <td className="muted">{e.ownerName ?? "-"}</td>
                   <td className="muted">{e.templateName ?? "VOLT standard"}</td>
                   <td>{e.id === currentId && <span className="badge live">current</span>}</td>
                 </tr>
@@ -92,11 +100,23 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
   );
 }
 
-function TemplatePicker({ templates, value, onChange, label = "Output template" }: { templates: Template[]; value: string | null; onChange: (id: string | null) => void; label?: string }) {
+function TemplatePicker({
+  templates,
+  value,
+  onChange,
+  label = "Output template",
+  disabled = false,
+}: {
+  templates: Template[];
+  value: string | null;
+  onChange: (id: string | null) => void;
+  label?: string;
+  disabled?: boolean;
+}) {
   return (
     <label className="row" style={{ gap: 6 }}>
       <span className="micro">{label}</span>
-      <select className="select" style={{ width: "auto" }} aria-label={label} value={value ?? "standard"} onChange={(e) => onChange(e.target.value === "standard" ? null : e.target.value)}>
+      <select className="select" style={{ width: "auto" }} aria-label={label} disabled={disabled} value={value ?? "standard"} onChange={(e) => onChange(e.target.value === "standard" ? null : e.target.value)}>
         {(templates.length ? templates : [{ id: "standard", name: "VOLT standard" } as Template]).map((t) => (
           <option key={t.id} value={t.id}>
             {t.name}
@@ -192,6 +212,7 @@ function EngagementPage({
               <div className="row" style={{ marginTop: 8 }}>
                 <TemplatePicker
                   templates={templates}
+                  disabled={e.access !== "write"}
                   value={e.templateId}
                   onChange={(templateId) =>
                     setEngagementTemplate(e.id, templateId).then(
@@ -203,8 +224,17 @@ function EngagementPage({
                 <Previews id={e.templateId ?? "standard"} />
               </div>
               <p className="muted" style={{ fontSize: 12 }}>Word, Excel and PowerPoint downloads for this engagement use this template.</p>
+              <People engagement={e} onChange={(members) => setE({ ...e, members })} onError={setErr} />
             </div>
-            {isCurrent ? <span className="badge live">current engagement</span> : <button className="btn primary" onClick={onSelect}>File new runs here</button>}
+            {e.access === "read" ? (
+              <span className="badge">view only</span>
+            ) : isCurrent ? (
+              <span className="badge live">current engagement</span>
+            ) : (
+              <button className="btn primary" onClick={onSelect}>
+                File new runs here
+              </button>
+            )}
           </div>
           {e.runs.length === 0 ? (
             <div className="card muted">No runs yet. Make this the current engagement, then run something from the Agent Console or Workflows.</div>
@@ -264,6 +294,7 @@ function SavedRun({
   onOpenAgent: (id: string) => void;
 }) {
   const [stored, setStored] = useState<StoredRun | null>(null);
+  const canWrite = useCanWrite();
   const [err, setErr] = useState("");
   const load = () => getStoredRun(runId).then(setStored, (x) => setErr(String(x)));
   useEffect(() => {
@@ -285,12 +316,12 @@ function SavedRun({
         </button>
         {stored && (
           <div className="row">
-            {stored.kind === "workflow" && (stored.status === "stopped" || stored.status === "error") && (
+            {canWrite && stored.kind === "workflow" && (stored.status === "stopped" || stored.status === "error") && (
               <button className="btn primary sm" title="Reuse the specialists that finished; run only the rest and the synthesis" onClick={() => onResume(stored)}>
                 Resume
               </button>
             )}
-            {stored.mode === "live" && stored.status === "done" && (
+            {canWrite && stored.mode === "live" && stored.status === "done" && (
               <button className="btn sm" onClick={() => onContinue(stored)}>
                 Continue this conversation
               </button>
@@ -302,6 +333,53 @@ function SavedRun({
       {stored?.error && <div className="card body">This run ended with a problem: {stored.error}</div>}
       {running && <div className="card body">Still running on the server. This page updates every few seconds; you can leave and come back.</div>}
       {!stored ? !err && <div className="empty"><span className="spinner" /> Loading...</div> : <RunView run={replayRun(stored)} catalog={catalog} onStop={() => void stopRun(stored.id).then(load)} onOpenAgent={onOpenAgent} />}
+    </div>
+  );
+}
+
+/** Owner and members: who can see this engagement. The owner and admins add or remove members. */
+function People({ engagement, onChange, onError }: { engagement: EngagementDetail; onChange: (members: Member[]) => void; onError: (msg: string) => void }) {
+  const me = useUser();
+  const canManage = engagement.access === "write" && (me?.role === "admin" || engagement.ownerId === me?.id);
+  const [directory, setDirectory] = useState<Member[]>([]);
+  const [pick, setPick] = useState("");
+  useEffect(() => {
+    if (canManage) listUsers().then((u) => setDirectory(u.filter((x) => !x.disabled)), () => {});
+  }, [canManage]);
+  const candidates = directory.filter((u) => u.id !== engagement.ownerId && !engagement.members.some((m) => m.id === u.id));
+  const run = (p: Promise<Member[]>) => p.then(onChange, (x) => onError(x instanceof Error ? x.message : String(x)));
+  return (
+    <div className="row" style={{ marginTop: 8, gap: 6 }}>
+      <span className="micro">People</span>
+      <span className="chip" title="Owner">
+        {engagement.ownerName ?? "No owner"} (owner)
+      </span>
+      {engagement.members.map((m) => (
+        <span key={m.id} className="chip" title={`${m.email}, ${m.role}`}>
+          {m.name}
+          {m.role === "viewer" ? " (viewer)" : ""}
+          {canManage && (
+            <button className="btn ghost sm" style={{ padding: "0 4px" }} aria-label={`Remove ${m.name}`} onClick={() => run(removeMember(engagement.id, m.id))}>
+              x
+            </button>
+          )}
+        </span>
+      ))}
+      {canManage && candidates.length > 0 && (
+        <>
+          <select className="select" style={{ width: "auto" }} aria-label="Add a person" value={pick} onChange={(e) => setPick(e.target.value)}>
+            <option value="">Add a person...</option>
+            {candidates.map((u) => (
+              <option key={u.id} value={u.id}>
+                {u.name} ({u.role})
+              </option>
+            ))}
+          </select>
+          <button className="btn sm" disabled={!pick} onClick={() => run(addMember(engagement.id, pick)).then(() => setPick(""))}>
+            Add
+          </button>
+        </>
+      )}
     </div>
   );
 }

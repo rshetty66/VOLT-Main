@@ -21,6 +21,8 @@ function toEngagement(r: Row): Engagement {
     lastRunAt: iso(r.last_run_at),
     templateId: r.template_id ?? null,
     templateName: r.template_name ?? null,
+    ownerId: r.owner_id ?? null,
+    ownerName: r.owner_name ?? null,
   };
 }
 
@@ -28,6 +30,7 @@ function toRunSummary(r: Row): RunSummary {
   return {
     id: r.id,
     engagementId: r.engagement_id,
+    userId: r.user_id ?? null,
     sessionId: r.session_id,
     kind: r.kind,
     title: r.title,
@@ -46,13 +49,24 @@ function toRunSummary(r: Row): RunSummary {
 }
 
 const ENGAGEMENT_SELECT = `
-  select e.*, t.name as template_name, count(r.id)::int as run_count, max(r.started_at) as last_run_at
-  from engagements e left join runs r on r.engagement_id = e.id left join templates t on t.id = e.template_id`;
+  select e.*, t.name as template_name, u.name as owner_name, count(r.id)::int as run_count, max(r.started_at) as last_run_at
+  from engagements e left join runs r on r.engagement_id = e.id left join templates t on t.id = e.template_id
+  left join users u on u.id = e.owner_id`;
 
-export async function createEngagement(db: Db, input: { clientName: string; title: string; description?: string; templateId?: string | null }): Promise<Engagement> {
+/** SQL true when user $N owns or is a member of engagement alias `e`. */
+const MEMBER_OF = (n: number) => `(e.owner_id = $${n} or exists (select 1 from engagement_members m where m.engagement_id = e.id and m.user_id = $${n}))`;
+
+/** Whose data a query may return: everything, or what one user owns, shares or started. */
+export type Scope = { all: true } | { userId: string };
+export const ALL: Scope = { all: true };
+
+export async function createEngagement(
+  db: Db,
+  input: { clientName: string; title: string; description?: string; templateId?: string | null; ownerId?: string | null },
+): Promise<Engagement> {
   const { rows } = await db.query<Row>(
-    "insert into engagements (client_name, title, description, template_id) values ($1, $2, $3, $4) returning id",
-    [input.clientName, input.title, input.description ?? "", input.templateId ?? null],
+    "insert into engagements (client_name, title, description, template_id, owner_id) values ($1, $2, $3, $4, $5) returning id",
+    [input.clientName, input.title, input.description ?? "", input.templateId ?? null, input.ownerId ?? null],
   );
   return (await getEngagement(db, rows[0].id))!;
 }
@@ -64,20 +78,48 @@ export async function setEngagementTemplate(db: Db, id: string, templateId: stri
   return getEngagement(db, id);
 }
 
-export async function listEngagements(db: Db): Promise<Engagement[]> {
-  const { rows } = await db.query<Row>(`${ENGAGEMENT_SELECT} group by e.id, t.name order by coalesce(max(r.started_at), e.created_at) desc`);
+export async function listEngagements(db: Db, scope: Scope = ALL): Promise<Engagement[]> {
+  const where = "userId" in scope ? `where ${MEMBER_OF(1)}` : "";
+  const { rows } = await db.query<Row>(
+    `${ENGAGEMENT_SELECT} ${where} group by e.id, t.name, u.name order by coalesce(max(r.started_at), e.created_at) desc`,
+    "userId" in scope ? [scope.userId] : [],
+  );
   return rows.map(toEngagement);
+}
+
+/** True when the user owns or is a member of the engagement. */
+export async function isMember(db: Db, engagementId: string, userId: string): Promise<boolean> {
+  if (!isUuid(engagementId)) return false;
+  const { rows } = await db.query<Row>(`select 1 from engagements e where e.id = $2 and ${MEMBER_OF(1)}`, [userId, engagementId]);
+  return rows.length > 0;
+}
+
+export async function listMembers(db: Db, engagementId: string): Promise<{ id: string; name: string; email: string; role: string }[]> {
+  const { rows } = await db.query<Row>(
+    "select u.id, u.name, u.email, u.role from engagement_members m join users u on u.id = m.user_id where m.engagement_id = $1 order by lower(u.name)",
+    [engagementId],
+  );
+  return rows.map((r) => ({ id: r.id, name: r.name, email: r.email, role: r.role }));
+}
+
+export async function addMember(db: Db, engagementId: string, userId: string): Promise<void> {
+  await db.query("insert into engagement_members (engagement_id, user_id) values ($1, $2) on conflict do nothing", [engagementId, userId]);
+}
+
+export async function removeMember(db: Db, engagementId: string, userId: string): Promise<void> {
+  await db.query("delete from engagement_members where engagement_id = $1 and user_id = $2", [engagementId, userId]);
 }
 
 export async function getEngagement(db: Db, id: string): Promise<Engagement | null> {
   if (!isUuid(id)) return null;
-  const { rows } = await db.query<Row>(`${ENGAGEMENT_SELECT} where e.id = $1 group by e.id, t.name`, [id]);
+  const { rows } = await db.query<Row>(`${ENGAGEMENT_SELECT} where e.id = $1 group by e.id, t.name, u.name`, [id]);
   return rows[0] ? toEngagement(rows[0]) : null;
 }
 
 export interface NewRun {
   id: string;
   engagementId?: string;
+  userId?: string;
   sessionId: string;
   kind: RunKind;
   title: string;
@@ -91,9 +133,9 @@ export interface NewRun {
 
 export async function createRun(db: Db, run: NewRun): Promise<void> {
   await db.query(
-    `insert into runs (id, engagement_id, session_id, kind, title, prompt, workflow_id, agent_id, intake, mode, model)
-     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)`,
-    [run.id, run.engagementId ?? null, run.sessionId, run.kind, run.title, run.prompt, run.workflowId ?? null, run.agentId ?? null, run.intake ? JSON.stringify(run.intake) : null, run.mode, run.model],
+    `insert into runs (id, engagement_id, session_id, kind, title, prompt, workflow_id, agent_id, intake, mode, model, user_id)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
+    [run.id, run.engagementId ?? null, run.sessionId, run.kind, run.title, run.prompt, run.workflowId ?? null, run.agentId ?? null, run.intake ? JSON.stringify(run.intake) : null, run.mode, run.model, run.userId ?? null],
   );
   if (run.engagementId) await db.query("update engagements set updated_at = now() where id = $1", [run.engagementId]);
 }
@@ -126,11 +168,30 @@ export async function markInterruptedRuns(db: Db): Promise<number> {
   return rows.length;
 }
 
-export async function listRuns(db: Db, opts: { engagementId?: string; limit?: number } = {}): Promise<RunSummary[]> {
+export async function listRuns(db: Db, opts: { engagementId?: string; limit?: number; scope?: Scope } = {}): Promise<RunSummary[]> {
   const limit = Math.min(Math.max(opts.limit ?? 50, 1), 200);
-  const { rows } = opts.engagementId
-    ? await db.query<Row>("select * from runs where engagement_id = $1 order by started_at desc limit $2", [opts.engagementId, limit])
-    : await db.query<Row>("select * from runs order by started_at desc limit $1", [limit]);
+  const scope = opts.scope ?? ALL;
+  if (opts.engagementId) {
+    const { rows } = await db.query<Row>("select * from runs where engagement_id = $1 order by started_at desc limit $2", [opts.engagementId, limit]);
+    return rows.map(toRunSummary);
+  }
+  if ("userId" in scope) {
+    // A user's runs: those in engagements they own or share, and their own runs outside any engagement.
+    const { rows } = await db.query<Row>(
+      `select r.* from runs r left join engagements e on e.id = r.engagement_id
+       where (r.engagement_id is null and r.user_id = $1) or (r.engagement_id is not null and ${MEMBER_OF(1)})
+       order by r.started_at desc limit $2`,
+      [scope.userId, limit],
+    );
+    return rows.map(toRunSummary);
+  }
+  const { rows } = await db.query<Row>("select * from runs order by started_at desc limit $1", [limit]);
+  return rows.map(toRunSummary);
+}
+
+/** The runs that used a lead-agent session (its conversation), for checking who may continue it. */
+export async function runsForSession(db: Db, sessionId: string): Promise<RunSummary[]> {
+  const { rows } = await db.query<Row>("select * from runs where session_id = $1", [sessionId]);
   return rows.map(toRunSummary);
 }
 
@@ -152,10 +213,10 @@ export async function loadSession(db: Db, id: string): Promise<StoredSession | n
   return rows[0] ? { agentId: rows[0].agent_id ?? undefined, messages: rows[0].messages } : null;
 }
 
-export async function saveSession(db: Db, s: { id: string; agentId?: string; messages: unknown[] }): Promise<void> {
+export async function saveSession(db: Db, s: { id: string; agentId?: string; messages: unknown[]; userId?: string }): Promise<void> {
   await db.query(
-    `insert into sessions (id, agent_id, messages, updated_at) values ($1, $2, $3, now())
+    `insert into sessions (id, agent_id, messages, user_id, updated_at) values ($1, $2, $3, $4, now())
      on conflict (id) do update set agent_id = excluded.agent_id, messages = excluded.messages, updated_at = now()`,
-    [s.id, s.agentId ?? null, JSON.stringify(s.messages)],
+    [s.id, s.agentId ?? null, JSON.stringify(s.messages), s.userId ?? null],
   );
 }

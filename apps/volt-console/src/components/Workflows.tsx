@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
+import { VIEW_ONLY, useCanWrite } from "../user";
 
 type Workflow = CatalogResponse["workflows"][number];
 
@@ -59,6 +60,7 @@ function WorkflowLauncher({ catalog, wf, onBack, onLaunch, onOpenAgent }: { cata
   const questions = catalog.intake[wf.id] ?? catalog.intake["default"] ?? [];
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [prompt, setPrompt] = useState("");
+  const canWrite = useCanWrite();
   const name = (id: string) => catalog.agents.find((a) => a.id === id);
   const agentCalls = wf.phases.reduce((n, p) => n + p.agents.length, 0);
 
@@ -118,9 +120,10 @@ function WorkflowLauncher({ catalog, wf, onBack, onLaunch, onOpenAgent }: { cata
           <textarea className="textarea" rows={5} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Client, industry, scale, platforms, pain points, what the deliverable must answer…" />
         </label>
         <div className="row" style={{ justifyContent: "flex-end" }}>
+          {!canWrite && <span className="muted" style={{ fontSize: 12 }}>{VIEW_ONLY}</span>}
           <button
             className="btn primary"
-            disabled={!prompt.trim()}
+            disabled={!prompt.trim() || !canWrite}
             onClick={() => onLaunch({ prompt: prompt.trim(), workflowId: wf.id, intake: answers }, `${wf.icon} ${wf.name}`, "workflow")}
           >
             Launch workflow

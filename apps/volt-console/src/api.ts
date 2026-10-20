@@ -1,7 +1,20 @@
 import type { CatalogResponse, RunRequest, VoltEvent } from "../shared/events";
-import type { Engagement, RunSummary, StoredRun, Template } from "../shared/records";
+import type { AuditEntry, Engagement, Role, RunSummary, StoredRun, Template, User } from "../shared/records";
 
-export type EngagementDetail = Engagement & { runs: RunSummary[] };
+/** Fired when the server answers 401: the session ended, so the app shows the sign-in screen. */
+export const SIGNED_OUT = "volt:signed-out";
+function watch(r: Response): Response {
+  if (r.status === 401) window.dispatchEvent(new Event(SIGNED_OUT));
+  return r;
+}
+
+export interface Member {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+}
+export type EngagementDetail = Engagement & { runs: RunSummary[]; members: Member[]; access: "read" | "write" };
 
 export const listEngagements = () => getJSON<Engagement[]>("/api/engagements");
 export const getEngagementDetail = (id: string) => getJSON<EngagementDetail>(`/api/engagements/${id}`);
@@ -15,17 +28,31 @@ export async function stopRun(id: string): Promise<void> {
 }
 
 export async function createEngagement(input: { clientName: string; title: string; description?: string; templateId?: string | null }): Promise<Engagement> {
-  const r = await fetch("/api/engagements", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
+  const r = watch(await fetch("/api/engagements", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) }));
   if (!r.ok) throw new Error(`Could not create the engagement (${r.status})`);
   return r.json();
 }
 
 async function send<T>(method: string, url: string, body?: unknown): Promise<T> {
-  const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const r = watch(await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) }));
   const data = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error((data as { error?: string }).error ?? `Request failed (${r.status})`);
   return data as T;
 }
+
+// Sign-in and accounts
+export const authStatus = () => fetch("/api/auth/status").then((r) => r.json() as Promise<{ setupRequired: boolean; user: User | null }>);
+export const signIn = (email: string, password: string) => send<User>("POST", "/api/auth/login", { email, password });
+export const setUp = (name: string, email: string, password: string) => send<User>("POST", "/api/auth/setup", { name, email, password });
+export const signOut = () => send<{ ok: boolean }>("POST", "/api/auth/logout");
+export const changePassword = (current: string, password: string) => send<{ ok: boolean }>("POST", "/api/auth/password", { current, password });
+export const listUsers = () => getJSON<User[]>("/api/users");
+export const addUser = (u: { name: string; email: string; role: Role; password: string }) => send<User>("POST", "/api/users", u);
+export const updateUser = (id: string, patch: { name?: string; role?: Role; disabled?: boolean }) => send<User>("PATCH", `/api/users/${id}`, patch);
+export const resetPassword = (id: string, password: string) => send<{ ok: boolean }>("POST", `/api/users/${id}/password`, { password });
+export const listAudit = (limit = 200) => getJSON<AuditEntry[]>(`/api/audit?limit=${limit}`);
+export const addMember = (engagementId: string, userId: string) => send<Member[]>("POST", `/api/engagements/${engagementId}/members`, { userId });
+export const removeMember = (engagementId: string, userId: string) => send<Member[]>("DELETE", `/api/engagements/${engagementId}/members/${userId}`);
 
 export const setEngagementTemplate = (id: string, templateId: string | null) => send<Engagement>("PATCH", `/api/engagements/${id}`, { templateId });
 
@@ -51,13 +78,13 @@ export const templateLogoUrl = (t: Template) => `/api/templates/${t.id}/logo?v=$
 export const templatePreviewUrl = (id: string, format: "docx" | "xlsx" | "pptx") => `/api/templates/${id}/preview/${format}`;
 
 export async function fetchCatalog(): Promise<CatalogResponse> {
-  const r = await fetch("/api/catalog");
+  const r = watch(await fetch("/api/catalog"));
   if (!r.ok) throw new Error(`Catalog failed: ${r.status}`);
   return r.json();
 }
 
 export async function getJSON<T>(url: string): Promise<T> {
-  const r = await fetch(url);
+  const r = watch(await fetch(url));
   if (!r.ok) throw new Error(`${url}: ${r.status}`);
   return r.json();
 }
@@ -69,13 +96,24 @@ export async function runTool<T = unknown>(name: string, input: unknown): Promis
 
 /** POSTs a run and yields Server-Sent Events as they arrive. */
 export async function* streamRun(req: RunRequest, signal: AbortSignal): AsyncGenerator<VoltEvent> {
-  const r = await fetch("/api/run", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(req),
-    signal,
-  });
-  if (!r.ok || !r.body) throw new Error(`Run failed: ${r.status} ${await r.text()}`);
+  const r = watch(
+    await fetch("/api/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(req),
+      signal,
+    }),
+  );
+  if (!r.ok || !r.body) {
+    const text = await r.text();
+    let message = text;
+    try {
+      message = (JSON.parse(text) as { error?: string }).error ?? text;
+    } catch {
+      /* not JSON */
+    }
+    throw new Error(message || `Run failed (${r.status})`);
+  }
   const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
   let buf = "";
   while (true) {

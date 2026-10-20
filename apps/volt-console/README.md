@@ -56,6 +56,14 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
   Choose one per engagement (or when creating it); its Word, Excel and PowerPoint exports then use it. Engagements
   without a template, or whose template is deleted, use the built-in VOLT standard. Each template has sample
   Word, Excel and PowerPoint previews.
+- **Sign-in.** The first time the console opens it asks for an admin account; that admin owns any engagements
+  and runs saved before sign-in existed. The admin adds people under Users with one of three roles: **admin**
+  (everything, including people and all engagements), **consultant** (creates engagements, and runs, resumes and
+  exports in the ones they own or are added to) or **viewer** (reads and downloads the engagements they are added
+  to). Owners add people to an engagement from its People panel. Passwords (10+ characters) are stored as scrypt
+  hashes; sessions are HttpOnly cookies that last 14 days from last use; five wrong passwords lock an account for
+  15 minutes. Accounts are disabled rather than deleted, and the Users view shows recent activity from the audit
+  log. If nobody can sign in, stop the server and run `npm run reset-password -- <email>`.
 - **Resume.** A stopped or failed workflow run can be resumed from its saved page: specialists that finished are
   reused as they are, only the unfinished ones run again, then Rudra writes the synthesis. The resumed run is saved
   as a new run in the same engagement; the original is kept.

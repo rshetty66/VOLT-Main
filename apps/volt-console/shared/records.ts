@@ -13,6 +13,32 @@ export interface Engagement {
   /** The engagement's output template; null means the application standard. */
   templateId: string | null;
   templateName: string | null;
+  ownerId: string | null;
+  ownerName: string | null;
+}
+
+export type Role = "admin" | "consultant" | "viewer";
+
+/** A person who signs in. Admins see everything; consultants their own and shared engagements; viewers read and download only. */
+export interface User {
+  id: string;
+  email: string;
+  name: string;
+  role: Role;
+  disabled: boolean;
+  createdAt: string;
+  lastLoginAt: string | null;
+}
+
+export interface AuditEntry {
+  id: number;
+  at: string;
+  userId: string | null;
+  userName: string | null;
+  action: string;
+  targetType: string | null;
+  targetId: string | null;
+  detail: Record<string, unknown> | null;
 }
 
 /** An output template (brand profile). The built-in standard has id "standard" and cannot be changed. */
@@ -38,6 +64,8 @@ export type RunStatus = "running" | "done" | "error" | "stopped";
 export interface RunSummary {
   id: string;
   engagementId: string | null;
+  /** Who started the run. */
+  userId: string | null;
   sessionId: string;
   kind: RunKind;
   title: string;

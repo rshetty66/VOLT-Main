@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { Template } from "../../shared/records";
 import { createTemplate, deleteTemplate, listTemplates, templateLogoUrl, templatePreviewUrl, updateTemplate, type TemplateForm } from "../api";
+import { useCanWrite } from "../user";
 
 const FONTS = ["Calibri", "Aptos", "Arial", "Helvetica Neue", "Segoe UI", "Verdana", "Georgia", "Cambria", "Garamond", "Times New Roman", "Lato", "Roboto", "Open Sans"];
 const MAX_LOGO = 1024 * 1024;
@@ -28,6 +29,7 @@ export function Templates({ onChanged }: { onChanged: () => void }) {
   const [editing, setEditing] = useState<Template | "new" | null>(null);
   const [err, setErr] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
+  const canWrite = useCanWrite();
   const load = () => listTemplates().then(setTemplates, (e) => setErr(String(e)));
   useEffect(() => {
     load();
@@ -56,9 +58,11 @@ export function Templates({ onChanged }: { onChanged: () => void }) {
             choose it on any engagement. Engagements without one use the VOLT standard.
           </p>
         </div>
-        <button className="btn primary" onClick={() => setEditing("new")}>
-          New template
-        </button>
+        {canWrite && (
+          <button className="btn primary" onClick={() => setEditing("new")}>
+            New template
+          </button>
+        )}
       </div>
       {err && <div className="card">{err}</div>}
       {!templates ? (
@@ -90,7 +94,7 @@ export function Templates({ onChanged }: { onChanged: () => void }) {
                 Used by {t.engagementCount} engagement{t.engagementCount === 1 ? "" : "s"}
               </div>
               <Previews id={t.id} />
-              {!t.builtIn && (
+              {!t.builtIn && canWrite && (
                 <div className="row">
                   <button className="btn sm" onClick={() => setEditing(t)}>
                     Edit

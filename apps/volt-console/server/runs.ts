@@ -19,6 +19,8 @@ export interface RunContext {
   db: Db;
   catalog: Catalog;
   mode: RunMode;
+  /** Who is starting the run. */
+  userId?: string;
 }
 
 export interface RunHandle {
@@ -84,7 +86,7 @@ export async function startRun(
   };
   const recorder = await recordRun(
     db,
-    { id: runId, engagementId: body.engagementId, sessionId: session.id, kind, prompt: body.prompt, workflowId: body.workflowId, agentId: body.agentId, intake: body.intake, mode: runMode, model, title: runTitle },
+    { id: runId, engagementId: body.engagementId, userId: ctx.userId, sessionId: session.id, kind, prompt: body.prompt, workflowId: body.workflowId, agentId: body.agentId, intake: body.intake, mode: runMode, model, title: runTitle },
     broadcast,
   );
   const controller = new AbortController();
@@ -102,7 +104,7 @@ export async function startRun(
     }
     emit({ type: "done", sessionId: session.id });
     try {
-      if (runMode === "live") await saveSession(db, session);
+      if (runMode === "live") await saveSession(db, { ...session, userId: ctx.userId });
       await recorder.finish({ aborted: controller.signal.aborted });
     } catch (err) {
       console.error(`Could not save run ${runId}:`, err);

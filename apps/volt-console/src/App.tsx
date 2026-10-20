@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../shared/events";
 import type { Engagement, RunSummary } from "../shared/records";
-import { fetchCatalog, listEngagements, stopRun, streamRun } from "./api";
+import { fetchCatalog, listEngagements, signOut, stopRun, streamRun } from "./api";
 import { applyEvent, newRun, type Run } from "./runState";
 import { Console } from "./components/Console";
 import { Workflows } from "./components/Workflows";
@@ -12,6 +12,9 @@ import { Analytics } from "./components/Analytics";
 import { Health } from "./components/Health";
 import { Engagements } from "./components/Engagements";
 import { Templates } from "./components/Templates";
+import { Users } from "./components/Users";
+import { ChangePassword } from "./AuthGate";
+import { useUser } from "./user";
 
 const ENGAGEMENT_KEY = "volt.engagementId";
 const readStored = () => {
@@ -22,9 +25,12 @@ const readStored = () => {
   }
 };
 
-export type View = "console" | "engagements" | "templates" | "workflows" | "agents" | "skills" | "services" | "analytics" | "health";
+export type View = "console" | "engagements" | "templates" | "users" | "workflows" | "agents" | "skills" | "services" | "analytics" | "health";
 
-export function App() {
+export function App({ onSignedOut }: { onSignedOut: () => void }) {
+  const user = useUser()!;
+  const canWrite = user.role !== "viewer";
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [loadError, setLoadError] = useState("");
   const [view, setView] = useState<View>("console");
@@ -130,6 +136,7 @@ export function App() {
     ["console", "Agent Console", runs.length || ""],
     ["engagements", "Engagements", engagements.length || ""],
     ["templates", "Templates", ""],
+    ...(user.role === "admin" ? ([["users", "Users", ""]] as [View, string, string][]) : []),
     ["workflows", "Workflows", catalog.workflows.length],
     ["agents", "Agents", catalog.agents.length],
     ["skills", "Skill Finder", catalog.skills.length],
@@ -159,7 +166,7 @@ export function App() {
               {e.clientName} - {e.title}
             </option>
           ))}
-          <option value="__new">+ New engagement...</option>
+          {canWrite && <option value="__new">+ New engagement...</option>}
         </select>
         <span className={`badge ${live ? "live" : ""}`}>{live ? "Live" : "Demo"}</span>
         <span className="usage">{live ? catalog.model : "offline simulator"}</span>
@@ -171,11 +178,24 @@ export function App() {
         <span className="usage" title={catalog.source.ref}>
           {catalog.source.name}@{catalog.source.commit?.slice(0, 7)}
         </span>
+        <span className="row" style={{ marginLeft: "auto", gap: 6 }}>
+          <span className="body" style={{ fontSize: 13 }} title={user.email}>
+            {user.name}
+          </span>
+          <span className="badge">{user.role}</span>
+          <button className="btn ghost sm" onClick={() => setPasswordOpen(true)}>
+            Password
+          </button>
+          <button className="btn ghost sm" onClick={() => void signOut().finally(onSignedOut)}>
+            Sign out
+          </button>
+        </span>
       </header>
+      {passwordOpen && <ChangePassword onClose={() => setPasswordOpen(false)} />}
       <nav className="nav">
         {nav.map(([id, label, count], i) => (
           <div key={id} style={{ display: "contents" }}>
-            {i === 3 && <div className="sep" />}
+            {id === "workflows" && i > 0 && <div className="sep" />}
             <button className={view === id ? "active" : ""} onClick={() => setView(id)}>
               {label} <span className="count">{count}</span>
             </button>
@@ -202,6 +222,7 @@ export function App() {
           />
         )}
         {view === "templates" && <Templates onChanged={refreshEngagements} />}
+        {view === "users" && user.role === "admin" && <Users />}
         {view === "workflows" && <Workflows catalog={catalog} onLaunch={start} onOpenAgent={setOpenAgent} />}
         {view === "agents" && <Agents catalog={catalog} onOpen={setOpenAgent} />}
         {view === "skills" && <SkillFinder catalog={catalog} onOpenAgent={setOpenAgent} />}
