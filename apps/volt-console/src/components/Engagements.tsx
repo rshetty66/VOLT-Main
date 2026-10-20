@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import type { CatalogResponse } from "../../shared/events";
-import type { Engagement, RunSummary, StoredRun } from "../../shared/records";
-import { createEngagement, getEngagementDetail, getStoredRun, stopRun, type EngagementDetail } from "../api";
+import type { Engagement, RunSummary, StoredRun, Template } from "../../shared/records";
+import { createEngagement, getEngagementDetail, getStoredRun, listTemplates, setEngagementTemplate, stopRun, type EngagementDetail } from "../api";
+import { Previews } from "./Templates";
 import { replayRun } from "../runState";
 import { ExportLinks, RunView } from "./Console";
 
@@ -21,6 +22,10 @@ const when = (iso: string | null) => (iso ? new Date(iso).toLocaleString(undefin
 export function Engagements({ catalog, engagements, currentId, onSelect, onCreated, onContinue, onResume, onOpenAgent }: Props) {
   const [openId, setOpenId] = useState<string | null>(null);
   const [runId, setRunId] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<Template[]>([]);
+  useEffect(() => {
+    listTemplates().then(setTemplates, () => {});
+  }, []);
 
   if (runId) return <SavedRun catalog={catalog} runId={runId} onBack={() => setRunId(null)} onContinue={onContinue} onResume={onResume} onOpenAgent={onOpenAgent} />;
   if (openId)
@@ -28,6 +33,7 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
       <EngagementPage
         id={openId}
         isCurrent={openId === currentId}
+        templates={templates}
         onSelect={() => onSelect(openId)}
         onBack={() => setOpenId(null)}
         onOpenRun={setRunId}
@@ -44,6 +50,7 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
         </p>
       </div>
       <NewEngagement
+        templates={templates}
         onCreated={(e) => {
           onCreated(e);
           setOpenId(e.id);
@@ -60,6 +67,7 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
                 <th>Engagement</th>
                 <th>Runs</th>
                 <th>Last run</th>
+                <th>Template</th>
                 <th />
               </tr>
             </thead>
@@ -72,6 +80,7 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
                   <td>{e.title}</td>
                   <td>{e.runCount}</td>
                   <td className="muted">{when(e.lastRunAt)}</td>
+                  <td className="muted">{e.templateName ?? "VOLT standard"}</td>
                   <td>{e.id === currentId && <span className="badge live">current</span>}</td>
                 </tr>
               ))}
@@ -83,8 +92,24 @@ export function Engagements({ catalog, engagements, currentId, onSelect, onCreat
   );
 }
 
-function NewEngagement({ onCreated }: { onCreated: (e: Engagement) => void }) {
+function TemplatePicker({ templates, value, onChange, label = "Output template" }: { templates: Template[]; value: string | null; onChange: (id: string | null) => void; label?: string }) {
+  return (
+    <label className="row" style={{ gap: 6 }}>
+      <span className="micro">{label}</span>
+      <select className="select" style={{ width: "auto" }} aria-label={label} value={value ?? "standard"} onChange={(e) => onChange(e.target.value === "standard" ? null : e.target.value)}>
+        {(templates.length ? templates : [{ id: "standard", name: "VOLT standard" } as Template]).map((t) => (
+          <option key={t.id} value={t.id}>
+            {t.name}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+function NewEngagement({ templates, onCreated }: { templates: Template[]; onCreated: (e: Engagement) => void }) {
   const [f, setF] = useState({ clientName: "", title: "", description: "" });
+  const [templateId, setTemplateId] = useState<string | null>(null);
   const [err, setErr] = useState("");
   const [busy, setBusy] = useState(false);
   const ready = f.clientName.trim() && f.title.trim();
@@ -92,7 +117,7 @@ function NewEngagement({ onCreated }: { onCreated: (e: Engagement) => void }) {
     setBusy(true);
     setErr("");
     try {
-      onCreated(await createEngagement({ clientName: f.clientName.trim(), title: f.title.trim(), description: f.description.trim() }));
+      onCreated(await createEngagement({ clientName: f.clientName.trim(), title: f.title.trim(), description: f.description.trim(), templateId }));
       setF({ clientName: "", title: "", description: "" });
     } catch (e) {
       setErr(String(e));
@@ -109,6 +134,7 @@ function NewEngagement({ onCreated }: { onCreated: (e: Engagement) => void }) {
       </div>
       <textarea className="textarea" rows={2} placeholder="Notes (optional): scope, sponsor, key facts" value={f.description} onChange={(e) => setF({ ...f, description: e.target.value })} />
       <div className="row" style={{ justifyContent: "space-between" }}>
+        <TemplatePicker templates={templates} value={templateId} onChange={setTemplateId} />
         <span className="muted" style={{ fontSize: 12 }}>{err}</span>
         <button className="btn primary" disabled={!ready || busy} onClick={submit}>
           {busy ? "Creating..." : "Create engagement"}
@@ -118,7 +144,21 @@ function NewEngagement({ onCreated }: { onCreated: (e: Engagement) => void }) {
   );
 }
 
-function EngagementPage({ id, isCurrent, onSelect, onBack, onOpenRun }: { id: string; isCurrent: boolean; onSelect: () => void; onBack: () => void; onOpenRun: (id: string) => void }) {
+function EngagementPage({
+  id,
+  isCurrent,
+  templates,
+  onSelect,
+  onBack,
+  onOpenRun,
+}: {
+  id: string;
+  isCurrent: boolean;
+  templates: Template[];
+  onSelect: () => void;
+  onBack: () => void;
+  onOpenRun: (id: string) => void;
+}) {
   const [e, setE] = useState<EngagementDetail | null>(null);
   const [err, setErr] = useState("");
   useEffect(() => {
@@ -149,6 +189,20 @@ function EngagementPage({ id, isCurrent, onSelect, onBack, onOpenRun }: { id: st
                 {e.title} · created {when(e.createdAt)}
               </p>
               {e.description && <p className="body" style={{ whiteSpace: "pre-wrap" }}>{e.description}</p>}
+              <div className="row" style={{ marginTop: 8 }}>
+                <TemplatePicker
+                  templates={templates}
+                  value={e.templateId}
+                  onChange={(templateId) =>
+                    setEngagementTemplate(e.id, templateId).then(
+                      (updated) => setE({ ...e, ...updated, runs: e.runs }),
+                      (x) => setErr(String(x)),
+                    )
+                  }
+                />
+                <Previews id={e.templateId ?? "standard"} />
+              </div>
+              <p className="muted" style={{ fontSize: 12 }}>Word, Excel and PowerPoint downloads for this engagement use this template.</p>
             </div>
             {isCurrent ? <span className="badge live">current engagement</span> : <button className="btn primary" onClick={onSelect}>File new runs here</button>}
           </div>

@@ -10,6 +10,7 @@ import {
   Footer,
   Header,
   HeadingLevel,
+  ImageRun,
   LevelFormat,
   Packer,
   PageBreak,
@@ -25,8 +26,8 @@ import {
 } from "docx";
 import type { Block, Inline } from "./markdown.js";
 import type { RunContent } from "./content.js";
+import { STANDARD_BRAND, fitLogo, joinLabels, textOn, type Brand, type Logo } from "./brand.js";
 
-const NAVY = "1F3864";
 const GREY = "595959";
 const RULE = "BFBFBF";
 const HEADINGS = [HeadingLevel.HEADING_1, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3, HeadingLevel.HEADING_4];
@@ -48,14 +49,20 @@ function runs(inlines: Inline[], extra: { bold?: boolean; color?: string; size?:
   );
 }
 
-function table(b: Extract<Block, { kind: "table" }>): Table {
+function logoRun(logo: Logo, maxW: number, maxH: number) {
+  const { w, h } = fitLogo(logo, maxW, maxH);
+  return new ImageRun({ type: logo.type === "image/png" ? "png" : "jpg", data: logo.data, transformation: { width: Math.round(w), height: Math.round(h) }, altText: { name: "Logo", description: "Logo", title: "Logo" } });
+}
+
+function table(b: Extract<Block, { kind: "table" }>, brand: Brand): Table {
+  const headText = textOn(brand.primary);
   const cols = Math.max(b.header.length, ...b.rows.map((r) => r.length), 1);
   const cell = (inl: Inline[], header: boolean, zebra: boolean, i: number) =>
     new TableCell({
       width: { size: columnWidths[i], type: WidthType.DXA },
-      shading: header ? { fill: NAVY, type: ShadingType.CLEAR, color: "auto" } : zebra ? { fill: "F3F5F9", type: ShadingType.CLEAR, color: "auto" } : undefined,
+      shading: header ? { fill: brand.primary, type: ShadingType.CLEAR, color: "auto" } : zebra ? { fill: "F3F5F9", type: ShadingType.CLEAR, color: "auto" } : undefined,
       margins: { top: 60, bottom: 60, left: 100, right: 100 },
-      children: [new Paragraph({ children: runs(inl, header ? { bold: true, color: "FFFFFF", size: 19 } : { size: 19 }) })],
+      children: [new Paragraph({ children: runs(inl, header ? { bold: true, color: headText, size: 19 } : { size: 19 }) })],
     });
   const pad = (r: Inline[][]) => [...r, ...Array.from({ length: cols - r.length }, () => [] as Inline[])];
   // Column widths: each column first gets room for its longest word (so "-0.14M" or "R10" never wraps
@@ -83,7 +90,7 @@ function table(b: Extract<Block, { kind: "table" }>): Table {
 }
 
 /** Renders blocks; `shift` maps Markdown heading depth to Word heading level. */
-function render(blocks: Block[], shift: (depth: number) => number, lists: { n: number }): (Paragraph | Table)[] {
+function render(blocks: Block[], shift: (depth: number) => number, lists: { n: number }, brand: Brand): (Paragraph | Table)[] {
   const out: (Paragraph | Table)[] = [];
   for (const b of blocks) {
     switch (b.kind) {
@@ -106,14 +113,14 @@ function render(blocks: Block[], shift: (depth: number) => number, lists: { n: n
         break;
       }
       case "table":
-        out.push(table(b), new Paragraph({ spacing: { after: 120 }, children: [] }));
+        out.push(table(b, brand), new Paragraph({ spacing: { after: 120 }, children: [] }));
         break;
       case "code":
         for (const line of b.text.split("\n"))
           out.push(new Paragraph({ shading: { fill: "F2F2F2", type: ShadingType.CLEAR, color: "auto" }, children: [new TextRun({ text: line, font: "Consolas", size: 18 })] }));
         break;
       case "quote":
-        out.push(...render(b.blocks, shift, lists));
+        out.push(...render(b.blocks, shift, lists, brand));
         break;
       case "rule":
         out.push(new Paragraph({ border: { bottom: { color: RULE, space: 1, style: BorderStyle.SINGLE, size: 6 } }, spacing: { after: 120 }, children: [] }));
@@ -123,14 +130,17 @@ function render(blocks: Block[], shift: (depth: number) => number, lists: { n: n
   return out;
 }
 
-export async function buildDocx(c: RunContent): Promise<Buffer> {
+export async function buildDocx(c: RunContent, brand: Brand = STANDARD_BRAND): Promise<Buffer> {
   const lists = { n: 0 };
+  const PRIMARY = brand.primary;
   const meta = (label: string, value: string) =>
     new Paragraph({ spacing: { after: 40 }, children: [new TextRun({ text: `${label}: `, bold: true, color: GREY }), new TextRun({ text: value, color: GREY })] });
 
   const front: (Paragraph | Table)[] = [
+    ...(brand.logo ? [new Paragraph({ spacing: { after: 360 }, children: [logoRun(brand.logo, 220, 80)] })] : []),
     new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun({ text: c.title })] }),
-    ...(c.client ? [new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: [c.client, c.engagementTitle].filter(Boolean).join(" | "), size: 28, color: NAVY })] })] : []),
+    ...(c.client ? [new Paragraph({ spacing: { after: 200 }, children: [new TextRun({ text: [c.client, c.engagementTitle].filter(Boolean).join(" | "), size: 28, color: PRIMARY })] })] : []),
+    ...(brand.confidentiality ? [new Paragraph({ spacing: { after: 120 }, children: [new TextRun({ text: brand.confidentiality, bold: true, color: brand.accent })] })] : []),
     meta("Date", c.date),
     meta("Status", c.status === "done" ? "Working draft for review" : `Run ${c.status}`),
     meta("Source", c.modeLabel),
@@ -149,7 +159,7 @@ export async function buildDocx(c: RunContent): Promise<Buffer> {
       ...c.intake.map(([k, v]) => new Paragraph({ bullet: { level: 0 }, children: [new TextRun({ text: `${k}: `, bold: true }), new TextRun(v)] })),
     );
 
-  const body = c.body.length ? render(c.body, (d) => d - 2, lists) : [new Paragraph({ children: [new TextRun({ text: "No final deliverable was produced for this run.", italics: true })] })];
+  const body = c.body.length ? render(c.body, (d) => d - 2, lists, brand) : [new Paragraph({ children: [new TextRun({ text: "No final deliverable was produced for this run.", italics: true })] })];
 
   const appendix: (Paragraph | Table)[] = [];
   if (c.specialists.length) {
@@ -162,7 +172,7 @@ export async function buildDocx(c: RunContent): Promise<Buffer> {
       appendix.push(
         new Paragraph({ heading: HeadingLevel.HEADING_2, pageBreakBefore: appendix.length > 3, children: [new TextRun(s.name)] }),
         new Paragraph({ spacing: { after: 160 }, children: [new TextRun({ text: [s.layer, s.phase && `${s.phase} phase`].filter(Boolean).join(" | "), color: GREY, italics: true })] }),
-        ...render(s.blocks, (d) => Math.max(2, d), lists),
+        ...render(s.blocks, (d) => Math.max(2, d), lists, brand),
       );
     }
   }
@@ -172,13 +182,13 @@ export async function buildDocx(c: RunContent): Promise<Buffer> {
     title: c.title,
     description: [c.client, c.engagementTitle].filter(Boolean).join(" - "),
     styles: {
-      default: { document: { run: { font: "Calibri", size: 22 }, paragraph: { spacing: { line: 276 } } } },
+      default: { document: { run: { font: brand.bodyFont, size: 22 }, paragraph: { spacing: { line: 276 } } } },
       paragraphStyles: [
-        { id: "Title", name: "Title", basedOn: "Normal", next: "Normal", run: { size: 48, bold: true, color: NAVY }, paragraph: { spacing: { after: 120 } } },
-        { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 32, bold: true, color: NAVY }, paragraph: { spacing: { before: 360, after: 120 }, keepNext: true } },
-        { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 26, bold: true, color: NAVY }, paragraph: { spacing: { before: 240, after: 100 }, keepNext: true } },
-        { id: "Heading3", name: "Heading 3", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 23, bold: true, color: "2F5496" }, paragraph: { spacing: { before: 200, after: 80 }, keepNext: true } },
-        { id: "Heading4", name: "Heading 4", basedOn: "Normal", next: "Normal", quickFormat: true, run: { size: 22, bold: true, italics: true, color: "2F5496" }, paragraph: { spacing: { before: 160, after: 60 }, keepNext: true } },
+        { id: "Title", name: "Title", basedOn: "Normal", next: "Normal", run: { font: brand.headingFont, size: 48, bold: true, color: PRIMARY }, paragraph: { spacing: { after: 120 } } },
+        { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true, run: { font: brand.headingFont, size: 32, bold: true, color: PRIMARY }, paragraph: { spacing: { before: 360, after: 120 }, keepNext: true } },
+        { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true, run: { font: brand.headingFont, size: 26, bold: true, color: PRIMARY }, paragraph: { spacing: { before: 240, after: 100 }, keepNext: true } },
+        { id: "Heading3", name: "Heading 3", basedOn: "Normal", next: "Normal", quickFormat: true, run: { font: brand.headingFont, size: 23, bold: true, color: brand.accent }, paragraph: { spacing: { before: 200, after: 80 }, keepNext: true } },
+        { id: "Heading4", name: "Heading 4", basedOn: "Normal", next: "Normal", quickFormat: true, run: { font: brand.headingFont, size: 22, bold: true, italics: true, color: brand.accent }, paragraph: { spacing: { before: 160, after: 60 }, keepNext: true } },
       ],
     },
     numbering: {
@@ -198,7 +208,15 @@ export async function buildDocx(c: RunContent): Promise<Buffer> {
         properties: { page: { margin: { top: 1200, bottom: 1200, left: 1200, right: 1200 } } },
         headers: {
           default: new Header({
-            children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: ["VOLT", c.client].filter(Boolean).join(" | "), size: 16, color: GREY })] })],
+            children: [
+              new Paragraph({
+                alignment: AlignmentType.RIGHT,
+                children: [
+                  ...(brand.logo ? [logoRun(brand.logo, 110, 28), new TextRun({ text: "   " })] : []),
+                  new TextRun({ text: joinLabels([brand.organisation, c.client], " | "), size: 16, color: GREY }),
+                ],
+              }),
+            ],
           }),
         },
         footers: {
@@ -206,7 +224,13 @@ export async function buildDocx(c: RunContent): Promise<Buffer> {
             children: [
               new Paragraph({
                 alignment: AlignmentType.RIGHT,
-                children: [new TextRun({ children: [c.isDemo ? "Demo output | Page " : "Working draft | Page ", PageNumber.CURRENT, " of ", PageNumber.TOTAL_PAGES], size: 16, color: GREY })],
+                children: [
+                  new TextRun({
+                    children: [[brand.confidentiality, c.isDemo ? "Demo output" : brand.footer || "Working draft", "Page "].filter(Boolean).join(" | "), PageNumber.CURRENT, " of ", PageNumber.TOTAL_PAGES],
+                    size: 16,
+                    color: GREY,
+                  }),
+                ],
               }),
             ],
           }),

@@ -1,5 +1,5 @@
 import type { CatalogResponse, RunRequest, VoltEvent } from "../shared/events";
-import type { Engagement, RunSummary, StoredRun } from "../shared/records";
+import type { Engagement, RunSummary, StoredRun, Template } from "../shared/records";
 
 export type EngagementDetail = Engagement & { runs: RunSummary[] };
 
@@ -14,11 +14,41 @@ export async function stopRun(id: string): Promise<void> {
   await fetch(`/api/runs/${id}/stop`, { method: "POST" });
 }
 
-export async function createEngagement(input: { clientName: string; title: string; description?: string }): Promise<Engagement> {
+export async function createEngagement(input: { clientName: string; title: string; description?: string; templateId?: string | null }): Promise<Engagement> {
   const r = await fetch("/api/engagements", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
   if (!r.ok) throw new Error(`Could not create the engagement (${r.status})`);
   return r.json();
 }
+
+async function send<T>(method: string, url: string, body?: unknown): Promise<T> {
+  const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((data as { error?: string }).error ?? `Request failed (${r.status})`);
+  return data as T;
+}
+
+export const setEngagementTemplate = (id: string, templateId: string | null) => send<Engagement>("PATCH", `/api/engagements/${id}`, { templateId });
+
+export interface TemplateForm {
+  name: string;
+  description: string;
+  organisation: string;
+  primaryColor: string;
+  accentColor: string;
+  headingFont: string;
+  bodyFont: string;
+  footerText: string;
+  confidentiality: string;
+  /** Data URL of a new logo, null to remove it, undefined to keep it. */
+  logo?: string | null;
+}
+
+export const listTemplates = () => getJSON<Template[]>("/api/templates");
+export const createTemplate = (t: TemplateForm) => send<Template>("POST", "/api/templates", t);
+export const updateTemplate = (id: string, t: TemplateForm) => send<Template>("PUT", `/api/templates/${id}`, t);
+export const deleteTemplate = (id: string) => send<{ ok: boolean }>("DELETE", `/api/templates/${id}`);
+export const templateLogoUrl = (t: Template) => `/api/templates/${t.id}/logo?v=${encodeURIComponent(t.updatedAt ?? "")}`;
+export const templatePreviewUrl = (id: string, format: "docx" | "xlsx" | "pptx") => `/api/templates/${id}/preview/${format}`;
 
 export async function fetchCatalog(): Promise<CatalogResponse> {
   const r = await fetch("/api/catalog");

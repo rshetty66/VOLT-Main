@@ -9,12 +9,10 @@ import PptxGenJS from "pptxgenjs";
 import JSZip from "jszip";
 import { plain, sections, type Block, type Inline } from "./markdown.js";
 import type { RunContent } from "./content.js";
+import { STANDARD_BRAND, fitLogo, joinLabels, textOn, type Brand } from "./brand.js";
 
-const NAVY = "1F3864";
-const ACCENT = "2E75B6";
 const GREY = "595959";
 const W = 13.333;
-const FONT = "Calibri";
 
 interface Bullet {
   runs: Inline[];
@@ -89,12 +87,23 @@ function notesFor(blocks: Block[]): string {
   return text(blocks).join("\n\n").slice(0, 12000);
 }
 
-export async function buildPptx(c: RunContent): Promise<Buffer> {
+export async function buildPptx(c: RunContent, brand: Brand = STANDARD_BRAND): Promise<Buffer> {
+  const NAVY = brand.primary;
+  const ACCENT = brand.accent;
+  const FONT = brand.bodyFont;
+  const HFONT = brand.headingFont;
+  const HEAD_TEXT = textOn(brand.primary);
+  // Title-slide text sits on the primary colour: white on dark brands, near-black on light ones.
+  const onDark = HEAD_TEXT === "FFFFFF";
+  const coverSub = onDark ? "E6E6E6" : "404040";
+  const coverQuiet = onDark ? "C8C8C8" : "595959";
+  const logoData = brand.logo ? `${brand.logo.type};base64,${brand.logo.data.toString("base64")}` : undefined;
+  const cornerLogo = brand.logo ? fitLogo(brand.logo, 1.5, 0.55) : undefined;
   const p = new PptxGenJS();
   p.layout = "LAYOUT_WIDE";
   p.title = c.title;
   p.company = c.client || "VOLT";
-  const footer = [c.client, c.isDemo ? "Demo output: simulated text" : "Working draft"].filter(Boolean).join("  |  ");
+  const footer = joinLabels([c.client, brand.confidentiality, c.isDemo ? "Demo output: simulated text" : brand.footer || "Working draft"], "  |  ");
 
   p.defineSlideMaster({
     title: "CONTENT",
@@ -102,14 +111,16 @@ export async function buildPptx(c: RunContent): Promise<Buffer> {
     objects: [
       { rect: { x: 0, y: 0, w: W, h: 0.1, fill: { color: NAVY } } },
       { line: { x: 0.5, y: 1.18, w: W - 1, h: 0, line: { color: ACCENT, width: 1.25 } } },
-      { text: { text: footer, options: { x: 0.5, y: 7.05, w: 9, h: 0.3, fontFace: FONT, fontSize: 9, color: "8C8C8C" } } },
+      { text: { text: footer, options: { x: 0.5, y: 7.05, w: 11, h: 0.3, fontFace: FONT, fontSize: 9, color: "8C8C8C" } } },
+      ...(logoData && cornerLogo ? [{ image: { x: W - 0.5 - cornerLogo.w, y: 0.42, w: cornerLogo.w, h: cornerLogo.h, data: logoData } }] : []),
     ],
     slideNumber: { x: W - 1.1, y: 7.05, w: 0.6, h: 0.3, fontFace: FONT, fontSize: 9, color: "8C8C8C", align: "right" },
   });
 
   const content = (title: string) => {
     const s = p.addSlide({ masterName: "CONTENT" });
-    s.addText(title, { x: 0.5, y: 0.3, w: W - 1, h: 0.8, fontFace: FONT, fontSize: 24, bold: true, color: NAVY, valign: "bottom", fit: "shrink" });
+    const titleW = W - 1 - (cornerLogo ? cornerLogo.w + 0.3 : 0);
+    s.addText(title, { x: 0.5, y: 0.3, w: titleW, h: 0.8, fontFace: HFONT, fontSize: 24, bold: true, color: NAVY, valign: "bottom", fit: "shrink" });
     return s;
   };
 
@@ -117,10 +128,17 @@ export async function buildPptx(c: RunContent): Promise<Buffer> {
   const t = p.addSlide();
   t.background = { color: NAVY };
   t.addShape(p.ShapeType.rect, { x: 0.6, y: 2.2, w: 0.12, h: 2.2, fill: { color: ACCENT }, line: { color: ACCENT } });
-  t.addText(c.title, { x: 0.95, y: 2.1, w: 11.4, h: 1.5, fontFace: FONT, fontSize: 36, bold: true, color: "FFFFFF", valign: "top", fit: "shrink" });
-  t.addText([c.client, c.engagementTitle].filter(Boolean).join("  |  ") || "VOLT", { x: 0.95, y: 3.65, w: 11.4, h: 0.5, fontFace: FONT, fontSize: 18, color: "D9E2F3" });
-  t.addText(`${c.date}  |  ${c.status === "done" ? "Working draft for review" : `Run ${c.status}`}`, { x: 0.95, y: 4.15, w: 11.4, h: 0.4, fontFace: FONT, fontSize: 13, color: "B4C6E7" });
-  t.addText(c.modeLabel, { x: 0.95, y: 6.6, w: 11.4, h: 0.35, fontFace: FONT, fontSize: 10, color: c.isDemo ? "FFD966" : "8EA9DB" });
+  if (brand.logo && logoData) {
+    const big = fitLogo(brand.logo, 2.6, 0.9);
+    // Logos are usually drawn for light backgrounds: on a dark cover, set the logo on a white panel.
+    if (onDark) t.addShape(p.ShapeType.roundRect, { x: 0.8, y: 0.65, w: big.w + 0.3, h: big.h + 0.3, rectRadius: 0.08, fill: { color: "FFFFFF" }, line: { color: "FFFFFF" } });
+    t.addImage({ data: logoData, x: 0.95, y: 0.8, w: big.w, h: big.h });
+  }
+  t.addText(c.title, { x: 0.95, y: 2.1, w: 11.4, h: 1.5, fontFace: HFONT, fontSize: 36, bold: true, color: HEAD_TEXT, valign: "top", fit: "shrink" });
+  t.addText([c.client, c.engagementTitle].filter(Boolean).join("  |  ") || brand.organisation || "VOLT", { x: 0.95, y: 3.65, w: 11.4, h: 0.5, fontFace: FONT, fontSize: 18, color: coverSub });
+  t.addText(`${c.date}  |  ${c.status === "done" ? "Working draft for review" : `Run ${c.status}`}`, { x: 0.95, y: 4.15, w: 11.4, h: 0.4, fontFace: FONT, fontSize: 13, color: coverQuiet });
+  if (brand.confidentiality) t.addText(brand.confidentiality, { x: 0.95, y: 4.6, w: 11.4, h: 0.4, fontFace: FONT, fontSize: 13, bold: true, color: coverSub });
+  t.addText(c.isDemo ? c.modeLabel : joinLabels([brand.organisation, c.modeLabel], "  |  "), { x: 0.95, y: 6.6, w: 11.4, h: 0.35, fontFace: FONT, fontSize: 10, color: coverQuiet });
   const lead = sections(c.body).find((s) => !s.title);
   t.addNotes([`Request: ${c.prompt}`, lead ? notesFor(lead.blocks) : ""].filter(Boolean).join("\n\n"));
 
@@ -212,7 +230,7 @@ export async function buildPptx(c: RunContent): Promise<Buffer> {
     const emit = () => {
       if (!chunk.length) return;
       const s = content(part++ ? `${title} (cont.)` : title);
-      const head = Array.from({ length: cols }, (_, i) => ({ text: plain(tbl.header[i] ?? []), options: { bold: true, color: "FFFFFF", fill: { color: NAVY } } }));
+      const head = Array.from({ length: cols }, (_, i) => ({ text: plain(tbl.header[i] ?? []), options: { bold: true, color: HEAD_TEXT, fill: { color: NAVY } } }));
       const body = chunk.map((r, ri) =>
         Array.from({ length: cols }, (_, i) => {
           const cell = r[i] ?? [];
@@ -239,7 +257,7 @@ export async function buildPptx(c: RunContent): Promise<Buffer> {
     const rows = c.specialists.map((s) => [s.name, s.layer, s.phase ?? ""]);
     const s = content("Specialists consulted");
     s.addTable(
-      [["Specialist", "Practice area", "Workflow phase"].map((h) => ({ text: h, options: { bold: true, color: "FFFFFF", fill: { color: NAVY } } })), ...rows.map((r) => r.map((x) => ({ text: x })))],
+      [["Specialist", "Practice area", "Workflow phase"].map((h) => ({ text: h, options: { bold: true, color: HEAD_TEXT, fill: { color: NAVY } } })), ...rows.map((r) => r.map((x) => ({ text: x })))],
       { x: 0.6, y: 1.4, w: W - 1.2, colW: [4.5, 4.2, 3.4], fontFace: FONT, fontSize: 12, color: "262626", border: { type: "solid", pt: 0.5, color: "D9D9D9" }, margin: 0.06, autoPage: false },
     );
     s.addText("Each specialist's full output is in the Word export's appendix.", { x: 0.6, y: 6.55, w: W - 1.2, h: 0.35, fontFace: FONT, fontSize: 11, italic: true, color: GREY });

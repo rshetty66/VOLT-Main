@@ -7,7 +7,13 @@
  *   GET  /api/runs                 recent runs (?engagementId=)
  *   GET  /api/runs/:id             one saved run with its full event stream
  *   GET  /api/runs/:id/markdown    the run as a Markdown file for review
- *   GET  /api/runs/:id/export/:fmt the run as a Word (docx), Excel (xlsx) or PowerPoint (pptx) file
+ *   GET  /api/runs/:id/export/:fmt the run as a Word (docx), Excel (xlsx) or PowerPoint (pptx) file,
+ *                                  in the engagement's template or else the application standard
+ *   GET  /api/templates            the template library, the built-in standard first
+ *   POST /api/templates            create one; PUT/DELETE /api/templates/:id change or remove it
+ *   GET  /api/templates/:id/logo   the template's logo image
+ *   GET  /api/templates/:id/preview/:fmt  sample Word/Excel/PowerPoint file in that template
+ *   PATCH /api/engagements/:id     { templateId } assigns a template (null or "standard": the standard)
  *   POST /api/runs/:id/stop        halt a run that is still going
  *   GET  /api/catalog   agents, workflows, services, skills, intake, health
  *   GET  /api/agents/:id   one agent incl. its VOLT system prompt
@@ -30,10 +36,13 @@ import { runLocalTool, schemas, type ToolName } from "./tools.js";
 import { BENCHMARKS } from "./analytics.js";
 import { MODEL, intakeFor } from "./orchestrator.js";
 import { DEFAULT_DATA_DIR, openDb } from "./db.js";
-import { createEngagement, getEngagement, getRun, isUuid, listEngagements, listRuns, markInterruptedRuns } from "./store.js";
+import { createEngagement, getEngagement, getRun, isUuid, listEngagements, listRuns, markInterruptedRuns, setEngagementTemplate } from "./store.js";
 import { finishedOutputs, startRun, stopRun } from "./runs.js";
 import { runToMarkdown } from "./export.js";
 import { fileStem, runContent } from "./office/content.js";
+import { sampleContent } from "./office/sample.js";
+import { MAX_LOGO_BYTES, normaliseColour } from "./office/brand.js";
+import { STANDARD_ID, brandFor, createTemplate, deleteTemplate, getLogo, getTemplate, listTemplates, updateTemplate, type TemplateInput } from "./templates.js";
 import { buildDocx } from "./office/docx.js";
 import { buildXlsx } from "./office/xlsx.js";
 import { buildPptx } from "./office/pptx.js";
@@ -44,7 +53,8 @@ const dataDir = process.env.VOLT_DATA_DIR || DEFAULT_DATA_DIR;
 const db = await openDb(dataDir);
 const interrupted = await markInterruptedRuns(db);
 const app = express();
-app.use(express.json({ limit: "1mb" }));
+// 2 MB leaves room for a 1 MB template logo sent as base64.
+app.use(express.json({ limit: "2mb" }));
 
 /** Live when any Claude credential source is configured; VOLT_MODE overrides. */
 function detectMode(): RunMode {
@@ -66,7 +76,11 @@ const NewEngagement = z.object({
   clientName: z.string().trim().min(1).max(200),
   title: z.string().trim().min(1).max(200),
   description: z.string().max(5000).optional(),
+  templateId: z.string().uuid().nullable().optional(),
 });
+
+/** A template id from a request: a library id, or null for the application standard. */
+const TemplateRef = z.union([z.string().uuid(), z.literal(STANDARD_ID), z.null()]).transform((v) => (v === STANDARD_ID ? null : v));
 
 app.get("/api/engagements", async (_req, res) => {
   res.json(await listEngagements(db));
@@ -75,7 +89,98 @@ app.get("/api/engagements", async (_req, res) => {
 app.post("/api/engagements", async (req, res) => {
   const parsed = NewEngagement.safeParse(req.body);
   if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
+  if (parsed.data.templateId && !(await getTemplate(db, parsed.data.templateId))) return void res.status(400).json({ error: "unknown template" });
   res.status(201).json(await createEngagement(db, parsed.data));
+});
+
+app.patch("/api/engagements/:id", async (req, res) => {
+  const parsed = z.object({ templateId: TemplateRef }).safeParse(req.body);
+  if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
+  if (!(await getEngagement(db, req.params.id))) return void res.status(404).json({ error: "unknown engagement" });
+  if (parsed.data.templateId && !(await getTemplate(db, parsed.data.templateId))) return void res.status(400).json({ error: "unknown template" });
+  res.json(await setEngagementTemplate(db, req.params.id, parsed.data.templateId));
+});
+
+// ── Output templates ─────────────────────────────────────────────────────────
+
+const colour = z.string().transform((v, ctx) => normaliseColour(v) ?? (ctx.addIssue({ code: "custom", message: "colours are six hex digits, e.g. #1F3864" }), z.NEVER));
+// Font names go into document XML attributes: letters, digits, spaces and hyphens only.
+const font = z.string().trim().min(1).max(60).regex(/^[A-Za-z0-9 -]+$/, "font names use letters, digits, spaces and hyphens");
+const TemplateBody = z.object({
+  name: z.string().trim().min(1).max(100),
+  description: z.string().max(500).optional(),
+  organisation: z.string().max(100).optional(),
+  primaryColor: colour,
+  accentColor: colour,
+  headingFont: font,
+  bodyFont: font,
+  footerText: z.string().max(120).optional(),
+  confidentiality: z.string().max(160).optional(),
+  /** A data URL ("data:image/png;base64,..."), null to remove the logo, or absent to keep it. */
+  logo: z.string().max(1_500_000).nullable().optional(),
+});
+
+function templateInput(body: z.infer<typeof TemplateBody>): TemplateInput | string {
+  let logo: Buffer | null | undefined = body.logo === null ? null : undefined;
+  if (typeof body.logo === "string") {
+    const m = /^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/.exec(body.logo);
+    if (!m) return "the logo must be a PNG or JPEG image";
+    logo = Buffer.from(m[2], "base64");
+    if (logo.length > MAX_LOGO_BYTES) return "the logo must be 1 MB or smaller";
+  }
+  const { logo: _l, ...rest } = body;
+  return { ...rest, logo };
+}
+
+app.get("/api/templates", async (_req, res) => {
+  res.json(await listTemplates(db));
+});
+
+app.get("/api/templates/:id", async (req, res) => {
+  const t = await getTemplate(db, req.params.id);
+  if (!t) return void res.status(404).json({ error: "unknown template" });
+  res.json(t);
+});
+
+app.post("/api/templates", async (req, res) => {
+  const parsed = TemplateBody.safeParse(req.body);
+  if (!parsed.success) return void res.status(400).json({ error: parsed.error.issues.map((i) => i.message).join("; ") });
+  const input = templateInput(parsed.data);
+  if (typeof input === "string") return void res.status(400).json({ error: input });
+  try {
+    res.status(201).json(await createTemplate(db, input));
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.put("/api/templates/:id", async (req, res) => {
+  if (req.params.id === STANDARD_ID) return void res.status(403).json({ error: "the built-in standard cannot be changed; create a template instead" });
+  const parsed = TemplateBody.safeParse(req.body);
+  if (!parsed.success) return void res.status(400).json({ error: parsed.error.issues.map((i) => i.message).join("; ") });
+  const input = templateInput(parsed.data);
+  if (typeof input === "string") return void res.status(400).json({ error: input });
+  try {
+    const t = await updateTemplate(db, req.params.id, input);
+    if (!t) return void res.status(404).json({ error: "unknown template" });
+    res.json(t);
+  } catch (err) {
+    res.status(400).json({ error: err instanceof Error ? err.message : String(err) });
+  }
+});
+
+app.delete("/api/templates/:id", async (req, res) => {
+  if (req.params.id === STANDARD_ID) return void res.status(403).json({ error: "the built-in standard cannot be deleted" });
+  if (!(await deleteTemplate(db, req.params.id))) return void res.status(404).json({ error: "unknown template" });
+  res.json({ ok: true });
+});
+
+app.get("/api/templates/:id/logo", async (req, res) => {
+  const logo = await getLogo(db, req.params.id);
+  if (!logo) return void res.status(404).type("text/plain").send("No logo.");
+  res.setHeader("Content-Type", logo.type);
+  res.setHeader("Cache-Control", "no-cache");
+  res.send(logo.data);
 });
 
 app.get("/api/engagements/:id", async (req, res) => {
@@ -212,6 +317,17 @@ const OFFICE = {
   pptx: { build: buildPptx, type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
 } as const;
 
+app.get("/api/templates/:id/preview/:format", async (req, res) => {
+  const format = OFFICE[req.params.format as keyof typeof OFFICE];
+  if (!format) return void res.status(404).type("text/plain").send("Preview formats: docx, xlsx, pptx.");
+  const t = await getTemplate(db, req.params.id);
+  if (!t) return void res.status(404).type("text/plain").send("Unknown template.");
+  const file = await format.build(sampleContent(), await brandFor(db, t.builtIn ? null : t.id));
+  res.setHeader("Content-Type", format.type);
+  res.setHeader("Content-Disposition", `attachment; filename="${fileStem(`${t.name} preview`, new Date().toISOString())}.${req.params.format}"`);
+  res.send(file);
+});
+
 app.get("/api/runs/:id/export/:format", async (req, res) => {
   const format = OFFICE[req.params.format as keyof typeof OFFICE];
   if (!format) return void res.status(404).type("text/plain").send("Export formats: docx, xlsx, pptx.");
@@ -219,7 +335,8 @@ app.get("/api/runs/:id/export/:format", async (req, res) => {
   if (!run) return void res.status(404).type("text/plain").send("Unknown run.");
   try {
     const engagement = run.engagementId ? await getEngagement(db, run.engagementId) : null;
-    const file = await format.build(runContent(run, engagement));
+    // The engagement's template if it has one; otherwise the application standard.
+    const file = await format.build(runContent(run, engagement), await brandFor(db, engagement?.templateId));
     res.setHeader("Content-Type", format.type);
     res.setHeader("Content-Disposition", `attachment; filename="${fileStem(run.title, run.startedAt)}.${req.params.format}"`);
     res.send(file);

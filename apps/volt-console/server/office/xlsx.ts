@@ -6,7 +6,9 @@
 import ExcelJS from "exceljs";
 import { plain, type Block } from "./markdown.js";
 import type { RunContent, ToolUse } from "./content.js";
+import { STANDARD_BRAND, fitLogo, textOn, type Brand } from "./brand.js";
 
+/** Placeholder colour for titles and header fills while building; applyBrand swaps in the template's colour. */
 const NAVY = "FF1F3864";
 const INPUT_BLUE = "FF0000CC";
 const MONEY = '#,##0;[Red]-#,##0';
@@ -196,7 +198,33 @@ function benchmarkSheet(wb: ExcelJS.Workbook, rows: ToolUse[]) {
   ws.views = [{ state: "frozen", ySplit: 3 }];
 }
 
-export async function buildXlsx(c: RunContent): Promise<Buffer> {
+/**
+ * Gives the finished workbook the template's look: the primary colour on titles and header
+ * fills (with readable header text), the heading font on titles, the body font everywhere else.
+ */
+function applyBrand(wb: ExcelJS.Workbook, brand: Brand) {
+  const primary = `FF${brand.primary}`;
+  const headText = `FF${textOn(brand.primary)}`;
+  for (const ws of wb.worksheets) {
+    ws.eachRow({ includeEmpty: false }, (row) =>
+      row.eachCell({ includeEmpty: false }, (cell) => {
+        const font = { ...(cell.font ?? {}) };
+        const fill = cell.fill as ExcelJS.FillPattern | undefined;
+        const isHeader = fill?.type === "pattern" && fill.fgColor?.argb === NAVY;
+        if (isHeader) {
+          cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: primary } };
+          font.color = { argb: headText };
+        } else if (font.color?.argb === NAVY) {
+          font.color = { argb: primary };
+        }
+        font.name = (font.size ?? 11) >= 12 ? brand.headingFont : brand.bodyFont;
+        cell.font = font;
+      }),
+    );
+  }
+}
+
+export async function buildXlsx(c: RunContent, brand: Brand = STANDARD_BRAND): Promise<Buffer> {
   const wb = new ExcelJS.Workbook();
   wb.creator = "VOLT Agentic Console";
   wb.title = c.title;
@@ -217,6 +245,8 @@ export async function buildXlsx(c: RunContent): Promise<Buffer> {
     ["Status", c.status === "done" ? "Working draft for review" : `Run ${c.status}`],
     ["Source", c.modeLabel],
     ["Request", c.prompt],
+    ["Template", brand.name],
+    ["Confidentiality", brand.confidentiality],
     ...c.intake.map(([k, v]) => [`Intake: ${k}`, v] as [string, string]),
   ];
   let r = 3;
@@ -265,5 +295,12 @@ export async function buildXlsx(c: RunContent): Promise<Buffer> {
     sum.getCell(r, 2).value = what;
   }
 
+  if (brand.logo) {
+    const { w, h } = fitLogo(brand.logo, 200, 60);
+    const image = wb.addImage({ buffer: brand.logo.data as unknown as ExcelJS.Buffer, extension: brand.logo.type === "image/png" ? "png" : "jpeg" });
+    sum.addImage(image, { tl: { col: 1.55, row: 0.1 }, ext: { width: w, height: h } });
+    sum.getRow(1).height = Math.max(20, h * 0.75 + 4);
+  }
+  applyBrand(wb, brand);
   return Buffer.from(await wb.xlsx.writeBuffer());
 }

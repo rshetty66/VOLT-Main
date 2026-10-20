@@ -54,7 +54,7 @@ const run: StoredRun = {
   workflowId: "close-optimization", agentId: null, mode: "live", model: "claude-opus-5-5", status: "done", error: null, inputTokens: 1, outputTokens: 1,
   startedAt: "2026-10-20T17:55:07.809Z", finishedAt: "2026-10-20T18:05:00.000Z", intake: { audience: "C-Suite / Board" }, finalText: deliverable, events,
 };
-const engagement = { id: "e", clientName: "Maple Harbour Financial", title: "Close optimization", description: "", createdAt: "", updatedAt: "", runCount: 1, lastRunAt: null };
+const engagement = { id: "e", clientName: "Maple Harbour Financial", title: "Close optimization", description: "", createdAt: "", updatedAt: "", runCount: 1, lastRunAt: null, templateId: null, templateName: null };
 const content = runContent(run, engagement);
 
 describe("markdown parsing", () => {

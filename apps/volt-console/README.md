@@ -51,6 +51,11 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
   appendix), an Excel workbook (every table as a sheet, APQC benchmarks, and each value case the agents ran rebuilt
   with live formulas), a PowerPoint board deck (section, table and specialist slides, full text in the speaker
   notes) or Markdown: `GET /api/runs/:id/export/docx|xlsx|pptx`.
+- **Output templates.** The Templates view holds a library of brand profiles: logo (PNG or JPEG, up to 1 MB),
+  primary and accent colours, heading and body fonts, header organisation, footer text and a confidentiality label.
+  Choose one per engagement (or when creating it); its Word, Excel and PowerPoint exports then use it. Engagements
+  without a template, or whose template is deleted, use the built-in VOLT standard. Each template has sample
+  Word, Excel and PowerPoint previews.
 - **Resume.** A stopped or failed workflow run can be resumed from its saved page: specialists that finished are
   reused as they are, only the unfinished ones run again, then Rudra writes the synthesis. The resumed run is saved
   as a new run in the same engagement; the original is kept.

@@ -11,6 +11,7 @@ import { Services } from "./components/Services";
 import { Analytics } from "./components/Analytics";
 import { Health } from "./components/Health";
 import { Engagements } from "./components/Engagements";
+import { Templates } from "./components/Templates";
 
 const ENGAGEMENT_KEY = "volt.engagementId";
 const readStored = () => {
@@ -21,7 +22,7 @@ const readStored = () => {
   }
 };
 
-export type View = "console" | "engagements" | "workflows" | "agents" | "skills" | "services" | "analytics" | "health";
+export type View = "console" | "engagements" | "templates" | "workflows" | "agents" | "skills" | "services" | "analytics" | "health";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -128,6 +129,7 @@ export function App() {
   const nav: [View, string, number | string][] = [
     ["console", "Agent Console", runs.length || ""],
     ["engagements", "Engagements", engagements.length || ""],
+    ["templates", "Templates", ""],
     ["workflows", "Workflows", catalog.workflows.length],
     ["agents", "Agents", catalog.agents.length],
     ["skills", "Skill Finder", catalog.skills.length],
@@ -173,7 +175,7 @@ export function App() {
       <nav className="nav">
         {nav.map(([id, label, count], i) => (
           <div key={id} style={{ display: "contents" }}>
-            {i === 2 && <div className="sep" />}
+            {i === 3 && <div className="sep" />}
             <button className={view === id ? "active" : ""} onClick={() => setView(id)}>
               {label} <span className="count">{count}</span>
             </button>
@@ -199,6 +201,7 @@ export function App() {
             onOpenAgent={setOpenAgent}
           />
         )}
+        {view === "templates" && <Templates onChanged={refreshEngagements} />}
         {view === "workflows" && <Workflows catalog={catalog} onLaunch={start} onOpenAgent={setOpenAgent} />}
         {view === "agents" && <Agents catalog={catalog} onOpen={setOpenAgent} />}
         {view === "skills" && <SkillFinder catalog={catalog} onOpenAgent={setOpenAgent} />}

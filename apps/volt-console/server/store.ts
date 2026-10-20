@@ -19,6 +19,8 @@ function toEngagement(r: Row): Engagement {
     updatedAt: iso(r.updated_at)!,
     runCount: Number(r.run_count ?? 0),
     lastRunAt: iso(r.last_run_at),
+    templateId: r.template_id ?? null,
+    templateName: r.template_name ?? null,
   };
 }
 
@@ -44,25 +46,32 @@ function toRunSummary(r: Row): RunSummary {
 }
 
 const ENGAGEMENT_SELECT = `
-  select e.*, count(r.id)::int as run_count, max(r.started_at) as last_run_at
-  from engagements e left join runs r on r.engagement_id = e.id`;
+  select e.*, t.name as template_name, count(r.id)::int as run_count, max(r.started_at) as last_run_at
+  from engagements e left join runs r on r.engagement_id = e.id left join templates t on t.id = e.template_id`;
 
-export async function createEngagement(db: Db, input: { clientName: string; title: string; description?: string }): Promise<Engagement> {
+export async function createEngagement(db: Db, input: { clientName: string; title: string; description?: string; templateId?: string | null }): Promise<Engagement> {
   const { rows } = await db.query<Row>(
-    "insert into engagements (client_name, title, description) values ($1, $2, $3) returning id",
-    [input.clientName, input.title, input.description ?? ""],
+    "insert into engagements (client_name, title, description, template_id) values ($1, $2, $3, $4) returning id",
+    [input.clientName, input.title, input.description ?? "", input.templateId ?? null],
   );
   return (await getEngagement(db, rows[0].id))!;
 }
 
+/** Assigns a template to an engagement; null returns it to the application standard. */
+export async function setEngagementTemplate(db: Db, id: string, templateId: string | null): Promise<Engagement | null> {
+  if (!isUuid(id)) return null;
+  await db.query("update engagements set template_id = $2, updated_at = now() where id = $1", [id, templateId]);
+  return getEngagement(db, id);
+}
+
 export async function listEngagements(db: Db): Promise<Engagement[]> {
-  const { rows } = await db.query<Row>(`${ENGAGEMENT_SELECT} group by e.id order by coalesce(max(r.started_at), e.created_at) desc`);
+  const { rows } = await db.query<Row>(`${ENGAGEMENT_SELECT} group by e.id, t.name order by coalesce(max(r.started_at), e.created_at) desc`);
   return rows.map(toEngagement);
 }
 
 export async function getEngagement(db: Db, id: string): Promise<Engagement | null> {
   if (!isUuid(id)) return null;
-  const { rows } = await db.query<Row>(`${ENGAGEMENT_SELECT} where e.id = $1 group by e.id`, [id]);
+  const { rows } = await db.query<Row>(`${ENGAGEMENT_SELECT} where e.id = $1 group by e.id, t.name`, [id]);
   return rows[0] ? toEngagement(rows[0]) : null;
 }
 

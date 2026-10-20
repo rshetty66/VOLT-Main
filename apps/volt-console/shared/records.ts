@@ -10,6 +10,27 @@ export interface Engagement {
   updatedAt: string;
   runCount: number;
   lastRunAt: string | null;
+  /** The engagement's output template; null means the application standard. */
+  templateId: string | null;
+  templateName: string | null;
+}
+
+/** An output template (brand profile). The built-in standard has id "standard" and cannot be changed. */
+export interface Template {
+  id: string;
+  builtIn: boolean;
+  name: string;
+  description: string;
+  organisation: string;
+  primaryColor: string;
+  accentColor: string;
+  headingFont: string;
+  bodyFont: string;
+  footerText: string;
+  confidentiality: string;
+  hasLogo: boolean;
+  engagementCount: number;
+  updatedAt: string | null;
 }
 
 export type RunStatus = "running" | "done" | "error" | "stopped";
