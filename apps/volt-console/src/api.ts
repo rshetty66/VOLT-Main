@@ -7,6 +7,7 @@ export const listEngagements = () => getJSON<Engagement[]>("/api/engagements");
 export const getEngagementDetail = (id: string) => getJSON<EngagementDetail>(`/api/engagements/${id}`);
 export const getStoredRun = (id: string) => getJSON<StoredRun>(`/api/runs/${id}`);
 export const runMarkdownUrl = (id: string) => `/api/runs/${id}/markdown`;
+export const runExportUrl = (id: string, format: "docx" | "xlsx" | "pptx") => `/api/runs/${id}/export/${format}`;
 
 /** Asks the server to halt a run; closing the page alone does not stop it. */
 export async function stopRun(id: string): Promise<void> {

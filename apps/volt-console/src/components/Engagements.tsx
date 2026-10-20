@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import type { CatalogResponse } from "../../shared/events";
 import type { Engagement, RunSummary, StoredRun } from "../../shared/records";
-import { createEngagement, getEngagementDetail, getStoredRun, runMarkdownUrl, stopRun, type EngagementDetail } from "../api";
+import { createEngagement, getEngagementDetail, getStoredRun, stopRun, type EngagementDetail } from "../api";
 import { replayRun } from "../runState";
-import { RunView } from "./Console";
+import { ExportLinks, RunView } from "./Console";
 
 interface Props {
   catalog: CatalogResponse;
@@ -180,9 +180,7 @@ function EngagementPage({ id, isCurrent, onSelect, onBack, onOpenRun }: { id: st
                       <td>{r.mode}</td>
                       <td className="muted">{r.mode === "live" ? `${r.inputTokens.toLocaleString()} / ${r.outputTokens.toLocaleString()}` : "-"}</td>
                       <td>
-                        <a className="btn sm" style={{ textDecoration: "none" }} href={runMarkdownUrl(r.id)} download onClick={(x) => x.stopPropagation()}>
-                          Download
-                        </a>
+                        {r.status !== "running" && <ExportLinks runId={r.id} />}
                       </td>
                     </tr>
                   ))}

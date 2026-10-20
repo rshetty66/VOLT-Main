@@ -7,6 +7,7 @@
  *   GET  /api/runs                 recent runs (?engagementId=)
  *   GET  /api/runs/:id             one saved run with its full event stream
  *   GET  /api/runs/:id/markdown    the run as a Markdown file for review
+ *   GET  /api/runs/:id/export/:fmt the run as a Word (docx), Excel (xlsx) or PowerPoint (pptx) file
  *   POST /api/runs/:id/stop        halt a run that is still going
  *   GET  /api/catalog   agents, workflows, services, skills, intake, health
  *   GET  /api/agents/:id   one agent incl. its VOLT system prompt
@@ -32,6 +33,10 @@ import { DEFAULT_DATA_DIR, openDb } from "./db.js";
 import { createEngagement, getEngagement, getRun, isUuid, listEngagements, listRuns, markInterruptedRuns } from "./store.js";
 import { finishedOutputs, startRun, stopRun } from "./runs.js";
 import { runToMarkdown } from "./export.js";
+import { fileStem, runContent } from "./office/content.js";
+import { buildDocx } from "./office/docx.js";
+import { buildXlsx } from "./office/xlsx.js";
+import { buildPptx } from "./office/pptx.js";
 import type { CatalogResponse, RunMode, VoltEvent } from "../shared/events.js";
 
 const catalog = loadCatalog();
@@ -91,9 +96,10 @@ app.get("/api/runs/:id", async (req, res) => {
   res.json(run);
 });
 
+// Downloads answer errors in plain text: a browser saving a JSON error body looks like a broken export.
 app.get("/api/runs/:id/markdown", async (req, res) => {
   const run = await getRun(db, req.params.id);
-  if (!run) return void res.status(404).json({ error: "unknown run" });
+  if (!run) return void res.status(404).type("text/plain").send("Unknown run.");
   const engagement = run.engagementId ? await getEngagement(db, run.engagementId) : null;
   const name = `${run.title}-${run.startedAt.slice(0, 10)}`.replace(/[^A-Za-z0-9-]+/g, "-").replace(/-+/g, "-").toLowerCase();
   res.setHeader("Content-Type", "text/markdown; charset=utf-8");
@@ -198,6 +204,29 @@ app.post("/api/run", async (req, res) => {
   }, { reuse });
   // A closed connection only stops the streaming; the run finishes and is saved.
   res.on("close", run.detach);
+});
+
+const OFFICE = {
+  docx: { build: buildDocx, type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+  xlsx: { build: buildXlsx, type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" },
+  pptx: { build: buildPptx, type: "application/vnd.openxmlformats-officedocument.presentationml.presentation" },
+} as const;
+
+app.get("/api/runs/:id/export/:format", async (req, res) => {
+  const format = OFFICE[req.params.format as keyof typeof OFFICE];
+  if (!format) return void res.status(404).type("text/plain").send("Export formats: docx, xlsx, pptx.");
+  const run = await getRun(db, req.params.id);
+  if (!run) return void res.status(404).type("text/plain").send("Unknown run.");
+  try {
+    const engagement = run.engagementId ? await getEngagement(db, run.engagementId) : null;
+    const file = await format.build(runContent(run, engagement));
+    res.setHeader("Content-Type", format.type);
+    res.setHeader("Content-Disposition", `attachment; filename="${fileStem(run.title, run.startedAt)}.${req.params.format}"`);
+    res.send(file);
+  } catch (err) {
+    console.error(`Export ${req.params.format} of run ${run.id} failed:`, err);
+    res.status(500).type("text/plain").send("The export failed; the server log has the details.");
+  }
 });
 
 app.post("/api/runs/:id/stop", async (req, res) => {

@@ -2,7 +2,24 @@ import { useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 import type { ActivityItem, Lane, Run } from "../runState";
 import { Markdown } from "./Markdown";
-import { runMarkdownUrl } from "../api";
+import { runExportUrl, runMarkdownUrl } from "../api";
+
+/** Download links for a saved run: Word report, Excel workbook, PowerPoint deck, Markdown. */
+export function ExportLinks({ runId }: { runId: string }) {
+  const link = (href: string, label: string, title: string) => (
+    <a className="btn sm" style={{ textDecoration: "none" }} href={href} download title={title} onClick={(e) => e.stopPropagation()}>
+      {label}
+    </a>
+  );
+  return (
+    <span className="row" style={{ gap: 4, flexWrap: "nowrap" }}>
+      {link(runExportUrl(runId, "docx"), "Word", "Report with the deliverable and every specialist's output")}
+      {link(runExportUrl(runId, "xlsx"), "Excel", "Tables, benchmarks and the value case with live formulas")}
+      {link(runExportUrl(runId, "pptx"), "PowerPoint", "Board deck built from the deliverable")}
+      {link(runMarkdownUrl(runId), "Markdown", "Plain text with Markdown formatting")}
+    </span>
+  );
+}
 
 const EXAMPLES = [
   "Our month-end close takes 12 days on SAP S/4HANA and DSO is 55. Build a plan to reach a 5-day close.",
@@ -145,11 +162,7 @@ export function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catal
           </button>
         )}
         {run.state === "stopped" && <span className="badge">stopped</span>}
-        {run.serverRunId && run.state !== "running" && (
-          <a className="btn sm" style={{ textDecoration: "none" }} href={runMarkdownUrl(run.serverRunId)} download>
-            Download
-          </a>
-        )}
+        {run.serverRunId && run.state !== "running" && <ExportLinks runId={run.serverRunId} />}
       </div>
       <div className="run-body">
         {run.phases.length > 0 && (
