@@ -21,6 +21,8 @@ export interface MockOptions {
   specialistAlwaysTools: boolean;
   /** Reported cache_creation_input_tokens per call. */
   cacheWriteTokens: number;
+  /** Specialists first read this client file (a ref such as "F1"), then answer citing it. */
+  specialistReadsFile: string | null;
 }
 
 const msg = (id: string, blocks: any[], stop: string, cacheWrite = 0) => {
@@ -46,7 +48,7 @@ const msg = (id: string, blocks: any[], stop: string, cacheWrite = 0) => {
 
 export async function startMockAnthropic(): Promise<{ url: string; requests: Captured[]; options: MockOptions; close: () => void }> {
   const requests: Captured[] = [];
-  const options: MockOptions = { specialistAlwaysTools: false, cacheWriteTokens: 0 };
+  const options: MockOptions = { specialistAlwaysTools: false, cacheWriteTokens: 0, specialistReadsFile: null };
   const server = http.createServer((req, res) => {
   let body = "";
   req.on("data", (c) => (body += c));
@@ -60,6 +62,14 @@ export async function startMockAnthropic(): Promise<{ url: string; requests: Cap
     const reply = (id: string, blocks: any[], stop: string) => msg(id, blocks, stop, options.cacheWriteTokens);
     if (!isRudra && options.specialistAlwaysTools && !b.system[0].text.includes("synthesising"))
       return sse(res, reply(`m${n}`, [{ type: "text", text: `Partial view ${n}. ` }, { type: "tool_use", id: `tu_s${n}`, name: "find_skills", input: { query: "close" } }], "tool_use"));
+    const canRead = b.tools.some((t: any) => t.name === "read_client_file");
+    if (!isRudra && options.specialistReadsFile && canRead && !hasResults)
+      return sse(res, reply(`m${n}`, [{ type: "tool_use", id: `tu_f${n}`, name: "read_client_file", input: { file: options.specialistReadsFile } }], "tool_use"));
+    if (!isRudra && options.specialistReadsFile && hasResults) {
+      const got = JSON.stringify(last.content);
+      const cites = got.includes("<client_file") ? ` Trial balance shows total debits as read (${options.specialistReadsFile}: ${got.match(/name=\\"([^"\\]+)/)?.[1] ?? "file"}).` : "";
+      return sse(res, reply(`m${n}`, [{ type: "text", text: `Specialist deliverable.${cites}` }], "end_turn"));
+    }
     if (isRudra && !hasResults)
       return sse(res, reply(`m${n}`, [
         { type: "thinking", thinking: "Routing to FI/CO and ARCS leads in parallel" },

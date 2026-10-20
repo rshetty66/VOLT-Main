@@ -45,6 +45,9 @@ export interface Run {
   budgetNote?: string;
   /** Why the server stopped the run (a budget), if it did. */
   stoppedReason?: string;
+  /** Client files this run's agents could read, and the refs they did read. */
+  files: { ref: string; id: string; name: string; summary: string }[];
+  filesRead: string[];
   state: "running" | "done" | "stopped";
   startedAt: number;
   finishedAt?: number;
@@ -62,6 +65,8 @@ export function newRun(prompt: string, title: string, kind: RunKind): Run {
     laneOrder: [],
     phases: [],
     usage: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, costUsd: 0 },
+    files: [],
+    filesRead: [],
     state: "running",
     startedAt: Date.now(),
   };
@@ -115,7 +120,13 @@ export function applyEvent(run: Run, e: VoltEvent): Run {
       pushActivity(e.lane, { id: crypto.randomUUID(), kind: "status", text: e.text });
       if (e.text.startsWith("Budget:")) r.budgetNote = e.text.slice(8).trim();
       return r;
+    case "files":
+      return { ...r, files: e.files };
     case "tool_call":
+      if (e.name === "read_client_file") {
+        const ref = r.files.find((f) => f.ref.toLowerCase() === String((e.input as { file?: unknown })?.file ?? "").trim().toLowerCase())?.ref;
+        if (ref && !r.filesRead.includes(ref)) r.filesRead = [...r.filesRead, ref];
+      }
       pushActivity(e.lane, { id: e.callId, kind: "tool", text: e.name, detail: summariseInput(e.input), pending: true });
       return r;
     case "tool_result":

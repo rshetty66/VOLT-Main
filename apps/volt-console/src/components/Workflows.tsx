@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 import { VIEW_ONLY, useCanWrite } from "../user";
 import { CostEstimate } from "./CostEstimate";
+import { FilesNote } from "./ClientFiles";
 
 type Workflow = CatalogResponse["workflows"][number];
 
@@ -9,16 +10,18 @@ interface Props {
   catalog: CatalogResponse;
   /** Live mode (real Claude calls): shows the cost estimate before launching. */
   live: boolean;
+  /** The current engagement, whose client files the agents can read. */
+  engagementId?: string;
   onLaunch: (req: RunRequest, title: string, kind: RunKind) => void;
   onOpenAgent: (id: string) => void;
 }
 
-export function Workflows({ catalog, live, onLaunch, onOpenAgent }: Props) {
+export function Workflows({ catalog, live, engagementId, onLaunch, onOpenAgent }: Props) {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Workflow | null>(null);
   const filtered = catalog.workflows.filter((w) => `${w.name} ${w.description} ${w.id}`.toLowerCase().includes(q.toLowerCase()));
 
-  if (selected) return <WorkflowLauncher catalog={catalog} live={live} wf={selected} onBack={() => setSelected(null)} onLaunch={onLaunch} onOpenAgent={onOpenAgent} />;
+  if (selected) return <WorkflowLauncher catalog={catalog} live={live} engagementId={engagementId} wf={selected} onBack={() => setSelected(null)} onLaunch={onLaunch} onOpenAgent={onOpenAgent} />;
 
   return (
     <div className="stack">
@@ -59,7 +62,7 @@ export function Workflows({ catalog, live, onLaunch, onOpenAgent }: Props) {
   );
 }
 
-function WorkflowLauncher({ catalog, live, wf, onBack, onLaunch, onOpenAgent }: { catalog: CatalogResponse; wf: Workflow; onBack: () => void } & Omit<Props, "catalog">) {
+function WorkflowLauncher({ catalog, live, engagementId, wf, onBack, onLaunch, onOpenAgent }: { catalog: CatalogResponse; wf: Workflow; onBack: () => void } & Omit<Props, "catalog">) {
   const questions = catalog.intake[wf.id] ?? catalog.intake["default"] ?? [];
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [prompt, setPrompt] = useState("");
@@ -123,6 +126,7 @@ function WorkflowLauncher({ catalog, live, wf, onBack, onLaunch, onOpenAgent }: 
           <span className="body">Client situation and request</span>
           <textarea className="textarea" rows={5} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Client, industry, scale, platforms, pain points, what the deliverable must answer…" />
         </label>
+        {canWrite && <FilesNote engagementId={engagementId} />}
         <div className="row" style={{ justifyContent: "flex-end" }}>
           {canWrite && <CostEstimate live={live} workflowId={wf.id} onBlocked={setOverBudget} />}
           {!canWrite && <span className="muted" style={{ fontSize: 12 }}>{VIEW_ONLY}</span>}

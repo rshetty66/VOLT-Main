@@ -168,3 +168,25 @@ export interface UsageSummary {
     outputTokens: number;
   }[];
 }
+
+// ── Client files (A3) ────────────────────────────────────────────────────────
+
+export type FileKind = "csv" | "xlsx" | "pdf" | "docx";
+
+/** A file uploaded to an engagement. `ref` (F1, F2…) is how agents and outputs cite it. */
+export interface ClientFile {
+  id: string;
+  ref: string;
+  engagementId: string;
+  name: string;
+  kind: FileKind;
+  sizeBytes: number;
+  /** What was read from it, e.g. "Excel, 2 sheets, 412 rows". */
+  summary: string;
+  /** Some rows or text were beyond the limits and are not given to agents. */
+  truncated: boolean;
+  /** Parts agents read it in. */
+  parts: number;
+  addedBy: string | null;
+  createdAt: string;
+}

@@ -1,5 +1,5 @@
 import type { CatalogResponse, RunRequest, VoltEvent } from "../shared/events";
-import type { AuditEntry, BudgetStatus, CostSettings, Engagement, Estimate, Role, RunSummary, StoredRun, Template, UsageSummary, User } from "../shared/records";
+import type { AuditEntry, BudgetStatus, ClientFile, CostSettings, Engagement, Estimate, Role, RunSummary, StoredRun, Template, UsageSummary, User } from "../shared/records";
 
 /** Fired when the server answers 401: the session ended, so the app shows the sign-in screen. */
 export const SIGNED_OUT = "volt:signed-out";
@@ -53,6 +53,26 @@ export const resetPassword = (id: string, password: string) => send<{ ok: boolea
 export const listAudit = (limit = 200) => getJSON<AuditEntry[]>(`/api/audit?limit=${limit}`);
 export const addMember = (engagementId: string, userId: string) => send<Member[]>("POST", `/api/engagements/${engagementId}/members`, { userId });
 export const removeMember = (engagementId: string, userId: string) => send<Member[]>("DELETE", `/api/engagements/${engagementId}/members/${userId}`);
+
+// Client files
+export const ACCEPTED_FILES = ".csv,.xlsx,.pdf,.docx";
+export const MAX_FILE_MB = 10;
+export const listFiles = (engagementId: string) => getJSON<ClientFile[]>(`/api/engagements/${engagementId}/files`);
+export const fileUrl = (id: string) => `/api/files/${id}`;
+export const getFileText = (id: string, part = 1) => getJSON<{ file: ClientFile; part: number; parts: number; text: string }>(`/api/files/${id}/text?part=${part}`);
+export const deleteFile = (id: string) => send<{ ok: boolean }>("DELETE", `/api/files/${id}`);
+export async function uploadFile(engagementId: string, file: File): Promise<ClientFile> {
+  const r = watch(
+    await fetch(`/api/engagements/${engagementId}/files`, {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) },
+      body: file,
+    }),
+  );
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((data as { error?: string }).error ?? `Upload failed (${r.status})`);
+  return data as ClientFile;
+}
 
 // Usage and cost control
 export const getUsage = () => getJSON<UsageSummary>("/api/usage");

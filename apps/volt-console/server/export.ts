@@ -1,6 +1,7 @@
 /** Turns a saved run into a Markdown document for review. */
 import { ORCHESTRATOR_LANE } from "../shared/events.js";
 import type { Engagement, StoredRun } from "../shared/records.js";
+import { filesRead } from "./office/content.js";
 
 export function runToMarkdown(run: StoredRun, engagement: Engagement | null): string {
   const lanes = new Map<string, { name: string; layer: string; text: string }>();
@@ -20,6 +21,8 @@ export function runToMarkdown(run: StoredRun, engagement: Engagement | null): st
   if (run.intake && Object.keys(run.intake).length) {
     lines.push("## Intake", "", ...Object.entries(run.intake).map(([k, v]) => `- ${k}: ${v}`), "");
   }
+  const files = filesRead(run, (lane) => (lane === ORCHESTRATOR_LANE ? "Rudra" : lanes.get(lane)?.name ?? lane));
+  if (files.length) lines.push("## Client files used", "", ...files.map((f) => `- ${f.ref} ${f.name}: ${f.summary}. Read by ${f.readBy.join(", ")}.`), "");
   lines.push("## Deliverable", "", run.finalText.trim() || "_No final text was produced._", "");
   const specialists = [...lanes.values()].filter((l) => l.text.trim());
   if (specialists.length) {

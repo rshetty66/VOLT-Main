@@ -35,7 +35,7 @@
 import express, { type Request, type Response } from "express";
 import { z } from "zod";
 import { loadSkillBody, rankSkills, type Catalog } from "./catalog.js";
-import { runLocalTool, schemas, type ToolName } from "./tools.js";
+import { runLocalTool, schemas, type ContextTool, type ToolName } from "./tools.js";
 import { BENCHMARKS } from "./analytics.js";
 import { MODEL, intakeFor } from "./orchestrator.js";
 import type { Db } from "./db.js";
@@ -81,6 +81,7 @@ import {
 } from "./auth.js";
 import type { CatalogResponse, RunMode, VoltEvent } from "../shared/events.js";
 import type { User } from "../shared/records.js";
+import { FILE_LIMITS, FileError, addFile, deleteFile, getFile, getFileData, getFileText, listFiles, splitParts } from "./files.js";
 import { DEFAULT_SETTINGS, SettingsPatch, getSettings, resetSettings, updateSettings } from "./settings.js";
 import { budgetBlock, budgetFor, estimateRun, setUserBudget, usageSummary } from "./usage.js";
 
@@ -381,6 +382,87 @@ export function createApp({ db, catalog, mode }: AppContext): express.Express {
     res.json(await listMembers(db, req.params.id));
   });
 
+  // ── Client files (per engagement) ───────────────────────────────────────────
+
+  /** Content-Disposition for a stored file name, safe for any characters. */
+  const disposition = (name: string) => `attachment; filename="${name.replace(/[^\x20-\x7e]|["\\]/g, "_")}"; filename*=UTF-8''${encodeURIComponent(name)}`;
+  const MIME: Record<string, string> = {
+    csv: "text/csv; charset=utf-8",
+    xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    pdf: "application/pdf",
+    docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  };
+  /** The file's engagement must be visible to the user (writable for changes); answers 404 otherwise. */
+  async function visibleFile(res: Response, id: string, need: "read" | "write") {
+    const file = isUuid(id) ? await getFile(db, id) : null;
+    if (!file) {
+      res.status(404).json({ error: "unknown file" });
+      return null;
+    }
+    return (await visibleEngagement(res, file.engagementId, need)) ? file : null;
+  }
+  const rawBody = express.raw({ type: () => true, limit: FILE_LIMITS.maxBytes + 1 });
+
+  app.get("/api/engagements/:id/files", async (req, res) => {
+    if (!(await visibleEngagement(res, req.params.id, "read"))) return;
+    res.json(await listFiles(db, req.params.id));
+  });
+
+  /** The file itself is the request body; its name comes in the X-File-Name header, URI-encoded. */
+  app.post("/api/engagements/:id/files", async (req, res) => {
+    if (!(await visibleEngagement(res, req.params.id, "write"))) return;
+    rawBody(req, res, async (err?: unknown) => {
+      if (err) {
+        const tooBig = (err as { type?: string }).type === "entity.too.large";
+        return void res.status(tooBig ? 413 : 400).json({ error: tooBig ? `Files can be up to ${FILE_LIMITS.maxBytes / 1024 / 1024} MB.` : "The upload could not be read." });
+      }
+      let name = "";
+      try {
+        name = decodeURIComponent(String(req.headers["x-file-name"] ?? ""));
+      } catch {
+        /* left empty */
+      }
+      if (!name) return void res.status(400).json({ error: "Send the file name in the X-File-Name header." });
+      const bytes = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+      try {
+        const file = await addFile(db, { engagementId: req.params.id, userId: userOf(res).id, name, bytes });
+        await audit(db, userOf(res).id, "file_uploaded", { type: "engagement", id: req.params.id }, { file: file.name, kind: file.kind, bytes: file.sizeBytes });
+        res.status(201).json(file);
+      } catch (e) {
+        if (e instanceof FileError) return void res.status(e.status).json({ error: e.message });
+        console.error("Upload failed:", e);
+        res.status(500).json({ error: "The upload failed; the server log has the details." });
+      }
+    });
+  });
+
+  app.get("/api/files/:id", async (req, res) => {
+    const file = await visibleFile(res, req.params.id, "read");
+    if (!file) return;
+    const data = (await getFileData(db, file.id))!;
+    res.setHeader("Content-Type", MIME[data.kind] ?? "application/octet-stream");
+    res.setHeader("Content-Disposition", disposition(data.name));
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.send(data.data);
+  });
+
+  /** What agents read from the file, one part at a time, for the preview. */
+  app.get("/api/files/:id/text", async (req, res) => {
+    const file = await visibleFile(res, req.params.id, "read");
+    if (!file) return;
+    const parts = splitParts((await getFileText(db, file.id)) ?? "");
+    const part = Math.min(parts.length, Math.max(1, Number(req.query.part) || 1));
+    res.json({ file, part, parts: parts.length, text: parts[part - 1] });
+  });
+
+  app.delete("/api/files/:id", async (req, res) => {
+    const file = await visibleFile(res, req.params.id, "write");
+    if (!file) return;
+    await deleteFile(db, file.id);
+    await audit(db, userOf(res).id, "file_deleted", { type: "engagement", id: file.engagementId }, { file: file.name });
+    res.json({ ok: true });
+  });
+
   // ── Output templates (shared by everyone; viewers can only look) ────────────
 
   const colour = z.string().transform((v, ctx) => normaliseColour(v) ?? (ctx.addIssue({ code: "custom", message: "colours are six hex digits, e.g. #1F3864" }), z.NEVER));
@@ -659,7 +741,7 @@ export function createApp({ db, catalog, mode }: AppContext): express.Express {
     if (!DIRECT_TOOLS.has(name)) return void res.status(404).json({ error: "unknown tool" });
     const parsed = schemas[name].safeParse(req.body);
     if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
-    const r = runLocalTool(catalog, name as Exclude<ToolName, "consult_agent">, parsed.data);
+    const r = runLocalTool(catalog, name as Exclude<ToolName, ContextTool>, parsed.data);
     res.status(r.ok ? 200 : 400).json(r);
   });
 

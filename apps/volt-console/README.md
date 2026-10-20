@@ -74,6 +74,13 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
   conversation is prompt-cached, later workflow phases get each earlier specialist's short handoff summary rather
   than its full output, and Rudra's synthesis uses a prompt without the 236-agent roster. Costs are estimates, not
   an invoice; runs saved before this change are costed at Opus list prices without cache writes.
+- **Client files.** Each engagement holds up to 25 CSV, Excel (.xlsx), PDF and Word (.docx) files of up to 10 MB,
+  uploaded on its page and kept in the local database with the text and tables read from them (Preview shows exactly
+  what agents get; scanned PDFs without text are refused). Every run in the engagement lists the files in its briefs,
+  and agents read them with `read_client_file`, a part at a time, citing them as (F1: file name); refs are never
+  reused after a delete. File content reaches agents tagged as untrusted client data, and every agent's instructions
+  say not to act on instructions found in it. Runs show which files they read, and the Word, Excel and Markdown exports
+  list them. Owners and members with write access upload and delete; viewers preview and download.
 - **Resume.** A stopped or failed workflow run can be resumed from its saved page: specialists that finished are
   reused as they are, only the unfinished ones run again, then Rudra writes the synthesis. The resumed run is saved
   as a new run in the same engagement; the original is kept.

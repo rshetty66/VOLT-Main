@@ -158,6 +158,11 @@ export async function buildDocx(c: RunContent, brand: Brand = STANDARD_BRAND): P
       new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun("Intake")] }),
       ...c.intake.map(([k, v]) => new Paragraph({ bullet: { level: 0 }, children: [new TextRun({ text: `${k}: `, bold: true }), new TextRun(v)] })),
     );
+  if (c.files.length)
+    request.push(
+      new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun("Client files used")] }),
+      ...c.files.map((f) => new Paragraph({ bullet: { level: 0 }, children: [new TextRun({ text: `${f.ref} ${f.name}: `, bold: true }), new TextRun(`${f.summary}. Read by ${f.readBy.join(", ")}.`)] })),
+    );
 
   const body = c.body.length ? render(c.body, (d) => d - 2, lists, brand) : [new Paragraph({ children: [new TextRun({ text: "No final deliverable was produced for this run.", italics: true })] })];
 

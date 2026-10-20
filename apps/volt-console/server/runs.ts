@@ -13,6 +13,7 @@ import { runDemo } from "./demo.js";
 import { callCost } from "./cost.js";
 import { MODEL, errorMessage, getSession, runLive, type Emit } from "./orchestrator.js";
 import { recordRun } from "./recorder.js";
+import { fileAccess } from "./files.js";
 import { getSettings } from "./settings.js";
 import { loadSession, saveSession } from "./store.js";
 import { budgetFor, budgetGuard } from "./usage.js";
@@ -114,8 +115,10 @@ export async function startRun(
     emit({ type: "run_start", runId, sessionId: session.id, mode: runMode, model, kind, title: runTitle });
     if (opts.reuse?.size) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Resuming: reusing ${opts.reuse.size} finished specialist output(s) from the earlier run` });
     try {
-      if (runMode === "demo") await runDemo(catalog, body, emit, controller.signal);
-      else await runLive(catalog, body, session, emit, controller.signal, { reuse: opts.reuse, specialistModel: settings.specialistModel, specialistMaxSteps: settings.specialistMaxSteps });
+      const files = await fileAccess(db, body.engagementId);
+      if (files) emit({ type: "files", files: files.files.map(({ ref, id, name, summary }) => ({ ref, id, name, summary })) });
+      if (runMode === "demo") await runDemo(catalog, body, emit, controller.signal, files);
+      else await runLive(catalog, body, session, emit, controller.signal, { reuse: opts.reuse, specialistModel: settings.specialistModel, specialistMaxSteps: settings.specialistMaxSteps, files });
     } catch (err) {
       if (!controller.signal.aborted) emit({ type: "error", lane: ORCHESTRATOR_LANE, message: errorMessage(err) });
     }

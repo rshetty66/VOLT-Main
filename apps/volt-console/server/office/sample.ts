@@ -48,5 +48,6 @@ export function sampleContent(): RunContent {
     specialists: [{ name: "APQC Researcher", layer: "Enablers", phase: "Diagnosis", blocks: parseMarkdown("Sample specialist output.\n\n| Metric | Value |\n|---|---|\n| Days to close | 11 |") }],
     valueCases: [{ by: "Rudra", input: { finance_ftes: 95, loaded_cost_per_fte: 120000, automation_pct: 15, one_time_investment: 3200000, annual_run_cost: 600000, ramp_years: 2, discount_rate: 0.09, horizon_years: 5 }, data: vc }],
     benchmarks: [{ by: "Rudra", input: { metric: "days_to_close", client_value: 11 }, data: compareToBenchmark("days_to_close", 11) as Record<string, any> }],
+    files: [{ ref: "F1", name: "Trial balance FY2026.xlsx", summary: "Excel, 1 sheet, 412 rows", readBy: ["APQC Researcher"] }],
   };
 }

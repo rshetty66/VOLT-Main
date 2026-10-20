@@ -30,6 +30,22 @@ export interface RunContent {
   specialists: Specialist[];
   valueCases: ToolUse[];
   benchmarks: ToolUse[];
+  /** Client files the run's agents read, with who read them. */
+  files: { ref: string; name: string; summary: string; readBy: string[] }[];
+}
+
+/** Client files a run read, from its files event and its read_client_file calls. */
+export function filesRead(run: StoredRun, laneName: (lane: string) => string = (l) => l): RunContent["files"] {
+  const listed = new Map<string, { ref: string; name: string; summary: string; readBy: string[] }>();
+  for (const e of run.events) {
+    if (e.type === "files") for (const f of e.files) listed.set(f.ref.toLowerCase(), { ref: f.ref, name: f.name, summary: f.summary, readBy: [] });
+    if (e.type === "tool_call" && e.name === "read_client_file") {
+      const f = listed.get(String((e.input as { file?: unknown })?.file ?? "").trim().toLowerCase());
+      const who = laneName(e.lane);
+      if (f && !f.readBy.includes(who)) f.readBy.push(who);
+    }
+  }
+  return [...listed.values()].filter((f) => f.readBy.length);
 }
 
 export function runContent(run: StoredRun, engagement: Engagement | null): RunContent {
@@ -91,6 +107,7 @@ export function runContent(run: StoredRun, engagement: Engagement | null): RunCo
     specialists: [...lanes.values()].filter((l) => l.text.trim()).map((l) => ({ name: l.name, layer: l.layer, phase: l.phase, blocks: parseMarkdown(l.text) })),
     valueCases,
     benchmarks: uniqueBenchmarks,
+    files: filesRead(run, laneName),
   };
 }
 

@@ -6,6 +6,7 @@ import { runExportUrl, runMarkdownUrl } from "../api";
 import { VIEW_ONLY, useCanWrite } from "../user";
 import { ktok, usd } from "../money";
 import { CostEstimate } from "./CostEstimate";
+import { FilesNote } from "./ClientFiles";
 
 /** Download links for a saved run: Word report, Excel workbook, PowerPoint deck, Markdown. */
 export function ExportLinks({ runId }: { runId: string }) {
@@ -37,12 +38,14 @@ interface Props {
   target: string;
   setTarget: (id: string) => void;
   live: boolean;
+  /** The current engagement, whose client files the agents can read. */
+  engagementId?: string;
   onStart: (req: RunRequest, title: string, kind: RunKind) => void;
   onStop: (runId: string) => void;
   onOpenAgent: (id: string) => void;
 }
 
-export function Console({ catalog, runs, target, setTarget, live, onStart, onStop, onOpenAgent }: Props) {
+export function Console({ catalog, runs, target, setTarget, live, engagementId, onStart, onStop, onOpenAgent }: Props) {
   const [prompt, setPrompt] = useState("");
   const [overBudget, setOverBudget] = useState(false);
   const canWrite = useCanWrite();
@@ -132,6 +135,12 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
           <div className="row" style={{ justifyContent: "space-between" }}>
             <span className="muted" style={{ fontSize: 12 }}>
               Ctrl/⌘ + Enter to send{runs.length > 0 ? " · follow-ups keep the conversation" : ""}
+              {canWrite && engagementId && (
+                <>
+                  <br />
+                  <FilesNote engagementId={engagementId} />
+                </>
+              )}
               {canWrite && live && (
                 <>
                   <br />
@@ -177,6 +186,11 @@ export function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catal
           {elapsed}s
           {run.mode === "live" ? ` · ${usd(run.usage.costUsd)} · ${ktok(run.usage.input + run.usage.cacheWrite + run.usage.cacheRead)} in (${ktok(run.usage.cacheRead)} cached) / ${ktok(run.usage.output)} out` : run.mode === "demo" ? " · demo" : ""}
         </span>
+        {run.files.length > 0 && (
+          <span className="usage" data-testid="files-read" title={run.files.map((f) => `${f.ref} ${f.name}: ${f.summary}`).join("\n")}>
+            {run.filesRead.length ? `Read ${run.filesRead.join(", ")} of ${run.files.length} client file${run.files.length === 1 ? "" : "s"}` : `${run.files.length} client file${run.files.length === 1 ? "" : "s"} available, none read yet`}
+          </span>
+        )}
         {run.budgetNote && run.state === "running" && <span className="badge warn" title="An admin sets budgets under Usage">{run.budgetNote}</span>}
         {run.state === "running" && canWrite && (
           <button className="btn sm" onClick={onStop}>

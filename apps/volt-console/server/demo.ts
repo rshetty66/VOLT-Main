@@ -11,6 +11,7 @@ import { type AgentDef, type Catalog, rankAgents, rankSkills } from "./catalog.j
 import { compareToBenchmark } from "./analytics.js";
 import { intakeFor, type Emit } from "./orchestrator.js";
 import { ORCHESTRATOR_LANE, type RunRequest } from "../shared/events.js";
+import type { FileAccess } from "./files.js";
 
 const sleep = (ms: number, signal: AbortSignal) =>
   new Promise<void>((resolve, reject) => {
@@ -87,7 +88,20 @@ async function benchmarkBlock(lane: string, prompt: string, emit: Emit, signal: 
     : "";
 }
 
-export async function runDemo(catalog: Catalog, req: RunRequest, emit: Emit, signal: AbortSignal) {
+/** Reads each client file for real (first part) so the demo shows what agents would receive. */
+async function readFiles(lane: string, files: FileAccess | undefined, emit: Emit, signal: AbortSignal): Promise<string> {
+  if (!files) return "";
+  const lines: string[] = [];
+  for (const f of files.files) {
+    await tool(lane, "read_client_file", { file: f.ref }, () => ({ summary: `${f.ref} ${f.name}, part 1 of ${f.parts}` }), emit, signal);
+    const r = await files.read(f.ref, 1);
+    const first = r.ok ? r.text.split("\n").find((l) => l.trim() && !l.startsWith("## "))?.slice(0, 120) ?? "" : "";
+    lines.push(`- (${f.ref}: ${f.name}) ${f.summary}${first ? `; starts: \`${first.replace(/`/g, "'")}\`` : ""}`);
+  }
+  return `\n### Client files read (simulated agent)\n${lines.join("\n")}\n`;
+}
+
+export async function runDemo(catalog: Catalog, req: RunRequest, emit: Emit, signal: AbortSignal, files?: FileAccess) {
   const L = ORCHESTRATOR_LANE;
 
   if (req.workflowId) {
@@ -102,7 +116,8 @@ export async function runDemo(catalog: Catalog, req: RunRequest, emit: Emit, sig
           const lane = `${wf.id}:${index}:${id}`;
           emit({ type: "agent_start", lane, parentLane: L, agentId: id, name: agent.name, layer: agent.layer, icon: agent.icon, brief: `${phase.name}: ${req.prompt}` });
           emit({ type: "status", lane, text: `Working the ${phase.name} phase` });
-          await streamText(lane, specialistNote(catalog, agent, `${phase.name} contribution for “${req.prompt.slice(0, 140)}”`), emit, signal);
+          const read = index === 0 && id === phase.agents[0] ? await readFiles(lane, files, emit, signal) : "";
+          await streamText(lane, specialistNote(catalog, agent, `${phase.name} contribution for “${req.prompt.slice(0, 140)}”`) + read, emit, signal);
           emit({ type: "agent_end", lane, agentId: id, ok: true });
         }),
       );
@@ -140,7 +155,8 @@ Each phase's agents run in parallel on Claude with their VOLT system prompts, se
       return { summary: r.map((x) => x.skill.id).join(", ") || "no matches", data: r.map((x) => ({ skill_id: x.skill.id, description: x.skill.description.slice(0, 200) })) };
     }, emit, signal)) as { skill_id: string }[];
     const bench = await benchmarkBlock(L, req.prompt, emit, signal);
-    await streamText(L, `${specialistNote(catalog, agent, req.prompt)}\n**Skill Finder matches:** ${skills.map((s) => `\`${s.skill_id}\``).join(", ") || "none"}\n${bench}`, emit, signal);
+    const read = await readFiles(L, files, emit, signal);
+    await streamText(L, `${specialistNote(catalog, agent, req.prompt)}${read}\n**Skill Finder matches:** ${skills.map((s) => `\`${s.skill_id}\``).join(", ") || "none"}\n${bench}`, emit, signal);
     emit({ type: "agent_end", lane: L, agentId: agent.id, ok: true });
     return;
   }
@@ -169,6 +185,7 @@ Each phase's agents run in parallel on Claude with their VOLT system prompts, se
   );
 
   const bench = await benchmarkBlock(L, req.prompt, emit, signal);
+  const read = await readFiles(L, files, emit, signal);
   const workflows = catalog.workflows
     .map((w) => ({ w, hits: w.agents.filter((a) => panel.some((p) => p.id === a)).length }))
     .filter((x) => x.hits > 0)
@@ -186,7 +203,7 @@ I routed this across the VOLT registry and convened a panel of ${panel.length} s
 | Specialist | Layer | Why they are on the panel |
 |---|---|---|
 ${panel.map((a) => `| ${a.icon} ${a.name} | ${a.layer} | ${a.description} |`).join("\n")}
-${bench}
+${bench}${read}
 ### Skill Finder
 ${skills.length ? skills.map((s) => `- \`${s.skill_id}\` — ${catalog.skillById.get(s.skill_id)?.description.slice(0, 160) ?? ""}`).join("\n") : "- No strong skill matches."}
 

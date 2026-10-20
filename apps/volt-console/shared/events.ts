@@ -26,6 +26,8 @@ export type VoltEvent =
       costUsd?: number;
     }
   | { type: "error"; lane: string; message: string }
+  /** The engagement's client files this run's agents may read (sent once, after run_start). */
+  | { type: "files"; files: { ref: string; id: string; name: string; summary: string }[] }
   | { type: "done"; sessionId: string };
 
 export type RunKind = "orchestrate" | "agent" | "workflow";

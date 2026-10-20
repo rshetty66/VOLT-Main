@@ -248,6 +248,7 @@ export async function buildXlsx(c: RunContent, brand: Brand = STANDARD_BRAND): P
     ["Template", brand.name],
     ["Confidentiality", brand.confidentiality],
     ...c.intake.map(([k, v]) => [`Intake: ${k}`, v] as [string, string]),
+    ...c.files.map((f) => [`Client file ${f.ref}`, `${f.name} (${f.summary}); read by ${f.readBy.join(", ")}`] as [string, string]),
   ];
   let r = 3;
   for (const [k, v] of facts.filter(([, v]) => v)) {

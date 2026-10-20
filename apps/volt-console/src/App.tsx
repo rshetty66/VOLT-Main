@@ -211,7 +211,7 @@ export function App({ onSignedOut }: { onSignedOut: () => void }) {
       </nav>
       <main className="main">
         {view === "console" && (
-          <Console catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} />
+          <Console catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} engagementId={engagementId || undefined} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} />
         )}
         {view === "engagements" && (
           <Engagements
@@ -232,7 +232,7 @@ export function App({ onSignedOut }: { onSignedOut: () => void }) {
         {view === "templates" && <Templates onChanged={refreshEngagements} />}
         {view === "usage" && <Usage live={catalog.mode === "live"} onOpenRun={openRun} />}
         {view === "users" && user.role === "admin" && <Users />}
-        {view === "workflows" && <Workflows catalog={catalog} live={live} onLaunch={start} onOpenAgent={setOpenAgent} />}
+        {view === "workflows" && <Workflows catalog={catalog} live={live} engagementId={engagementId || undefined} onLaunch={start} onOpenAgent={setOpenAgent} />}
         {view === "agents" && <Agents catalog={catalog} onOpen={setOpenAgent} />}
         {view === "skills" && <SkillFinder catalog={catalog} onOpenAgent={setOpenAgent} />}
         {view === "services" && <Services catalog={catalog} onOpenAgent={setOpenAgent} onLaunch={start} />}

@@ -5,6 +5,7 @@ import { addMember, createEngagement, getEngagementDetail, getStoredRun, listTem
 import { usd } from "../money";
 import { VIEW_ONLY, useCanWrite, useUser } from "../user";
 import { Previews } from "./Templates";
+import { ClientFiles } from "./ClientFiles";
 import { replayRun } from "../runState";
 import { ExportLinks, RunView } from "./Console";
 
@@ -245,6 +246,8 @@ function EngagementPage({
               </button>
             )}
           </div>
+          <ClientFiles engagementId={e.id} canWrite={e.access === "write"} />
+          <div className="micro" style={{ marginTop: 8 }}>Runs</div>
           {e.runs.length === 0 ? (
             <div className="card muted">No runs yet. Make this the current engagement, then run something from the Agent Console or Workflows.</div>
           ) : (
