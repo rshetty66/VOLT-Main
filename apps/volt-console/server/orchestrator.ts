@@ -40,7 +40,9 @@ const sessions = new Map<string, Session>();
 
 let client: Anthropic | null = null;
 function getClient() {
-  client ??= new Anthropic();
+  // Identity-linked keys that are not scoped to one workspace must name the workspace on every request.
+  const workspaceId = process.env.ANTHROPIC_WORKSPACE_ID?.trim();
+  client ??= new Anthropic(workspaceId ? { defaultHeaders: { "anthropic-workspace-id": workspaceId } } : {});
   return client;
 }
 
