@@ -79,5 +79,7 @@ On 2026-10-15, in an empty home directory:
 - The ECC install placed 30 skills, none of them `tdd-workflow`, `verification-loop`, `plan-canvas`, `santa-method` or `orch-*`.
 - `claude plugin validate` passed for `plugins/` and `plugins/volt`.
 
-On 2026-10-23, with `HOME` pointed at an empty directory, `npx --yes skills add wheresryan22/anatomy -g -a claude-code -y`
-installed `anatomy` into `~/.claude/skills/anatomy` (Node 22.22.0). `setup-stack.sh` as a whole was not re-run for this step.
+On 2026-10-23, `scripts/volt/setup-stack.sh` ran end to end with `HOME` pointed at an empty directory (Node 22.22.0). It exited 0,
+the four plugins showed as enabled in `claude plugin list`, `~/.claude/CLAUDE.md` imported `volt-harness.md`, and
+`npx --yes skills add wheresryan22/anatomy -g -a claude-code -y` installed `anatomy` into `~/.claude/skills/anatomy`.
+`setup-stack.ps1` and loading `/anatomy` in a fresh session were not tested.
