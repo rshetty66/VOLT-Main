@@ -20,6 +20,22 @@ import { ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, sche
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 
 export type Emit = (e: VoltEvent) => void;
+
+/** A run request after the server has resolved its template. */
+export interface RunInput extends RunRequest {
+  template?: { id: string; name: string; guide: string };
+}
+
+/** The user's request, with the selected template's formatting guide attached. */
+export function withTemplate(req: RunInput, text = req.prompt): string {
+  if (!req.template) return text;
+  return `${text}
+
+---
+Formatting template: "${req.template.name}" (template id ${req.template.id}). Any deliverable you write or specify must follow this formatting guide.
+
+${req.template.guide}`;
+}
 type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 
 export const MODEL = process.env.VOLT_MODEL ?? "claude-opus-5-5";
@@ -241,7 +257,7 @@ async function executeTool(
 
   const r = runLocalTool(catalog, name, parsed.data);
   if (!r.ok) return fail(r.error);
-  emit({ type: "tool_result", lane, callId: tu.id, name, summary: r.summary, data: name === "load_skill" ? undefined : r.data });
+  emit({ type: "tool_result", lane, callId: tu.id, name, summary: r.summary, data: name === "load_skill" || name === "get_template" ? undefined : r.data });
   return { type: "tool_result", tool_use_id: tu.id, content: typeof r.data === "string" ? r.data : JSON.stringify(r.data) };
 }
 
@@ -284,7 +300,7 @@ export function getSession(id?: string): Session {
   return s;
 }
 
-export async function runLive(catalog: Catalog, req: RunRequest, session: Session, emit: Emit, signal: AbortSignal) {
+export async function runLive(catalog: Catalog, req: RunInput, session: Session, emit: Emit, signal: AbortSignal) {
   if (req.workflowId) {
     const wf = catalog.workflowById.get(req.workflowId);
     if (!wf) throw new Error(`Unknown workflow '${req.workflowId}'`);
@@ -296,7 +312,7 @@ export async function runLive(catalog: Catalog, req: RunRequest, session: Sessio
   if (req.agentId && !agent) throw new Error(`Unknown agent '${req.agentId}'`);
   if (agent && agent.id !== "rudra") {
     session.agentId = agent.id;
-    session.messages.push({ role: "user", content: req.prompt });
+    session.messages.push({ role: "user", content: withTemplate(req) });
     emit({ type: "agent_start", lane: ORCHESTRATOR_LANE, parentLane: "", agentId: agent.id, name: agent.name, layer: agent.layer, icon: agent.icon, brief: req.prompt });
     await runAgentLoop({
       catalog,
@@ -312,7 +328,7 @@ export async function runLive(catalog: Catalog, req: RunRequest, session: Sessio
     return;
   }
 
-  session.messages.push({ role: "user", content: req.prompt });
+  session.messages.push({ role: "user", content: withTemplate(req) });
   await runAgentLoop({
     catalog,
     lane: ORCHESTRATOR_LANE,
@@ -336,8 +352,8 @@ function intakeText(catalog: Catalog, wf: WorkflowDef, answers: Record<string, s
   return lines.length ? `\n\nEngagement intake:\n${lines.join("\n")}` : "";
 }
 
-async function runWorkflow(catalog: Catalog, wf: WorkflowDef, req: RunRequest, session: Session, emit: Emit, signal: AbortSignal) {
-  const context = `${req.prompt}${intakeText(catalog, wf, req.intake)}`;
+async function runWorkflow(catalog: Catalog, wf: WorkflowDef, req: RunInput, session: Session, emit: Emit, signal: AbortSignal) {
+  const context = withTemplate(req, `${req.prompt}${intakeText(catalog, wf, req.intake)}`);
   const outputs: { phase: string; agent: AgentDef; text: string }[] = [];
 
   for (const [index, phase] of wf.phases.entries()) {
@@ -380,7 +396,7 @@ Synthesise the final executive deliverable for the client: an executive summary,
     lane: ORCHESTRATOR_LANE,
     system: orchestratorSystem(catalog),
     messages: session.messages,
-    tools: ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case"],
+    tools: ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template"],
     effort: ORCHESTRATOR_EFFORT,
     emit,
     signal,

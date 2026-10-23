@@ -33,6 +33,8 @@ export interface RunRequest {
   agentId?: string;
   /** Force the offline simulator even when credentials exist. */
   demo?: boolean;
+  /** Uploaded template whose formatting guide the agents apply (see shared/templates.ts). */
+  templateId?: string;
 }
 
 export interface CatalogAgent {

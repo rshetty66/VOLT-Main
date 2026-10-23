@@ -9,6 +9,7 @@ React UI (Vite) --SSE--> Node API (Express) --> Claude Messages API (streaming t
   Agents, Skill Finder     tools.ts                     -> find_agents / find_skills / load_skill
   Services, Analytics      catalog.ts  <-- plugins/volt (agents/*.md, skills/, data/*.json)
   Capability Health        analytics.ts (APQC benchmarks, maturity, NPV/IRR, value case)
+  Templates                templates.ts (formatting extracted from uploaded Office templates)
 ```
 
 ## Views
@@ -20,6 +21,7 @@ React UI (Vite) --SSE--> Node API (Express) --> Claude Messages API (streaming t
 | Skill Finder | Ranks the 378 VOLT skills against a task and opens any of them |
 | Services | The 60-service catalogue with coverage ratings; each service launches its workflow |
 | Analytics | APQC benchmark positioning and a finance transformation value case. Agents call the same deterministic tools for every figure |
+| Templates | Upload a Word, Excel or PowerPoint template; VOLT extracts its theme colours and fonts, styles, page setup, slide layouts, cell styles and number formats into a formatting guide. Pick a template in the top bar and every agent in a run applies it |
 | Capability Health | What the registry references against what the plugin ships |
 
 ## Run it
@@ -39,6 +41,25 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
   server-side refusal fallback. Set `VOLT_FALLBACKS=off` behind a gateway, Bedrock or Vertex. Effort is `high` for
   Rudra and `medium` for specialists (`VOLT_ORCHESTRATOR_EFFORT`, `VOLT_SPECIALIST_EFFORT`).
 - `VOLT_PLUGIN_DIR` points at a different copy of the plugin (default `../../plugins/volt`).
+- `VOLT_TEMPLATE_DIR` is where uploaded templates and their profiles are kept (default `data/templates`, git-ignored).
+
+## Templates
+
+Accepted: `.docx`, `.dotx`, `.xlsx`, `.xltx`, `.pptx`, `.potx`, up to 25 MB. Macro-enabled files are refused.
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /api/templates` | Upload: the file as the raw request body, its name in an `X-File-Name` header (URL-encoded) |
+| `GET /api/templates` | List uploaded templates |
+| `GET /api/templates/:id` | The formatting profile and its Markdown guide |
+| `GET /api/templates/:id/original` | Download the uploaded file |
+| `DELETE /api/templates/:id` | Remove a template |
+
+A run request with `templateId` attaches that template's guide to the request every agent receives. Agents can also call
+the `list_templates` and `get_template` tools. Uploads are untrusted: the package is read with a bounded ZIP reader
+(no ZIP64 or encrypted parts, 20 MB per part, 64 MB in total), XML with a DOCTYPE is refused, entities are not expanded,
+and macros and media are never read. The sample templates used by the tests are rebuilt with
+`python3 tests/fixtures/make-templates.py`.
 
 ## Test
 

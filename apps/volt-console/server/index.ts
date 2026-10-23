@@ -5,6 +5,11 @@
  *   GET  /api/agents/:id   one agent incl. its VOLT system prompt
  *   GET  /api/skills/:id   one skill's SKILL.md
  *   POST /api/run       Server-Sent Events stream of a run (see shared/events.ts)
+ *   GET  /api/templates            uploaded templates
+ *   POST /api/templates            upload a .docx/.dotx/.xlsx/.xltx/.pptx/.potx (raw body, X-File-Name header)
+ *   GET  /api/templates/:id        formatting profile and guide
+ *   GET  /api/templates/:id/original   the uploaded file
+ *   DELETE /api/templates/:id
  *   GET  /api/healthz
  *
  * In production it also serves the built React app from dist/.
@@ -19,9 +24,11 @@ import { z } from "zod";
 import { loadCatalog, loadSkillBody, rankSkills } from "./catalog.js";
 import { runLocalTool, schemas, type ToolName } from "./tools.js";
 import { BENCHMARKS } from "./analytics.js";
-import { MODEL, errorMessage, getSession, intakeFor, runLive, type Emit } from "./orchestrator.js";
+import { MODEL, errorMessage, getSession, intakeFor, runLive, type Emit, type RunInput } from "./orchestrator.js";
 import { runDemo } from "./demo.js";
+import { TemplateError, templateStore } from "./templates.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
+import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
 
 const catalog = loadCatalog();
 const app = express();
@@ -103,6 +110,58 @@ app.get("/api/workflows/:id/intake", (req, res) => {
   res.json(intakeFor(catalog, req.params.id));
 });
 
+// ── Templates ────────────────────────────────────────────────────────────────
+
+const templates = templateStore();
+
+app.get("/api/templates", (_req, res) => {
+  res.json(templates.list());
+});
+
+app.post("/api/templates", express.raw({ type: () => true, limit: MAX_TEMPLATE_BYTES }), (req, res) => {
+  const data = Buffer.isBuffer(req.body) ? new Uint8Array(req.body) : new Uint8Array(0);
+  if (data.length === 0) return void res.status(400).json({ error: "Send the template file as the request body.", code: "invalid_file" });
+  const header = (name: string) => {
+    const v = req.get(name);
+    try {
+      return v ? decodeURIComponent(v) : undefined;
+    } catch {
+      return v;
+    }
+  };
+  try {
+    const profile = templates.save(data, header("x-file-name") ?? "template", header("x-template-name"));
+    res.status(201).json(profile);
+  } catch (err) {
+    if (err instanceof TemplateError) {
+      const status = err.code === "too_large" ? 413 : err.code === "unsupported_type" ? 415 : 400;
+      return void res.status(status).json({ error: err.message, code: err.code });
+    }
+    console.error("Template extraction failed", err);
+    res.status(500).json({ error: "The template could not be read.", code: "invalid_file" });
+  }
+});
+
+app.get("/api/templates/:id", (req, res) => {
+  const t = templates.get(req.params.id);
+  if (!t) return void res.status(404).json({ error: "unknown template" });
+  res.json(t);
+});
+
+app.get("/api/templates/:id/original", (req, res) => {
+  const t = templates.get(req.params.id);
+  const file = templates.originalPath(req.params.id);
+  if (!t || !file) return void res.status(404).json({ error: "unknown template" });
+  res.download(file, t.fileName);
+});
+
+app.delete("/api/templates/:id", (req, res) => {
+  if (!templates.remove(req.params.id)) return void res.status(404).json({ error: "unknown template" });
+  res.status(204).end();
+});
+
+// ── Runs ─────────────────────────────────────────────────────────────────────
+
 const RunBody = z.object({
   sessionId: z.string().max(100).optional(),
   prompt: z.string().min(1).max(20000),
@@ -110,12 +169,15 @@ const RunBody = z.object({
   intake: z.record(z.string(), z.string()).optional(),
   agentId: z.string().optional(),
   demo: z.boolean().optional(),
+  templateId: z.string().max(32).optional(),
 });
 
 app.post("/api/run", async (req, res) => {
   const parsed = RunBody.safeParse(req.body);
   if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
-  const body = parsed.data;
+  const template = parsed.data.templateId ? templates.get(parsed.data.templateId) : undefined;
+  if (parsed.data.templateId && !template) return void res.status(400).json({ error: "unknown template" });
+  const body: RunInput = { ...parsed.data, template: template ? { id: template.id, name: template.name, guide: template.guide } : undefined };
 
   res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
   const controller = new AbortController();
@@ -133,6 +195,7 @@ app.post("/api/run", async (req, res) => {
       ? catalog.agentById.get(body.agentId)?.name ?? body.agentId
       : "Rudra orchestration";
   emit({ type: "run_start", runId: crypto.randomUUID(), sessionId: session.id, mode: runMode, model: runMode === "live" ? MODEL : "simulator", kind, title });
+  if (body.template) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Formatting template "${body.template.name}" attached` });
 
   try {
     if (runMode === "demo") await runDemo(catalog, body, emit, controller.signal);
@@ -142,6 +205,14 @@ app.post("/api/run", async (req, res) => {
   }
   emit({ type: "done", sessionId: session.id });
   res.end();
+});
+
+// JSON errors for the API (for example an upload over the size limit), instead of Express's HTML page.
+app.use("/api", (err: { status?: number; type?: string; message?: string }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  const status = err.type === "entity.too.large" ? 413 : err.status && err.status < 500 ? err.status : 500;
+  const error = status === 413 ? `Templates must be ${MAX_TEMPLATE_BYTES / 1024 / 1024} MB or smaller.` : status === 500 ? "Server error" : err.message;
+  if (status === 500) console.error(err);
+  res.status(status).json({ error, code: status === 413 ? "too_large" : undefined });
 });
 
 if (process.env.NODE_ENV === "production") {
