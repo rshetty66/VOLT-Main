@@ -14,6 +14,8 @@
  *
  * In production it also serves the built React app from dist/.
  */
+// Must stay the first import: other modules read their settings from process.env when they load.
+import "./env.js";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
