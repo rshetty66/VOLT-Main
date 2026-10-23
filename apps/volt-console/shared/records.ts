@@ -59,6 +59,8 @@ export interface Template {
   footerText: string;
   confidentiality: string;
   hasLogo: boolean;
+  /** Set when the template was imported from a client's Office file (its formatting guide goes to agents). */
+  source: { kind: "word" | "excel" | "powerpoint"; fileName: string } | null;
   engagementCount: number;
   updatedAt: string | null;
 }

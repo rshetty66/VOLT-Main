@@ -52,6 +52,19 @@ test("templates: create a brand profile", async () => {
   await expect(page.getByText("Maple brand").first()).toBeVisible();
 });
 
+test("templates: import a client's Word template and review what was read", async () => {
+  await nav(/^Templates/);
+  await page.getByLabel("Template file").setInputFiles(new URL("../fixtures/brand-template.docx", import.meta.url).pathname);
+  await expect(page.getByText(/Filled in from brand-template\.docx/)).toBeVisible();
+  await expect(page.getByLabel("Primary colour", { exact: true })).toHaveValue("1F3A5F");
+  await expect(page.getByLabel("Heading font")).toHaveValue("Montserrat");
+  await expect(page.getByAltText("Logo preview")).toBeVisible();
+  await page.getByRole("button", { name: "Show formatting guide" }).click();
+  await expect(page.getByText("Formatting guide: brand-template")).toBeVisible();
+  await page.getByRole("button", { name: /All templates/ }).first().click();
+  await expect(page.getByText("Imported from brand-template.docx")).toBeVisible();
+});
+
 test("engagements: create one with the template, upload a client file", async () => {
   await nav(/Engagements/);
   await page.getByPlaceholder("Client name").fill(CLIENT);

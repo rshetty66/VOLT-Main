@@ -61,6 +61,15 @@ together on `PORT` (default 8787) with plain `node`, logging one JSON object per
   Choose one per engagement (or when creating it); its Word, Excel and PowerPoint exports then use it. Engagements
   without a template, or whose template is deleted, use the built-in VOLT standard. Each template has sample
   Word, Excel and PowerPoint previews.
+- **Template import.** Instead of filling the form by hand, drop a client's Word (.docx, .dotx), Excel (.xlsx,
+  .xltx) or PowerPoint (.pptx, .potx) file on the Templates view (up to 25 MB; macro-enabled files are refused).
+  The console reads its theme colours and fonts, styles, page setup, header and footer text, slide layouts or cell
+  formats, and the logo from its header or slide master, then opens the new template in the editor to check.
+  The template keeps the original file and a Markdown formatting guide: runs on an engagement that uses it give the
+  guide to Rudra and the workflow synthesis in full, and a one-line summary to each specialist. Uploads are read
+  with a bounded ZIP reader (no ZIP64 or encrypted parts, 20 MB per part, 64 MB in total); XML with a DOCTYPE is
+  refused and macros are never read (`server/template-extract.ts`). The sample templates the tests use are rebuilt
+  with `python3 tests/fixtures/make-templates.py`.
 - **Sign-in.** The first time the console opens it asks for an admin account; that admin owns any engagements
   and runs saved before sign-in existed. The admin adds people under Users with one of three roles: **admin**
   (everything, including people and all engagements), **consultant** (creates engagements, and runs, resumes and

@@ -1,5 +1,6 @@
 import type { CatalogResponse, RunRequest, VoltEvent } from "../shared/events";
 import type { AuditEntry, BudgetStatus, ClientFile, CostSettings, Engagement, Estimate, Role, RunSummary, StoredRun, Template, UsageSummary, User } from "../shared/records";
+import type { TemplateProfile } from "../shared/template-profile";
 
 /** Fired when the server answers 401: the session ended, so the app shows the sign-in screen. */
 export const SIGNED_OUT = "volt:signed-out";
@@ -112,6 +113,21 @@ export const updateTemplate = (id: string, t: TemplateForm) => send<Template>("P
 export const deleteTemplate = (id: string) => send<{ ok: boolean }>("DELETE", `/api/templates/${id}`);
 export const templateLogoUrl = (t: Template) => `/api/templates/${t.id}/logo?v=${encodeURIComponent(t.updatedAt ?? "")}`;
 export const templatePreviewUrl = (id: string, format: "docx" | "xlsx" | "pptx") => `/api/templates/${id}/preview/${format}`;
+export const templateSourceUrl = (id: string) => `/api/templates/${id}/source`;
+export const getTemplateFormatting = (id: string) => getJSON<{ guide: string; profile: Omit<TemplateProfile, "guide"> }>(`/api/templates/${id}/formatting`);
+/** Creates a template from a client's Word, Excel or PowerPoint file; the server reads its brand and formatting. */
+export async function importTemplate(file: File): Promise<Template> {
+  const r = watch(
+    await fetch("/api/templates/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) },
+      body: file,
+    }),
+  );
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error((data as { error?: string }).error ?? `Import failed (${r.status})`);
+  return data as Template;
+}
 
 export async function fetchCatalog(): Promise<CatalogResponse> {
   const r = watch(await fetch("/api/catalog"));

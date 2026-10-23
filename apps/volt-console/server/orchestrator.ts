@@ -47,6 +47,21 @@ export interface LiveOptions {
   specialistMaxSteps?: number;
   /** The engagement's client files, when it has any: listed in briefs and readable with read_client_file. */
   files?: FileAccess;
+  /** The engagement's template, when it was imported from a client file: its formatting guide. */
+  formatting?: { name: string; guide: string; summary: string };
+}
+
+const FORMATTING_HEADING = "## Formatting template";
+
+/**
+ * The engagement template's formatting guide. The lead agent and the workflow synthesis get it in full;
+ * specialists get a short summary, which keeps their briefs lean.
+ */
+export function formattingNote(f: LiveOptions["formatting"], full: boolean): string {
+  if (!f) return "";
+  return full
+    ? `\n\n${FORMATTING_HEADING}\nFormatting template: "${f.name}". Any deliverable you write or specify must follow this formatting guide.\n\n${f.guide}`
+    : `\n\n${FORMATTING_HEADING}\nDeliverables on this engagement follow the "${f.name}" template (${f.summary}). The lead agent applies its full formatting guide.`;
 }
 
 /** Same rule in every agent's system prompt, so it holds whether or not a run has files (and keeps the cache stable). */
@@ -354,8 +369,13 @@ async function runSpecialist(
       catalog,
       lane,
       system: specialistSystem(catalog, agent),
-      // Briefs from Rudra do not carry the file list; workflow briefs already do.
-      messages: [{ role: "user", content: live.files && !brief.includes("## Client files on this engagement") ? `${brief}${filesManifest(live.files)}` : brief }],
+      // Briefs from Rudra do not carry the file list or template summary; workflow briefs already do.
+      messages: [
+        {
+          role: "user",
+          content: `${brief}${live.files && !brief.includes("## Client files on this engagement") ? filesManifest(live.files) : ""}${live.formatting && !brief.includes(FORMATTING_HEADING) ? formattingNote(live.formatting, false) : ""}`,
+        },
+      ],
       tools: withFiles(SPECIALIST_TOOLS, live),
       live,
       effort: SPECIALIST_EFFORT,
@@ -394,8 +414,8 @@ export async function runLive(catalog: Catalog, req: RunRequest, session: Sessio
 
   const agent = req.agentId ? catalog.agentById.get(req.agentId) : undefined;
   if (req.agentId && !agent) throw new Error(`Unknown agent '${req.agentId}'`);
-  // The file list goes into the conversation once, and again only if the files change.
-  const manifest = filesManifest(live.files);
+  // The file list and formatting guide go into the conversation once, and again only if they change.
+  const manifest = `${filesManifest(live.files)}${formattingNote(live.formatting, true)}`;
   const known = !manifest || session.messages.some((m) => typeof m.content === "string" && m.content.includes(manifest));
   const prompt = known ? req.prompt : `${req.prompt}${manifest}`;
   if (agent && agent.id !== "rudra") {
@@ -458,7 +478,7 @@ export function handoffOf(text: string): string {
 
 async function runWorkflow(catalog: Catalog, wf: WorkflowDef, req: RunRequest, session: Session, emit: Emit, signal: AbortSignal, live: LiveOptions) {
   const reuse = live.reuse;
-  const context = `${req.prompt}${intakeText(catalog, wf, req.intake)}${filesManifest(live.files)}`;
+  const context = `${req.prompt}${intakeText(catalog, wf, req.intake)}${filesManifest(live.files)}${formattingNote(live.formatting, false)}`;
   const outputs: { phase: string; agent: AgentDef; text: string }[] = [];
 
   for (const [index, phase] of wf.phases.entries()) {
@@ -504,7 +524,7 @@ ${context}
 Specialist outputs, by phase:
 ${outputs.map((o) => `### ${o.phase} — ${o.agent.name}\n${o.text.slice(0, SYNTHESIS_CHARS)}`).join("\n\n")}
 
-Synthesise the final executive deliverable for the client: an executive summary, the integrated findings by phase, a recommendations table (recommendation, owner workstream, priority, value/risk), key risks and assumptions, and next steps. Resolve any conflicts between specialists explicitly. Use the analytics tools for any figures you add.${live.files ? " Keep the specialists' client-file citations, such as (F1: file name), beside the figures they support." : ""}`;
+Synthesise the final executive deliverable for the client: an executive summary, the integrated findings by phase, a recommendations table (recommendation, owner workstream, priority, value/risk), key risks and assumptions, and next steps. Resolve any conflicts between specialists explicitly. Use the analytics tools for any figures you add.${live.files ? " Keep the specialists' client-file citations, such as (F1: file name), beside the figures they support." : ""}${formattingNote(live.formatting, true)}`;
   session.messages.push({ role: "user", content: synthesisPrompt });
   emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Rudra is synthesising the workflow deliverable" });
   await runAgentLoop({

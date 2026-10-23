@@ -1,7 +1,11 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Template } from "../../shared/records";
-import { createTemplate, deleteTemplate, listTemplates, templateLogoUrl, templatePreviewUrl, updateTemplate, type TemplateForm } from "../api";
+import { TEMPLATE_EXTENSIONS } from "../../shared/template-profile";
+import { createTemplate, deleteTemplate, importTemplate, listTemplates, templateLogoUrl, templatePreviewUrl, updateTemplate, type TemplateForm } from "../api";
 import { useCanWrite } from "../user";
+import { TemplateFormatting } from "./TemplateFormatting";
+
+const KIND_LABEL = { word: "Word", excel: "Excel", powerpoint: "PowerPoint" } as const;
 
 const FONTS = ["Calibri", "Aptos", "Arial", "Helvetica Neue", "Segoe UI", "Verdana", "Georgia", "Cambria", "Garamond", "Times New Roman", "Lato", "Roboto", "Open Sans"];
 const MAX_LOGO = 1024 * 1024;
@@ -65,6 +69,15 @@ export function Templates({ onChanged }: { onChanged: () => void }) {
         )}
       </div>
       {err && <div className="card">{err}</div>}
+      {canWrite && (
+        <ImportZone
+          onImported={(t) => {
+            load();
+            onChanged();
+            setEditing(t);
+          }}
+        />
+      )}
       {!templates ? (
         <div className="empty"><span className="spinner" /> Loading...</div>
       ) : (
@@ -90,6 +103,11 @@ export function Templates({ onChanged }: { onChanged: () => void }) {
                 </span>
               </div>
               {t.confidentiality && <div className="body" style={{ fontSize: 12 }}>{t.confidentiality}</div>}
+              {t.source && (
+                <div className="muted" style={{ fontSize: 12 }}>
+                  Imported from {t.source.fileName} <span className="badge">{KIND_LABEL[t.source.kind]}</span>
+                </div>
+              )}
               <div className="muted" style={{ fontSize: 12 }}>
                 Used by {t.engagementCount} engagement{t.engagementCount === 1 ? "" : "s"}
               </div>
@@ -97,7 +115,7 @@ export function Templates({ onChanged }: { onChanged: () => void }) {
               {!t.builtIn && canWrite && (
                 <div className="row">
                   <button className="btn sm" onClick={() => setEditing(t)}>
-                    Edit
+                    {t.source ? "Edit and view formatting" : "Edit"}
                   </button>
                   {confirmDelete === t.id ? (
                     <>
@@ -204,6 +222,12 @@ function TemplateEditor({ template, standard, onDone }: { template: Template | n
         &larr; All templates
       </button>
       <h1 className="page-title">{template ? `Edit ${template.name}` : "New template"}</h1>
+      {template?.source && (
+        <p className="page-sub">
+          Filled in from {template.source.fileName}. Check the values below and save any changes. Agents on engagements that use this
+          template also get the full formatting guide extracted from the file.
+        </p>
+      )}
       <datalist id="volt-fonts">
         {FONTS.map((x) => (
           <option key={x} value={x} />
@@ -254,6 +278,75 @@ function TemplateEditor({ template, standard, onDone }: { template: Template | n
         </div>
       </div>
       {template && <Previews id={template.id} />}
+      {template?.source && (
+        <div className="card">
+          <TemplateFormatting id={template.id} />
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Drop or choose a Word, Excel or PowerPoint file; the server turns it into a template. */
+function ImportZone({ onImported }: { onImported: (t: Template) => void }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [over, setOver] = useState(false);
+  const [busy, setBusy] = useState("");
+  const [err, setErr] = useState("");
+  const run = async (file: File | undefined) => {
+    if (!file) return;
+    setErr("");
+    setBusy(file.name);
+    try {
+      onImported(await importTemplate(file));
+    } catch (e) {
+      setErr(`${file.name}: ${e instanceof Error ? e.message : String(e)}`);
+    } finally {
+      setBusy("");
+    }
+  };
+  return (
+    <div
+      className={`card dropzone ${over ? "over" : ""}`}
+      onDragOver={(e) => {
+        e.preventDefault();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        setOver(false);
+        void run(e.dataTransfer.files[0]);
+      }}
+    >
+      <input
+        ref={input}
+        type="file"
+        hidden
+        aria-label="Template file"
+        accept={TEMPLATE_EXTENSIONS.join(",")}
+        onChange={(e) => {
+          void run(e.target.files?.[0]);
+          e.target.value = "";
+        }}
+      />
+      {busy ? (
+        <span className="body">
+          <span className="spinner" /> Reading {busy}...
+        </span>
+      ) : (
+        <>
+          <b>Import a client template</b>
+          <span className="muted" style={{ fontSize: 12 }}>
+            Drop a Word (.docx, .dotx), Excel (.xlsx, .xltx) or PowerPoint (.pptx, .potx) file, up to 25 MB. VOLT reads its colours, fonts,
+            header, footer and logo into a new template, plus a formatting guide for agents. Macro-enabled files are not accepted.
+          </span>
+          <button className="btn" onClick={() => input.current?.click()}>
+            Choose file
+          </button>
+        </>
+      )}
+      {err && <div className="upload-error">{err}</div>}
     </div>
   );
 }

@@ -15,7 +15,8 @@ import { MODEL, errorMessage, getSession, runLive, type Emit } from "./orchestra
 import { recordRun } from "./recorder.js";
 import { fileAccess } from "./files.js";
 import { getSettings } from "./settings.js";
-import { loadSession, saveSession } from "./store.js";
+import { getEngagement, loadSession, saveSession } from "./store.js";
+import { formattingFor } from "./templates.js";
 import { budgetFor, budgetGuard } from "./usage.js";
 import type { StoredRun } from "../shared/records.js";
 import { log } from "./log.js";
@@ -121,8 +122,10 @@ export async function startRun(
     try {
       const files = await fileAccess(db, body.engagementId);
       if (files) emit({ type: "files", files: files.files.map(({ ref, id, name, summary }) => ({ ref, id, name, summary })) });
+      const formatting = body.engagementId ? await formattingFor(db, (await getEngagement(db, body.engagementId))?.templateId) : null;
+      if (formatting) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Formatting template "${formatting.name}" applied` });
       if (runMode === "demo") await runDemo(catalog, body, emit, controller.signal, files);
-      else await runLive(catalog, body, session, emit, controller.signal, { reuse: opts.reuse, specialistModel: settings.specialistModel, specialistMaxSteps: settings.specialistMaxSteps, files });
+      else await runLive(catalog, body, session, emit, controller.signal, { reuse: opts.reuse, specialistModel: settings.specialistModel, specialistMaxSteps: settings.specialistMaxSteps, files, formatting: formatting ?? undefined });
     } catch (err) {
       if (!controller.signal.aborted) emit({ type: "error", lane: ORCHESTRATOR_LANE, message: errorMessage(err) });
     }

@@ -24,6 +24,9 @@
  *   GET  /api/templates            the template library, the built-in standard first
  *   POST /api/templates            create one; PUT/DELETE /api/templates/:id change or remove it
  *   GET  /api/templates/:id/logo   the template's logo image
+ *   POST /api/templates/import     create one from a Word/Excel/PowerPoint file (raw body, X-File-Name header)
+ *   GET  /api/templates/:id/formatting  the formatting extracted from an imported template, and its guide
+ *   GET  /api/templates/:id/source the file an imported template was made from
  *   GET  /api/templates/:id/preview/:fmt  sample Word/Excel/PowerPoint file in that template
  *   GET  /api/catalog              agents, workflows, services, skills, intake, health
  *   GET  /api/agents/:id           one agent incl. its VOLT system prompt
@@ -52,7 +55,9 @@ import { runToMarkdown } from "./export.js";
 import { fileStem, runContent } from "./office/content.js";
 import { sampleContent } from "./office/sample.js";
 import { MAX_LOGO_BYTES, normaliseColour } from "./office/brand.js";
-import { STANDARD_ID, brandFor, createTemplate, deleteTemplate, getLogo, getTemplate, listTemplates, updateTemplate, type TemplateInput } from "./templates.js";
+import { STANDARD_ID, brandFor, createTemplate, deleteTemplate, getLogo, getTemplate, getTemplateFormatting, getTemplateSource, importTemplate, listTemplates, updateTemplate, type TemplateInput } from "./templates.js";
+import { TemplateError } from "./template-extract.js";
+import { MAX_TEMPLATE_BYTES } from "../shared/template-profile.js";
 import { buildDocx } from "./office/docx.js";
 import { buildXlsx } from "./office/xlsx.js";
 import { buildPptx } from "./office/pptx.js";
@@ -154,6 +159,7 @@ export function createApp({ db, catalog, mode }: AppContext): express.Express {
   app.use("/api", rateLimit("api", generalLimit(), byUserOrIp));
   app.post("/api/run", rateLimit("runs", 20, byUserOrIp));
   app.post("/api/engagements/:id/files", rateLimit("uploads", 60, byUserOrIp));
+  app.post("/api/templates/import", rateLimit("uploads", 60, byUserOrIp));
 
   /** Ends the request with 403 unless the signed-in user's role allows changes. */
   const requireWriter = (res: Response) => {
@@ -638,6 +644,53 @@ export function createApp({ db, catalog, mode }: AppContext): express.Express {
     if (!t || !(await deleteTemplate(db, req.params.id))) return void res.status(404).json({ error: "unknown template" });
     await audit(db, userOf(res).id, "template_deleted", { type: "template", id: req.params.id }, { name: t.name });
     res.json({ ok: true });
+  });
+
+  /** The template file is the request body; its name comes in the X-File-Name header, URI-encoded. */
+  const templateBody = express.raw({ type: () => true, limit: MAX_TEMPLATE_BYTES });
+  app.post("/api/templates/import", (req, res) => {
+    if (!requireWriter(res)) return;
+    templateBody(req, res, async (err?: unknown) => {
+      if (err) {
+        const tooBig = (err as { type?: string }).type === "entity.too.large";
+        return void res.status(tooBig ? 413 : 400).json({ error: tooBig ? `Templates can be up to ${MAX_TEMPLATE_BYTES / 1024 / 1024} MB.` : "The upload could not be read." });
+      }
+      let name = "";
+      try {
+        name = decodeURIComponent(String(req.headers["x-file-name"] ?? ""));
+      } catch {
+        /* left empty */
+      }
+      if (!name) return void res.status(400).json({ error: "Send the file name in the X-File-Name header." });
+      const bytes = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
+      if (!bytes.length) return void res.status(400).json({ error: "The file is empty." });
+      try {
+        const t = await importTemplate(db, bytes, name);
+        await audit(db, userOf(res).id, "template_imported", { type: "template", id: t.id }, { name: t.name, file: t.source?.fileName, kind: t.source?.kind, bytes: bytes.length });
+        res.status(201).json(t);
+      } catch (e) {
+        if (e instanceof TemplateError) {
+          const status = e.code === "too_large" ? 413 : e.code === "unsupported_type" ? 415 : 400;
+          return void res.status(status).json({ error: e.message });
+        }
+        log.error("template import failed", { reqId: res.locals.reqId, file: name, err: e });
+        res.status(500).json({ error: "The template could not be imported; the server log has the details." });
+      }
+    });
+  });
+
+  app.get("/api/templates/:id/formatting", async (req, res) => {
+    const f = await getTemplateFormatting(db, req.params.id);
+    if (!f) return void res.status(404).json({ error: "this template was not imported from a file" });
+    res.json(f);
+  });
+
+  app.get("/api/templates/:id/source", async (req, res) => {
+    const src = await getTemplateSource(db, req.params.id);
+    if (!src) return void res.status(404).type("text/plain").send("This template was not imported from a file.");
+    res.attachment(src.fileName);
+    res.setHeader("Content-Type", "application/octet-stream");
+    res.send(src.data);
   });
 
   app.get("/api/templates/:id/logo", async (req, res) => {
