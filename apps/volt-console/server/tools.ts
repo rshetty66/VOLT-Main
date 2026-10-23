@@ -10,6 +10,7 @@ import { z } from "zod";
 import type Anthropic from "@anthropic-ai/sdk";
 import { type Catalog, loadSkillBody, rankAgents, rankSkills } from "./catalog.js";
 import { BENCHMARKS, appraiseInvestment, buildValueCase, compareToBenchmark, MATURITY_DIMENSIONS, scoreMaturity } from "./analytics.js";
+import { templateStore } from "./templates.js";
 
 export const schemas = {
   find_agents: z.object({
@@ -61,6 +62,10 @@ export const schemas = {
     close_days_current: z.number().optional(),
     close_days_target: z.number().optional(),
   }),
+  list_templates: z.object({}),
+  get_template: z.object({
+    template_id: z.string().describe("Template id from list_templates."),
+  }),
 } as const;
 
 export type ToolName = keyof typeof schemas;
@@ -80,6 +85,9 @@ const descriptions: Record<ToolName, string> = {
   appraise_investment: "Compute NPV, IRR, payback and profitability index for an investment and its yearly cash flows.",
   build_value_case:
     "Build a finance transformation value case from FTEs, loaded cost, automation %, investment and run cost: yearly benefit ramp plus NPV/IRR/payback.",
+  list_templates: "List the client Word, Excel and PowerPoint templates uploaded to VOLT, with their ids and brand fonts.",
+  get_template:
+    "Get the formatting guide of an uploaded template: theme colours and fonts, styles, page setup, slide layouts or workbook formats. Use it whenever a deliverable must match a client template.",
 };
 
 function jsonSchema(schema: z.ZodType): Anthropic.Tool.InputSchema {
@@ -105,9 +113,11 @@ export const ORCHESTRATOR_TOOLS: ToolName[] = [
   "score_maturity",
   "appraise_investment",
   "build_value_case",
+  "list_templates",
+  "get_template",
 ];
 
-export const SPECIALIST_TOOLS: ToolName[] = ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case"];
+export const SPECIALIST_TOOLS: ToolName[] = ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template"];
 
 export type LocalResult = { ok: true; data: unknown; summary: string } | { ok: false; error: string };
 
@@ -187,6 +197,18 @@ export function runLocalTool(catalog: Catalog, name: Exclude<ToolName, "consult_
         closeDaysTarget: v.close_days_target,
       });
       return { ok: true, data: r, summary: `Saving ${fmt(r.steadyStateAnnualSaving)}/yr, NPV ${fmt(r.npv)}, payback ${r.paybackYears ?? "n/a"} yrs` };
+    }
+    case "list_templates": {
+      const list = templateStore()
+        .list()
+        .map((t) => ({ template_id: t.id, name: t.name, kind: t.kind, file: t.fileName, heading_font: t.theme?.fonts.major, body_font: t.theme?.fonts.minor }));
+      return { ok: true, data: list, summary: list.length ? list.map((t) => `${t.name} (${t.kind})`).join(", ") : "no templates uploaded" };
+    }
+    case "get_template": {
+      const { template_id } = input as z.infer<typeof schemas.get_template>;
+      const t = templateStore().get(template_id);
+      if (!t) return { ok: false, error: `No template '${template_id}'. Use list_templates to see the uploaded templates.` };
+      return { ok: true, data: t.guide, summary: `${t.name} (${t.kind}) formatting guide` };
     }
   }
 }

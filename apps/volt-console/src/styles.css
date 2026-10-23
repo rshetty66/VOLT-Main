@@ -85,6 +85,7 @@ code, pre { font-family: var(--mono); font-size: 13px; }
 .btn.ghost:hover { color: var(--primary); background: rgba(255, 255, 255, 0.05); }
 .btn:disabled { opacity: 0.4; pointer-events: none; }
 .btn.sm { padding: 4px 10px; font-size: 12px; }
+a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 
 .input, .select, .textarea {
   width: 100%; background: var(--void); border: 1px solid var(--border); border-radius: 8px;
@@ -193,3 +194,21 @@ code, pre { font-family: var(--mono); font-size: 13px; }
 .empty { color: var(--muted); padding: 24px; text-align: center; }
 .spinner { width: 14px; height: 14px; border: 2px solid var(--line-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; display: inline-block; }
 @keyframes spin { to { transform: rotate(360deg); } }
+
+/* Templates */
+.dropzone { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 16px; border-style: dashed; border-color: var(--line-strong); text-align: center; }
+.dropzone.over { border-color: var(--accent); background: rgba(255, 255, 255, 0.06); }
+.upload-error { color: var(--heading); font-size: 12px; border-left: 2px solid var(--warn); padding-left: 8px; text-align: left; align-self: stretch; }
+.swatches { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch { display: flex; flex-direction: column; gap: 3px; font-size: 11px; }
+.swatch > span { display: block; border-radius: 6px; border: 1px solid var(--line-strong); }
+.swatch small { color: var(--muted); }
+.swatch code { font-size: 11px; color: var(--body); }
+.dot-swatch { width: 12px; height: 12px; border-radius: 3px; border: 1px solid var(--line-strong); display: inline-block; }
+.cell-sample { display: inline-block; padding: 2px 8px; border-radius: 4px; border: 1px solid var(--line); font-size: 12px; }
+.layouts { display: grid; gap: 14px; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); }
+.layout { display: flex; flex-direction: column; gap: 6px; }
+.layout .slide { position: relative; width: 100%; background: var(--primary); border-radius: 4px; overflow: hidden; }
+.layout .ph { position: absolute; border: 1px dashed #64748b; color: #475569; font-size: 9px; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; }
+.layout .ph.title, .layout .ph.ctrTitle { border-color: #0f172a; color: #0f172a; font-weight: 600; }
+.template-pick .select { width: auto; max-width: 220px; padding: 3px 8px; }

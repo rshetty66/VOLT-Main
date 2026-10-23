@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../shared/events";
-import { fetchCatalog, streamRun } from "./api";
+import { fetchCatalog, listTemplates, streamRun } from "./api";
+import type { TemplateSummary } from "../shared/templates";
 import { applyEvent, newRun, type Run } from "./runState";
 import { Console } from "./components/Console";
 import { Workflows } from "./components/Workflows";
@@ -9,8 +10,9 @@ import { SkillFinder } from "./components/SkillFinder";
 import { Services } from "./components/Services";
 import { Analytics } from "./components/Analytics";
 import { Health } from "./components/Health";
+import { Templates } from "./components/Templates";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "analytics" | "health";
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -20,11 +22,20 @@ export function App() {
   const [target, setTarget] = useState<string>("rudra");
   const [forceDemo, setForceDemo] = useState(false);
   const [openAgent, setOpenAgent] = useState<string | null>(null);
+  const [templates, setTemplates] = useState<TemplateSummary[]>([]);
+  const [activeTemplate, setActiveTemplate] = useState("");
   const sessions = useRef(new Map<string, string>());
   const controllers = useRef(new Map<string, AbortController>());
 
   useEffect(() => {
     fetchCatalog().then(setCatalog, (e) => setLoadError(String(e)));
+    listTemplates().then(setTemplates, () => setTemplates([]));
+  }, []);
+
+  const refreshTemplates = useCallback(async () => {
+    const list = await listTemplates();
+    setTemplates(list);
+    setActiveTemplate((id) => (list.some((t) => t.id === id) ? id : ""));
   }, []);
 
   const start = useCallback(
@@ -37,7 +48,7 @@ export function App() {
       setView("console");
       const update = (fn: (r: Run) => Run) => setRuns((rs) => rs.map((r) => (r.id === run.id ? fn(r) : r)));
       try {
-        for await (const e of streamRun({ ...req, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined }, controller.signal)) {
+        for await (const e of streamRun({ ...req, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined, templateId: activeTemplate || undefined }, controller.signal)) {
           if (e.type === "done") {
             sessions.current.set(sessionKey, e.sessionId);
             // Follow-ups to Rudra continue from a finished workflow's synthesis.
@@ -54,7 +65,7 @@ export function App() {
         controllers.current.delete(run.id);
       }
     },
-    [forceDemo],
+    [forceDemo, activeTemplate],
   );
 
   const stop = (runId: string) => {
@@ -72,6 +83,7 @@ export function App() {
     ["agents", "Agents", catalog.agents.length],
     ["skills", "Skill Finder", catalog.skills.length],
     ["services", "Services", catalog.services.length],
+    ["templates", "Templates", templates.length || ""],
     ["analytics", "Analytics", catalog.benchmarks.length],
     ["health", "Capability Health", catalog.health.missingSkills.length],
   ];
@@ -90,6 +102,17 @@ export function App() {
             <input type="checkbox" checked={forceDemo} onChange={(e) => setForceDemo(e.target.checked)} /> demo
           </label>
         )}
+        <label className="row body template-pick" style={{ fontSize: 12 }}>
+          Template
+          <select className="select" value={activeTemplate} onChange={(e) => setActiveTemplate(e.target.value)}>
+            <option value="">None</option>
+            {templates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name} ({t.kind === "powerpoint" ? "PowerPoint" : t.kind === "excel" ? "Excel" : "Word"})
+              </option>
+            ))}
+          </select>
+        </label>
         <span className="usage" title={catalog.source.ref}>
           {catalog.source.name}@{catalog.source.commit?.slice(0, 7)}
         </span>
@@ -112,6 +135,7 @@ export function App() {
         {view === "agents" && <Agents catalog={catalog} onOpen={setOpenAgent} />}
         {view === "skills" && <SkillFinder catalog={catalog} onOpenAgent={setOpenAgent} />}
         {view === "services" && <Services catalog={catalog} onOpenAgent={setOpenAgent} onLaunch={start} />}
+        {view === "templates" && <Templates templates={templates} refresh={refreshTemplates} activeTemplate={activeTemplate} setActiveTemplate={setActiveTemplate} />}
         {view === "analytics" && <Analytics catalog={catalog} />}
         {view === "health" && <Health catalog={catalog} onOpenAgent={setOpenAgent} />}
       </main>

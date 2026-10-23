@@ -45,6 +45,17 @@ describe("live agent loop (mocked Messages API)", () => {
     expect(synth?.body.messages.at(-1).content.map((c: { tool_use_id: string }) => c.tool_use_id)).toEqual(["tu_a", "tu_b", "tu_c"]);
   });
 
+  it("attaches the selected template's formatting guide and offers the template tools", async () => {
+    const before = mock.requests.length;
+    await run({ prompt: "Draft the steering deck", agentId: "creative-designer", template: { id: "abc123", name: "Client deck", guide: "# Formatting guide: Client deck\nHeading font: Montserrat" } });
+    const req = mock.requests[before];
+    const first = req.body.messages[0].content as string;
+    expect(first).toContain("Draft the steering deck");
+    expect(first).toContain('Formatting template: "Client deck"');
+    expect(first).toContain("Heading font: Montserrat");
+    expect(req.body.tools.map((t: { name: string }) => t.name)).toEqual(expect.arrayContaining(["list_templates", "get_template"]));
+  });
+
   it("runs a workflow phase by phase", async () => {
     const events = await run({ prompt: "Insurer close", workflowId: "close-optimization" });
     const phases = events.filter((e) => e.type === "phase_start");

@@ -1,4 +1,25 @@
 import type { CatalogResponse, RunRequest, VoltEvent } from "../shared/events";
+import type { TemplateProfile, TemplateSummary } from "../shared/templates";
+
+export const listTemplates = () => getJSON<TemplateSummary[]>("/api/templates");
+export const getTemplate = (id: string) => getJSON<TemplateProfile>(`/api/templates/${encodeURIComponent(id)}`);
+
+/** Uploads one template file; the server extracts and keeps its formatting profile. */
+export async function uploadTemplate(file: File): Promise<TemplateProfile> {
+  const r = await fetch("/api/templates", {
+    method: "POST",
+    headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) },
+    body: file,
+  });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.error ?? `Upload failed (${r.status})`);
+  return body as TemplateProfile;
+}
+
+export async function deleteTemplate(id: string): Promise<void> {
+  const r = await fetch(`/api/templates/${encodeURIComponent(id)}`, { method: "DELETE" });
+  if (!r.ok && r.status !== 404) throw new Error(`Delete failed (${r.status})`);
+}
 
 export async function fetchCatalog(): Promise<CatalogResponse> {
   const r = await fetch("/api/catalog");
