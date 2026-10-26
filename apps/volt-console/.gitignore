@@ -5,3 +5,4 @@ dist/
 evals/results/
 test-results/
 playwright-report/
+data/
