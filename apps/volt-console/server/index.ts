@@ -16,6 +16,7 @@
  *   POST /api/finance-architecture/sources/extract   figures + page quotes from a URL or uploaded source, verified (live only)
  *   POST /api/finance-architecture/sources/upload    store a PDF / text / CSV document (raw body, X-File-Name header)
  *   POST /api/finance-architecture/sources/verify    re-check figures against a stored source, 0 tokens
+ *   *    /api/copilotkit/*   CopilotKit (AG-UI) runtime for the workbench copilot, live mode only
  *   GET  /api/healthz
  *
  * In production it also serves the built React app from dist/.
@@ -36,13 +37,13 @@ import { MODEL, errorMessage, getSession, intakeFor, runLive, type Emit, type Ru
 import { runDemo } from "./demo.js";
 import { TemplateError, templateStore } from "./templates.js";
 import { demoDocuments, multiBasisAllowance, runValidator } from "./financeArchitecture.js";
+import { COPILOTKIT_PATH, copilotkitHandler } from "./copilotkit.js";
 import { MAX_SOURCE_BYTES, SourceError, extractFigures, findFilings, ingestDocument, verifyFigures } from "./sources.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
 
 const catalog = loadCatalog();
 const app = express();
-app.use(express.json({ limit: "1mb" }));
 
 /** Live when any Claude credential source is configured; VOLT_MODE overrides. */
 function detectMode(): RunMode {
@@ -54,8 +55,12 @@ function detectMode(): RunMode {
 }
 const mode = detectMode();
 
+// CopilotKit reads its own request bodies, so it is mounted before the JSON parser. Live mode only.
+if (mode === "live") app.use(copilotkitHandler());
+app.use(express.json({ limit: "1mb" }));
+
 app.get("/api/healthz", (_req, res) => {
-  res.json({ ok: true, mode, model: MODEL, agents: catalog.agents.length });
+  res.json({ ok: true, mode, model: MODEL, agents: catalog.agents.length, copilotkit: mode === "live" ? COPILOTKIT_PATH : null });
 });
 
 app.get("/api/catalog", (_req, res) => {

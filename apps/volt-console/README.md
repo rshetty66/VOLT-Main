@@ -22,7 +22,7 @@ React UI (Vite) --SSE--> Node API (Express) --> Claude Messages API (streaming t
 | Services | The 60-service catalogue with coverage ratings; each service launches its workflow |
 | Analytics | APQC benchmark positioning and a finance transformation value case. Agents call the same deterministic tools for every figure |
 | Templates | Upload a Word, Excel or PowerPoint template; VOLT extracts its theme colours and fonts, styles, page setup, slide layouts, cell styles and number formats into a formatting guide. Pick a template in the top bar and every agent in a run applies it |
-| Finance Workbench | Six-step workbench over the `design-finance-architecture` skill. Phases 1 and 2 are built: run-status chip, token meter (measured model usage plus validator runs at 0 tokens), multi-journal simulator with a US CECL delta overlay, CSV mapping prover, and a copyable evidence pack with maker and checker names. An assistant-ui chat panel runs validation and the evidence pack locally at 0 tokens and sends other questions to the `accounting-hub-architect` agent. Intake, Event designer and Crosswalk arrive in phases 3 and 4. Needs `python3` on the server path (`VOLT_PYTHON` overrides) |
+| Finance Workbench | Six-step workbench over the `design-finance-architecture` skill, real data first. **Sources** finds an issuer's published statements (Claude web search), fetches and extracts the residential-mortgage figures, or takes an uploaded document; every figure is checked against its page (`verify_extraction.py`, 0 tokens) and confirmed by the maker. Journals are derived from confirmed figures; the synthetic golden case appears only after "Data not available: use illustrative example". Also: mapping prover (CSV), copyable evidence pack with source register, run-status chip, token meter. Two assistants side by side: an assistant-ui panel (questions, validation at 0 tokens) and, in live mode, a CopilotKit popup that operates the workbench's own buttons. Needs `python3` with `pypdf` on the server path (`VOLT_PYTHON` overrides) |
 | Capability Health | What the registry references against what the plugin ships |
 
 ## Run it
@@ -43,6 +43,22 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
   Rudra and `medium` for specialists (`VOLT_ORCHESTRATOR_EFFORT`, `VOLT_SPECIALIST_EFFORT`).
 - `VOLT_PLUGIN_DIR` points at a different copy of the plugin (default `../../plugins/volt`).
 - `VOLT_TEMPLATE_DIR` is where uploaded templates and their profiles are kept (default `data/templates`, git-ignored).
+
+## Workbench copilot (CopilotKit)
+
+In live mode the server mounts a self-hosted CopilotKit runtime at `/api/copilotkit` (`server/copilotkit.ts`): a built-in agent on
+`claude-opus-5-5` using the same `ANTHROPIC_API_KEY`. No CopilotKit Cloud account is used. The browser registers the workbench's
+actions as frontend tools (`find_filings`, `extract_figures`, `check_figures`, `validate_journals`, `go_to_step`) and shares the
+workbench state; `confirm_figures` is human-in-the-loop, so only the person can accept a figure. The CopilotKit bundle is lazy-loaded
+and never ships in demo mode.
+
+- Telemetry to `telemetry.copilotkit.ai` is off by default (`COPILOTKIT_TELEMETRY_DISABLED=true`, set in `server/env.ts`).
+- `package.json` `overrides` pin patched versions of transitive dependencies that CopilotKit 1.79.1 pulls in (`undici` 6.29.1,
+  `@fastify/busboy` 3.2.3, `graphql-scalars` 2.0.1, `body-parser` 2.4.0, and every nested `zod` to the console's own 4.x), so
+  `npm audit` reports no high or critical findings. Drop an override once CopilotKit ships the fixed version itself.
+- The developer inspector is disabled (`enableInspector={false}`); it would otherwise fetch from `cdn.copilotkit.ai`.
+- `web_fetch` (used to fetch a filing by URL) is refused by the API from network-restricted sandboxes; run the console on a normal
+  host for that step. Web search and uploaded documents work everywhere.
 
 ## Templates
 
