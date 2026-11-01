@@ -4,6 +4,8 @@
  * The accounting checks themselves stay in the skill's Python validators (server/financeArchitecture.ts).
  */
 
+import { toCurrencyUnits, type Figure } from "../../shared/mortgageFigures";
+
 export interface Check {
   check_id: string;
   status: "PASS" | "FAIL" | "NOT_RUN";
@@ -52,12 +54,15 @@ export interface MappingDoc {
 
 export type RunStatus = "NOT_RUN" | "PARTIAL" | "BLOCKED" | "VALIDATED_SCOPED";
 
-/** Workbench chip: VALIDATED_SCOPED only when both deterministic proofs ran and passed. */
-export function runStatus(journal?: Report, mapping?: Report): RunStatus {
-  const ran = [journal, mapping].filter((r): r is Report => !!r);
+/**
+ * Workbench chip over the proofs a run needs (one argument per proof, undefined when not run yet):
+ * VALIDATED_SCOPED only when every one ran and passed; BLOCKED when any failed.
+ */
+export function runStatus(...proofs: (Report | undefined)[]): RunStatus {
+  const ran = proofs.filter((r): r is Report => !!r);
   if (!ran.length) return "NOT_RUN";
   if (ran.some((r) => r.status !== "VALIDATED_SCOPED")) return "BLOCKED";
-  return ran.length === 2 ? "VALIDATED_SCOPED" : "PARTIAL";
+  return ran.length === proofs.length ? "VALIDATED_SCOPED" : "PARTIAL";
 }
 
 /** Minimal RFC 4180 reader: quoted fields, doubled quotes, CRLF, blank lines skipped. Headers are lower-cased. */
@@ -198,12 +203,33 @@ export function intentOf(text: string): Intent {
   return "model";
 }
 
+export interface EvidenceSource {
+  title: string;
+  url?: string;
+  retrievedAt: string;
+  sha256: string;
+  evidenceClass: string;
+}
+export interface EvidenceFigure {
+  id: string;
+  label: string;
+  value: string;
+  scale: string;
+  currency: string;
+  page: number;
+  quote: string;
+  confirmed: boolean;
+}
 export interface EvidenceInput {
   journal?: Report;
   mapping?: Report;
+  extraction?: Report;
   preparedBy: string;
   reviewedBy: string;
   generatedAt: string;
+  dataMode?: "real" | "illustrative";
+  sources?: EvidenceSource[];
+  figures?: EvidenceFigure[];
 }
 
 /** Copyable markdown evidence pack. Sign-off names are recorded as entered; the agent never approves. */
@@ -223,11 +249,28 @@ export function evidenceMarkdown(e: EvidenceInput): string {
       "Not run (outside this utility's scope):", ...notRun.map((c) => `- ${c.check_id}: ${c.scope}`), "",
     ];
   };
+  const illustrative = e.dataMode === "illustrative";
+  const status = illustrative || !e.dataMode ? runStatus(e.journal, e.mapping) : runStatus(e.extraction, e.journal, e.mapping);
+  const cell = (s: string) => s.replace(/\|/g, "/");
+  const register = e.sources?.length
+    ? ["## Sources", "", "| Document | Evidence class | Location | Retrieved | sha256 |", "|---|---|---|---|---|",
+       ...e.sources.map((s) => `| ${cell(s.title)} | ${s.evidenceClass} | ${s.url ?? "uploaded"} | ${s.retrievedAt} | ${s.sha256.slice(0, 16)}... |`), ""]
+    : [];
+  const figures = e.figures?.length
+    ? ["## Figures", "", "| Figure | Value | Unit | Page | Quote | Confirmed |", "|---|---|---|---|---|---|",
+       ...e.figures.map((f) => `| ${cell(f.label)} | ${f.value} | ${f.scale} ${f.currency} | ${f.page} | "${cell(f.quote)}" | ${f.confirmed ? "yes" : "no"} |`), ""]
+    : [];
   return [
     "# Finance architecture evidence pack", "",
     `- Generated: ${e.generatedAt}`,
-    `- Run status: ${runStatus(e.journal, e.mapping)}`,
-    "- Methodology: design-finance-architecture 2.0.0 (synthetic or controlled data, offline checks only)", "",
+    `- Run status: ${status}`,
+    illustrative
+      ? "- Data: ILLUSTRATIVE_EXAMPLE (synthetic; the user stated real data was not available)"
+      : e.dataMode === "real" ? "- Data: real documents (client documents and public filings, cited below)" : "- Data: as supplied",
+    "- Methodology: design-finance-architecture 2.0.0 (offline checks only)", "",
+    ...register,
+    ...figures,
+    ...(e.dataMode === "real" ? section("Extraction verification", e.extraction) : []),
     ...section("Journal validation", e.journal),
     ...section("Mapping validation", e.mapping),
     "## Sign-off", "",
@@ -242,10 +285,73 @@ export interface UsageEvent {
   inputTokens: number;
   outputTokens: number;
   cacheReadTokens: number;
+  webSearches?: number;
+  webFetches?: number;
 }
 export function sumUsage(events: UsageEvent[]) {
   return events.reduce(
-    (t, e) => ({ input: t.input + e.inputTokens, output: t.output + e.outputTokens, cacheRead: t.cacheRead + e.cacheReadTokens, calls: t.calls + 1 }),
-    { input: 0, output: 0, cacheRead: 0, calls: 0 },
+    (t, e) => ({
+      input: t.input + e.inputTokens, output: t.output + e.outputTokens, cacheRead: t.cacheRead + e.cacheReadTokens,
+      webSearches: t.webSearches + (e.webSearches ?? 0), webFetches: t.webFetches + (e.webFetches ?? 0), calls: t.calls + 1,
+    }),
+    { input: 0, output: 0, cacheRead: 0, webSearches: 0, webFetches: 0, calls: 0 },
   );
+}
+
+// ── Real data: journals derived from confirmed statement figures ─────────────
+
+
+const MOVEMENTS = [
+  { figure: "provision", name: "Provision for credit losses", code: "PCL", debit: "PROVISION_FOR_CREDIT_LOSSES", credit: "LOAN_ALLOWANCE" },
+  { figure: "write_offs", name: "Write-offs", code: "WRITEOFF", debit: "LOAN_ALLOWANCE", credit: "MORTGAGE_PRINCIPAL" },
+  { figure: "recoveries", name: "Recoveries", code: "RECOVERY", debit: "CASH", credit: "LOAN_ALLOWANCE" },
+];
+
+/**
+ * Portfolio-level journals implied by the period's allowance movements, one journal per movement,
+ * built only from confirmed figures. The account roles are an illustrative design; the rule is
+ * APPROVED only when a person is named as approver, otherwise DRAFT (and the validator blocks it).
+ */
+export function journalsFromFigures(
+  figures: Figure[],
+  confirmed: Set<string>,
+  ctx: { sourceSha: string; entity: string; basis: string; approvedBy: string },
+): { doc: JournalDoc | null; blocked: { journal: string; missing: string[] }[] } {
+  const byId = new Map(figures.map((f) => [f.id, f]));
+  const blocked: { journal: string; missing: string[] }[] = [];
+  const lines: JournalLine[] = [];
+  let period = "";
+  let currency = "";
+  for (const m of MOVEMENTS) {
+    const f = byId.get(m.figure);
+    if (!f) { blocked.push({ journal: m.name, missing: [`${m.figure} (not in the source)`] }); continue; }
+    if (!confirmed.has(f.id)) { blocked.push({ journal: m.name, missing: [`${m.figure} (unconfirmed)`] }); continue; }
+    period = f.period;
+    currency = f.currency;
+    const amount = toCurrencyUnits(f.value.replace(/^-/, ""), f.scale);
+    const release = f.value.startsWith("-");
+    const journalId = `J-${m.code}-${f.period}`;
+    const base = {
+      tenant_id: "WORKBENCH", journal_id: journalId, entity: ctx.entity, basis: ctx.basis, ledger: `${ctx.basis}-PRIMARY`,
+      period: f.period.slice(0, 7), currency: f.currency, rule_id: "PORTFOLIO-ALLOWANCE", rule_version: "1",
+      accounting_date: f.period, source_system: "STATEMENT", event_id: `PORTFOLIO-${m.code}-${f.period}`, event_version: "1",
+      measurement_ref: `${ctx.sourceSha.slice(0, 12)}:${f.id}:p${f.page}`,
+    };
+    const [dr, cr] = release ? [m.credit, m.debit] : [m.debit, m.credit];
+    lines.push(
+      { ...base, line_id: `${m.code}-1`, account: m.debit, debit: dr === m.debit ? amount : "0.00", credit: dr === m.debit ? "0.00" : amount },
+      { ...base, line_id: `${m.code}-2`, account: m.credit, debit: cr === m.debit ? amount : "0.00", credit: cr === m.debit ? "0.00" : amount },
+    );
+  }
+  if (!lines.length) return { doc: null, blocked };
+  return {
+    doc: {
+      tenant_id: "WORKBENCH",
+      open_periods: [period.slice(0, 7)],
+      currency_precision: { [currency]: 2 },
+      rules: [{ tenant_id: "WORKBENCH", rule_id: "PORTFOLIO-ALLOWANCE", version: "1", status: ctx.approvedBy.trim() ? "APPROVED" : "DRAFT", basis: ctx.basis, valid_from: period, valid_to: period, ledger: `${ctx.basis}-PRIMARY`, disposition: "JOURNAL" }],
+      lines,
+    },
+    blocked,
+  };
 }
