@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getJSON } from "../../api";
 import { Markdown } from "../Markdown";
 import type { Figure } from "../../../shared/mortgageFigures";
@@ -29,6 +29,9 @@ export const STEPS: { id: StepId; label: string; badge: string; zero: boolean }[
   { id: "crosswalk", label: "Crosswalk", badge: "phase 4", zero: false },
   { id: "evidence", label: "Evidence pack", badge: "0 tokens", zero: true },
 ];
+
+// CopilotKit sits alongside the assistant-ui panel; its bundle loads only in live mode.
+const WorkbenchCopilot = lazy(() => import("./WorkbenchCopilot"));
 
 const CHIP: Record<string, string> = { NOT_RUN: "", PARTIAL: "partial", BLOCKED: "fail", VALIDATED_SCOPED: "full" };
 const EMPTY_CSV: MappingCsv = { legacy: "", mapping: "", target: "" };
@@ -212,6 +215,8 @@ export function Workbench({ live, onApi }: { live: boolean; onApi?: (api: Workbe
   };
   const bridge = useRef<WorkbenchBridge | null>(null);
   bridge.current = api;
+  const apiRef = useRef<WorkbenchApi | null>(null);
+  apiRef.current = api;
   useEffect(() => { onApi?.(api); });
 
   if (error && !demo) return <div className="empty">Could not load the workbench: {error}</div>;
@@ -301,6 +306,11 @@ export function Workbench({ live, onApi }: { live: boolean; onApi?: (api: Workbe
       <aside className="wb-chat">
         <ChatPanel bridge={bridge} live={live} />
       </aside>
+      {live && (
+        <Suspense fallback={null}>
+          <WorkbenchCopilot api={apiRef} state={api.state()} />
+        </Suspense>
+      )}
     </div>
   );
 }
