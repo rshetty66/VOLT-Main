@@ -53,6 +53,9 @@ workbench state; `confirm_figures` is human-in-the-loop, so only the person can 
 and never ships in demo mode.
 
 - Telemetry to `telemetry.copilotkit.ai` is off by default (`COPILOTKIT_TELEMETRY_DISABLED=true`, set in `server/env.ts`).
+- `package.json` `overrides` pin patched versions of transitive dependencies that CopilotKit 1.79.1 pulls in (`undici` 6.29.1,
+  `@fastify/busboy` 3.2.3, `graphql-scalars` 2.0.1, `body-parser` 2.4.0, and every nested `zod` to the console's own 4.x), so
+  `npm audit` reports no high or critical findings. Drop an override once CopilotKit ships the fixed version itself.
 - The developer inspector is disabled (`enableInspector={false}`); it would otherwise fetch from `cdn.copilotkit.ai`.
 - `web_fetch` (used to fetch a filing by URL) is refused by the API from network-restricted sandboxes; run the console on a normal
   host for that step. Web search and uploaded documents work everywhere.
