@@ -31,6 +31,7 @@ def _load(name: str):
 
 VJ = _load("validate_journals")
 VM = _load("validate_mapping")
+VX = _load("verify_extraction")
 JOURNAL_DEMO = json.loads((ASSETS / "mortgage-demo.json").read_text(encoding="utf-8"))
 MAPPING_DEMO = json.loads((ASSETS / "mapping-demo.json").read_text(encoding="utf-8"))
 REQUIRED_NOT_RUN = {
@@ -39,6 +40,10 @@ REQUIRED_NOT_RUN = {
 }
 
 CASES: list = []
+
+
+class NotRun(Exception):
+    pass
 
 
 def case(fn):
@@ -604,11 +609,253 @@ def mapping_missing_section_fails():
     expect_fail(VM.validate(doc), "M_STRUCTURE")
 
 
+
+# ---------------------------------------------------------------- extraction verification
+# Synthetic fixture pages (test data only): a note-style loan table and an allowance roll-forward.
+
+EXTRACTION_PAGES = [
+    {"page": 1, "text": "Note 5 Loans\n(Millions of Canadian dollars)\nAs at October 31, 2025\nResidential mortgages\nGross   412,345\nAllowance for credit losses   (1,234)\nNet   411,111"},
+    {"page": 2, "text": "Allowance for credit losses - residential mortgages\nBalance at beginning of year 1,100\nProvision for credit losses 400\nWrite-offs (300)\nRecoveries 40\nExchange rate and other (6)\nBalance at end of year 1,234\nStage 1 300 Stage 2 500 Stage 3 434"},
+]
+
+
+def _fig(fid, value, page, quote, **kw):
+    base = {"id": fid, "label": fid, "value": value, "scale": "millions", "currency": "CAD", "period": "2025-10-31",
+            "page": page, "quote": quote, "evidence_class": "PUBLIC_FILING"}
+    base.update(kw)
+    return base
+
+
+def xd():
+    return {
+        "tenant_id": "SYNTHETIC",
+        "source": {"title": "Fixture annual report", "url": "https://example.com/ar.pdf", "sha256": "0" * 64, "retrieved_at": "2026-11-01T00:00:00Z"},
+        "pages": copy.deepcopy(EXTRACTION_PAGES),
+        "figures": [
+            _fig("gross", "412345", 1, "Gross 412,345"),
+            _fig("allowance", "1234", 1, "Allowance for credit losses (1,234)"),
+            _fig("net", "411111", 1, "Net 411,111"),
+            _fig("opening", "1100", 2, "Balance at beginning of year 1,100"),
+            _fig("pcl", "400", 2, "Provision for credit losses 400"),
+            _fig("writeoffs", "300", 2, "Write-offs (300)"),
+            _fig("recoveries", "40", 2, "Recoveries 40"),
+            _fig("other", "-6", 2, "Exchange rate and other (6)"),
+            _fig("closing", "1234", 2, "Balance at end of year 1,234"),
+            _fig("stage1", "300", 2, "Stage 1 300"),
+            _fig("stage2", "500", 2, "Stage 2 500"),
+            _fig("stage3", "434", 2, "Stage 3 434"),
+        ],
+        "ties": [
+            {"id": "net_carrying", "terms": [["gross", 1], ["allowance", -1], ["net", -1]], "tolerance": "1"},
+            {"id": "rollforward", "terms": [["opening", 1], ["pcl", 1], ["writeoffs", -1], ["recoveries", 1], ["other", 1], ["closing", -1]], "tolerance": "1"},
+            {"id": "stages", "terms": [["stage1", 1], ["stage2", 1], ["stage3", 1], ["closing", -1]], "tolerance": "1"},
+            {"id": "allowance_agrees", "terms": [["allowance", 1], ["closing", -1]], "tolerance": "0"},
+        ],
+    }
+
+
+def _figure(doc, fid):
+    return next(f for f in doc["figures"] if f["id"] == fid)
+
+
+@case
+def extraction_fixture_passes():
+    expect_pass(VX.validate(xd()))
+
+
+@case
+def extraction_report_lists_not_run_scope():
+    report = VX.validate(xd())
+    not_run = {c["check_id"] for c in report["checks"] if c["status"] == "NOT_RUN"}
+    assert {"AUDIT_ASSURANCE", "POPULATION_COMPLETENESS", "POLICY_ACCURACY"} <= not_run, not_run
+
+
+@case
+def extraction_quote_on_wrong_page_fails():
+    doc = xd()
+    _figure(doc, "gross")["page"] = 2
+    expect_fail(VX.validate(doc), "X_QUOTE_ON_PAGE")
+
+
+@case
+def extraction_invented_quote_fails():
+    doc = xd()
+    _figure(doc, "pcl")["quote"] = "Provision for credit losses 4,000"
+    expect_fail(VX.validate(doc), "X_QUOTE_ON_PAGE")
+
+
+@case
+def extraction_page_out_of_range_fails():
+    doc = xd()
+    _figure(doc, "net")["page"] = 9
+    expect_fail(VX.validate(doc), "X_QUOTE_ON_PAGE")
+
+
+@case
+def extraction_quote_matches_across_line_breaks_and_nbsp():
+    doc = xd()
+    doc["pages"][0]["text"] = doc["pages"][0]["text"].replace("Gross   412,345", "Gross\n412,345").replace("Net   411,111", "Net 411,111")
+    expect_pass(VX.validate(doc))
+
+
+@case
+def extraction_value_not_in_quote_fails():
+    doc = xd()
+    _figure(doc, "gross")["value"] = "412346"
+    expect_fail(VX.validate(doc), "X_VALUE_IN_QUOTE")
+
+
+@case
+def extraction_value_must_be_a_whole_number_token():
+    doc = xd()
+    doc["ties"] = []
+    _figure(doc, "gross")["value"] = "345"
+    expect_fail(VX.validate(doc), "X_VALUE_IN_QUOTE")
+
+
+@case
+def extraction_parenthesised_negative_matches_absolute_value():
+    doc = xd()
+    _figure(doc, "allowance")["value"] = "-1234"
+    doc["ties"] = [{"id": "net_carrying", "terms": [["gross", 1], ["allowance", 1], ["net", -1]], "tolerance": "1"}]
+    expect_pass(VX.validate(doc))
+
+
+@case
+def extraction_wrong_sign_in_tie_fails():
+    doc = xd()
+    doc["ties"][1]["terms"][2] = ["writeoffs", 1]
+    expect_fail(VX.validate(doc), "X_TIES")
+
+
+@case
+def extraction_tie_outside_tolerance_fails():
+    doc = xd()
+    doc["pages"][1]["text"] = doc["pages"][1]["text"].replace("Recoveries 40", "Recoveries 43")
+    _figure(doc, "recoveries").update(value="43", quote="Recoveries 43")
+    expect_fail(VX.validate(doc), "X_TIES")
+
+
+@case
+def extraction_rounding_within_tolerance_passes():
+    doc = xd()
+    doc["pages"][1]["text"] = doc["pages"][1]["text"].replace("Recoveries 40", "Recoveries 41")
+    _figure(doc, "recoveries").update(value="41", quote="Recoveries 41")
+    expect_pass(VX.validate(doc))
+
+
+@case
+def extraction_mixed_scale_in_tie_fails():
+    doc = xd()
+    _figure(doc, "net")["scale"] = "thousands"
+    expect_fail(VX.validate(doc), "X_TIES")
+
+
+@case
+def extraction_unknown_scale_fails():
+    doc = xd()
+    _figure(doc, "stage1")["scale"] = "lakhs"
+    expect_fail(VX.validate(doc), "X_SCALE_DECLARED")
+
+
+@case
+def extraction_non_iso_period_fails():
+    doc = xd()
+    _figure(doc, "gross")["period"] = "Oct 2025"
+    expect_fail(VX.validate(doc), "X_PERIOD_CONSISTENT")
+
+
+@case
+def extraction_mixed_periods_in_tie_fails():
+    doc = xd()
+    _figure(doc, "opening")["period"] = "2024-10-31"
+    expect_fail(VX.validate(doc), "X_PERIOD_CONSISTENT")
+
+
+@case
+def extraction_unknown_figure_in_tie_fails():
+    doc = xd()
+    doc["ties"][0]["terms"].append(["missing_figure", 1])
+    expect_fail(VX.validate(doc), "X_STRUCTURE")
+
+
+@case
+def extraction_duplicate_figure_id_fails():
+    doc = xd()
+    doc["figures"].append(copy.deepcopy(doc["figures"][0]))
+    expect_fail(VX.validate(doc), "X_STRUCTURE")
+
+
+@case
+def extraction_missing_evidence_class_fails():
+    doc = xd()
+    _figure(doc, "net")["evidence_class"] = "GUESS"
+    expect_fail(VX.validate(doc), "X_STRUCTURE")
+
+
+@case
+def extraction_malformed_value_fails():
+    doc = xd()
+    _figure(doc, "net")["value"] = "411,111"
+    expect_fail(VX.validate(doc), "X_STRUCTURE")
+
+
+@case
+def extraction_ignores_ambient_decimal_context():
+    with decimal.localcontext() as ctx:
+        ctx.prec = 2
+        expect_pass(VX.validate(xd()))
+
+
+@case
+def cli_extraction_exit_codes():
+    assert _run("verify_extraction.py", json.dumps(xd())).returncode == 0
+    doc = xd()
+    _figure(doc, "gross")["value"] = "1"
+    assert _run("verify_extraction.py", json.dumps(doc)).returncode == 1
+    assert _run("verify_extraction.py", "{bad").returncode == 2
+
+
+def _minimal_pdf(lines_per_page):
+    """Builds a small valid PDF with one Helvetica text line per entry (test fixture only)."""
+    objs = ["<< /Type /Catalog /Pages 2 0 R >>", None, "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"]
+    kids = []
+    for lines in lines_per_page:
+        ops = "BT /F1 11 Tf 72 720 Td 14 TL " + " ".join(f"({ln}) Tj T*" for ln in lines) + " ET"
+        objs.append(f"<< /Length {len(ops)} >>\nstream\n{ops}\nendstream")
+        objs.append(f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents {len(objs)} 0 R >>")
+        kids.append(len(objs))
+    objs[1] = f"<< /Type /Pages /Kids [{' '.join(f'{k} 0 R' for k in kids)}] /Count {len(kids)} >>"
+    out, offsets = b"%PDF-1.4\n", []
+    for i, body in enumerate(objs, 1):
+        offsets.append(len(out))
+        out += f"{i} 0 obj\n{body}\nendobj\n".encode("latin-1")
+    xref = len(out)
+    out += f"xref\n0 {len(objs) + 1}\n0000000000 65535 f \n".encode() + b"".join(f"{o:010d} 00000 n \n".encode() for o in offsets)
+    out += f"trailer\n<< /Size {len(objs) + 1} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF\n".encode()
+    return out
+
+
+@case
+def pdf_pages_extracts_text_per_page():
+    try:
+        import pypdf  # noqa: F401, PLC0415
+    except ImportError as exc:
+        raise NotRun("pypdf not installed") from exc
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as f:
+        f.write(_minimal_pdf([["Residential mortgages", "Gross 412,345"], ["Balance at end of year 1,234"]]))
+        name = f.name
+    try:
+        proc = subprocess.run([sys.executable, "-I", str(HERE / "pdf_pages.py"), name], capture_output=True, text=True, timeout=60)
+    finally:
+        Path(name).unlink()
+    assert proc.returncode == 0, proc.stderr
+    out = json.loads(proc.stdout)
+    assert out["page_count"] == 2 and len(out["sha256"]) == 64
+    assert "Gross 412,345" in out["pages"][0]["text"] and out["pages"][1]["page"] == 2
+
+
 # ---------------------------------------------------------------- schemas (optional dependency)
-
-class NotRun(Exception):
-    pass
-
 
 def _schema_validator(name: str):
     try:

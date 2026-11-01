@@ -64,6 +64,20 @@ accounting.
 
 ### 3. Establish intake and completeness by workstream
 
+**Data comes from real documents first.** Base every figure on, in this order:
+
+1. documents the client supplies (statements, trial balances, policies, loan tapes);
+2. public financial statements of the client or a named peer, retrieved from the issuer's own site, SEDAR+ or EDGAR
+   with the `web-source-lookup` method (primary source, URL and retrieval date, never a figure from a page you could
+   not read; add `reading-10k-10q` for SEC filings and `osfi-regulatory-expert` for Canadian bank returns);
+3. synthetic `ILLUSTRATIVE_EXAMPLE` data, only after the user says the data is not available, labelled as such
+   everywhere it appears.
+
+Record each figure with its `evidence_class` (CLIENT_DOCUMENT, PUBLIC_FILING or ILLUSTRATIVE_EXAMPLE), page and the
+exact quoted text, and run `python3 -I scripts/verify_extraction.py` on them (page text from
+`python3 -I scripts/pdf_pages.py FILE.pdf`). A figure stays unconfirmed until a person accepts it; anything derived
+from an unconfirmed or failed figure is BLOCKED.
+
 Collect client/tenant ID, scope, jurisdictions, legal entities, functional/reporting currencies, calendars, accounting
 bases and effective dates; ERP/hub/EPM editions, versions, licences and features; statements/TBs and source COA;
 reporting obligations; product types and lifecycle inventory; approved accounting policies; critical data elements;
