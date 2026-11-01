@@ -1,0 +1,65 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:finance-architecture:event:2.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "2.0.0" },
+    "tenant_id": { "type": "string", "minLength": 1 },
+    "source_system": { "type": "string", "minLength": 1 },
+    "event_id": { "type": "string", "minLength": 1 },
+    "event_version": { "type": "integer", "minimum": 1 },
+    "event_type": { "type": "string", "minLength": 1 },
+    "product_id": { "type": "string", "minLength": 1 },
+    "product_version": { "type": "string", "minLength": 1 },
+    "contract_token": { "type": "string", "minLength": 1 },
+    "entity_id": { "type": "string", "minLength": 1 },
+    "jurisdiction": { "type": "string", "minLength": 1 },
+    "occurred_at": { "type": "string", "format": "date-time" },
+    "received_at": { "type": "string", "format": "date-time" },
+    "value_date": { "type": "string", "format": "date" },
+    "accounting_date": { "type": "string", "format": "date" },
+    "source_sequence": { "type": "integer", "minimum": 0 },
+    "currency": { "type": "string", "pattern": "^[A-Z]{3}$" },
+    "facts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "type": { "enum": ["decimal", "string", "boolean", "date"] },
+          "value": { "type": ["string", "boolean"] },
+          "source_ref": { "type": "string", "minLength": 1 }
+        },
+        "required": ["name", "type", "value", "source_ref"],
+        "allOf": [
+          {
+            "if": { "properties": { "type": { "const": "decimal" } } },
+            "then": { "properties": { "value": { "type": "string", "pattern": "^-?\\d+(\\.\\d+)?$" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "boolean" } } },
+            "then": { "properties": { "value": { "type": "boolean" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "date" } } },
+            "then": { "properties": { "value": { "type": "string", "format": "date" } } }
+          },
+          {
+            "if": { "properties": { "type": { "const": "string" } } },
+            "then": { "properties": { "value": { "type": "string" } } }
+          }
+        ]
+      }
+    },
+    "measurement_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "original_event_ref": { "type": ["string", "null"] },
+    "source_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+  },
+  "required": [
+    "schema_version", "tenant_id", "source_system", "event_id", "event_version", "event_type", "product_id",
+    "product_version", "contract_token", "entity_id", "jurisdiction", "occurred_at", "received_at", "value_date",
+    "accounting_date", "source_sequence", "currency", "facts", "measurement_refs", "original_event_ref", "source_hash"
+  ]
+}

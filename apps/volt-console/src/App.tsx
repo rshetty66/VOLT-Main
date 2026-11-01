@@ -11,8 +11,9 @@ import { Services } from "./components/Services";
 import { Analytics } from "./components/Analytics";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
+import { FinanceArchitecture } from "./components/FinanceArchitecture";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health";
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "health";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -85,6 +86,7 @@ export function App() {
     ["services", "Services", catalog.services.length],
     ["templates", "Templates", templates.length || ""],
     ["analytics", "Analytics", catalog.benchmarks.length],
+    ["finance", "Finance Architecture", ""],
     ["health", "Capability Health", catalog.health.missingSkills.length],
   ];
 
@@ -137,6 +139,7 @@ export function App() {
         {view === "services" && <Services catalog={catalog} onOpenAgent={setOpenAgent} onLaunch={start} />}
         {view === "templates" && <Templates templates={templates} refresh={refreshTemplates} activeTemplate={activeTemplate} setActiveTemplate={setActiveTemplate} />}
         {view === "analytics" && <Analytics catalog={catalog} />}
+        {view === "finance" && <FinanceArchitecture />}
         {view === "health" && <Health catalog={catalog} onOpenAgent={setOpenAgent} />}
       </main>
       {openAgent && (

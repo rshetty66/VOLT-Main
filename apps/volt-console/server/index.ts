@@ -10,6 +10,8 @@
  *   GET  /api/templates/:id        formatting profile and guide
  *   GET  /api/templates/:id/original   the uploaded file
  *   DELETE /api/templates/:id
+ *   GET  /api/finance-architecture/demo       synthetic golden case + lifecycle reference
+ *   POST /api/finance-architecture/validate   run the skill's offline journal / mapping validator
  *   GET  /api/healthz
  *
  * In production it also serves the built React app from dist/.
@@ -29,6 +31,7 @@ import { BENCHMARKS } from "./analytics.js";
 import { MODEL, errorMessage, getSession, intakeFor, runLive, type Emit, type RunInput } from "./orchestrator.js";
 import { runDemo } from "./demo.js";
 import { TemplateError, templateStore } from "./templates.js";
+import { demoDocuments, multiBasisAllowance, runValidator } from "./financeArchitecture.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
 
@@ -98,6 +101,23 @@ app.post("/api/tools/:name", (req, res) => {
   if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
   const r = runLocalTool(catalog, name as Exclude<ToolName, "consult_agent">, parsed.data);
   res.status(r.ok ? 200 : 400).json(r);
+});
+
+// ── Finance Architecture demo (design-finance-architecture skill) ───────────────
+
+app.get("/api/finance-architecture/demo", (_req, res) => {
+  res.json({ ...demoDocuments(), allowance: multiBasisAllowance({ preAllowance: "498000", ifrsAllowance: "2000", ceclAllowance: "10000" }) });
+});
+
+const validateBody = z.object({ kind: z.enum(["journal", "mapping"]), document: z.unknown() });
+app.post("/api/finance-architecture/validate", async (req, res) => {
+  const parsed = validateBody.safeParse(req.body);
+  if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
+  try {
+    res.json(await runValidator(parsed.data.kind, parsed.data.document));
+  } catch (err) {
+    res.status(500).json({ error: errorMessage(err) });
+  }
 });
 
 app.get("/api/skills/:id", (req, res) => {

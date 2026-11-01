@@ -105,6 +105,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .badge.full { background: var(--heading); color: #0b1220; border-color: var(--heading); }
 .badge.partial { color: var(--heading); }
 .badge.gap { color: var(--muted); border-style: dashed; }
+.badge.fail { background: #f87171; color: #0b1220; border-color: #f87171; }
 
 /* Console */
 .console { display: flex; flex-direction: column; gap: 18px; max-width: 1100px; margin: 0 auto; }
