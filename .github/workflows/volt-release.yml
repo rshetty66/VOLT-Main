@@ -1,0 +1,33 @@
+name: VOLT release
+
+# Publishes a GitHub release when a volt-* tag is pushed. Tags starting with "v" belong to ECC's own
+# release pipeline (release.yml, npm publish), so VOLT tags are named volt-X.Y.Z instead.
+on:
+  push:
+    tags: ['volt-*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Publish VOLT release
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Create the release from its notes file
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          notes="docs/volt/releases/${TAG}.md"
+          if [ ! -f "$notes" ]; then
+            echo "::error::Missing release notes: $notes"
+            exit 1
+          fi
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "VOLT ${TAG#volt-}" --notes-file "$notes"
