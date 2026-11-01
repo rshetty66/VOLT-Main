@@ -1,10 +1,16 @@
 name: VOLT release
 
-# Publishes a GitHub release when a volt-* tag is pushed. Tags starting with "v" belong to ECC's own
-# release pipeline (release.yml, npm publish), so VOLT tags are named volt-X.Y.Z instead.
+# Publishes a GitHub release for a volt-* tag. Tags starting with "v" belong to ECC's own release pipeline
+# (release.yml, npm publish), so VOLT tags are named volt-X.Y.Z instead. Either push the tag, or run this
+# workflow by hand with the tag name: it then creates the tag on the commit it runs from (main).
 on:
   push:
     tags: ['volt-*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to create, e.g. volt-0.2.0
+        required: true
 
 permissions:
   contents: write
@@ -23,11 +29,20 @@ jobs:
       - name: Create the release from its notes file
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG: ${{ github.ref_name }}
+          TAG: ${{ inputs.tag || github.ref_name }}
         run: |
+          if ! printf '%s' "$TAG" | grep -Eq '^volt-[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Tag must look like volt-X.Y.Z"
+            exit 1
+          fi
           notes="docs/volt/releases/${TAG}.md"
           if [ ! -f "$notes" ]; then
             echo "::error::Missing release notes: $notes"
             exit 1
           fi
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "VOLT ${TAG#volt-}" --notes-file "$notes"
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            # Creates the tag on the commit this run checked out.
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "VOLT ${TAG#volt-}" --notes-file "$notes"
+          else
+            gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --verify-tag --title "VOLT ${TAG#volt-}" --notes-file "$notes"
+          fi
