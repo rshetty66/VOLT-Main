@@ -1,0 +1,25 @@
+{
+  "schema_version": "2.0.0",
+  "tenant_id": "SYNTHETIC",
+  "rule_id": "MORTGAGE-FUNDING",
+  "version": "1",
+  "basis": "IFRS",
+  "jurisdiction": "CA",
+  "valid_from": "2026-01-01",
+  "valid_to": "2026-12-31",
+  "recorded_at": "2026-10-29T12:00:00Z",
+  "status": "DRAFT",
+  "policy_refs": ["synthetic:policy-IFRS9-001"],
+  "predicate_refs": ["synthetic:non-poci-amortized-cost"],
+  "disposition": "JOURNAL",
+  "representation": "BASE",
+  "measurement_owner": "synthetic:loan-measurement-service",
+  "posting_owner": "synthetic:accounting-hub",
+  "ledger": "CA-IFRS",
+  "journal_templates": [
+    { "account_role": "MORTGAGE_PRINCIPAL", "side": "DEBIT", "amount_source_ref": "event.facts.principal", "dimension_rule_ref": "synthetic:entity-product-map" },
+    { "account_role": "CASH", "side": "CREDIT", "amount_source_ref": "event.facts.principal", "dimension_rule_ref": "synthetic:cash-account-map" }
+  ],
+  "reporting_crosswalk_refs": ["synthetic:M4-map-pending-cell-review"],
+  "approval_evidence_ref": null
+}

@@ -1,0 +1,25 @@
+{
+  "schema_version": "2.0.0",
+  "tenant_id": "SYNTHETIC",
+  "source_system": "SYNTHETIC_CORE",
+  "event_id": "FUND-001",
+  "event_version": 1,
+  "event_type": "MORTGAGE_FUNDED",
+  "product_id": "CA_RESIDENTIAL_FIXED",
+  "product_version": "1",
+  "contract_token": "TOKEN-0001",
+  "entity_id": "BANK-CA",
+  "jurisdiction": "CA",
+  "occurred_at": "2026-10-30T12:00:00Z",
+  "received_at": "2026-10-30T12:00:01Z",
+  "value_date": "2026-10-30",
+  "accounting_date": "2026-10-30",
+  "source_sequence": 1,
+  "currency": "CAD",
+  "facts": [
+    { "name": "principal", "type": "decimal", "value": "500000.00", "source_ref": "synthetic:loan-contract" }
+  ],
+  "measurement_refs": ["synthetic:approved-ecl-001"],
+  "original_event_ref": null,
+  "source_hash": "0000000000000000000000000000000000000000000000000000000000000000"
+}

@@ -14,8 +14,8 @@ the VOLT runtime defines:
   THIRD_PARTY/                provenance and licences of vendored skills
 
 Generated files are overwritten on every run; hand-written files (README.md, the
-ask / find-skill / services commands, the volt-skill-finder and volt-services SKILL.md,
-.claude-plugin/) are not touched.
+ask / find-skill / services / design-finance-architecture commands, the volt-skill-finder and
+volt-services SKILL.md, every skill folder in HAND_WRITTEN_SKILLS, .claude-plugin/) are not touched.
 """
 from __future__ import annotations
 
@@ -54,6 +54,8 @@ CORE_SKILLS = {
     "industry-financial-services", "variance-analysis", "sox-compliance", "fit-gap-matrix",
     "management-consulting",
 }
+# Skill folders maintained by hand in this repository; the import never deletes them.
+HAND_WRITTEN_SKILLS = {"volt-skill-finder", "volt-services", "design-finance-architecture"}
 MAX_AGENT_KEYWORDS = 6
 TEXT_SUFFIXES = {".md", ".txt", ".json", ".csv", ".py", ".sh", ".xml", ".tsx", ".tex", ".yaml", ".yml"}
 OPUS_LAYERS_PREFIX = "Skills —"  # "Skills —" meta-agents run on sonnet; domain specialists on opus
@@ -170,7 +172,7 @@ Never invent client facts or figures; label estimates as estimates and show how 
     # ── skills ────────────────────────────────────────────────────────────
     skills_dir = PLUGIN / "skills"
     for d in skills_dir.glob("*"):
-        if d.is_dir() and d.name not in ("volt-skill-finder", "volt-services"):  # hand-written
+        if d.is_dir() and d.name not in HAND_WRITTEN_SKILLS:
             shutil.rmtree(d)
     src_root = volt_home / "skills"
     for sid in sorted(shipped):
