@@ -8,6 +8,8 @@ interface Props {
   report?: Report;
   busy: boolean;
   onValidate: () => void;
+  /** The synthetic sample is offered only in illustrative mode. */
+  allowSample: boolean;
 }
 
 const FIELDS: { key: keyof MappingCsv; label: string; hint: string }[] = [
@@ -17,7 +19,7 @@ const FIELDS: { key: keyof MappingCsv; label: string; hint: string }[] = [
 ];
 
 /** Phase 2: legacy-to-target COA proof from CSV, validated by validate_mapping.py (0 model tokens). */
-export function MappingProver({ csv, setCsv, errors, report, busy, onValidate }: Props) {
+export function MappingProver({ csv, setCsv, errors, report, busy, onValidate, allowSample }: Props) {
   const load = async (key: keyof MappingCsv, file?: File) => {
     if (!file) return;
     setCsv({ ...csv, [key]: await file.text() });
@@ -27,8 +29,8 @@ export function MappingProver({ csv, setCsv, errors, report, busy, onValidate }:
       <div className="row" style={{ justifyContent: "space-between" }}>
         <div className="micro">Mapping proof at entity / basis / currency / period / account grain</div>
         <div className="row">
-          <button className="btn sm ghost" onClick={() => setCsv(SAMPLE_CSV)}>Load sample</button>
-          <button className="btn sm primary" onClick={onValidate} disabled={busy}>{busy ? "Validating…" : "Prove mapping"}</button>
+          {allowSample && <button className="btn sm ghost" onClick={() => setCsv(SAMPLE_CSV)}>Load illustrative sample</button>}
+          <button className="btn sm primary" onClick={onValidate} disabled={busy || !csv.legacy.trim() || !csv.target.trim()}>{busy ? "Validating…" : "Prove mapping"}</button>
         </div>
       </div>
       <div className="csv-grid">

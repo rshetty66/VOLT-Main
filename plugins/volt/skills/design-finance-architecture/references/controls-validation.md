@@ -43,7 +43,18 @@ open items, transform FX/bases, validate financial-statement signs, check EPM in
 Transformations that change basis, currency, period or presentation require a separately specified and approved
 reconciliation bridge, not silent changes inside the mapping file.
 
-`scripts/self_test.py` runs the regression cases for both utilities and, when the `jsonschema` package is installed,
+`scripts/verify_extraction.py` checks figures extracted from a statement, by a model or a person, against the
+document's own text. Input: `tenant_id`, `source` (title, url, sha256, retrieved_at), `pages` (`{page, text}`, from
+`scripts/pdf_pages.py` for a PDF), `figures` (`id`, `label`, `value` as a plain decimal string in reporting units,
+`scale` of units, thousands, millions or billions, `currency`, ISO `period`, `page`, the exact `quote`, and
+`evidence_class`) and `ties` (`id`, `terms` as `[figure_id, 1 or -1]` pairs that must sum to zero, and a decimal
+`tolerance` for rounding in reporting units). It verifies that each quote is on its cited page (whitespace and case
+normalised), that each value is a whole number shown in its quote (absolute value, so a parenthesised negative
+matches), that scales and periods are declared and consistent within a tie, and that every tie holds. It does not
+judge whether the statement is audited, complete or fit for the purpose: those are listed NOT_RUN. Scanned pages
+without a text layer come back empty from `pdf_pages.py` and cannot be verified automatically.
+
+`scripts/self_test.py` runs the regression cases for all three utilities and, when the `jsonschema` package is installed,
 validates the example assets against the canonical schemas (reported NOT_RUN otherwise).
 
 ### Input contract (journal document)
