@@ -22,7 +22,7 @@ React UI (Vite) --SSE--> Node API (Express) --> Claude Messages API (streaming t
 | Services | The 60-service catalogue with coverage ratings; each service launches its workflow |
 | Analytics | APQC benchmark positioning and a finance transformation value case. Agents call the same deterministic tools for every figure |
 | Templates | Upload a Word, Excel or PowerPoint template; VOLT extracts its theme colours and fonts, styles, page setup, slide layouts, cell styles and number formats into a formatting guide. Pick a template in the top bar and every agent in a run applies it |
-| Finance Architecture | Synthetic mortgage golden case from the `design-finance-architecture` skill: edit the journal, run the skill's offline journal and mapping validators (PASS, FAIL, NOT_RUN), and compare IFRS 9 with a US CECL full book or delta overlay. Needs `python3` on the server path (`VOLT_PYTHON` overrides) |
+| Finance Workbench | Six-step workbench over the `design-finance-architecture` skill. Phases 1 and 2 are built: run-status chip, token meter (measured model usage plus validator runs at 0 tokens), multi-journal simulator with a US CECL delta overlay, CSV mapping prover, and a copyable evidence pack with maker and checker names. An assistant-ui chat panel runs validation and the evidence pack locally at 0 tokens and sends other questions to the `accounting-hub-architect` agent. Intake, Event designer and Crosswalk arrive in phases 3 and 4. Needs `python3` on the server path (`VOLT_PYTHON` overrides) |
 | Capability Health | What the registry references against what the plugin ships |
 
 ## Run it
