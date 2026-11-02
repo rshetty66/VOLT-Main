@@ -50,8 +50,17 @@ export function extractMetrics(prompt: string): { metric: string; value: number 
   return out;
 }
 
+/**
+ * The agent's role in its own words: the first prose paragraph of its prompt.
+ * Headings and bullet lists are skipped, which drops the generated
+ * "## Prompt Defense Baseline" preamble every VOLT agent starts with.
+ */
 function lens(agent: AgentDef): string {
-  const sentences = agent.systemPrompt.replace(/\s+/g, " ").split(/(?<=\.)\s/).slice(0, 2).join(" ");
+  const prose = agent.systemPrompt
+    .split(/\r?\n\s*\r?\n/)
+    .map((p) => p.trim())
+    .find((p) => p && !/^(#|[-*+]\s|\d+\.\s)/.test(p));
+  const sentences = (prose ?? agent.description).replace(/\s+/g, " ").split(/(?<=\.)\s/).slice(0, 2).join(" ");
   return sentences.length > 420 ? sentences.slice(0, 420) + "…" : sentences;
 }
 
