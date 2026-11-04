@@ -108,3 +108,6 @@ ecc2/target/
 assets/images/security/badrudi-exploit.mp4
 
 .aider*
+
+# VOLT agent team shared task bus (task.json, handoff.json, verdicts)
+.volt-team/
