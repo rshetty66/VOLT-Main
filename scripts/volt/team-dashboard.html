@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VOLT Agent Team</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --ink: #16181d; --muted: #5d6573; --line: #e2e5ea;
+    --accent: #2f5bd3; --accent-soft: #e8eefc;
+    --you: #b25e00; --you-soft: #fff3e3;
+    --ok: #1d7a46; --ok-soft: #e5f5ec; --bad: #b3261e; --bad-soft: #fdeceb;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .06), 0 1px 3px rgba(16, 24, 40, .08);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f1115; --panel: #171a21; --ink: #e8eaef; --muted: #9aa3b2; --line: #2a2f3a;
+      --accent: #7ea2ff; --accent-soft: #1d2741;
+      --you: #ffb35c; --you-soft: #33261a;
+      --ok: #5fd08f; --ok-soft: #16291f; --bad: #ff8a80; --bad-soft: #341b1a;
+      --shadow: none;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 14px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  code, .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 12px; }
+  header { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between;
+    padding: 16px 20px; border-bottom: 1px solid var(--line); background: var(--panel); }
+  h1 { margin: 0; font-size: 17px; font-weight: 650; letter-spacing: -.01em; }
+  .sub { color: var(--muted); font-size: 12px; margin-top: 2px; }
+  .stats { display: flex; gap: 8px; flex-wrap: wrap; }
+  .stat { border: 1px solid var(--line); border-radius: 8px; padding: 6px 12px; min-width: 92px; }
+  .stat b { display: block; font-size: 18px; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--muted); font-size: 12px; }
+  .stat.you { border-color: var(--you); background: var(--you-soft); }
+  .stat.you b { color: var(--you); }
+  .demo { display: inline-block; margin-left: 8px; padding: 1px 8px; border-radius: 999px; font-size: 11px;
+    background: var(--accent-soft); color: var(--accent); font-weight: 600; vertical-align: 2px; }
+  main { padding: 16px 20px 32px; }
+  .board { display: grid; grid-template-columns: repeat(7, minmax(200px, 1fr)); gap: 12px; overflow-x: auto; padding-bottom: 8px; }
+  .col { background: transparent; min-width: 0; }
+  .col h2 { display: flex; justify-content: space-between; align-items: baseline; margin: 0 0 4px; font-size: 13px; font-weight: 650; }
+  .col h2 .n { color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+  .col .hint { color: var(--muted); font-size: 12px; margin: 0 0 8px; min-height: 18px; }
+  .col.you h2 { color: var(--you); }
+  .cards { display: flex; flex-direction: column; gap: 8px; }
+  .empty { border: 1px dashed var(--line); border-radius: 8px; padding: 14px; color: var(--muted); font-size: 12px; text-align: center; }
+  .card { all: unset; box-sizing: border-box; display: block; width: 100%; cursor: pointer; background: var(--panel);
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; box-shadow: var(--shadow); }
+  .card:hover { border-color: var(--accent); }
+  .card:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .card.you { border-left: 3px solid var(--you); }
+  .card .top { display: flex; justify-content: space-between; gap: 8px; color: var(--muted); font-size: 12px; }
+  .card .title { margin: 4px 0 6px; font-weight: 560; }
+  .card .line { font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+  .card .line.bad { color: var(--bad); }
+  .card .line.ok { color: var(--ok); }
+  .pill { display: inline-block; padding: 0 7px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+  .pill.round { background: var(--accent-soft); color: var(--accent); }
+  .pill.ok { background: var(--ok-soft); color: var(--ok); }
+  .pill.bad { background: var(--bad-soft); color: var(--bad); }
+  .pill.you { background: var(--you-soft); color: var(--you); }
+  .note { color: var(--muted); font-size: 12px; margin-top: 16px; }
+  .error { margin: 16px 20px 0; padding: 10px 12px; border-radius: 8px; background: var(--bad-soft); color: var(--bad); }
+  dialog { border: 1px solid var(--line); border-radius: 12px; padding: 0; width: min(640px, calc(100vw - 32px));
+    max-height: calc(100vh - 48px); background: var(--panel); color: var(--ink); }
+  dialog::backdrop { background: rgba(0, 0, 0, .35); }
+  .dh { display: flex; justify-content: space-between; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--line); }
+  .dh h3 { margin: 0; font-size: 15px; }
+  .close { all: unset; cursor: pointer; color: var(--muted); font-size: 20px; line-height: 1; padding: 2px 6px; border-radius: 6px; }
+  .close:focus-visible { outline: 2px solid var(--accent); }
+  .db { padding: 6px 18px 18px; overflow-y: auto; }
+  .db h4 { margin: 14px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .db ul { margin: 0; padding-left: 18px; }
+  .kv { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; font-size: 13px; }
+  .kv dt { color: var(--muted); }
+  .kv dd { margin: 0; overflow-wrap: anywhere; }
+  .gates { display: flex; flex-wrap: wrap; gap: 6px; }
+  .finding { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 6px; font-size: 13px; }
+  pre { margin: 0; white-space: pre-wrap; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 10px; }
+  a { color: var(--accent); }
+  @media (max-width: 720px) {
+    header, main { padding-left: 16px; padding-right: 16px; }
+    .board { grid-template-columns: 1fr; overflow-x: visible; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>VOLT Agent Team <span id="demo" class="demo" hidden>Demo data</span></h1>
+    <div class="sub" id="source">Loading...</div>
+  </div>
+  <div class="stats" id="stats"></div>
+</header>
+<div id="error" class="error" hidden></div>
+<main>
+  <div class="board" id="board"></div>
+  <p class="note">Read-only. Refreshes every 5 seconds. Stages come from the files the agents write in each task folder.</p>
+</main>
+<dialog id="detail" aria-labelledby="d-title">
+  <div class="dh">
+    <div><h3 id="d-title"></h3><div class="sub" id="d-sub"></div></div>
+    <button class="close" id="d-close" aria-label="Close">&times;</button>
+  </div>
+  <div class="db" id="d-body"></div>
+</dialog>
+<script>
+(function () {
+  'use strict';
+  var STAGE_INFO = {
+    approval: { label: 'Plan approval', hint: 'Waiting on you to approve the plan', you: true },
+    building: { label: 'Building', hint: 'Builder working test-first' },
+    auditing: { label: 'Auditing', hint: 'Adversarial review of the diff' },
+    verifying: { label: 'Verifying', hint: 'Gatekeeper running every gate' },
+    review: { label: 'Your review', hint: 'Gates passed; draft PR is yours', you: true },
+    escalated: { label: 'Escalated', hint: 'Agents stopped; needs a decision', you: true },
+    done: { label: 'Done', hint: 'Merged or closed' }
+  };
+  var tasksById = {};
+
+  function el(tag, cls, text) {
+    var n = document.createElement(tag);
+    if (cls) n.className = cls;
+    if (text !== undefined && text !== null) n.textContent = String(text);
+    return n;
+  }
+  function safeUrl(u) { return typeof u === 'string' && /^https:\/\//.test(u) ? u : null; }
+
+  function cardLine(t) {
+    if (t.stage === 'escalated') return { text: t.escalation_reason || 'Escalated', cls: 'bad' };
+    if (t.stage === 'building' && t.verdict === 'FAIL') return { text: 'Rework: ' + (t.failure_reason || 'gate failed'), cls: 'bad' };
+    if (t.stage === 'building' && t.audit_verdict === 'changes_requested') return { text: 'Rework: ' + t.findings.length + ' audit finding(s)', cls: 'bad' };
+    if (t.stage === 'auditing') return { text: t.files_changed.length + ' file(s) changed', cls: '' };
+    if (t.stage === 'verifying') return { text: 'Auditor approved', cls: 'ok' };
+    if (t.stage === 'review') return { text: t.verdict === 'PASS' ? 'All gates passed' : 'Draft PR open', cls: 'ok' };
+    if (t.stage === 'approval') return { text: t.scope.length ? t.scope.length + ' file(s) in scope' : 'Plan drafted', cls: '' };
+    return { text: t.branch || '', cls: '' };
+  }
+
+  function renderCard(t) {
+    var b = el('button', 'card' + (t.needs_you ? ' you' : ''));
+    b.type = 'button';
+    b.setAttribute('data-id', t.id);
+    var top = el('div', 'top');
+    top.appendChild(el('span', 'mono', t.id));
+    if (t.round > 1 && t.stage !== 'done') top.appendChild(el('span', 'pill round', 'Round ' + t.round + ' of ' + t.max_attempts));
+    b.appendChild(top);
+    b.appendChild(el('div', 'title', t.title));
+    var line = cardLine(t);
+    if (line.text) b.appendChild(el('div', 'line ' + line.cls, line.text));
+    if (t.invalid_files.length) b.appendChild(el('div', 'line bad', 'Unreadable: ' + t.invalid_files.join(', ')));
+    b.addEventListener('click', function () { openDetail(t.id); });
+    return b;
+  }
+
+  function render(data) {
+    document.getElementById('demo').hidden = !data.demo;
+    document.getElementById('source').textContent = data.demo
+      ? 'Sample tasks. Run without --demo to read .volt-team/tasks/'
+      : 'Reading ' + data.team_dir + '/tasks';
+    tasksById = {};
+    var by = {};
+    data.stages.forEach(function (s) { by[s] = []; });
+    data.tasks.forEach(function (t) { tasksById[t.id] = t; (by[t.stage] || (by[t.stage] = [])).push(t); });
+
+    var you = data.tasks.filter(function (t) { return t.needs_you; }).length;
+    var active = data.tasks.filter(function (t) { return ['building', 'auditing', 'verifying'].indexOf(t.stage) >= 0; }).length;
+    var stats = document.getElementById('stats');
+    stats.replaceChildren();
+    [['Waiting on you', you, 'you'], ['Agents working', active, ''], ['Escalated', by.escalated.length, ''], ['Done', by.done.length, '']]
+      .forEach(function (s) {
+        var d = el('div', 'stat' + (s[2] && s[1] ? ' ' + s[2] : ''));
+        d.appendChild(el('b', '', s[1]));
+        d.appendChild(el('span', '', s[0]));
+        stats.appendChild(d);
+      });
+
+    var board = document.getElementById('board');
+    board.replaceChildren();
+    data.stages.forEach(function (s) {
+      var info = STAGE_INFO[s];
+      var col = el('section', 'col' + (info.you ? ' you' : ''));
+      col.setAttribute('aria-label', info.label);
+      var h = el('h2', '', info.label);
+      h.appendChild(el('span', 'n', by[s].length));
+      col.appendChild(h);
+      col.appendChild(el('p', 'hint', info.hint));
+      var cards = el('div', 'cards');
+      if (!by[s].length) cards.appendChild(el('div', 'empty', 'None'));
+      by[s].forEach(function (t) { cards.appendChild(renderCard(t)); });
+      col.appendChild(cards);
+      board.appendChild(col);
+    });
+  }
+
+  function section(body, title) { body.appendChild(el('h4', '', title)); }
+  function list(body, items) {
+    var ul = el('ul');
+    items.forEach(function (i) { ul.appendChild(el('li', 'mono', i)); });
+    body.appendChild(ul);
+  }
+
+  function openDetail(id) {
+    var t = tasksById[id];
+    if (!t) return;
+    var info = STAGE_INFO[t.stage];
+    document.getElementById('d-title').textContent = t.title;
+    document.getElementById('d-sub').textContent = t.id + ' · ' + info.label;
+    var body = document.getElementById('d-body');
+    body.replaceChildren();
+
+    var kv = el('dl', 'kv');
+    function row(k, v, href) {
+      if (!v) return;
+      kv.appendChild(el('dt', '', k));
+      var dd = el('dd', href ? '' : 'mono');
+      if (href) { var a = el('a', '', v); a.href = href; a.target = '_blank'; a.rel = 'noopener noreferrer'; dd.appendChild(a); }
+      else dd.textContent = v;
+      kv.appendChild(dd);
+    }
+    row('Type', t.type);
+    row('Branch', t.branch);
+    row('Head', t.head_sha);
+    row('Round', t.round + ' of ' + t.max_attempts);
+    var issue = safeUrl(t.issue_url); if (issue) row('Issue', issue, issue);
+    var pr = safeUrl(t.pr_url); if (pr) row('Pull request', pr, pr);
+    section(body, 'Summary');
+    body.appendChild(kv);
+
+    if (t.escalation_reason) { section(body, 'Escalation'); body.appendChild(el('p', '', t.escalation_reason)); }
+    if (t.scope.length) { section(body, 'Scope (allowed files)'); list(body, t.scope); }
+    if (t.files_changed.length) { section(body, 'Files changed'); list(body, t.files_changed); }
+
+    if (t.gates.length) {
+      section(body, 'Gates' + (t.verdict ? ' · ' + t.verdict : ''));
+      var g = el('div', 'gates');
+      t.gates.forEach(function (x) { g.appendChild(el('span', 'pill ' + (x.pass ? 'ok' : 'bad'), (x.pass ? 'PASS ' : 'FAIL ') + x.name)); });
+      body.appendChild(g);
+      if (t.failure_reason) body.appendChild(el('p', 'line bad', t.failure_reason));
+    }
+
+    if (t.audit_verdict) {
+      section(body, 'Audit · ' + t.audit_verdict + ' · ' + t.findings.length + ' finding(s)');
+      t.findings.forEach(function (f) {
+        var d = el('div', 'finding');
+        var head = el('div');
+        head.appendChild(el('span', 'pill ' + (f.severity === 'minor' ? 'round' : 'bad'), f.severity || 'finding'));
+        head.appendChild(document.createTextNode(' '));
+        head.appendChild(el('span', 'mono', (f.file || '') + (f.line ? ':' + f.line : '')));
+        d.appendChild(head);
+        if (f.claim) d.appendChild(el('div', '', f.claim));
+        if (f.failure_scenario) d.appendChild(el('div', 'line', 'Scenario: ' + f.failure_scenario));
+        body.appendChild(d);
+      });
+    }
+
+    if (t.assumptions.length) { section(body, 'Builder assumptions'); list(body, t.assumptions); }
+    if (t.open_questions.length) { section(body, 'Open questions'); list(body, t.open_questions); }
+    if (t.progress) { section(body, 'Progress log (latest)'); body.appendChild(el('pre', 'mono', t.progress)); }
+
+    var dlg = document.getElementById('detail');
+    if (!dlg.open) dlg.showModal();
+  }
+
+  document.getElementById('d-close').addEventListener('click', function () { document.getElementById('detail').close(); });
+  document.getElementById('detail').addEventListener('click', function (e) { if (e.target === e.currentTarget) e.currentTarget.close(); });
+
+  function load() {
+    fetch('/api/tasks', { cache: 'no-store' })
+      .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
+      .then(function (data) { document.getElementById('error').hidden = true; render(data); })
+      .catch(function (e) {
+        var box = document.getElementById('error');
+        box.textContent = 'Could not load tasks: ' + e.message + '. Is the dashboard server still running?';
+        box.hidden = false;
+      });
+  }
+  load();
+  setInterval(function () { if (!document.getElementById('detail').open) load(); }, 5000);
+})();
+</script>
+</body>
+</html>
