@@ -212,3 +212,21 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .layout .ph { position: absolute; border: 1px dashed #64748b; color: #475569; font-size: 9px; display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; }
 .layout .ph.title, .layout .ph.ctrTitle { border-color: #0f172a; color: #0f172a; font-weight: 600; }
 .template-pick .select { width: auto; max-width: 220px; padding: 3px 8px; }
+
+/* Copilot Chat view: black background with light text. The "dark" class switches the CopilotKit theme tokens. */
+.copilot-surface {
+  display: flex; height: calc(100% + 60px); min-height: 520px; margin: -20px -24px -40px;
+  background: #000; color: #f8fafc;
+  --background: #000; --card: #000; --popover: #000; --foreground: #f8fafc; --card-foreground: #f8fafc;
+  --sidebar: #000; --sidebar-foreground: #f8fafc; --muted-foreground: #cbd5e1;
+}
+.copilot-surface .copilot-chat { flex: 1; min-width: 0; height: 100%; background: #000; }
+.copilot-surface [data-copilotkit] { background: #000; color: #f8fafc; }
+.agent-card { margin: 8px 0; padding: 10px 14px; border: 1px solid var(--line-strong); border-left: 4px solid #fff; border-radius: 8px; background: #0a0a0a; color: #f8fafc; }
+.agent-card.missing { color: #cbd5e1; border-left-color: var(--muted); }
+.agent-card-head { display: flex; justify-content: space-between; gap: 12px; }
+.agent-card-layer { color: #cbd5e1; font-size: 12px; }
+.agent-card-id { font-family: var(--mono); font-size: 12px; color: #cbd5e1; }
+.agent-card p { margin: 6px 0; color: #e2e8f0; }
+.agent-card-skills { font-size: 12px; color: #cbd5e1; }
+@media (max-width: 760px) { .copilot-surface { margin: -16px; height: calc(100% + 32px); } }

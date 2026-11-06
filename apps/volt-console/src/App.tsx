@@ -11,8 +11,9 @@ import { Services } from "./components/Services";
 import { Analytics } from "./components/Analytics";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
+import { Copilot } from "./components/Copilot";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health";
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "copilot";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -86,6 +87,7 @@ export function App() {
     ["templates", "Templates", templates.length || ""],
     ["analytics", "Analytics", catalog.benchmarks.length],
     ["health", "Capability Health", catalog.health.missingSkills.length],
+    ["copilot", "Copilot Chat", ""],
   ];
 
   return (
@@ -138,6 +140,7 @@ export function App() {
         {view === "templates" && <Templates templates={templates} refresh={refreshTemplates} activeTemplate={activeTemplate} setActiveTemplate={setActiveTemplate} />}
         {view === "analytics" && <Analytics catalog={catalog} />}
         {view === "health" && <Health catalog={catalog} onOpenAgent={setOpenAgent} />}
+        {view === "copilot" && <Copilot catalog={catalog} />}
       </main>
       {openAgent && (
         <AgentDrawer
