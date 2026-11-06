@@ -1,0 +1,8 @@
+{
+  "projectId": "18205",
+  "projectSlug": "volt-main",
+  "clerkOrgId": "org_3LjZWBi5jutBe054oWEl6EuElvA",
+  "telemetryBindingId": "2f8c180f-fc2d-42eb-8505-aaf00dc2f7c9",
+  "runtimeUrl": "http://localhost:8200/api/copilotkit",
+  "apiKeyDirectory": "apps/volt-console"
+}
