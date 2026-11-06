@@ -55,7 +55,8 @@ CORE_SKILLS = {
     "management-consulting",
 }
 # Skill folders maintained by hand in this repository; the import never deletes them.
-HAND_WRITTEN_SKILLS = {"volt-skill-finder", "volt-services", "design-finance-architecture", "rudra-commands"}
+HAND_WRITTEN_SKILLS = {"volt-skill-finder", "volt-services", "design-finance-architecture", "react-bits-prototyping",
+                       "rudra-commands"}
 MAX_AGENT_KEYWORDS = 6
 TEXT_SUFFIXES = {".md", ".txt", ".json", ".csv", ".py", ".sh", ".xml", ".tsx", ".tex", ".yaml", ".yml"}
 OPUS_LAYERS_PREFIX = "Skills —"  # "Skills —" meta-agents run on sonnet; domain specialists on opus

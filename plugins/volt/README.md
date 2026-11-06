@@ -7,7 +7,7 @@ VOLT's finance transformation practice as a Claude Code plugin.
 | Specialist agents | 236 across 48 layers (orchestration, ERP, EPM, OSFI/BCAR, M&A, HCM, change, industries, skills) | `agents/` |
 | Workflow commands | 35, one per VOLT multi-phase workflow: `/volt:run-<workflow>` | `commands/run-*.md` |
 | Entry commands | `/volt:ask`, `/volt:find-skill`, `/volt:services`, `/volt:design-finance-architecture` | `commands/` |
-| Skills | 378 VOLT skills plus the hand-written `volt-skill-finder`, `volt-services` and `design-finance-architecture` | `skills/` |
+| Skills | 378 VOLT skills plus the hand-written `volt-skill-finder`, `volt-services`, `design-finance-architecture` and `react-bits-prototyping` | `skills/` |
 | Console data | workflows, services, intake questions, skill index | `data/` |
 
 ## Context budget
