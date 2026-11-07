@@ -35,6 +35,7 @@ import { runLocalTool, schemas, type ToolName } from "./tools.js";
 import { BENCHMARKS } from "./analytics.js";
 import { MODEL, errorMessage, getSession, intakeFor, runLive, type Emit, type RunInput } from "./orchestrator.js";
 import { runDemo } from "./demo.js";
+import { commandPrompt, commandStatus, loadRudraCommands, matchCommand } from "./commands.js";
 import { TemplateError, templateStore } from "./templates.js";
 import { demoDocuments, multiBasisAllowance, runValidator } from "./financeArchitecture.js";
 import { COPILOTKIT_PATH, copilotkitHandler } from "./copilotkit.js";
@@ -294,10 +295,14 @@ app.post("/api/run", async (req, res) => {
       : "Rudra orchestration";
   emit({ type: "run_start", runId: crypto.randomUUID(), sessionId: session.id, mode: runMode, model: runMode === "live" ? MODEL : "simulator", kind, title });
   if (body.template) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Formatting template "${body.template.name}" attached` });
+  // Rudra commands ("/compare ...") apply to Rudra runs only, not to a single specialist or a workflow.
+  const commands = kind === "orchestrate" ? loadRudraCommands() : [];
+  const command = kind === "orchestrate" ? matchCommand(body.prompt, commands) : null;
+  if (command) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: commandStatus(command) });
 
   try {
     if (runMode === "demo") await runDemo(catalog, body, emit, controller.signal);
-    else await runLive(catalog, body, session, emit, controller.signal);
+    else await runLive(catalog, command ? { ...body, prompt: commandPrompt(body.prompt, command, commands) } : body, session, emit, controller.signal);
   } catch (err) {
     if (!controller.signal.aborted) emit({ type: "error", lane: ORCHESTRATOR_LANE, message: errorMessage(err) });
   }
