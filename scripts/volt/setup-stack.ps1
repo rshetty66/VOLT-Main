@@ -40,5 +40,8 @@ Invoke-Step @('claude', 'plugin', 'install', 'volt@volt-main')
 Write-Host '== User memory (harness rules for every project)'
 & (Join-Path $repo 'scripts\volt\install-memory.ps1') -DryRun:$DryRun
 
+Write-Host '== Skills (user level, available in every session as /anatomy)'
+Invoke-Step @('npx', '--yes', 'skills', 'add', 'wheresryan22/anatomy', '-g', '-a', 'claude-code', '-y')
+
 Write-Host ''
 Write-Host 'Done. GSD is intentionally not installed; see VOLT_STACK.md before enabling it on a long-running project.'

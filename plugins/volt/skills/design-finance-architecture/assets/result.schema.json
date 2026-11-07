@@ -1,0 +1,62 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:finance-architecture:result:2.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": { "const": "2.0.0" },
+    "tenant_id": { "type": "string", "minLength": 1 },
+    "run_id": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["BLOCKED", "PARTIAL", "READY_FOR_REVIEW", "VALIDATED_SCOPED"] },
+    "methodology_version": { "type": "string", "minLength": 1 },
+    "started_at": { "type": "string", "format": "date-time" },
+    "finished_at": { "type": "string", "format": "date-time" },
+    "input_manifest_hash": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "versions": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy": { "type": "string", "minLength": 1 },
+        "rules": { "type": "string", "minLength": 1 },
+        "model": { "type": "string", "minLength": 1 },
+        "prompt": { "type": "string", "minLength": 1 },
+        "software": { "type": "string", "minLength": 1 }
+      },
+      "required": ["policy", "rules", "model", "prompt", "software"]
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "artifact_id": { "type": "string", "minLength": 1 },
+          "authorized_ref": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" }
+        },
+        "required": ["artifact_id", "authorized_ref", "sha256"]
+      }
+    },
+    "checks": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "check_id": { "type": "string", "minLength": 1 },
+          "status": { "enum": ["PASS", "FAIL", "NOT_RUN"] },
+          "scope": { "type": "string", "minLength": 1 },
+          "evidence_ref": { "type": ["string", "null"] }
+        },
+        "required": ["check_id", "status", "scope", "evidence_ref"]
+      }
+    },
+    "blockers": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "limitations": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+    "approval_evidence_refs": { "type": "array", "items": { "type": "string", "minLength": 1 } }
+  },
+  "required": [
+    "schema_version", "tenant_id", "run_id", "status", "methodology_version", "started_at", "finished_at",
+    "input_manifest_hash", "versions", "artifacts", "checks", "blockers", "limitations", "approval_evidence_refs"
+  ]
+}

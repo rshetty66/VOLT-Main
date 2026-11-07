@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { loadCatalog, loadSkillBody, rankAgents, rankSkills } from "../server/catalog";
 import { appraiseInvestment, buildValueCase, compareToBenchmark, scoreMaturity } from "../server/analytics";
 import { runLocalTool, schemas, toolDefs, ORCHESTRATOR_TOOLS } from "../server/tools";
-import { extractMetrics } from "../server/demo";
+import { extractMetrics, lens, specialistTitle } from "../server/demo";
 
 const catalog = loadCatalog();
 
@@ -104,5 +104,27 @@ describe("demo metric extraction", () => {
       { metric: "days_to_close", value: 12 },
       { metric: "dso", value: 55 },
     ]);
+  });
+});
+
+describe("demo specialist cards", () => {
+  const catalog = loadCatalog();
+  const agent = catalog.agents.find((a) => a.id === "accounting-hub-architect")!;
+
+  it("shows the agent's own role, not the Prompt Defense Baseline", () => {
+    const text = lens(agent);
+    expect(text).not.toContain("Prompt Defense");
+    expect(text).not.toContain("#");
+    expect(text.startsWith("You are the Accounting Hub Architect.")).toBe(true);
+  });
+
+  it("keeps the first two sentences when there is no baseline block", () => {
+    const plain = { ...agent, systemPrompt: "You are a tester. You check things. You report." };
+    expect(lens(plain)).toBe("You are a tester. You check things.");
+  });
+
+  it("renders a bold name when the agent has no icon", () => {
+    expect(specialistTitle({ ...agent, icon: "" })).toBe(`**${agent.name}**`);
+    expect(specialistTitle({ ...agent, icon: "A" })).toBe(`**A ${agent.name}**`);
   });
 });

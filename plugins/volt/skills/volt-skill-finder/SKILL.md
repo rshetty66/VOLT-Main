@@ -39,6 +39,8 @@ always-on listing to save context, and opened through this skill.
 | IFRS 17 contractual service margin roll-forward | `insurance-ifrs17-csm-recon`, `ifrs`, `roll-forward` |
 | Five-day close on SAP S/4HANA | `close-management`, `period-close`, `sap-fi` |
 | OSFI BCAR submission readiness | `osfi-regulatory-expert`, `regulatory-reporting` |
+| Mortgage lifecycle to accounting events, hub, EPM and OSFI lineage | `design-finance-architecture` (core, hand-written; also `/volt:design-finance-architecture`), `accounting-policy-banking-insurance` |
+| Animated client demo of a close dashboard or landing page | `react-bits-prototyping` (core, hand-written), `creative-design` |
 
 ## Anti-Patterns
 

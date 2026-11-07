@@ -1,0 +1,22 @@
+{
+  "tenant_id": "SYNTHETIC",
+  "target_accounts": ["LOANS", "CASH", "ALLOWANCE", "EXPENSE"],
+  "legacy": [
+    { "entity": "BANK-CA", "basis": "IFRS", "currency": "CAD", "period": "2026-10", "account": "100", "balance": "498000.00" },
+    { "entity": "BANK-CA", "basis": "IFRS", "currency": "CAD", "period": "2026-10", "account": "101", "balance": "-498000.00" },
+    { "entity": "BANK-CA", "basis": "IFRS", "currency": "CAD", "period": "2026-10", "account": "102", "balance": "-2000.00" },
+    { "entity": "BANK-CA", "basis": "IFRS", "currency": "CAD", "period": "2026-10", "account": "103", "balance": "2000.00" }
+  ],
+  "mapping": [
+    { "source": "100", "targets": [{ "account": "LOANS", "weight": "1" }] },
+    { "source": "101", "targets": [{ "account": "CASH", "weight": "1" }] },
+    { "source": "102", "targets": [{ "account": "ALLOWANCE", "weight": "1" }] },
+    { "source": "103", "targets": [{ "account": "EXPENSE", "weight": "1" }] }
+  ],
+  "target": [
+    { "entity": "BANK-CA", "basis": "IFRS", "currency": "CAD", "period": "2026-10", "account": "LOANS", "balance": "498000.00" },
+    { "entity": "BANK-CA", "basis": "IFRS", "currency": "CAD", "period": "2026-10", "account": "CASH", "balance": "-498000.00" },
+    { "entity": "BANK-CA", "basis": "IFRS", "currency": "CAD", "period": "2026-10", "account": "ALLOWANCE", "balance": "-2000.00" },
+    { "entity": "BANK-CA", "basis": "IFRS", "currency": "CAD", "period": "2026-10", "account": "EXPENSE", "balance": "2000.00" }
+  ]
+}

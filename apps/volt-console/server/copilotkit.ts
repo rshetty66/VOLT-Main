@@ -1,49 +1,30 @@
 /**
- * CopilotKit Runtime for the VOLT Console chat, run as its own process beside the React dev server.
+ * CopilotKit runtime for the Finance Workbench: a self-hosted AG-UI endpoint whose built-in agent runs on
+ * Claude. It sits alongside the assistant-ui panel. Where that panel answers questions, this agent acts on
+ * the screen: the browser registers the workbench's own buttons as frontend tools (find filings, fetch and
+ * extract, check figures, confirm, validate, move between steps) and shares the workbench state with it.
  *
- *   npm run dev:copilot     http://localhost:8200/api/copilotkit
- *
- * It connects the console to the LangGraph TypeScript agent in ../agent (npm run dev:agent) and to CopilotKit
- * Intelligence for persistent threads. The Express API in server/index.ts is not involved.
+ * Mounted only in live mode, before the JSON body parser, at /api/copilotkit. No CopilotKit Cloud account is
+ * used, and telemetry is off by default (server/env.ts).
  */
-// Must stay the first import: loads apps/volt-console/.env (CPK_INTELLIGENCE_API_KEY) before anything reads it.
-import "./env.js";
-import { createServer } from "node:http";
-import { CopilotKitIntelligence, CopilotRuntime } from "@copilotkit/runtime/v2";
-import { createCopilotNodeListener } from "@copilotkit/runtime/v2/node";
-import { LangGraphAgent } from "@copilotkit/runtime/langgraph";
+import { BuiltInAgent, CopilotRuntime } from "@copilotkit/runtime/v2";
+import { createCopilotExpressHandler } from "@copilotkit/runtime/v2/express";
+import { MODEL } from "./orchestrator.js";
 
-const PORT = Number(process.env.COPILOT_RUNTIME_PORT ?? 8200);
-const AGENT_ID = "volt_console_agent";
+export const COPILOTKIT_PATH = "/api/copilotkit";
 
-const intelligence = new CopilotKitIntelligence({
-  apiKey: process.env.CPK_INTELLIGENCE_API_KEY!,
-  // One Learning Container for every run.
-  getLearningContainerId: () => "volt-main",
-});
+const PROMPT = `You are the VOLT Finance Workbench copilot for finance architects at banks.
+You operate the workbench through its tools; you never invent figures. Every number must come from a client document or a published filing that the workbench has checked against its page.
+Order of work: find the issuer's published statements (find_filings), fetch and extract one (extract_figures), run check_figures, show the user any failing figure with its page and quote, and only confirm figures the user has accepted (confirm_figures). Then validate the derived journals (validate_journals) and point out what is still BLOCKED and why.
+If the user says real data is not available, tell them to press "Data not available: use illustrative example"; you do not switch it yourself.
+Never set an approver name or sign anything off: approvals and sign-off are typed by people.
+Keep answers short and cite page numbers from the workbench state.`;
 
-const runtime = new CopilotRuntime({
-  agents: {
-    [AGENT_ID]: new LangGraphAgent({
-      deploymentUrl: process.env.LANGGRAPH_DEPLOYMENT_URL || "http://localhost:8123",
-      graphId: AGENT_ID,
-      langsmithApiKey: process.env.LANGSMITH_API_KEY || "",
-    }),
-  },
-  intelligence,
-  // LOCAL DEVELOPMENT PLACEHOLDER: the console has no sign-in, so every browser shares one fixed user.
-  // Production must return the user from a verified session or token, reject requests without one, and
-  // enforce thread ownership on threads/events, threads/state and agent/stop.
-  identifyUser: () => ({ id: "volt-console-local-user", name: "VOLT Console (local)" }),
-});
-
-createServer(
-  createCopilotNodeListener({
-    runtime,
-    basePath: "/api/copilotkit",
-    // The SPA (port 5173) and this runtime (port 8200) are different origins.
-    cors: true,
-  }),
-).listen(PORT, () => {
-  console.log(`Copilot Runtime listening at http://localhost:${PORT}/api/copilotkit`);
-});
+export function copilotkitHandler() {
+  const runtime = new CopilotRuntime({
+    agents: {
+      default: new BuiltInAgent({ model: `anthropic/${MODEL}`, prompt: PROMPT, maxSteps: 8, maxOutputTokens: 8000 }),
+    },
+  });
+  return createCopilotExpressHandler({ runtime, basePath: COPILOTKIT_PATH, cors: false, activateChannels: false });
+}

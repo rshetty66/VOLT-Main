@@ -98,7 +98,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
           </div>
           <textarea
             className="textarea"
-            placeholder={target === "rudra" ? "Describe the client situation and what you need…" : `Ask ${targetAgent?.name ?? target}…`}
+            placeholder={target === "rudra" ? "Describe the client situation and what you need… or start with a command such as /compare (type /help for all)" : `Ask ${targetAgent?.name ?? target}…`}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => {

@@ -34,6 +34,7 @@ each layer and the conflict rules (Superpowers on, GSD off, ECC without its plan
 | [`plugins/volt/`](../plugins/volt) | The VOLT plugin: agents, workflow commands, skills, Skill Finder, services catalogue |
 | [`plugins/volt/tools/import_volt.py`](../plugins/volt/tools/import_volt.py) | Rebuilds the plugin from a `volt_deploy` package |
 | [`apps/volt-console/`](../apps/volt-console) | Browser console: React UI and Claude-powered multi-agent API over the plugin |
+| [`apps/volt-coa/`](../apps/volt-coa) | COA Designer: build and check a chart of accounts, map a legacy chart to it, Claude proposals verified by tested code |
 | [`scripts/volt/`](../scripts/volt) | Stack setup scripts, including the user-memory step for the harness rules |
 | [`VOLT_STACK.md`](../VOLT_STACK.md) | The recommended Claude application stack and how VOLT applies it |
 | everything else | **ECC**, the agent harness ([affaan-m/ecc](https://github.com/affaan-m/ecc) at `76aaa77`, MIT). Its README is the root [`README.md`](../README.md) |

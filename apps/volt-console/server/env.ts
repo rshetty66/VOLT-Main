@@ -18,3 +18,7 @@ export function loadConsoleEnv(file = DEFAULT_ENV_FILE): boolean {
 }
 
 loadConsoleEnv();
+
+// CopilotKit sends usage telemetry to telemetry.copilotkit.ai unless told not to. VOLT keeps it off;
+// set COPILOTKIT_TELEMETRY_DISABLED=false in .env to opt in.
+process.env.COPILOTKIT_TELEMETRY_DISABLED ??= "true";
