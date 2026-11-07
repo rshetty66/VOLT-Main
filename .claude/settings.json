@@ -57,7 +57,13 @@
       "Bash(rm -fr:*)",
       "Bash(npm install:*)",
       "Bash(npm i:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "mcp__stripe__stripe_api_write",
+      "mcp__stripe__send_money",
+      "mcp__stripe__transfer_money",
+      "mcp__stripe__convert_currency",
+      "mcp__stripe__setup_recipient",
+      "mcp__stripe__atlas_company_formation"
     ],
     "allow": [
       "Bash(npm test)",
@@ -83,6 +89,26 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit|PowerShell|Bash|Monitor",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/volt/hooks/readonly-agents.js",
+            "timeout": 10
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$VOLT_TEAM\" = 1 ] || exit 0; bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tdd-gate.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUse": [
@@ -95,6 +121,16 @@
             "timeout": 5
           }
         ]
+      },
+      {
+        "matcher": "Edit|Write|MultiEdit|Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$VOLT_TEAM\" = 1 ] || exit 0; bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tdd-gate.sh",
+            "timeout": 10
+          }
+        ]
       }
     ],
     "PostToolUseFailure": [
@@ -104,6 +140,54 @@
           {
             "type": "command",
             "command": "node \"$CLAUDE_PROJECT_DIR/scripts/volt/hooks/loop-breaker.js\"",
+            "timeout": 5
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$VOLT_TEAM\" = 1 ] || exit 0; bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tdd-gate.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "[ \"$VOLT_TEAM\" = 1 ] || exit 0; bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/tdd-gate.sh",
+            "timeout": 10
+          },
+          {
+            "type": "command",
+            "command": "[ \"$VOLT_TEAM\" = 1 ] || exit 0; bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/scope-guard.sh",
+            "timeout": 30
+          }
+        ]
+      }
+    ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/volt/hooks/subagent-log.js",
+            "timeout": 5
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR\"/scripts/volt/hooks/subagent-log.js",
             "timeout": 5
           }
         ]

@@ -111,3 +111,6 @@ assets/images/security/badrudi-exploit.mp4
 
 # VOLT agent team shared task bus (task.json, handoff.json, verdicts)
 .volt-team/
+
+# Subagent start/stop audit log (scripts/volt/hooks/subagent-log.js)
+.claude/agent-log.jsonl
