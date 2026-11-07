@@ -9,6 +9,7 @@
 #   5. Anthropic document skills    document-skills@anthropic-agent-skills
 #   +  VOLT                         volt@volt-main, from this repository's plugins/ marketplace
 #   +  Harness rules                ~/.claude/volt-harness.md, imported from ~/.claude/CLAUDE.md
+#   +  Anatomy skill                wheresryan22/anatomy, via the skills CLI into ~/.claude/skills
 #
 # Usage: bash scripts/volt/setup-stack.sh [--dry-run]
 set -euo pipefail
@@ -42,6 +43,9 @@ run claude plugin install volt@volt-main
 
 echo "== User memory (harness rules for every project)"
 bash "$REPO/scripts/volt/install-memory.sh" $DRY
+
+echo "== Skills (user level, available in every session as /anatomy)"
+run npx --yes skills add wheresryan22/anatomy -g -a claude-code -y
 
 echo
 echo "Done. GSD is intentionally not installed; see VOLT_STACK.md before enabling it on a long-running project."

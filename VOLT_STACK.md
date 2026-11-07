@@ -14,6 +14,7 @@ before it was written down (see "How this was verified").
 | 5 | Official skills and plugins | [anthropics/skills](https://github.com/anthropics/skills), [anthropics/claude-plugins-official](https://github.com/anthropics/claude-plugins-official) | Plugin `document-skills@anthropic-agent-skills` | On. docx, pptx, xlsx and pdf for client deliverables |
 | + | VOLT practice | this repository | Plugin `volt@volt-main` from `plugins/` | On. Agents, workflows, skills, Skill Finder |
 | + | Harness rules | this repository | `scripts/volt/install-memory` imports them into `~/.claude/CLAUDE.md` | On in every project. Full run: `/volt:harness`. See [docs/volt/HARNESS.md](docs/volt/HARNESS.md) |
+| + | Anatomy skill | [wheresryan22/anatomy](https://github.com/wheresryan22/anatomy) (MIT) | `npx skills add wheresryan22/anatomy -g -a claude-code` into `~/.claude/skills/anatomy` | On in every project. `/anatomy <idea>` builds an interactive isometric figure. Needs Node 22.20+ for the skills CLI |
 
 ## Set it up
 
@@ -59,6 +60,10 @@ Install only from the official sources linked above: GitHub `affaan-m/ECC`, npm 
 Forks and mirrors (for example `affaann-m/...`, `anhstudio/...`, `qo-kr/...` or gitcode mirrors) are not approved.
 The ECC copy in this repository was taken from `github.com/affaan-m/ecc` at commit `76aaa77`.
 
+The Anatomy skill is a third-party skill installed from `github.com/wheresryan22/anatomy`, and the skills CLI installs its
+default branch. It was reviewed at commit `1482e84`: it runs a local headless Chrome for checks and publishes to its
+community gallery only on an explicit yes. Re-review before relying on a newer version.
+
 ## Watchlist (not installed)
 
 - [obra/superpowers-lab](https://github.com/obra/superpowers-lab): experimental skills (mcp-cli, tmux control).
@@ -73,3 +78,8 @@ On 2026-10-15, in an empty home directory:
 - `scripts/volt/setup-stack.sh` ran end to end. All four plugins installed and showed as enabled in `claude plugin list`.
 - The ECC install placed 30 skills, none of them `tdd-workflow`, `verification-loop`, `plan-canvas`, `santa-method` or `orch-*`.
 - `claude plugin validate` passed for `plugins/` and `plugins/volt`.
+
+On 2026-10-23, `scripts/volt/setup-stack.sh` ran end to end with `HOME` pointed at an empty directory (Node 22.22.0). It exited 0,
+the four plugins showed as enabled in `claude plugin list`, `~/.claude/CLAUDE.md` imported `volt-harness.md`, and
+`npx --yes skills add wheresryan22/anatomy -g -a claude-code -y` installed `anatomy` into `~/.claude/skills/anatomy`.
+`setup-stack.ps1` and loading `/anatomy` in a fresh session were not tested.
