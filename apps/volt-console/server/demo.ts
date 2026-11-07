@@ -50,15 +50,26 @@ export function extractMetrics(prompt: string): { metric: string; value: number 
   return out;
 }
 
-function lens(agent: AgentDef): string {
-  const sentences = agent.systemPrompt.replace(/\s+/g, " ").split(/(?<=\.)\s/).slice(0, 2).join(" ");
+/** The agent's own role text: skips the shared Prompt Defense Baseline block and any heading or bullet lines. */
+export function lens(agent: AgentDef): string {
+  const body = agent.systemPrompt
+    .replace(/^#+\s*Prompt Defense Baseline[^\n]*\n(?:\s*\n|[ \t]*[-*][^\n]*\n?)*/im, "")
+    .split("\n")
+    .filter((line) => !/^\s*(#|[-*]\s)/.test(line))
+    .join(" ");
+  const sentences = body.replace(/\s+/g, " ").trim().split(/(?<=\.)\s/).slice(0, 2).join(" ");
   return sentences.length > 420 ? sentences.slice(0, 420) + "…" : sentences;
+}
+
+/** Bold card title; the icon is optional and an empty one must not leave "** Name**". */
+export function specialistTitle(agent: AgentDef): string {
+  return `**${agent.icon ? `${agent.icon} ` : ""}${agent.name}**`;
 }
 
 function specialistNote(catalog: Catalog, agent: AgentDef, focus: string): string {
   const skills = agent.skills.filter((s) => catalog.skillById.has(s)).slice(0, 6);
   const missing = agent.skills.filter((s) => !catalog.skillById.has(s)).length;
-  return `**${agent.icon} ${agent.name}** · _${agent.layer}_
+  return `${specialistTitle(agent)} · _${agent.layer}_
 
 ${agent.description}
 

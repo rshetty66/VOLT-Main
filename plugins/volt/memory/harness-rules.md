@@ -30,3 +30,12 @@ For a full harnessed run, use `/volt:harness <task>`.
 - For multi-stage work keep `plan.md`, `checks.md` (step | requirement | verdict | evidence) and `progress.md`
   (done, running, blocked; output paths; decisions; open issues; next action).
 - On resuming, read CLAUDE.md, plan.md and progress.md first, then continue from the recorded next action.
+
+## Design resources
+
+- For UI, animation, icon or illustration work, start from the verified list in VOLT-Main `docs/volt/DESIGN-RESOURCES.md`.
+- Copy only from MIT, ISC, CC0 and Apache-2.0 sources and keep their licence notices. No licence means reference only
+  (`ckissi/kinetics`, `naughtyduk/liquidGL`).
+- Defaults: `shadcn-ui/ui` and `magicuidesign/magicui` for components, `juliangarnier/anime` for animation,
+  `google-labs-code/design.md` for the DESIGN.md format.
+- Inspiration galleries are for layout, type and spacing patterns only, never brand assets, copy or screenshots.
