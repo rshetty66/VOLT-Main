@@ -1,0 +1,126 @@
+{
+ "models": [
+  {
+   "id": "gyan-core",
+   "name": "Gyan Core",
+   "base": "orchestration model",
+   "kind": "core",
+   "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+  },
+  {
+   "id": "bcar-advisor",
+   "name": "BCAR Advisor",
+   "base": "Mistral fine-tune",
+   "kind": "dedicated",
+   "blurb": "OSFI/BCAR returns, CET1 waterfall, LCR/NSFR, Pillar 3, stress integration."
+  },
+  {
+   "id": "coa-architect",
+   "name": "COA Architect",
+   "base": "Mistral fine-tune",
+   "kind": "dedicated",
+   "blurb": "Segment architecture, natural-account logic, legacy-to-target mapping, CVR rules."
+  },
+  {
+   "id": "sec-reporting",
+   "name": "SEC Reporting & XBRL",
+   "base": "Mistral fine-tune",
+   "kind": "dedicated",
+   "blurb": "10-K/10-Q/8-K drafting, S-X/S-K compliance, US GAAP taxonomy tagging."
+  },
+  {
+   "id": "fin-instruments",
+   "name": "Financial Instruments (IFRS 9)",
+   "base": "Mistral fine-tune",
+   "kind": "dedicated",
+   "blurb": "Classification & measurement, ECL staging, hedge accounting, EL bridges."
+  },
+  {
+   "id": "erp-config",
+   "name": "ERP Config Automation",
+   "base": "Mistral fine-tune",
+   "kind": "dedicated",
+   "blurb": "FBDI/HDL workbook grammar, config deploy, drift detection, test-script generation."
+  },
+  {
+   "id": "ifrs17-insurance",
+   "name": "Insurance (IFRS 17)",
+   "base": "Mistral fine-tune",
+   "kind": "dedicated",
+   "blurb": "BBA/PAA/VFA measurement, CSM, risk adjustment, FPSL subledger."
+  },
+  {
+   "id": "rev-rec",
+   "name": "Revenue Recognition (IFRS 15)",
+   "base": "Mistral fine-tune",
+   "kind": "dedicated",
+   "blurb": "5-step model, contract modifications, SaaS and license patterns."
+  },
+  {
+   "id": "close-consolidation",
+   "name": "Close & Consolidation (R2R)",
+   "base": "Mistral fine-tune",
+   "kind": "dedicated",
+   "blurb": "Eliminations, NCI, multi-GAAP, close calendars, FCCS/OneStream mechanics."
+  },
+  {
+   "id": "tax-advisor",
+   "name": "Tax & Pillar Two",
+   "base": "Mistral fine-tune",
+   "kind": "dedicated",
+   "blurb": "IAS 12/ASC 740 mechanics, Pillar Two, transfer pricing; rates served by retrieval."
+  },
+  {
+   "id": "sox-controls",
+   "name": "SOX & Controls",
+   "base": "Mistral fine-tune",
+   "kind": "dedicated",
+   "blurb": "Control matrices, SOD, test procedures, evidence conventions."
+  },
+  {
+   "id": "benchmark-service",
+   "name": "Benchmark Data Service",
+   "base": "retrieval, not a model",
+   "kind": "retrieval",
+   "blurb": "APQC benchmarks served by retrieval with source tags — numbers are never fine-tuned."
+  }
+ ],
+ "backing": {
+  "osfi-bcar-master": "bcar-advisor",
+  "osfi-regulatory-monitor": "bcar-advisor",
+  "gl-capital-reconciliation": "bcar-advisor",
+  "bcar-data-governance": "bcar-advisor",
+  "capital-calculation-engine": "bcar-advisor",
+  "irb-expected-loss": "bcar-advisor",
+  "market-risk-frtb": "bcar-advisor",
+  "oprisk-sma": "bcar-advisor",
+  "capital-analytics": "bcar-advisor",
+  "stress-testing": "bcar-advisor",
+  "bcar-submission-quality": "bcar-advisor",
+  "coa-designer": "coa-architect",
+  "accounting-hub-architect": "coa-architect",
+  "oracle-edmcs-lead": "coa-architect",
+  "reading-10k-10q": "sec-reporting",
+  "investor-relations": "sec-reporting",
+  "sap-bank-analyzer-lead": "fin-instruments",
+  "financial-services-specialist": "fin-instruments",
+  "oracle-config-agent": "erp-config",
+  "erp-data-loader": "erp-config",
+  "oracle-erp-configurator": "erp-config",
+  "erp-test-automation": "erp-config",
+  "sap-insurance-accounting-specialist": "ifrs17-insurance",
+  "sap-fpsl-lead": "ifrs17-insurance",
+  "revenue-recognition-agent": "rev-rec",
+  "consolidation-reporting-agent": "close-consolidation",
+  "oracle-fccs-lead": "close-consolidation",
+  "onestream-specialist": "close-consolidation",
+  "period-close": "close-consolidation",
+  "consolidation-skill": "close-consolidation",
+  "tax-accounting-agent": "tax-advisor",
+  "tax-compliance": "tax-advisor",
+  "internal-audit-agent": "sox-controls",
+  "si-security-controls-lead": "sox-controls",
+  "security-roles": "sox-controls",
+  "apqc-researcher": "benchmark-service"
+ }
+}
