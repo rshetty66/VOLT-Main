@@ -1,0 +1,948 @@
+[
+ {
+  "id": "erp-automation",
+  "label": "ERP Automation",
+  "icon": "🏗️",
+  "color": "#9b9d95",
+  "accent": "#c0c2ba",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "ERP Automation specialists",
+  "subCategories": [
+   {
+    "id": "erp-automation-all",
+    "label": "ERP Automation",
+    "agents": [
+     {
+      "id": "oracle-erp-configurator",
+      "name": "Oracle ERP Cloud Configurator",
+      "role": "AI-driven Oracle ERP Cloud setup: GL, AP, AR, FA, CM, Projects, Procurement",
+      "tools": [],
+      "triggers": [
+       "oracle erp",
+       "fusion cloud",
+       "GL setup",
+       "AP setup",
+       "AR setup",
+       "subledger"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "erp-config",
+       "name": "ERP Config Automation",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "FBDI/HDL workbook grammar, config deploy, drift detection, test-script generation."
+      }
+     },
+     {
+      "id": "oracle-scm-configurator",
+      "name": "Oracle SCM Cloud Configurator",
+      "role": "AI-driven Oracle SCM Cloud: inventory, order management, procurement, manufacturing",
+      "tools": [],
+      "triggers": [
+       "oracle scm",
+       "supply chain",
+       "inventory",
+       "order management",
+       "procurement config",
+       "manufacturing"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-hcm-configurator",
+      "name": "Oracle HCM Cloud Configurator",
+      "role": "AI-driven Oracle HCM Cloud: core HR, payroll, benefits, talent, workforce management",
+      "tools": [
+       "hr-transformation-core"
+      ],
+      "triggers": [
+       "oracle hcm",
+       "human capital",
+       "payroll",
+       "benefits",
+       "talent",
+       "recruiting"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "erp-test-automation",
+      "name": "ERP Test Automation",
+      "role": "AI-powered test script generation, FBDI validation, integration testing for Oracle/SAP",
+      "tools": [],
+      "triggers": [
+       "test script",
+       "FBDI validation",
+       "UAT",
+       "SIT",
+       "regression",
+       "smoke test"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "erp-config",
+       "name": "ERP Config Automation",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "FBDI/HDL workbook grammar, config deploy, drift detection, test-script generation."
+      }
+     },
+     {
+      "id": "erp-data-loader",
+      "name": "ERP Data Loader",
+      "role": "FBDI template generation, data migration scripts, bulk loader orchestration",
+      "tools": [],
+      "triggers": [
+       "FBDI",
+       "HDL",
+       "data migration",
+       "data loader",
+       "LSMW",
+       "EIB"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "erp-config",
+       "name": "ERP Config Automation",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "FBDI/HDL workbook grammar, config deploy, drift detection, test-script generation."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "organizational-readiness",
+  "label": "Organizational Readiness",
+  "icon": "⚡",
+  "color": "#C41E3A",
+  "accent": "#FF4D6D",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Organizational Readiness specialists",
+  "subCategories": [
+   {
+    "id": "organizational-readiness-all",
+    "label": "Organizational Readiness",
+    "agents": [
+     {
+      "id": "sop-generator",
+      "name": "SOP Generator",
+      "role": "Create Standard Operating Procedures from process flows, system configs, and policies",
+      "tools": [],
+      "triggers": [
+       "SOP",
+       "standard operating procedure",
+       "procedure",
+       "work instruction",
+       "process doc"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "training-content-builder",
+      "name": "Training Content Builder",
+      "role": "Build role-based training manuals, quick reference guides, eLearning storyboards",
+      "tools": [],
+      "triggers": [
+       "training manual",
+       "quick reference",
+       "QRG",
+       "eLearning",
+       "job aid",
+       "training content"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "learning-path-designer",
+      "name": "Learning Path Designer",
+      "role": "Design learning curricula, certification paths, competency frameworks, LMS structures",
+      "tools": [],
+      "triggers": [
+       "learning path",
+       "curriculum",
+       "certification",
+       "competency",
+       "LMS",
+       "learning design"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "ocm-accelerator",
+      "name": "OCM Accelerator",
+      "role": "Change impact assessment, communications plans, adoption dashboards, resistance management",
+      "tools": [],
+      "triggers": [
+       "change management",
+       "OCM",
+       "adoption",
+       "stakeholder",
+       "communication plan",
+       "change impact"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "osfi-bcar",
+  "label": "OSFI / BCAR",
+  "icon": "🏦",
+  "color": "#8b7ce8",
+  "accent": "#a89cf0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "OSFI / BCAR specialists",
+  "subCategories": [
+   {
+    "id": "osfi-bcar-all",
+    "label": "OSFI / BCAR",
+    "agents": [
+     {
+      "id": "osfi-bcar-master",
+      "name": "OSFI BCAR Master",
+      "role": "Deep-domain OSFI BCAR & Pillar 3 expert — orchestrates all capital reporting agents",
+      "tools": [],
+      "triggers": [
+       "OSFI",
+       "BCAR",
+       "CAR",
+       "capital adequacy",
+       "Pillar 3",
+       "D-SIB"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "bcar-advisor",
+       "name": "BCAR Advisor",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "OSFI/BCAR returns, CET1 waterfall, LCR/NSFR, Pillar 3, stress integration."
+      }
+     },
+     {
+      "id": "osfi-regulatory-monitor",
+      "name": "OSFI / Basel Regulatory Monitor",
+      "role": "Monitors OSFI CAR updates, Basel publications, FRTB phase-in schedules",
+      "tools": [],
+      "triggers": [
+       "OSFI update",
+       "regulatory change",
+       "CAR amendment",
+       "Basel IV",
+       "FRTB phase-in",
+       "regulatory monitor"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "bcar-advisor",
+       "name": "BCAR Advisor",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "OSFI/BCAR returns, CET1 waterfall, LCR/NSFR, Pillar 3, stress integration."
+      }
+     },
+     {
+      "id": "gl-capital-reconciliation",
+      "name": "GL-to-Capital Reconciliation",
+      "role": "Bridges SAP S/4HANA trial balance to OSFI capital via 23-step CET1 waterfall",
+      "tools": [],
+      "triggers": [
+       "GL to capital",
+       "trial balance",
+       "CET1 waterfall",
+       "deductions",
+       "reconciliation",
+       "BlackLine"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "bcar-advisor",
+       "name": "BCAR Advisor",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "OSFI/BCAR returns, CET1 waterfall, LCR/NSFR, Pillar 3, stress integration."
+      }
+     },
+     {
+      "id": "bcar-data-governance",
+      "name": "BCAR Data Governance & Lineage",
+      "role": "BCBS 239 data quality, Medallion architecture, OSFI audit trail compliance",
+      "tools": [],
+      "triggers": [
+       "BCBS 239",
+       "data governance",
+       "lineage",
+       "data quality",
+       "Medallion",
+       "audit trail"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "bcar-advisor",
+       "name": "BCAR Advisor",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "OSFI/BCAR returns, CET1 waterfall, LCR/NSFR, Pillar 3, stress integration."
+      }
+     },
+     {
+      "id": "capital-calculation-engine",
+      "name": "Capital Calculation Engine",
+      "role": "CET1/T1/Total Capital ratio computation with D-SIB buffer and output floor",
+      "tools": [],
+      "triggers": [
+       "capital calculation",
+       "CET1 ratio",
+       "T1 ratio",
+       "Total Capital",
+       "output floor",
+       "D-SIB buffer"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "bcar-advisor",
+       "name": "BCAR Advisor",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "OSFI/BCAR returns, CET1 waterfall, LCR/NSFR, Pillar 3, stress integration."
+      }
+     },
+     {
+      "id": "irb-expected-loss",
+      "name": "IRB / Expected Loss Agent",
+      "role": "IRB model outputs, EL vs IFRS 9 provision bridge, EL shortfall allocation",
+      "tools": [],
+      "triggers": [
+       "IRB",
+       "expected loss",
+       "EL shortfall",
+       "PD LGD EAD",
+       "IFRS 9 provision",
+       "credit risk"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "bcar-advisor",
+       "name": "BCAR Advisor",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "OSFI/BCAR returns, CET1 waterfall, LCR/NSFR, Pillar 3, stress integration."
+      }
+     },
+     {
+      "id": "market-risk-frtb",
+      "name": "Market Risk (FRTB) Agent",
+      "role": "FRTB Standardised Approach, IMA boundary, P&L attribution, market risk RWA",
+      "tools": [],
+      "triggers": [
+       "FRTB",
+       "market risk",
+       "trading book",
+       "IMA",
+       "SA",
+       "SBM"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "bcar-advisor",
+       "name": "BCAR Advisor",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "OSFI/BCAR returns, CET1 waterfall, LCR/NSFR, Pillar 3, stress integration."
+      }
+     },
+     {
+      "id": "oprisk-sma",
+      "name": "Operational Risk (SMA) Agent",
+      "role": "Basel IV Standardised Measurement Approach for operational risk RWA",
+      "tools": [],
+      "triggers": [
+       "operational risk",
+       "SMA",
+       "OpRisk",
+       "BIC",
+       "ILM",
+       "loss data"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "bcar-advisor",
+       "name": "BCAR Advisor",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "OSFI/BCAR returns, CET1 waterfall, LCR/NSFR, Pillar 3, stress integration."
+      }
+     },
+     {
+      "id": "capital-analytics",
+      "name": "Capital Analytics & Dashboard",
+      "role": "CRO/CFO dashboards, QoQ waterfall, RWA decomposition, capital trajectory",
+      "tools": [],
+      "triggers": [
+       "capital analytics",
+       "CRO dashboard",
+       "waterfall",
+       "RWA attribution",
+       "capital forecast"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "bcar-advisor",
+       "name": "BCAR Advisor",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "OSFI/BCAR returns, CET1 waterfall, LCR/NSFR, Pillar 3, stress integration."
+      }
+     },
+     {
+      "id": "stress-testing",
+      "name": "Stress Testing Integration",
+      "role": "OSFI DFAST, ICAAP, baseline-to-stressed capital bridge, scenario decomposition",
+      "tools": [],
+      "triggers": [
+       "stress test",
+       "DFAST",
+       "ICAAP",
+       "scenario",
+       "stressed capital",
+       "adverse scenario"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "bcar-advisor",
+       "name": "BCAR Advisor",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "OSFI/BCAR returns, CET1 waterfall, LCR/NSFR, Pillar 3, stress integration."
+      }
+     },
+     {
+      "id": "bcar-submission-quality",
+      "name": "BCAR Submission Quality",
+      "role": "Final QC — validates all OSFI CAR schedules, formatting, completeness, CFO package",
+      "tools": [],
+      "triggers": [
+       "BCAR submission",
+       "QC",
+       "OSFI portal",
+       "CFO attestation",
+       "schedule validation",
+       "submission quality"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "bcar-advisor",
+       "name": "BCAR Advisor",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "OSFI/BCAR returns, CET1 waterfall, LCR/NSFR, Pillar 3, stress integration."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "skills-deliverables",
+  "label": "Skills — Deliverables",
+  "icon": "📊",
+  "color": "#46a758",
+  "accent": "#6bc47e",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — Deliverables specialists",
+  "subCategories": [
+   {
+    "id": "skills-deliverables-all",
+    "label": "Skills — Deliverables",
+    "agents": [
+     {
+      "id": "document-factory",
+      "name": "Document Factory",
+      "role": "Create & convert DOCX, PDF, PPTX, XLSX, EPUB — professional client deliverables",
+      "tools": [
+       "docx",
+       "pdf",
+       "pptx",
+       "xlsx",
+       "epub-converter",
+       "invoice-organizer",
+       "file-organizer"
+      ],
+      "triggers": [
+       "document",
+       "DOCX",
+       "Word",
+       "PDF",
+       "PowerPoint",
+       "PPTX"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "creative-studio",
+      "name": "Creative Studio",
+      "role": "Visual design — infographics, data viz, image enhancement, branded themes, HTML slides",
+      "tools": [
+       "canvas-design",
+       "d3js",
+       "imagen",
+       "image-enhancer",
+       "theme-factory",
+       "brand-guidelines",
+       "video-downloader",
+       "youtube-transcript",
+       "frontend-slides"
+      ],
+      "triggers": [
+       "design",
+       "infographic",
+       "visualization",
+       "D3",
+       "chart",
+       "graph"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "comms-writer",
+      "name": "Comms & Content Writer",
+      "role": "Research-backed writing — articles, comms, meeting notes, brainstorming",
+      "tools": [
+       "content-research-writer",
+       "article-extractor",
+       "internal-comms",
+       "brainstorming",
+       "meeting-insights-analyzer",
+       "notebooklm",
+       "resume-generator"
+      ],
+      "triggers": [
+       "write",
+       "article",
+       "communication",
+       "newsletter",
+       "meeting notes",
+       "transcript"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "skills-research-and-analysis",
+  "label": "Skills — Research & Analysis",
+  "icon": "🔄",
+  "color": "#4c9be8",
+  "accent": "#74b5f0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — Research & Analysis specialists",
+  "subCategories": [
+   {
+    "id": "skills-research-and-analysis-all",
+    "label": "Skills — Research & Analysis",
+    "agents": [
+     {
+      "id": "deep-researcher",
+      "name": "Deep Researcher",
+      "role": "Autonomous multi-step research — market analysis, competitive intel, lead research",
+      "tools": [
+       "deep-research",
+       "lead-research-assistant",
+       "competitive-ads-extractor",
+       "csv-data-summarizer",
+       "root-cause-tracing",
+       "domain-name-brainstormer"
+      ],
+      "triggers": [
+       "research",
+       "market analysis",
+       "competitive",
+       "lead generation",
+       "due diligence",
+       "analyze CSV"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "data-automation",
+      "name": "Data & Analytics Automation",
+      "role": "Automate data ops — SQL queries, spreadsheets, analytics platforms, data pipelines",
+      "tools": [
+       "postgres",
+       "googlesheets-automation",
+       "airtable-automation",
+       "coda-automation",
+       "amplitude-automation",
+       "google-analytics-automation",
+       "mixpanel-automation",
+       "posthog-automation",
+       "segment-automation"
+      ],
+      "triggers": [
+       "SQL",
+       "postgres",
+       "database",
+       "query",
+       "google sheets",
+       "spreadsheet"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "skills-saas-automation",
+  "label": "Skills — SaaS Automation",
+  "icon": "🧭",
+  "color": "#d97706",
+  "accent": "#f2a93b",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — SaaS Automation specialists",
+  "subCategories": [
+   {
+    "id": "skills-saas-automation-all",
+    "label": "Skills — SaaS Automation",
+    "agents": [
+     {
+      "id": "crm-connector",
+      "name": "CRM Connector",
+      "role": "Automate CRM ops — Salesforce, HubSpot, Pipedrive, Close, Zoho",
+      "tools": [
+       "salesforce-automation",
+       "hubspot-automation",
+       "pipedrive-automation",
+       "close-automation",
+       "zoho-crm-automation",
+       "linkedin-automation"
+      ],
+      "triggers": [
+       "Salesforce",
+       "HubSpot",
+       "CRM",
+       "Pipedrive",
+       "Zoho",
+       "Close"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "pm-connector",
+      "name": "Project Management Connector",
+      "role": "Automate PM tools — Jira, Asana, Linear, ClickUp, Monday, Notion, Trello",
+      "tools": [
+       "jira-automation",
+       "asana-automation",
+       "linear-automation",
+       "clickup-automation",
+       "monday-automation",
+       "notion-automation",
+       "trello-automation",
+       "wrike-automation",
+       "todoist-automation",
+       "basecamp-automation"
+      ],
+      "triggers": [
+       "Jira",
+       "Asana",
+       "Linear",
+       "ClickUp",
+       "Monday",
+       "Notion"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "comms-connector",
+      "name": "Communications Connector",
+      "role": "Automate messaging & email — Slack, Teams, Gmail, Outlook, Zoom, Discord",
+      "tools": [
+       "slack-automation",
+       "microsoft-teams-automation",
+       "discord-automation",
+       "gmail-automation",
+       "outlook-automation",
+       "sendgrid-automation",
+       "postmark-automation",
+       "zoom-automation",
+       "telegram-automation",
+       "whatsapp-automation",
+       "intercom-automation"
+      ],
+      "triggers": [
+       "Slack",
+       "Teams",
+       "Gmail",
+       "Outlook",
+       "Zoom",
+       "email"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "ops-connector",
+      "name": "Business Ops Connector",
+      "role": "Automate ops tools — Drive, Dropbox, Calendar, DocuSign, Shopify, Stripe, Zendesk",
+      "tools": [
+       "google-drive-automation",
+       "dropbox-automation",
+       "box-automation",
+       "one-drive-automation",
+       "google-calendar-automation",
+       "outlook-calendar-automation",
+       "calendly-automation",
+       "cal-com-automation",
+       "shopify-automation",
+       "stripe-automation",
+       "square-automation",
+       "zendesk-automation",
+       "freshdesk-automation",
+       "docusign-automation",
+       "figma-automation",
+       "canva-automation",
+       "miro-automation",
+       "confluence-automation",
+       "bamboohr-automation",
+       "mailchimp-automation"
+      ],
+      "triggers": [
+       "Google Drive",
+       "Dropbox",
+       "Box",
+       "OneDrive",
+       "calendar",
+       "Calendly"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "skills-platform-engineering",
+  "label": "Skills — Platform Engineering",
+  "icon": "🛡️",
+  "color": "#0e9f8a",
+  "accent": "#3cc4ae",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — Platform Engineering specialists",
+  "subCategories": [
+   {
+    "id": "skills-platform-engineering-all",
+    "label": "Skills — Platform Engineering",
+    "agents": [
+     {
+      "id": "dev-toolkit",
+      "name": "Dev Toolkit",
+      "role": "Development skills — TDD, architecture, Playwright testing, MCP builder, prototyping",
+      "tools": [
+       "artifacts-builder",
+       "mcp-builder",
+       "playwright",
+       "webapp-testing",
+       "software-architecture",
+       "test-driven-development",
+       "subagent-driven-development",
+       "prompt-engineering",
+       "changelog-generator",
+       "kaizen"
+      ],
+      "triggers": [
+       "develop",
+       "build",
+       "test",
+       "TDD",
+       "architecture",
+       "Playwright"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "devops-connector",
+      "name": "DevOps Connector",
+      "role": "Automate DevOps — GitHub, GitLab, CI/CD, monitoring, deployments",
+      "tools": [
+       "github-automation",
+       "gitlab-automation",
+       "bitbucket-automation",
+       "circleci-automation",
+       "datadog-automation",
+       "sentry-automation",
+       "pagerduty-automation",
+       "vercel-automation",
+       "render-automation",
+       "supabase-automation"
+      ],
+      "triggers": [
+       "GitHub",
+       "GitLab",
+       "Bitbucket",
+       "CI/CD",
+       "deploy",
+       "pipeline"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "security-forensics",
+      "name": "Security & Forensics",
+      "role": "Digital forensics, threat hunting, vulnerability detection, Sigma rules, CodeQL",
+      "tools": [
+       "computer-forensics",
+       "file-deletion",
+       "metadata-extraction",
+       "threat-hunting-with-sigma-rules",
+       "codeql",
+       "semgrep"
+      ],
+      "triggers": [
+       "security",
+       "forensics",
+       "threat",
+       "vulnerability",
+       "Sigma",
+       "CodeQL"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ }
+]
