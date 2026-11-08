@@ -1,0 +1,374 @@
+[
+ {
+  "id": "experience",
+  "name": "Where people work",
+  "tag": "01",
+  "hue": "var(--l-experience)",
+  "blurb": "The surfaces leaders and analysts actually touch. Clear, focused, built around finance work — not chat for chat's sake.",
+  "nodes": [
+   {
+    "id": "cfo-cockpit",
+    "name": "CFO Cockpit",
+    "kind": "ui",
+    "note": "KPIs, close status, and variance alerts, at a glance."
+   },
+   {
+    "id": "fin-analyst",
+    "name": "Analyst Workspace",
+    "kind": "ui",
+    "note": "A workbench for adjustments, allocations, and drill-down."
+   },
+   {
+    "id": "exec-dash",
+    "name": "Executive Dashboard",
+    "kind": "ui",
+    "note": "Board-ready narratives and trended packs."
+   },
+   {
+    "id": "ops-console",
+    "name": "Operations Console",
+    "kind": "ui",
+    "note": "For leaders watching jobs, exceptions, and SLAs."
+   },
+   {
+    "id": "copilot",
+    "name": "Conversational Copilot",
+    "kind": "ui",
+    "note": "Plain-language questions, answered with citations."
+   },
+   {
+    "id": "workflow-inbox",
+    "name": "Workflow Inbox",
+    "kind": "ui",
+    "note": "A single queue for approvals that need a human."
+   },
+   {
+    "id": "mobile-web",
+    "name": "Mobile & Web",
+    "kind": "ui",
+    "note": "Push approvals and glance cards on any device."
+   }
+  ]
+ },
+ {
+  "id": "agents",
+  "name": "Agents that do the work",
+  "tag": "02",
+  "hue": "var(--l-agent)",
+  "blurb": "Specialist agents that plan, delegate, and escalate. Each has a narrow job, a clear hand-off, and a supervisor above it.",
+  "nodes": [
+   {
+    "id": "planner",
+    "name": "Planner",
+    "kind": "agent",
+    "role": "Supervisor",
+    "note": "Breaks goals into steps and routes work to specialists."
+   },
+   {
+    "id": "finance-analyst",
+    "name": "Finance Analyst",
+    "kind": "agent",
+    "role": "Specialist",
+    "note": "Runs variance, ratio, and driver analysis across ledgers."
+   },
+   {
+    "id": "close-agent",
+    "name": "Close & Consolidation",
+    "kind": "agent",
+    "role": "Specialist",
+    "note": "Handles reconciliations, intercompany, and FX."
+   },
+   {
+    "id": "forecast-agent",
+    "name": "Planning & Forecast",
+    "kind": "agent",
+    "role": "Specialist",
+    "note": "Builds driver-based models and scenarios."
+   },
+   {
+    "id": "anomaly-agent",
+    "name": "Anomaly Detection",
+    "kind": "agent",
+    "role": "Specialist",
+    "note": "Flags outliers against trailing-period baselines."
+   },
+   {
+    "id": "narrative-agent",
+    "name": "Narrative Reporting",
+    "kind": "agent",
+    "role": "Specialist",
+    "note": "Drafts commentary, memos, and board packs."
+   },
+   {
+    "id": "integration-agent",
+    "name": "Integration",
+    "kind": "agent",
+    "role": "Utility",
+    "note": "Translates between systems. Never improvises."
+   },
+   {
+    "id": "guardrail-agent",
+    "name": "Policy Guardrail",
+    "kind": "agent",
+    "role": "Control",
+    "note": "Pre- and post-flight checks. Blocks unsafe calls."
+   },
+   {
+    "id": "hitl-agent",
+    "name": "Human Approvals",
+    "kind": "agent",
+    "role": "Control",
+    "note": "Routes sensitive work to named approvers."
+   }
+  ]
+ },
+ {
+  "id": "orchestration",
+  "name": "The runtime behind the agents",
+  "tag": "03",
+  "hue": "var(--l-orchestr)",
+  "blurb": "The scaffolding that runs agents, routes models, and remembers context across long-running work.",
+  "nodes": [
+   {
+    "id": "orchestrator",
+    "name": "Orchestration Engine",
+    "kind": "svc",
+    "note": "Planner–critic loops, retries, fan-out / fan-in."
+   },
+   {
+    "id": "policy-engine",
+    "name": "Prompt & Policy Engine",
+    "kind": "svc",
+    "note": "Templates, filters, and versioned policy packs."
+   },
+   {
+    "id": "memory",
+    "name": "Memory & Context",
+    "kind": "svc",
+    "note": "Short-term scratch and long-term episodic memory."
+   },
+   {
+    "id": "vector",
+    "name": "Retrieval & Vectors",
+    "kind": "svc",
+    "note": "Hybrid keyword + embedding search over corpora."
+   },
+   {
+    "id": "router",
+    "name": "Model Router",
+    "kind": "svc",
+    "note": "Routes by task, latency, cost, residency, and risk."
+   },
+   {
+    "id": "tools",
+    "name": "Tool Registry",
+    "kind": "svc",
+    "note": "Typed tool manifests with scopes and descriptions."
+   },
+   {
+    "id": "workflow",
+    "name": "Workflow Engine",
+    "kind": "svc",
+    "note": "Durable task graphs that survive restarts."
+   },
+   {
+    "id": "eventbus",
+    "name": "Event Bus",
+    "kind": "svc",
+    "note": "Pub / sub fabric for agent events and results."
+   },
+   {
+    "id": "observability",
+    "name": "Observability",
+    "kind": "svc",
+    "note": "Traces, evals, token spend, quality metrics."
+   }
+  ]
+ },
+ {
+  "id": "mcp",
+  "name": "MCP — governed tool access",
+  "tag": "04",
+  "hue": "var(--l-mcp)",
+  "blurb": "One control plane for every tool. Every call is typed, scoped, and logged. Agents never touch systems directly.",
+  "nodes": [
+   {
+    "id": "mcp-gateway",
+    "name": "MCP Server / Gateway",
+    "kind": "gateway",
+    "note": "Exposes enterprise tools as typed capabilities."
+   },
+   {
+    "id": "tool-catalog",
+    "name": "Tool Catalog",
+    "kind": "svc",
+    "note": "Searchable registry of contracts, owners, and SLAs."
+   },
+   {
+    "id": "secure-invoke",
+    "name": "Secure Invocation",
+    "kind": "svc",
+    "note": "mTLS, signed requests, short-lived tokens."
+   },
+   {
+    "id": "api-mediation",
+    "name": "API Mediation",
+    "kind": "svc",
+    "note": "Schema translation and graceful deprecation."
+   },
+   {
+    "id": "context-inject",
+    "name": "Context Injection",
+    "kind": "svc",
+    "note": "Binds tenant, entity, period, and user to each call."
+   },
+   {
+    "id": "policy-enforce",
+    "name": "Policy Enforcement",
+    "kind": "svc",
+    "note": "Checks who, what, when, and how much — every call."
+   },
+   {
+    "id": "rate-limit",
+    "name": "Rate & Quota",
+    "kind": "svc",
+    "note": "Per-agent throttles and circuit breakers."
+   },
+   {
+    "id": "audit-log",
+    "name": "Tamper-Evident Audit",
+    "kind": "svc",
+    "note": "Append-only log with payload hashes."
+   }
+  ]
+ },
+ {
+  "id": "integration",
+  "name": "Enterprise integration",
+  "tag": "05",
+  "hue": "var(--l-integration)",
+  "blurb": "The plumbing that bridges SaaS, on-prem, and event streams. Not glamorous. Load-bearing.",
+  "nodes": [
+   {
+    "id": "oic",
+    "name": "Integration Cloud / ESB",
+    "kind": "svc",
+    "note": "Adapters, process orchestration, file and API flows."
+   },
+   {
+    "id": "apigw",
+    "name": "API Gateway",
+    "kind": "svc",
+    "note": "North-south traffic, quotas, schema validation."
+   },
+   {
+    "id": "stream",
+    "name": "Event Streaming",
+    "kind": "svc",
+    "note": "A durable log for financial events and CDC."
+   },
+   {
+    "id": "rest-soap",
+    "name": "REST & SOAP",
+    "kind": "svc",
+    "note": "Domain services fronting systems of record."
+   },
+   {
+    "id": "file-int",
+    "name": "File Integration",
+    "kind": "svc",
+    "note": "Secure drop-zones, SFTP, batch feeds with reconciliation."
+   },
+   {
+    "id": "process-orch",
+    "name": "Process Orchestration",
+    "kind": "svc",
+    "note": "Long-running, human-in-loop business processes."
+   },
+   {
+    "id": "adapters",
+    "name": "Adapters",
+    "kind": "svc",
+    "note": "Typed connectors with retry, dead-letter, and replay."
+   },
+   {
+    "id": "mdm",
+    "name": "Master & Metadata",
+    "kind": "svc",
+    "note": "Chart-of-accounts, entities, hierarchies, mappings."
+   }
+  ]
+ },
+ {
+  "id": "systems",
+  "name": "Systems of record",
+  "tag": "06",
+  "hue": "var(--l-systems)",
+  "blurb": "The transaction systems. Write-back always flows through MCP and integration — never straight from an agent.",
+  "nodes": [
+   {
+    "id": "erp-cloud",
+    "name": "ERP Cloud · SaaS",
+    "kind": "system",
+    "zone": "cloud",
+    "note": "Global GL, AP / AR, procurement, sub-ledgers."
+   },
+   {
+    "id": "epm-cloud",
+    "name": "EPM Cloud · SaaS",
+    "kind": "system",
+    "zone": "cloud",
+    "note": "Planning, close, reconciliation, tax."
+   },
+   {
+    "id": "ebs",
+    "name": "E-Business Suite · On-prem",
+    "kind": "system",
+    "zone": "onprem",
+    "note": "Legacy modules, plant operations, localized ledgers."
+   },
+   {
+    "id": "onestream",
+    "name": "OneStream CPM",
+    "kind": "system",
+    "zone": "cloud",
+    "note": "Consolidations, reporting, analytics cube."
+   },
+   {
+    "id": "hyperion",
+    "name": "Hyperion · Legacy",
+    "kind": "system",
+    "zone": "onprem",
+    "note": "Essbase cubes and HFM reports under sunset plan."
+   },
+   {
+    "id": "warehouse",
+    "name": "Lakehouse & Warehouse",
+    "kind": "system",
+    "zone": "cloud",
+    "note": "Curated finance marts and a feature store."
+   },
+   {
+    "id": "docs",
+    "name": "Document Repository",
+    "kind": "system",
+    "zone": "cloud",
+    "note": "Contracts, policies, memos, audit artifacts."
+   },
+   {
+    "id": "iam-sys",
+    "name": "Identity & Access",
+    "kind": "system",
+    "zone": "cloud",
+    "note": "IdP, directory, PAM, just-in-time elevation."
+   },
+   {
+    "id": "ticketing",
+    "name": "Workflow & Tickets",
+    "kind": "system",
+    "zone": "cloud",
+    "note": "Case management for exceptions and approvals."
+   }
+  ]
+ }
+]
