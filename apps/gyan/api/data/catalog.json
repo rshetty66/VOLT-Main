@@ -1,0 +1,2099 @@
+[
+ {
+  "line": "core-accounting",
+  "lineLabel": "Core Accounting",
+  "sub": "Core Accounting",
+  "id": "accounting-policy-engine",
+  "name": "Accounting Policy Engine",
+  "role": "IFRS/US GAAP analysis, policy drafting, journal entries",
+  "kw": "IFRS GAAP accounting treatment policy standard"
+ },
+ {
+  "line": "core-accounting",
+  "lineLabel": "Core Accounting",
+  "sub": "Core Accounting",
+  "id": "accounting-hub-architect",
+  "name": "Accounting Hub Architect",
+  "role": "Multi-ERP hub design — Oracle AHCS, SAP Central Finance",
+  "kw": "hub multi-ERP AHCS central finance centralized"
+ },
+ {
+  "line": "core-accounting",
+  "lineLabel": "Core Accounting",
+  "sub": "Core Accounting",
+  "id": "coa-designer",
+  "name": "COA Designer",
+  "role": "Chart of Accounts design, rationalization, segment architecture",
+  "kw": "COA chart of accounts segments natural account"
+ },
+ {
+  "line": "core-accounting",
+  "lineLabel": "Core Accounting",
+  "sub": "Core Accounting",
+  "id": "consolidation-reporting-agent",
+  "name": "Consolidation & Reporting",
+  "role": "Group consolidation, IC elimination, multi-GAAP reporting",
+  "kw": "consolidation elimination NCI intercompany group reporting"
+ },
+ {
+  "line": "specialized-finance",
+  "lineLabel": "Specialized Finance",
+  "sub": "Specialized Finance",
+  "id": "revenue-recognition-agent",
+  "name": "Revenue Recognition",
+  "role": "IFRS 15 / ASC 606 — 5-step revenue model, SaaS, licenses",
+  "kw": "revenue ASC 606 IFRS 15 SaaS contract"
+ },
+ {
+  "line": "specialized-finance",
+  "lineLabel": "Specialized Finance",
+  "sub": "Specialized Finance",
+  "id": "lease-accounting-agent",
+  "name": "Lease Accounting",
+  "role": "IFRS 16 / ASC 842 — ROU assets, lease liabilities, modifications",
+  "kw": "lease ROU ASC 842 IFRS 16 right-of-use"
+ },
+ {
+  "line": "specialized-finance",
+  "lineLabel": "Specialized Finance",
+  "sub": "Specialized Finance",
+  "id": "tax-accounting-agent",
+  "name": "Tax Accounting",
+  "role": "IAS 12 / ASC 740, Pillar Two, transfer pricing, VAT/GST",
+  "kw": "tax deferred Pillar Two transfer pricing VAT"
+ },
+ {
+  "line": "specialized-finance",
+  "lineLabel": "Specialized Finance",
+  "sub": "Specialized Finance",
+  "id": "treasury-management-agent",
+  "name": "Treasury Management",
+  "role": "Cash forecasting, FX hedging, debt structuring, working capital",
+  "kw": "treasury cash FX hedge working capital debt"
+ },
+ {
+  "line": "specialized-finance",
+  "lineLabel": "Specialized Finance",
+  "sub": "Specialized Finance",
+  "id": "esg-reporting-agent",
+  "name": "ESG Reporting",
+  "role": "ISSB, CSRD/ESRS, GHG accounting, carbon credits, TCFD",
+  "kw": "ESG ISSB CSRD GHG carbon sustainability climate"
+ },
+ {
+  "line": "specialized-finance",
+  "lineLabel": "Specialized Finance",
+  "sub": "Specialized Finance",
+  "id": "internal-audit-agent",
+  "name": "Internal Audit",
+  "role": "Risk-based audit, SOX ICFR, fraud detection, continuous monitoring",
+  "kw": "audit SOX ICFR fraud controls compliance"
+ },
+ {
+  "line": "transaction-advisory",
+  "lineLabel": "Transaction Advisory",
+  "sub": "Transaction Advisory",
+  "id": "ma-due-diligence-agent",
+  "name": "M&A Due Diligence",
+  "role": "QoE, normalized EBITDA, PPA, earn-outs, integration planning",
+  "kw": "M&A due diligence QoE PPA acquisition merger"
+ },
+ {
+  "line": "transaction-advisory",
+  "lineLabel": "Transaction Advisory",
+  "sub": "Transaction Advisory",
+  "id": "financial-modeling-agent",
+  "name": "Financial Modeling",
+  "role": "DCF, LBO, merger models, Monte Carlo, business case ROI",
+  "kw": "DCF valuation LBO model business case ROI NPV"
+ },
+ {
+  "line": "si-delivery",
+  "lineLabel": "SI Delivery",
+  "sub": "SI Delivery",
+  "id": "si-finance-process-lead",
+  "name": "Finance Process Lead",
+  "role": "R2R, O2C, P2P process design and optimization",
+  "kw": "R2R O2C P2P process record to report"
+ },
+ {
+  "line": "si-delivery",
+  "lineLabel": "SI Delivery",
+  "sub": "SI Delivery",
+  "id": "si-functional-lead",
+  "name": "Functional Lead",
+  "role": "Oracle, SAP, Workday, OneStream, Anaplan configuration",
+  "kw": "Oracle SAP Workday ERP configuration functional"
+ },
+ {
+  "line": "si-delivery",
+  "lineLabel": "SI Delivery",
+  "sub": "SI Delivery",
+  "id": "si-data-architect",
+  "name": "Data Architect",
+  "role": "Data migration, MDM, data governance, ETL",
+  "kw": "migration MDM data governance ETL data quality"
+ },
+ {
+  "line": "data-engineering",
+  "lineLabel": "Data Engineering",
+  "sub": "Data Engineering",
+  "id": "l2-sql-generation",
+  "name": "L2 SQL Generation Agent",
+  "role": "Converts GAAP Excel + Informatica XML into DB2 SQL queries per reporting package and L2 category for a regulatory data hub",
+  "kw": "L2 SQL GAAP Informatica DB2 regulatory data hub reporting package transformation data lineage ETL to SQL source qualifier expression transformation SQL generation PowerCenter mapping"
+ },
+ {
+  "line": "data-engineering",
+  "lineLabel": "Data Engineering",
+  "sub": "Data Engineering",
+  "id": "source-to-target-mapping",
+  "name": "Source-to-Target Mapping Agent",
+  "role": "Traces field-level lineage from GAAP/Informatica/CDS to produce S2T mapping spreadsheets and DSIS specs",
+  "kw": "source to target S2T mapping data lineage DSIS field mapping transformation logic GAAP CDS Informatica lineage trace target mapping data specification column mapping"
+ },
+ {
+  "line": "data-engineering",
+  "lineLabel": "Data Engineering",
+  "sub": "Data Engineering",
+  "id": "file-search-agent",
+  "name": "File Search Agent",
+  "role": "Parses XML, SQL, Excel files to answer questions about columns, transformations, lookups, and joins",
+  "kw": "file search parse XML parse SQL column search lookup joins transformation search lineage report find column data dictionary where is which table trace search file code review data cleansing search columns XML file SQL file Excel file find in file data quality"
+ },
+ {
+  "line": "si-delivery",
+  "lineLabel": "SI Delivery",
+  "sub": "SI Delivery",
+  "id": "si-integration-lead",
+  "name": "Integration Lead",
+  "role": "APIs, middleware, B2B/EDI — MuleSoft, Boomi, OIC",
+  "kw": "integration API middleware MuleSoft Boomi EDI"
+ },
+ {
+  "line": "si-delivery",
+  "lineLabel": "SI Delivery",
+  "sub": "SI Delivery",
+  "id": "si-security-controls-lead",
+  "name": "Security & Controls Lead",
+  "role": "SOD, SOX compliance, role-based access, security design",
+  "kw": "SOD security access role SOX controls"
+ },
+ {
+  "line": "si-delivery",
+  "lineLabel": "SI Delivery",
+  "sub": "SI Delivery",
+  "id": "si-change-management-lead",
+  "name": "Change Management Lead",
+  "role": "OCM, training, adoption, business readiness",
+  "kw": "change management OCM training adoption readiness"
+ },
+ {
+  "line": "si-delivery",
+  "lineLabel": "SI Delivery",
+  "sub": "SI Delivery",
+  "id": "si-data-analytics-lead",
+  "name": "Data & Analytics Lead",
+  "role": "Power BI, Tableau, reporting strategy, dashboards",
+  "kw": "Power BI Tableau reporting dashboard analytics BI"
+ },
+ {
+  "line": "si-delivery",
+  "lineLabel": "SI Delivery",
+  "sub": "SI Delivery",
+  "id": "oracle-config-agent",
+  "name": "Oracle Config Automation",
+  "role": "Oracle ERP Cloud FBDI workbook automation — parse, validate, deploy, drift detect",
+  "kw": "FBDI workbook Oracle config Oracle ERP deploy config configuration workbook FBDI template Oracle Cloud setup ERP setup value sets chart of accounts ledger setup Oracle automation config drift ESS job UCM upload"
+ },
+ {
+  "line": "enablers",
+  "lineLabel": "Enablers",
+  "sub": "Enablers",
+  "id": "apqc-researcher",
+  "name": "APQC Researcher",
+  "role": "APQC benchmarks, PCF mapping, target setting, gap analysis",
+  "kw": "APQC benchmark PCF best practice quartile"
+ },
+ {
+  "line": "enablers",
+  "lineLabel": "Enablers",
+  "sub": "Enablers",
+  "id": "databricks-pipeline-agent",
+  "name": "Databricks Pipeline",
+  "role": "Lakehouse architecture, Delta Live Tables, Vector Search",
+  "kw": "Databricks delta pipeline lakehouse streaming"
+ },
+ {
+  "line": "enablers",
+  "lineLabel": "Enablers",
+  "sub": "Enablers",
+  "id": "rapid-prototyper",
+  "name": "Rapid Prototyper",
+  "role": "15-minute client demos — dashboards, calculators, mockups",
+  "kw": "prototype demo mockup quick visual"
+ },
+ {
+  "line": "enablers",
+  "lineLabel": "Enablers",
+  "sub": "Enablers",
+  "id": "creative-designer",
+  "name": "Creative Designer",
+  "role": "Executive dashboards, pitch decks, interactive GUIs",
+  "kw": "design visual GUI dashboard presentation deck"
+ },
+ {
+  "line": "enablers",
+  "lineLabel": "Enablers",
+  "sub": "Enablers",
+  "id": "process-flow-generator",
+  "name": "Process Flow Generator",
+  "role": "Mermaid flowcharts, swim-lane diagrams, SIPOC charts, L1-L5 process decomposition",
+  "kw": "process flow flowchart mermaid swim lane SIPOC diagram visualization process map L1 L2 L3 L4 L5"
+ },
+ {
+  "line": "enablers",
+  "lineLabel": "Enablers",
+  "sub": "Enablers",
+  "id": "fact-check-agent",
+  "name": "Fact-Check Agent",
+  "role": "Citation audit, provenance verification, source mapping",
+  "kw": "fact-check verify citation source audit"
+ },
+ {
+  "line": "project-agents",
+  "lineLabel": "Project Agents",
+  "sub": "Project Agents",
+  "id": "policy-harmonization",
+  "name": "Policy Harmonization",
+  "role": "Global policy design, harmonization, country overlays, compliance alignment",
+  "kw": "policy harmonization T&E expense limit per diem global standard overlay"
+ },
+ {
+  "line": "project-agents",
+  "lineLabel": "Project Agents",
+  "sub": "Project Agents",
+  "id": "workshop-facilitator",
+  "name": "Workshop Facilitator",
+  "role": "Workshop agendas, pre-work, facilitation guides, outputs",
+  "kw": "workshop agenda facilitation pre-work action items"
+ },
+ {
+  "line": "project-agents",
+  "lineLabel": "Project Agents",
+  "sub": "Project Agents",
+  "id": "pmo-tracker",
+  "name": "PMO Tracker",
+  "role": "Sprint planning, RAID logs, status reports, resource tracking",
+  "kw": "project plan sprint RAID status RACI PMO resource"
+ },
+ {
+  "line": "project-agents",
+  "lineLabel": "Project Agents",
+  "sub": "Project Agents",
+  "id": "synthetic-data",
+  "name": "Synthetic Data Generator",
+  "role": "Generates realistic enterprise data for testing, demos, and analytics",
+  "kw": "synthetic data PowerBI test data transaction generate"
+ },
+ {
+  "line": "project-agents",
+  "lineLabel": "Project Agents",
+  "sub": "Project Agents",
+  "id": "data-safeguard",
+  "name": "Data Safeguard",
+  "role": "Data protection, anonymization, compliance, PII detection",
+  "kw": "data protection anonymize PII GDPR compliance security"
+ },
+ {
+  "line": "project-agents",
+  "lineLabel": "Project Agents",
+  "sub": "Project Agents",
+  "id": "process-flow",
+  "name": "Process Flow & Taxonomy",
+  "role": "L1-L5 process taxonomy, requirements, user stories, KPIs, design decisions",
+  "kw": "process taxonomy L1 L2 L3 workflow requirements user stories KPI"
+ },
+ {
+  "line": "erp-automation",
+  "lineLabel": "ERP Automation",
+  "sub": "ERP Automation",
+  "id": "oracle-erp-configurator",
+  "name": "Oracle ERP Cloud Configurator",
+  "role": "AI-driven Oracle ERP Cloud setup: GL, AP, AR, FA, CM, Projects, Procurement",
+  "kw": "oracle erp fusion cloud GL setup AP setup AR setup subledger flexfield approval workflow oracle configuration ERP cloud setup"
+ },
+ {
+  "line": "erp-automation",
+  "lineLabel": "ERP Automation",
+  "sub": "ERP Automation",
+  "id": "oracle-scm-configurator",
+  "name": "Oracle SCM Cloud Configurator",
+  "role": "AI-driven Oracle SCM Cloud: inventory, order management, procurement, manufacturing",
+  "kw": "oracle scm supply chain inventory order management procurement config manufacturing cost management"
+ },
+ {
+  "line": "erp-automation",
+  "lineLabel": "ERP Automation",
+  "sub": "ERP Automation",
+  "id": "oracle-hcm-configurator",
+  "name": "Oracle HCM Cloud Configurator",
+  "role": "AI-driven Oracle HCM Cloud: core HR, payroll, benefits, talent, workforce management",
+  "kw": "oracle hcm human capital payroll benefits talent recruiting workforce fast formula absence"
+ },
+ {
+  "line": "erp-automation",
+  "lineLabel": "ERP Automation",
+  "sub": "ERP Automation",
+  "id": "erp-test-automation",
+  "name": "ERP Test Automation",
+  "role": "AI-powered test script generation, FBDI validation, integration testing for Oracle/SAP",
+  "kw": "test script FBDI validation UAT SIT regression smoke test test automation ERP testing"
+ },
+ {
+  "line": "erp-automation",
+  "lineLabel": "ERP Automation",
+  "sub": "ERP Automation",
+  "id": "erp-data-loader",
+  "name": "ERP Data Loader",
+  "role": "FBDI template generation, data migration scripts, bulk loader orchestration",
+  "kw": "FBDI HDL data migration data loader LSMW EIB conversion bulk load data mapping legacy data"
+ },
+ {
+  "line": "organizational-readiness",
+  "lineLabel": "Organizational Readiness",
+  "sub": "Organizational Readiness",
+  "id": "sop-generator",
+  "name": "SOP Generator",
+  "role": "Create Standard Operating Procedures from process flows, system configs, and policies",
+  "kw": "SOP standard operating procedure procedure work instruction process doc"
+ },
+ {
+  "line": "organizational-readiness",
+  "lineLabel": "Organizational Readiness",
+  "sub": "Organizational Readiness",
+  "id": "training-content-builder",
+  "name": "Training Content Builder",
+  "role": "Build role-based training manuals, quick reference guides, eLearning storyboards",
+  "kw": "training manual quick reference QRG eLearning job aid training content curriculum instruction learning material"
+ },
+ {
+  "line": "organizational-readiness",
+  "lineLabel": "Organizational Readiness",
+  "sub": "Organizational Readiness",
+  "id": "learning-path-designer",
+  "name": "Learning Path Designer",
+  "role": "Design learning curricula, certification paths, competency frameworks, LMS structures",
+  "kw": "learning path curriculum certification competency LMS learning design proficiency knowledge assessment"
+ },
+ {
+  "line": "organizational-readiness",
+  "lineLabel": "Organizational Readiness",
+  "sub": "Organizational Readiness",
+  "id": "ocm-accelerator",
+  "name": "OCM Accelerator",
+  "role": "Change impact assessment, communications plans, adoption dashboards, resistance management",
+  "kw": "change management OCM adoption stakeholder communication plan change impact resistance ADKAR readiness change champion"
+ },
+ {
+  "line": "osfi-bcar",
+  "lineLabel": "OSFI / BCAR",
+  "sub": "OSFI / BCAR",
+  "id": "osfi-bcar-master",
+  "name": "OSFI BCAR Master",
+  "role": "Deep-domain OSFI BCAR & Pillar 3 expert — orchestrates all capital reporting agents",
+  "kw": "OSFI BCAR CAR capital adequacy Pillar 3 D-SIB CET1 regulatory capital Basel Canadian bank OSFI guideline capital ratio BCAR reporting disclosure"
+ },
+ {
+  "line": "osfi-bcar",
+  "lineLabel": "OSFI / BCAR",
+  "sub": "OSFI / BCAR",
+  "id": "osfi-regulatory-monitor",
+  "name": "OSFI / Basel Regulatory Monitor",
+  "role": "Monitors OSFI CAR updates, Basel publications, FRTB phase-in schedules",
+  "kw": "OSFI update regulatory change CAR amendment Basel IV FRTB phase-in regulatory monitor"
+ },
+ {
+  "line": "osfi-bcar",
+  "lineLabel": "OSFI / BCAR",
+  "sub": "OSFI / BCAR",
+  "id": "gl-capital-reconciliation",
+  "name": "GL-to-Capital Reconciliation",
+  "role": "Bridges SAP S/4HANA trial balance to OSFI capital via 23-step CET1 waterfall",
+  "kw": "GL to capital trial balance CET1 waterfall deductions reconciliation BlackLine"
+ },
+ {
+  "line": "osfi-bcar",
+  "lineLabel": "OSFI / BCAR",
+  "sub": "OSFI / BCAR",
+  "id": "bcar-data-governance",
+  "name": "BCAR Data Governance & Lineage",
+  "role": "BCBS 239 data quality, Medallion architecture, OSFI audit trail compliance",
+  "kw": "BCBS 239 data governance lineage data quality Medallion audit trail"
+ },
+ {
+  "line": "osfi-bcar",
+  "lineLabel": "OSFI / BCAR",
+  "sub": "OSFI / BCAR",
+  "id": "capital-calculation-engine",
+  "name": "Capital Calculation Engine",
+  "role": "CET1/T1/Total Capital ratio computation with D-SIB buffer and output floor",
+  "kw": "capital calculation CET1 ratio T1 ratio Total Capital output floor D-SIB buffer"
+ },
+ {
+  "line": "osfi-bcar",
+  "lineLabel": "OSFI / BCAR",
+  "sub": "OSFI / BCAR",
+  "id": "irb-expected-loss",
+  "name": "IRB / Expected Loss Agent",
+  "role": "IRB model outputs, EL vs IFRS 9 provision bridge, EL shortfall allocation",
+  "kw": "IRB expected loss EL shortfall PD LGD EAD IFRS 9 provision credit risk"
+ },
+ {
+  "line": "osfi-bcar",
+  "lineLabel": "OSFI / BCAR",
+  "sub": "OSFI / BCAR",
+  "id": "market-risk-frtb",
+  "name": "Market Risk (FRTB) Agent",
+  "role": "FRTB Standardised Approach, IMA boundary, P&L attribution, market risk RWA",
+  "kw": "FRTB market risk trading book IMA SA SBM DRC"
+ },
+ {
+  "line": "osfi-bcar",
+  "lineLabel": "OSFI / BCAR",
+  "sub": "OSFI / BCAR",
+  "id": "oprisk-sma",
+  "name": "Operational Risk (SMA) Agent",
+  "role": "Basel IV Standardised Measurement Approach for operational risk RWA",
+  "kw": "operational risk SMA OpRisk BIC ILM loss data"
+ },
+ {
+  "line": "osfi-bcar",
+  "lineLabel": "OSFI / BCAR",
+  "sub": "OSFI / BCAR",
+  "id": "capital-analytics",
+  "name": "Capital Analytics & Dashboard",
+  "role": "CRO/CFO dashboards, QoQ waterfall, RWA decomposition, capital trajectory",
+  "kw": "capital analytics CRO dashboard waterfall RWA attribution capital forecast"
+ },
+ {
+  "line": "osfi-bcar",
+  "lineLabel": "OSFI / BCAR",
+  "sub": "OSFI / BCAR",
+  "id": "stress-testing",
+  "name": "Stress Testing Integration",
+  "role": "OSFI DFAST, ICAAP, baseline-to-stressed capital bridge, scenario decomposition",
+  "kw": "stress test DFAST ICAAP scenario stressed capital adverse scenario"
+ },
+ {
+  "line": "osfi-bcar",
+  "lineLabel": "OSFI / BCAR",
+  "sub": "OSFI / BCAR",
+  "id": "bcar-submission-quality",
+  "name": "BCAR Submission Quality",
+  "role": "Final QC — validates all OSFI CAR schedules, formatting, completeness, CFO package",
+  "kw": "BCAR submission QC OSFI portal CFO attestation schedule validation submission quality"
+ },
+ {
+  "line": "enablers",
+  "lineLabel": "Enablers",
+  "sub": "Enablers",
+  "id": "project-knowledge-base",
+  "name": "Project Knowledge Base",
+  "role": "Project-aware document intelligence — auto-indexes docs, answers with citations",
+  "kw": "knowledge base document search project docs citation document intelligence"
+ },
+ {
+  "line": "skills-deliverables",
+  "lineLabel": "Skills — Deliverables",
+  "sub": "Skills — Deliverables",
+  "id": "document-factory",
+  "name": "Document Factory",
+  "role": "Create & convert DOCX, PDF, PPTX, XLSX, EPUB — professional client deliverables",
+  "kw": "document DOCX Word PDF PowerPoint PPTX Excel XLSX slide deck report deliverable convert export EPUB ebook invoice receipt organize files format"
+ },
+ {
+  "line": "skills-deliverables",
+  "lineLabel": "Skills — Deliverables",
+  "sub": "Skills — Deliverables",
+  "id": "creative-studio",
+  "name": "Creative Studio",
+  "role": "Visual design — infographics, data viz, image enhancement, branded themes, HTML slides",
+  "kw": "design infographic visualization D3 chart graph image enhance theme brand poster visual slides HTML presentation UI component shadcn video youtube thumbnail"
+ },
+ {
+  "line": "skills-deliverables",
+  "lineLabel": "Skills — Deliverables",
+  "sub": "Skills — Deliverables",
+  "id": "comms-writer",
+  "name": "Comms & Content Writer",
+  "role": "Research-backed writing — articles, comms, meeting notes, brainstorming",
+  "kw": "write article communication newsletter meeting notes transcript brainstorm content blog comms research paper summary resume CV thought leadership internal memo"
+ },
+ {
+  "line": "skills-research-and-analysis",
+  "lineLabel": "Skills — Research & Analysis",
+  "sub": "Skills — Research & Analysis",
+  "id": "deep-researcher",
+  "name": "Deep Researcher",
+  "role": "Autonomous multi-step research — market analysis, competitive intel, lead research",
+  "kw": "research market analysis competitive lead generation due diligence analyze CSV data analysis root cause investigate benchmark industry research target company competitive landscape"
+ },
+ {
+  "line": "skills-research-and-analysis",
+  "lineLabel": "Skills — Research & Analysis",
+  "sub": "Skills — Research & Analysis",
+  "id": "data-automation",
+  "name": "Data & Analytics Automation",
+  "role": "Automate data ops — SQL queries, spreadsheets, analytics platforms, data pipelines",
+  "kw": "SQL postgres database query google sheets spreadsheet airtable amplitude mixpanel posthog segment data pipeline ETL data export coda"
+ },
+ {
+  "line": "skills-saas-automation",
+  "lineLabel": "Skills — SaaS Automation",
+  "sub": "Skills — SaaS Automation",
+  "id": "crm-connector",
+  "name": "CRM Connector",
+  "role": "Automate CRM ops — Salesforce, HubSpot, Pipedrive, Close, Zoho",
+  "kw": "Salesforce HubSpot CRM Pipedrive Zoho Close lead contact deal opportunity pipeline client tracking LinkedIn sales automation"
+ },
+ {
+  "line": "skills-saas-automation",
+  "lineLabel": "Skills — SaaS Automation",
+  "sub": "Skills — SaaS Automation",
+  "id": "pm-connector",
+  "name": "Project Management Connector",
+  "role": "Automate PM tools — Jira, Asana, Linear, ClickUp, Monday, Notion, Trello",
+  "kw": "Jira Asana Linear ClickUp Monday Notion Trello Wrike Todoist Basecamp project management sprint task board issue backlog kanban"
+ },
+ {
+  "line": "skills-saas-automation",
+  "lineLabel": "Skills — SaaS Automation",
+  "sub": "Skills — SaaS Automation",
+  "id": "comms-connector",
+  "name": "Communications Connector",
+  "role": "Automate messaging & email — Slack, Teams, Gmail, Outlook, Zoom, Discord",
+  "kw": "Slack Teams Gmail Outlook Zoom email message channel meeting Discord Telegram WhatsApp send email schedule meeting notification"
+ },
+ {
+  "line": "skills-saas-automation",
+  "lineLabel": "Skills — SaaS Automation",
+  "sub": "Skills — SaaS Automation",
+  "id": "ops-connector",
+  "name": "Business Ops Connector",
+  "role": "Automate ops tools — Drive, Dropbox, Calendar, DocuSign, Shopify, Stripe, Zendesk",
+  "kw": "Google Drive Dropbox Box OneDrive calendar Calendly DocuSign Shopify Stripe Zendesk Freshdesk Figma Canva Miro Confluence BambooHR Mailchimp storage e-commerce support ticket signature"
+ },
+ {
+  "line": "skills-platform-engineering",
+  "lineLabel": "Skills — Platform Engineering",
+  "sub": "Skills — Platform Engineering",
+  "id": "dev-toolkit",
+  "name": "Dev Toolkit",
+  "role": "Development skills — TDD, architecture, Playwright testing, MCP builder, prototyping",
+  "kw": "develop build test TDD architecture Playwright MCP React TypeScript Tailwind prototype code webapp frontend mobile CI/CD prompt engineering changelog"
+ },
+ {
+  "line": "skills-platform-engineering",
+  "lineLabel": "Skills — Platform Engineering",
+  "sub": "Skills — Platform Engineering",
+  "id": "devops-connector",
+  "name": "DevOps Connector",
+  "role": "Automate DevOps — GitHub, GitLab, CI/CD, monitoring, deployments",
+  "kw": "GitHub GitLab Bitbucket CI/CD deploy pipeline Datadog Sentry monitoring Vercel Render Supabase git pull request merge request incident"
+ },
+ {
+  "line": "skills-platform-engineering",
+  "lineLabel": "Skills — Platform Engineering",
+  "sub": "Skills — Platform Engineering",
+  "id": "security-forensics",
+  "name": "Security & Forensics",
+  "role": "Digital forensics, threat hunting, vulnerability detection, Sigma rules, CodeQL",
+  "kw": "security forensics threat vulnerability Sigma CodeQL Semgrep malware incident response penetration metadata secure deletion SIEM cyber compliance scan"
+ },
+ {
+  "line": "orchestration",
+  "lineLabel": "Orchestration",
+  "sub": "Orchestration",
+  "id": "solution-architect",
+  "name": "Solution Architect",
+  "role": "Technology stack recommendation — ERP, EPM, data, analytics, AI platform design",
+  "kw": "solution architecture technology stack platform selection ERP selection EPM selection technology strategy architecture"
+ },
+ {
+  "line": "orchestration",
+  "lineLabel": "Orchestration",
+  "sub": "Orchestration",
+  "id": "transformation-diagnostician",
+  "name": "Transformation Diagnostician",
+  "role": "Finance transformation maturity assessment — 7 dimensions, 1-5 scoring",
+  "kw": "maturity assessment diagnostic transformation readiness current state gap analysis maturity model assessment"
+ },
+ {
+  "line": "erp-oracle-cloud",
+  "lineLabel": "ERP — Oracle Cloud",
+  "sub": "ERP — Oracle Cloud",
+  "id": "oracle-gl-specialist",
+  "name": "Oracle GL Specialist",
+  "role": "Oracle Fusion GL — multi-GAAP ledgers, SLA rules, COA, period-end close",
+  "kw": "oracle GL general ledger SLA rules subledger accounting multi-GAAP ledger oracle fusion GL period close oracle GL configuration chart of accounts journal posting"
+ },
+ {
+  "line": "erp-oracle-cloud",
+  "lineLabel": "ERP — Oracle Cloud",
+  "sub": "ERP — Oracle Cloud",
+  "id": "oracle-ap-ar-specialist",
+  "name": "Oracle AP/AR Specialist",
+  "role": "Oracle Fusion Payables & Receivables — invoice processing, cash application, collections",
+  "kw": "oracle AP oracle AR payables receivables invoice cash application 3-way match collections oracle fusion AP"
+ },
+ {
+  "line": "procurement",
+  "lineLabel": "Procurement",
+  "sub": "Procurement",
+  "id": "oracle-procurement-specialist",
+  "name": "Oracle Procurement Cloud Specialist",
+  "role": "Oracle Procurement Cloud — self-service procurement, sourcing, supplier portal, purchasing",
+  "kw": "Oracle Procurement Oracle Sourcing procurement cloud Oracle purchase order Oracle supplier portal Oracle"
+ },
+ {
+  "line": "erp-oracle-cloud",
+  "lineLabel": "ERP — Oracle Cloud",
+  "sub": "ERP — Oracle Cloud",
+  "id": "oracle-projects-specialist",
+  "name": "Oracle Projects Specialist",
+  "role": "Oracle Fusion PPM — project costing, billing, revenue recognition, CIP",
+  "kw": "oracle projects PPM project costing project billing CIP capitalization oracle fusion projects EAC"
+ },
+ {
+  "line": "erp-oracle-cloud",
+  "lineLabel": "ERP — Oracle Cloud",
+  "sub": "ERP — Oracle Cloud",
+  "id": "oracle-fa-specialist",
+  "name": "Oracle Fixed Assets Specialist",
+  "role": "Oracle Fusion Fixed Assets — depreciation, asset books, CIP-to-asset, impairment",
+  "kw": "oracle fixed assets depreciation asset book CCA MACRS capitalization oracle fusion FA CIP asset retirement"
+ },
+ {
+  "line": "erp-sap-s-4hana",
+  "lineLabel": "ERP — SAP S/4HANA",
+  "sub": "ERP — SAP S/4HANA",
+  "id": "sap-fico-specialist",
+  "name": "SAP FI/CO Specialist",
+  "role": "SAP S/4HANA Finance & Controlling — Universal Journal, CO-PA, Material Ledger",
+  "kw": "SAP FI SAP CO FICO S/4HANA finance Universal Journal CO-PA Material Ledger ACDOCA SAP GL"
+ },
+ {
+  "line": "erp-sap-s-4hana",
+  "lineLabel": "ERP — SAP S/4HANA",
+  "sub": "ERP — SAP S/4HANA",
+  "id": "sap-mm-sd-specialist",
+  "name": "SAP MM/SD Specialist",
+  "role": "SAP S/4HANA Materials Management & Sales Distribution — P2P and O2C",
+  "kw": "SAP MM SAP SD materials management sales distribution procurement SAP pricing condition SAP inventory"
+ },
+ {
+  "line": "erp-sap-s-4hana",
+  "lineLabel": "ERP — SAP S/4HANA",
+  "sub": "ERP — SAP S/4HANA",
+  "id": "sap-basis-architect",
+  "name": "SAP Basis Architect",
+  "role": "SAP Basis — HANA infrastructure, TMS, RISE migration, Fiori, security",
+  "kw": "SAP Basis HANA RISE SUM DMO Fiori transport SAP security S/4 migration SAP cloud"
+ },
+ {
+  "line": "erp-sap-s-4hana",
+  "lineLabel": "ERP — SAP S/4HANA",
+  "sub": "ERP — SAP S/4HANA",
+  "id": "sap-pp-pm-specialist",
+  "name": "SAP PP/PM Specialist",
+  "role": "SAP S/4HANA Production Planning & Plant Maintenance — MRP, scheduling, equipment",
+  "kw": "SAP PP SAP PM production planning plant maintenance MRP manufacturing work center routing BOM"
+ },
+ {
+  "line": "erp-sap-s-4hana",
+  "lineLabel": "ERP — SAP S/4HANA",
+  "sub": "ERP — SAP S/4HANA",
+  "id": "sap-ewm-tm-specialist",
+  "name": "SAP EWM/TM Specialist",
+  "role": "SAP Extended Warehouse & Transportation Management — logistics optimization",
+  "kw": "SAP EWM SAP TM warehouse transportation logistics picking putaway wave management shipping"
+ },
+ {
+  "line": "erp-sap-s-4hana",
+  "lineLabel": "ERP — SAP S/4HANA",
+  "sub": "ERP — SAP S/4HANA",
+  "id": "sap-bank-analyzer-lead",
+  "name": "SAP Bank Analyzer Lead",
+  "role": "SAP Bank Analyzer / FSDP — financial instruments, risk analytics, subledger, regulatory reporting",
+  "kw": "Bank Analyzer FSDP banking analytics risk weighted Basel financial instruments SDL RDL SAP banking"
+ },
+ {
+  "line": "erp-sap-s-4hana",
+  "lineLabel": "ERP — SAP S/4HANA",
+  "sub": "ERP — SAP S/4HANA",
+  "id": "sap-bca-specialist",
+  "name": "SAP BCA Specialist",
+  "role": "SAP Bank Customer Accounts — deposits, loans, payment transactions, account management",
+  "kw": "BCA bank customer accounts deposits loans payment transactions SAP banking operations interest calculation"
+ },
+ {
+  "line": "erp-sap-s-4hana",
+  "lineLabel": "ERP — SAP S/4HANA",
+  "sub": "ERP — SAP S/4HANA",
+  "id": "sap-fpsl-lead",
+  "name": "SAP FPSL Lead",
+  "role": "SAP Financial Products Subledger — IFRS 17, IFRS 9, insurance & financial instrument accounting",
+  "kw": "FPSL Financial Products Subledger IFRS 17 IFRS 9 insurance accounting ECL CSM financial instruments SAP"
+ },
+ {
+  "line": "erp-sap-s-4hana",
+  "lineLabel": "ERP — SAP S/4HANA",
+  "sub": "ERP — SAP S/4HANA",
+  "id": "sap-insurance-accounting-specialist",
+  "name": "SAP Insurance Accounting Specialist",
+  "role": "Insurance contract management — IFRS 17 measurement models (BBA, PAA, VFA), CSM, risk adjustment",
+  "kw": "insurance IFRS 17 BBA PAA VFA risk adjustment coverage units onerous contract reinsurance insurance accounting"
+ },
+ {
+  "line": "erp-sap-s-4hana",
+  "lineLabel": "ERP — SAP S/4HANA",
+  "sub": "ERP — SAP S/4HANA",
+  "id": "sap-concur-expense-lead",
+  "name": "SAP Concur Expense Lead",
+  "role": "SAP Concur Expense — policy configuration, approval workflows, receipt processing, audit rules",
+  "kw": "Concur Expense expense management expense report receipt processing corporate card expense policy SAP Concur"
+ },
+ {
+  "line": "erp-sap-s-4hana",
+  "lineLabel": "ERP — SAP S/4HANA",
+  "sub": "ERP — SAP S/4HANA",
+  "id": "sap-concur-travel-lead",
+  "name": "SAP Concur Travel Lead",
+  "role": "SAP Concur Travel — booking, TMC integration, travel policy, pre-trip approvals",
+  "kw": "Concur Travel travel booking TMC GDS travel policy corporate travel duty of care"
+ },
+ {
+  "line": "erp-sap-s-4hana",
+  "lineLabel": "ERP — SAP S/4HANA",
+  "sub": "ERP — SAP S/4HANA",
+  "id": "sap-concur-invoice-lead",
+  "name": "SAP Concur Invoice Lead",
+  "role": "SAP Concur Invoice — AP automation, PO matching, vendor management, payment processing",
+  "kw": "Concur Invoice AP automation invoice processing PO matching vendor management accounts payable Concur"
+ },
+ {
+  "line": "hcm-sap-successfactors",
+  "lineLabel": "HCM — SAP SuccessFactors",
+  "sub": "HCM — SAP SuccessFactors",
+  "id": "sap-sf-core-hr-lead",
+  "name": "SAP SuccessFactors Core HR Lead",
+  "role": "SAP SuccessFactors Employee Central — core HR, org management, position management, employee lifecycle",
+  "kw": "SuccessFactors Employee Central SAP SF core HR position management org management MDF employee lifecycle"
+ },
+ {
+  "line": "hcm-sap-successfactors",
+  "lineLabel": "HCM — SAP SuccessFactors",
+  "sub": "HCM — SAP SuccessFactors",
+  "id": "sap-sf-recruiting-lead",
+  "name": "SAP SF Recruiting & Onboarding Lead",
+  "role": "SAP SuccessFactors Recruiting & Onboarding — talent acquisition, candidate experience, onboarding workflows",
+  "kw": "SF Recruiting SuccessFactors Recruiting Onboarding 2.0 talent acquisition candidate experience SAP hiring"
+ },
+ {
+  "line": "hcm-sap-successfactors",
+  "lineLabel": "HCM — SAP SuccessFactors",
+  "sub": "HCM — SAP SuccessFactors",
+  "id": "sap-sf-performance-lead",
+  "name": "SAP SF Performance & Goals Lead",
+  "role": "SAP SuccessFactors Performance & Goals — continuous PM, goal alignment, calibration, 360 reviews",
+  "kw": "SF Performance SuccessFactors Goals calibration 360 review performance management SAP OKR"
+ },
+ {
+  "line": "hcm-sap-successfactors",
+  "lineLabel": "HCM — SAP SuccessFactors",
+  "sub": "HCM — SAP SuccessFactors",
+  "id": "sap-sf-compensation-lead",
+  "name": "SAP SF Compensation Lead",
+  "role": "SAP SuccessFactors Compensation — base pay, variable pay, total rewards, pay equity analysis",
+  "kw": "SF Compensation SuccessFactors Comp variable pay merit cycle total rewards pay equity salary planning"
+ },
+ {
+  "line": "hcm-sap-successfactors",
+  "lineLabel": "HCM — SAP SuccessFactors",
+  "sub": "HCM — SAP SuccessFactors",
+  "id": "sap-sf-learning-lead",
+  "name": "SAP SF Learning Lead",
+  "role": "SAP SuccessFactors Learning — LMS, compliance training, learning paths, skill development",
+  "kw": "SF Learning SuccessFactors LMS compliance training learning management skill development training SAP"
+ },
+ {
+  "line": "hcm-sap-successfactors",
+  "lineLabel": "HCM — SAP SuccessFactors",
+  "sub": "HCM — SAP SuccessFactors",
+  "id": "sap-sf-succession-lead",
+  "name": "SAP SF Succession & Development Lead",
+  "role": "SAP SuccessFactors Succession & Development — talent pipeline, career paths, talent pools, development plans",
+  "kw": "SF Succession SuccessFactors talent 9-box career path talent pipeline development plan succession planning"
+ },
+ {
+  "line": "hcm-sap-successfactors",
+  "lineLabel": "HCM — SAP SuccessFactors",
+  "sub": "HCM — SAP SuccessFactors",
+  "id": "sap-sf-workforce-analytics-lead",
+  "name": "SAP SF Workforce Analytics Lead",
+  "role": "SAP SuccessFactors Workforce Analytics & People Analytics — headcount, turnover, diversity, predictive analytics",
+  "kw": "SF Analytics People Analytics workforce analytics headcount reporting attrition prediction diversity metrics HR analytics"
+ },
+ {
+  "line": "hcm-workday",
+  "lineLabel": "HCM — Workday",
+  "sub": "HCM — Workday",
+  "id": "workday-hcm-lead",
+  "name": "Workday HCM Core Lead",
+  "role": "Workday HCM Core — org design, staffing models, worker lifecycle, supervisory orgs, business processes",
+  "kw": "Workday HCM Workday Core supervisory org business process Workday staffing model worker lifecycle Workday tenant"
+ },
+ {
+  "line": "hcm-workday",
+  "lineLabel": "HCM — Workday",
+  "sub": "HCM — Workday",
+  "id": "workday-recruiting-lead",
+  "name": "Workday Recruiting Lead",
+  "role": "Workday Recruiting — talent acquisition, candidate pipelines, offer management, onboarding",
+  "kw": "Workday Recruiting Workday Onboarding talent acquisition Workday candidate pipeline job requisition Workday"
+ },
+ {
+  "line": "hcm-workday",
+  "lineLabel": "HCM — Workday",
+  "sub": "HCM — Workday",
+  "id": "workday-compensation-lead",
+  "name": "Workday Compensation Lead",
+  "role": "Workday Advanced Compensation — comp plans, merit cycles, bonus plans, total rewards",
+  "kw": "Workday Compensation Workday merit bonus plan Workday total rewards Workday compensation grid"
+ },
+ {
+  "line": "hcm-workday",
+  "lineLabel": "HCM — Workday",
+  "sub": "HCM — Workday",
+  "id": "workday-payroll-lead",
+  "name": "Workday Payroll Lead",
+  "role": "Workday Payroll — payroll processing, tax configuration, GL mapping, pay groups, retro calculations",
+  "kw": "Workday Payroll payroll processing GL mapping payroll pay groups tax configuration Workday payroll accounting"
+ },
+ {
+  "line": "hcm-workday",
+  "lineLabel": "HCM — Workday",
+  "sub": "HCM — Workday",
+  "id": "workday-learning-lead",
+  "name": "Workday Learning Lead",
+  "role": "Workday Learning — learning content, campaigns, compliance, skill assessments",
+  "kw": "Workday Learning learning management Workday compliance training Workday skill assessment learning campaign"
+ },
+ {
+  "line": "hcm-workday",
+  "lineLabel": "HCM — Workday",
+  "sub": "HCM — Workday",
+  "id": "workday-absence-time-lead",
+  "name": "Workday Absence & Time Tracking Lead",
+  "role": "Workday Absence Management & Time Tracking — leave policies, accruals, time entry, scheduling",
+  "kw": "Workday Absence Workday Time Tracking leave management accrual Workday time entry scheduling Workday"
+ },
+ {
+  "line": "hr-transformation",
+  "lineLabel": "HR Transformation",
+  "sub": "HR Transformation",
+  "id": "hr-transformation-lead",
+  "name": "HR Transformation Lead",
+  "role": "End-to-end HR/People transformation — HR operating model, service delivery, HCM strategy, workforce planning, employee experience",
+  "kw": "hr transformation people transformation workforce transformation hr operating model hr target operating model chro people strategy hr shared services hr service delivery employee experience transformation hr digital transformation hr technology strategy hr maturity hr business partner hr coe hr centre of excellence talent strategy workforce planning people analytics total rewards hr governance hire to retire"
+ },
+ {
+  "line": "hcm-oracle-cloud",
+  "lineLabel": "HCM — Oracle Cloud",
+  "sub": "HCM — Oracle Cloud",
+  "id": "oracle-hcm-core-lead",
+  "name": "Oracle HCM Cloud Core Lead",
+  "role": "Oracle HCM Cloud Core HR — workforce structures, person records, employment lifecycle, HDL",
+  "kw": "Oracle HCM Oracle Cloud HR HDL HCM Data Loader Oracle HR workforce structures Oracle OTBI HR"
+ },
+ {
+  "line": "hcm-oracle-cloud",
+  "lineLabel": "HCM — Oracle Cloud",
+  "sub": "HCM — Oracle Cloud",
+  "id": "oracle-recruiting-lead",
+  "name": "Oracle Recruiting Cloud Lead",
+  "role": "Oracle Recruiting Cloud — requisitions, candidate experience, AI matching, onboarding",
+  "kw": "Oracle Recruiting Oracle Onboarding Oracle Journeys candidate matching Oracle talent acquisition Oracle"
+ },
+ {
+  "line": "hcm-oracle-cloud",
+  "lineLabel": "HCM — Oracle Cloud",
+  "sub": "HCM — Oracle Cloud",
+  "id": "oracle-compensation-lead",
+  "name": "Oracle Compensation Lead",
+  "role": "Oracle Compensation — workforce compensation, salary planning, total comp statements",
+  "kw": "Oracle Compensation Oracle salary planning total comp Oracle compensation management Oracle"
+ },
+ {
+  "line": "hcm-oracle-cloud",
+  "lineLabel": "HCM — Oracle Cloud",
+  "sub": "HCM — Oracle Cloud",
+  "id": "oracle-payroll-lead",
+  "name": "Oracle Payroll Lead",
+  "role": "Oracle Payroll — payroll processing, costing, GL integration, statutory reporting",
+  "kw": "Oracle Payroll Oracle payroll processing payroll GL Oracle fast formula payroll payroll costing Oracle"
+ },
+ {
+  "line": "hcm-oracle-cloud",
+  "lineLabel": "HCM — Oracle Cloud",
+  "sub": "HCM — Oracle Cloud",
+  "id": "oracle-learning-lead",
+  "name": "Oracle Learning Cloud Lead",
+  "role": "Oracle Learning — LMS, learning communities, compliance, skills development",
+  "kw": "Oracle Learning Oracle LMS learning cloud Oracle compliance training Oracle"
+ },
+ {
+  "line": "hcm-oracle-cloud",
+  "lineLabel": "HCM — Oracle Cloud",
+  "sub": "HCM — Oracle Cloud",
+  "id": "oracle-talent-mgmt-lead",
+  "name": "Oracle Talent Management Lead",
+  "role": "Oracle Talent Management — performance, goals, succession, career development, talent review",
+  "kw": "Oracle Talent Oracle Performance Oracle Succession talent review Oracle 9-box Oracle career development Oracle"
+ },
+ {
+  "line": "procurement",
+  "lineLabel": "Procurement",
+  "sub": "Procurement",
+  "id": "procurement-transformation-lead",
+  "name": "Procurement Transformation Lead",
+  "role": "Source-to-Pay strategy — procurement operating model, category management, supplier strategy, Coupa/Ariba",
+  "kw": "procurement transformation source to pay procure to pay category management spend analytics supplier management procurement strategy procurement operating model strategic sourcing coupa ariba procurement automation tail spend contract lifecycle CLM e-procurement P2P S2P"
+ },
+ {
+  "line": "risk-and-compliance",
+  "lineLabel": "Risk & Compliance",
+  "sub": "Risk & Compliance",
+  "id": "third-party-risk-lead",
+  "name": "Third Party Risk Management Lead",
+  "role": "TPRM framework design, vendor risk assessment, regulatory compliance (B-10, OCC, DORA), ongoing monitoring",
+  "kw": "third party risk TPRM vendor risk supplier risk third party due diligence third party governance fourth party concentration risk supply chain risk vendor assessment third party oversight B-10 OCC third party DORA third party lifecycle inherent risk residual risk third party monitoring outsourcing risk critical third party material outsourcing third party controls VRM"
+ },
+ {
+  "line": "procurement",
+  "lineLabel": "Procurement",
+  "sub": "Procurement",
+  "id": "sap-ariba-specialist",
+  "name": "SAP Ariba Specialist",
+  "role": "SAP Ariba — sourcing, procurement, supplier management, contract management, Ariba Network",
+  "kw": "SAP Ariba Ariba Sourcing Ariba Buying Ariba Network procurement SAP guided buying supplier lifecycle"
+ },
+ {
+  "line": "procurement",
+  "lineLabel": "Procurement",
+  "sub": "Procurement",
+  "id": "coupa-specialist",
+  "name": "Coupa Procurement Specialist",
+  "role": "Coupa BSM — procure-to-pay, invoicing, expense management, supply chain design, treasury",
+  "kw": "Coupa Coupa BSM procure to pay Coupa Coupa invoicing business spend management"
+ },
+ {
+  "line": "change-management",
+  "lineLabel": "Change Management",
+  "sub": "Change Management",
+  "id": "persona-based-change-lead",
+  "name": "Persona-Based Change Management Lead",
+  "role": "Persona-based change management — role-specific adoption strategies, journey maps, communication plans",
+  "kw": "persona based change role specific adoption persona journey map personalized change adoption strategy persona"
+ },
+ {
+  "line": "change-management",
+  "lineLabel": "Change Management",
+  "sub": "Change Management",
+  "id": "business-readiness-lead",
+  "name": "Business Readiness Lead",
+  "role": "Business readiness assessment — go-live readiness, cutover planning, operational readiness",
+  "kw": "business readiness go-live readiness cutover planning operational readiness hypercare readiness assessment"
+ },
+ {
+  "line": "industry-public-sector",
+  "lineLabel": "Industry — Public Sector",
+  "sub": "Industry — Public Sector",
+  "id": "public-sector-finance-lead",
+  "name": "Public Sector Finance Lead",
+  "role": "Public sector finance — fund accounting, grants management, encumbrance accounting, PSAB/GASB compliance",
+  "kw": "fund accounting grants management public sector finance PSAB GASB encumbrance municipal finance government accounting"
+ },
+ {
+  "line": "industry-public-sector",
+  "lineLabel": "Industry — Public Sector",
+  "sub": "Industry — Public Sector",
+  "id": "grants-management-specialist",
+  "name": "Grants Management Specialist",
+  "role": "Grants lifecycle — application, award, compliance, reporting, closeout, SEFA/Schedule of Expenditures",
+  "kw": "grants management grant compliance SEFA sub-recipient cost allocation federal grants 2 CFR 200 single audit"
+ },
+ {
+  "line": "industry-public-sector",
+  "lineLabel": "Industry — Public Sector",
+  "sub": "Industry — Public Sector",
+  "id": "municipal-erp-specialist",
+  "name": "Municipal & Local Government ERP Specialist",
+  "role": "Municipal ERP — property tax, utility billing, permitting, citizen services, bylaw management",
+  "kw": "municipal ERP property tax utility billing permitting citizen services local government municipal finance"
+ },
+ {
+  "line": "industry-public-sector",
+  "lineLabel": "Industry — Public Sector",
+  "sub": "Industry — Public Sector",
+  "id": "higher-education-specialist",
+  "name": "Higher Education ERP Specialist",
+  "role": "University/college ERP — student financials, research accounting, endowment, tuition, SIS integration",
+  "kw": "higher education ERP university finance student financials research accounting endowment tuition SIS integration"
+ },
+ {
+  "line": "industry-public-sector",
+  "lineLabel": "Industry — Public Sector",
+  "sub": "Industry — Public Sector",
+  "id": "healthcare-finance-specialist",
+  "name": "Healthcare Finance Specialist",
+  "role": "Healthcare finance — patient accounting, revenue cycle, MIS reporting, OHRS, hospital funding formulas",
+  "kw": "healthcare finance patient accounting revenue cycle MIS reporting OHRS hospital funding HBAM healthcare ERP"
+ },
+ {
+  "line": "industry-financial-services",
+  "lineLabel": "Industry — Financial Services",
+  "sub": "Industry — Financial Services",
+  "id": "financial-services-specialist",
+  "name": "Financial Services Industry Specialist",
+  "role": "Financial services consulting — banking operations, insurance accounting, wealth management, regulatory compliance",
+  "kw": "financial services banking operations insurance accounting IFRS 9 IFRS 17 AML KYC regulatory compliance banking"
+ },
+ {
+  "line": "hcm-cross-platform",
+  "lineLabel": "HCM — Cross-Platform",
+  "sub": "HCM — Cross-Platform",
+  "id": "job-architecture-lead",
+  "name": "Job Architecture Lead",
+  "role": "Job architecture design — job families, levels, grading, competency frameworks, career pathing",
+  "kw": "job architecture job family job grading competency framework career pathing role profile job levels"
+ },
+ {
+  "line": "erp-other-platforms",
+  "lineLabel": "ERP — Other Platforms",
+  "sub": "ERP — Other Platforms",
+  "id": "workday-financials-specialist",
+  "name": "Workday Financials Specialist",
+  "role": "Workday Financial Management — worktags, foundation data, business processes, Prism",
+  "kw": "Workday worktag Workday financials Prism Analytics Workday GL business process Workday close financial management worktag accounting Workday Financial Management"
+ },
+ {
+  "line": "erp-other-platforms",
+  "lineLabel": "ERP — Other Platforms",
+  "sub": "ERP — Other Platforms",
+  "id": "dynamics365-specialist",
+  "name": "Dynamics 365 Specialist",
+  "role": "Microsoft D365 Finance & Operations — financial dimensions, Power Platform, dual-write",
+  "kw": "Dynamics 365 D365 Microsoft ERP Power Platform Dataverse dual-write D365 Finance"
+ },
+ {
+  "line": "erp-other-platforms",
+  "lineLabel": "ERP — Other Platforms",
+  "sub": "ERP — Other Platforms",
+  "id": "netsuite-specialist",
+  "name": "NetSuite Specialist",
+  "role": "NetSuite OneWorld — multi-subsidiary, SuiteCloud, SuiteScript, SuiteAnalytics",
+  "kw": "NetSuite OneWorld SuiteScript SuiteFlow SuiteCloud SuiteAnalytics NetSuite ERP mid-market ERP"
+ },
+ {
+  "line": "erp-cross-platform",
+  "lineLabel": "ERP — Cross-Platform",
+  "sub": "ERP — Cross-Platform",
+  "id": "erp-test-lead",
+  "name": "ERP Test Lead",
+  "role": "ERP testing — SIT, UAT, regression, automation (RSAT, Selenium, TOSCA)",
+  "kw": "ERP testing SIT UAT regression test RSAT TOSCA test automation test strategy test cases"
+ },
+ {
+  "line": "erp-cross-platform",
+  "lineLabel": "ERP — Cross-Platform",
+  "sub": "ERP — Cross-Platform",
+  "id": "erp-cutover-go-live-lead",
+  "name": "ERP Cutover & Go-Live Lead",
+  "role": "Cutover planning, mock cutovers, go/no-go, rollback, hypercare",
+  "kw": "cutover go-live mock cutover hypercare rollback go/no-go war room ERP go-live"
+ },
+ {
+  "line": "erp-cross-platform",
+  "lineLabel": "ERP — Cross-Platform",
+  "sub": "ERP — Cross-Platform",
+  "id": "erp-data-migration-lead",
+  "name": "ERP Data Migration Lead",
+  "role": "Data profiling, cleansing, mapping, migration cycles, reconciliation",
+  "kw": "data migration data profiling data cleansing FBDI LSMW EIB legacy migration data reconciliation"
+ },
+ {
+  "line": "erp-cross-platform",
+  "lineLabel": "ERP — Cross-Platform",
+  "sub": "ERP — Cross-Platform",
+  "id": "erp-solution-architect",
+  "name": "ERP Solution Architect",
+  "role": "Cross-module design authority — fit-gap, extension strategy, integration architecture",
+  "kw": "solution architect design authority fit-gap extension cross-module ERP architecture design register"
+ },
+ {
+  "line": "epm-oracle-cloud",
+  "lineLabel": "EPM — Oracle Cloud",
+  "sub": "EPM — Oracle Cloud",
+  "id": "oracle-pbcs-epbcs-lead",
+  "name": "Oracle PBCS/EPBCS Lead",
+  "role": "Oracle Planning Cloud — driver-based planning, Groovy rules, workforce planning",
+  "kw": "PBCS EPBCS Oracle Planning Groovy driver-based planning Smart View planning model Oracle EPM planning"
+ },
+ {
+  "line": "epm-oracle-cloud",
+  "lineLabel": "EPM — Oracle Cloud",
+  "sub": "EPM — Oracle Cloud",
+  "id": "oracle-fccs-lead",
+  "name": "Oracle FCCS Lead",
+  "role": "Oracle Financial Consolidation — multi-entity rules, ownership hierarchies, close workflows",
+  "kw": "FCCS Oracle consolidation financial consolidation intercompany elimination close manager Oracle EPM FCCS consolidation close consolidation close workflow"
+ },
+ {
+  "line": "epm-oracle-cloud",
+  "lineLabel": "EPM — Oracle Cloud",
+  "sub": "EPM — Oracle Cloud",
+  "id": "oracle-arcs-lead",
+  "name": "Oracle ARCS Lead",
+  "role": "Oracle Account Reconciliation — compliance profiles, auto-matching, risk-based frequency",
+  "kw": "ARCS account reconciliation Oracle ARCS auto-matching reconciliation compliance balance substantiation"
+ },
+ {
+  "line": "epm-oracle-cloud",
+  "lineLabel": "EPM — Oracle Cloud",
+  "sub": "EPM — Oracle Cloud",
+  "id": "oracle-edmcs-lead",
+  "name": "Oracle EDMCS Lead",
+  "role": "Oracle Enterprise Data Management — dimension governance, metadata orchestration",
+  "kw": "EDMCS enterprise data management dimension governance metadata Oracle EDMCS hierarchy management"
+ },
+ {
+  "line": "epm-oracle-cloud",
+  "lineLabel": "EPM — Oracle Cloud",
+  "sub": "EPM — Oracle Cloud",
+  "id": "oracle-narrative-reporting-lead",
+  "name": "Oracle Narrative Reporting Lead",
+  "role": "Oracle Narrative Reporting — board books, data-connected doclets, XBRL disclosure",
+  "kw": "narrative reporting Oracle NR board book doclet management commentary XBRL Oracle EPM reporting"
+ },
+ {
+  "line": "epm-oracle-cloud",
+  "lineLabel": "EPM — Oracle Cloud",
+  "sub": "EPM — Oracle Cloud",
+  "id": "oracle-pcm-lead",
+  "name": "Oracle PCM Lead",
+  "role": "Oracle Profitability & Cost Management — ABC costing, driver allocation, profitability",
+  "kw": "PCM profitability cost management activity-based costing cost allocation Oracle PCM ABC costing"
+ },
+ {
+  "line": "epm-onestream-and-anaplan",
+  "lineLabel": "EPM — OneStream & Anaplan",
+  "sub": "EPM — OneStream & Anaplan",
+  "id": "onestream-specialist",
+  "name": "OneStream Specialist",
+  "role": "OneStream XF — unified consolidation, planning, reporting on single platform",
+  "kw": "OneStream OneStream XF MarketPlace unified EPM OneStream consolidation OneStream planning"
+ },
+ {
+  "line": "epm-onestream-and-anaplan",
+  "lineLabel": "EPM — OneStream & Anaplan",
+  "sub": "EPM — OneStream & Anaplan",
+  "id": "anaplan-specialist",
+  "name": "Anaplan Specialist",
+  "role": "Anaplan connected planning — HyperBlock engine, ALM, self-service dashboards",
+  "kw": "Anaplan HyperBlock connected planning ALM Anaplan model territory planning quota planning"
+ },
+ {
+  "line": "epm-specialty",
+  "lineLabel": "EPM — Specialty",
+  "sub": "EPM — Specialty",
+  "id": "epm-workforce-planning-lead",
+  "name": "EPM Workforce Planning Lead",
+  "role": "Strategic workforce planning — headcount modeling, compensation, attrition scenarios",
+  "kw": "workforce planning headcount compensation planning attrition merit planning FTE planning people planning"
+ },
+ {
+  "line": "epm-specialty",
+  "lineLabel": "EPM — Specialty",
+  "sub": "EPM — Specialty",
+  "id": "epm-capital-planning-lead",
+  "name": "EPM Capital Planning Lead",
+  "role": "Capital expenditure planning — NPV/IRR, project ranking, asset lifecycle modeling",
+  "kw": "capital planning capex NPV IRR capital budget project ranking asset planning capital expenditure"
+ },
+ {
+  "line": "ai-change-management",
+  "lineLabel": "AI Change Management",
+  "sub": "AI Change Management",
+  "id": "agentic-change-orchestrator",
+  "name": "Agentic Change Orchestrator",
+  "role": "AI-driven OCM — persona-based comms, real-time sentiment, predictive resistance, autonomous nudges",
+  "kw": "agentic change AI OCM adaptive change sentiment analysis predictive resistance change orchestrator nudge"
+ },
+ {
+  "line": "ai-change-management",
+  "lineLabel": "AI Change Management",
+  "sub": "AI Change Management",
+  "id": "digital-adoption-platform-architect",
+  "name": "Digital Adoption Platform Architect",
+  "role": "DAP design — in-app guidance, contextual help, process compliance, WalkMe/Whatfix",
+  "kw": "DAP digital adoption in-app guidance WalkMe Whatfix contextual help process compliance adoption platform"
+ },
+ {
+  "line": "ai-change-management",
+  "lineLabel": "AI Change Management",
+  "sub": "AI Change Management",
+  "id": "ai-resistance-analytics-lead",
+  "name": "AI Resistance Analytics Lead",
+  "role": "Resistance detection via AI — behavioral analytics, intervention targeting, effectiveness measurement",
+  "kw": "resistance analytics change resistance behavioral analytics resistance detection intervention adoption analytics resistance change management resistance change management"
+ },
+ {
+  "line": "ai-change-management",
+  "lineLabel": "AI Change Management",
+  "sub": "AI Change Management",
+  "id": "ai-learning-experience-architect",
+  "name": "AI Learning Experience Architect",
+  "role": "Adaptive learning — personalized paths, blended learning, competency assessment",
+  "kw": "learning experience adaptive learning personalized learning blended learning competency e-learning LXP"
+ },
+ {
+  "line": "ai-change-management",
+  "lineLabel": "AI Change Management",
+  "sub": "AI Change Management",
+  "id": "change-impact-assessment-lead",
+  "name": "Change Impact Assessment Lead",
+  "role": "Systematic impact assessment — process, role, technology, org impacts, readiness scoring",
+  "kw": "change impact impact assessment readiness assessment impact register stakeholder analysis go-live readiness"
+ },
+ {
+  "line": "ai-change-management",
+  "lineLabel": "AI Change Management",
+  "sub": "AI Change Management",
+  "id": "change-measurement-value-lead",
+  "name": "Change Measurement & Value Lead",
+  "role": "Adoption analytics — leading/lagging indicators, value realization, OCM ROI",
+  "kw": "change measurement adoption metrics value realization OCM ROI adoption dashboard leading indicators"
+ },
+ {
+  "line": "manda-finance",
+  "lineLabel": "M&A Finance",
+  "sub": "M&A Finance",
+  "id": "ma-day1-readiness-lead",
+  "name": "M&A Day 1 Readiness Lead",
+  "role": "Day 1 standalone operations — 8 pillars, TSA design, war room, go/no-go",
+  "kw": "Day 1 readiness M&A Day 1 standalone operations TSA war room go/no-go legal close acquisition readiness"
+ },
+ {
+  "line": "manda-finance",
+  "lineLabel": "M&A Finance",
+  "sub": "M&A Finance",
+  "id": "ma-day2-finance-integration-lead",
+  "name": "M&A Day 2 Finance Integration Lead",
+  "role": "Post-close finance integration — 100-day plan, 4 waves, TSA exit, synergy tracking",
+  "kw": "Day 2 integration post-close 100-day plan TSA exit synergy tracking finance integration COA harmonization"
+ },
+ {
+  "line": "manda-finance",
+  "lineLabel": "M&A Finance",
+  "sub": "M&A Finance",
+  "id": "ma-financial-due-diligence-lead",
+  "name": "M&A Financial Due Diligence Lead",
+  "role": "Buy-side/sell-side QoE — EBITDA normalization, working capital, debt-like items",
+  "kw": "financial due diligence QoE EBITDA normalization working capital peg buy-side DD sell-side DD NWC"
+ },
+ {
+  "line": "manda-finance",
+  "lineLabel": "M&A Finance",
+  "sub": "M&A Finance",
+  "id": "ma-synergy-value-architect",
+  "name": "M&A Synergy Value Architect",
+  "role": "Synergy identification — cost synergies, revenue synergies, integration costs, realization tracking",
+  "kw": "synergy cost synergy revenue synergy synergy tracking integration costs value creation synergy realization"
+ },
+ {
+  "line": "manda-finance",
+  "lineLabel": "M&A Finance",
+  "sub": "M&A Finance",
+  "id": "ma-carve-out-finance-lead",
+  "name": "M&A Carve-Out Finance Lead",
+  "role": "Carve-out finance — standalone financial statements, cost allocation, TSA design",
+  "kw": "carve-out divestiture standalone financials cost allocation TSA service separation accounting carve-out finance"
+ },
+ {
+  "line": "manda-finance",
+  "lineLabel": "M&A Finance",
+  "sub": "M&A Finance",
+  "id": "ma-purchase-price-allocation-lead",
+  "name": "M&A Purchase Price Allocation Lead",
+  "role": "PPA under IFRS 3/ASC 805 — intangible valuation, goodwill, contingent consideration",
+  "kw": "PPA purchase price allocation IFRS 3 ASC 805 goodwill intangible valuation contingent consideration acquisition accounting"
+ },
+ {
+  "line": "manda-finance",
+  "lineLabel": "M&A Finance",
+  "sub": "M&A Finance",
+  "id": "ma-tsa-standalone-finance-lead",
+  "name": "M&A TSA & Standalone Finance Lead",
+  "role": "TSA management — service definitions, exit criteria, standalone finance build",
+  "kw": "TSA transition service standalone finance service agreement TSA exit separation standalone build"
+ },
+ {
+  "line": "skills-customer-support",
+  "lineLabel": "Skills — Customer Support",
+  "sub": "Skills — Customer Support",
+  "id": "customer-satisfaction",
+  "name": "Customer Satisfaction",
+  "role": "CSAT surveys, NPS tracking, customer feedback aggregation",
+  "kw": "CSAT NPS customer satisfaction survey feedback"
+ },
+ {
+  "line": "skills-customer-support",
+  "lineLabel": "Skills — Customer Support",
+  "sub": "Skills — Customer Support",
+  "id": "escalation",
+  "name": "Escalation Management",
+  "role": "Ticket escalation, tier routing, engineering-bug handoff",
+  "kw": "escalation tier 1 tier 2 escalate handoff"
+ },
+ {
+  "line": "skills-customer-support",
+  "lineLabel": "Skills — Customer Support",
+  "sub": "Skills — Customer Support",
+  "id": "field-service",
+  "name": "Field Service",
+  "role": "Field-service ops — scheduling, dispatching, route optimization",
+  "kw": "field service dispatch route technician scheduling"
+ },
+ {
+  "line": "skills-customer-support",
+  "lineLabel": "Skills — Customer Support",
+  "sub": "Skills — Customer Support",
+  "id": "knowledge-base-skill",
+  "name": "Knowledge Base Builder",
+  "role": "Customer-facing KB — article creation, deflection, agent assist",
+  "kw": "knowledge base KB help articles deflection self-service"
+ },
+ {
+  "line": "skills-customer-support",
+  "lineLabel": "Skills — Customer Support",
+  "sub": "Skills — Customer Support",
+  "id": "omnichannel",
+  "name": "Omnichannel Support",
+  "role": "Multi-channel support coordination — email, chat, social, phone",
+  "kw": "omnichannel multichannel support channels chat social support"
+ },
+ {
+  "line": "skills-customer-support",
+  "lineLabel": "Skills — Customer Support",
+  "sub": "Skills — Customer Support",
+  "id": "sla-management",
+  "name": "SLA Management",
+  "role": "SLA definition, response/resolution targets, breach tracking",
+  "kw": "SLA service level response time resolution time breach"
+ },
+ {
+  "line": "skills-customer-support",
+  "lineLabel": "Skills — Customer Support",
+  "sub": "Skills — Customer Support",
+  "id": "ticket-lifecycle",
+  "name": "Ticket Lifecycle",
+  "role": "Support ticket management — triage, routing, resolution, handoffs",
+  "kw": "ticket support ticket triage helpdesk Zendesk Intercom"
+ },
+ {
+  "line": "skills-finance-operations",
+  "lineLabel": "Skills — Finance Operations",
+  "sub": "Skills — Finance Operations",
+  "id": "accounts-payable",
+  "name": "Accounts Payable",
+  "role": "AP automation — vendor invoices, approvals, payment runs",
+  "kw": "accounts payable AP vendor invoice bill pay payment run"
+ },
+ {
+  "line": "skills-finance-operations",
+  "lineLabel": "Skills — Finance Operations",
+  "sub": "Skills — Finance Operations",
+  "id": "accounts-receivable",
+  "name": "Accounts Receivable",
+  "role": "AR management — invoicing, collections, aging analysis",
+  "kw": "accounts receivable AR invoicing collections aging"
+ },
+ {
+  "line": "skills-finance-operations",
+  "lineLabel": "Skills — Finance Operations",
+  "sub": "Skills — Finance Operations",
+  "id": "budgeting-forecasting",
+  "name": "Budgeting & Forecasting",
+  "role": "Budget models, cash forecasting, runway analysis",
+  "kw": "budget forecast cash flow runway burn rate FP&A"
+ },
+ {
+  "line": "skills-finance-operations",
+  "lineLabel": "Skills — Finance Operations",
+  "sub": "Skills — Finance Operations",
+  "id": "consolidation-skill",
+  "name": "Consolidation (Small Entity)",
+  "role": "Multi-entity consolidation for small orgs — parent/subsidiary, SPV",
+  "kw": "consolidation small multi-entity subsidiary SPV intercompany small"
+ },
+ {
+  "line": "skills-finance-operations",
+  "lineLabel": "Skills — Finance Operations",
+  "sub": "Skills — Finance Operations",
+  "id": "fixed-assets",
+  "name": "Fixed Assets",
+  "role": "Capital equipment tracking, depreciation, asset registers",
+  "kw": "fixed assets depreciation capital equipment asset register"
+ },
+ {
+  "line": "skills-finance-operations",
+  "lineLabel": "Skills — Finance Operations",
+  "sub": "Skills — Finance Operations",
+  "id": "general-ledger",
+  "name": "General Ledger",
+  "role": "GL setup and maintenance — COA, single entity, monthly reporting",
+  "kw": "general ledger GL chart of accounts small COA setup bookkeeping"
+ },
+ {
+  "line": "skills-finance-operations",
+  "lineLabel": "Skills — Finance Operations",
+  "sub": "Skills — Finance Operations",
+  "id": "period-close",
+  "name": "Period Close",
+  "role": "Monthly close process — reconciliation, P&L, balance sheet",
+  "kw": "period close monthly close close process reconciliation close"
+ },
+ {
+  "line": "skills-finance-operations",
+  "lineLabel": "Skills — Finance Operations",
+  "sub": "Skills — Finance Operations",
+  "id": "tax-compliance",
+  "name": "Tax Compliance",
+  "role": "Tax filings — sales tax, payroll tax, income tax prep",
+  "kw": "tax compliance sales tax payroll tax 1099 tax filing"
+ },
+ {
+  "line": "skills-human-resources",
+  "lineLabel": "Skills — Human Resources",
+  "sub": "Skills — Human Resources",
+  "id": "benefits",
+  "name": "Benefits Administration",
+  "role": "Employee benefits — health plans, 401(k), FSA, enrollment",
+  "kw": "benefits health plan 401k FSA PEO enrollment"
+ },
+ {
+  "line": "skills-human-resources",
+  "lineLabel": "Skills — Human Resources",
+  "sub": "Skills — Human Resources",
+  "id": "leave-attendance",
+  "name": "Leave & Attendance",
+  "role": "PTO, sick leave, parental leave, attendance tracking",
+  "kw": "leave PTO attendance sick leave parental leave time off"
+ },
+ {
+  "line": "skills-human-resources",
+  "lineLabel": "Skills — Human Resources",
+  "sub": "Skills — Human Resources",
+  "id": "offboarding",
+  "name": "Offboarding",
+  "role": "Employee separation — exit interviews, access revocation, final pay",
+  "kw": "offboarding termination exit interview separation COBRA"
+ },
+ {
+  "line": "skills-human-resources",
+  "lineLabel": "Skills — Human Resources",
+  "sub": "Skills — Human Resources",
+  "id": "onboarding",
+  "name": "Onboarding",
+  "role": "New hire onboarding — day-1 setup, week-1 immersion, 30/60/90 check-ins",
+  "kw": "onboarding new hire day one orientation 30-60-90"
+ },
+ {
+  "line": "skills-human-resources",
+  "lineLabel": "Skills — Human Resources",
+  "sub": "Skills — Human Resources",
+  "id": "payroll",
+  "name": "Payroll",
+  "role": "Payroll processing — W-2, 1099, international contractors",
+  "kw": "payroll W-2 1099 contractor pay Gusto Rippling Deel"
+ },
+ {
+  "line": "skills-human-resources",
+  "lineLabel": "Skills — Human Resources",
+  "sub": "Skills — Human Resources",
+  "id": "performance-reviews",
+  "name": "Performance Reviews",
+  "role": "Performance review cycles — goal-setting, self-review, calibration",
+  "kw": "performance review review cycle goal setting calibration Lattice"
+ },
+ {
+  "line": "skills-human-resources",
+  "lineLabel": "Skills — Human Resources",
+  "sub": "Skills — Human Resources",
+  "id": "recruitment",
+  "name": "Recruitment",
+  "role": "Hiring pipeline — ATS, job postings, referrals, interviews",
+  "kw": "recruitment hiring ATS job posting interview candidate"
+ },
+ {
+  "line": "skills-human-resources",
+  "lineLabel": "Skills — Human Resources",
+  "sub": "Skills — Human Resources",
+  "id": "training-development",
+  "name": "Training & Development",
+  "role": "L&D programs — training design, learning stipends, workshops",
+  "kw": "training L&D learning development workshop course"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "api-design",
+  "name": "API Design",
+  "role": "ERP API design — REST endpoints, versioning, webhooks, rate limiting",
+  "kw": "API design REST webhook endpoint rate limit API versioning"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "erp-change-management",
+  "name": "ERP Change Management",
+  "role": "OCM for ERP implementations — stakeholder engagement, training, adoption",
+  "kw": "ERP change management OCM ERP stakeholder engagement adoption ERP"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "configuration-management",
+  "name": "Configuration Management",
+  "role": "ERP config as code — promotion pipelines, drift detection, releases",
+  "kw": "configuration management config as code drift detection promotion pipeline"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "data-migration",
+  "name": "Data Migration",
+  "role": "Legacy data migration — profiling, mapping, transformation, cutover",
+  "kw": "data migration cutover legacy migration data profiling field mapping"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "data-modeling",
+  "name": "Data Modeling",
+  "role": "Enterprise data schemas — entities, relationships, multi-tenancy",
+  "kw": "data model schema design entity relationship multi-tenancy"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "deployment-golive",
+  "name": "Deployment & Go-Live",
+  "role": "Go-live planning — cutover runbooks, rollback, hypercare",
+  "kw": "go-live deployment cutover rollback hypercare go no-go"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "disaster-recovery",
+  "name": "Disaster Recovery",
+  "role": "DR/BCP — RTO/RPO, backup strategies, failover, DR testing",
+  "kw": "disaster recovery DR BCP RTO RPO failover backup"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "integrations",
+  "name": "Integrations",
+  "role": "System integration — API connections, data syncs, middleware, events",
+  "kw": "integration middleware API connection data sync EDI"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "localization-i18n",
+  "name": "Localization & i18n",
+  "role": "Global ERP — multi-language, multi-currency, timezone, compliance",
+  "kw": "localization i18n multi-language multi-currency timezone locale"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "master-data-management",
+  "name": "Master Data Management",
+  "role": "MDM — golden records, data stewardship, deduplication, quality",
+  "kw": "MDM master data golden record data stewardship deduplication"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "observability",
+  "name": "Observability",
+  "role": "ERP observability — logging, metrics, tracing, alerting, SLA monitoring",
+  "kw": "observability monitoring logging tracing alerting metrics"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "performance-optimization",
+  "name": "Performance Optimization",
+  "role": "ERP performance — DB tuning, caching, batch processing, capacity",
+  "kw": "performance optimization database tuning caching batch capacity"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "reports-dashboards",
+  "name": "Reports & Dashboards",
+  "role": "Enterprise reporting — KPIs, dashboard design, scheduled distribution",
+  "kw": "reports dashboard KPI BI analytics reporting"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "security-roles",
+  "name": "Security & Roles",
+  "role": "Access control — RBAC, SoD, SSO, field-level security, audit logging",
+  "kw": "security roles RBAC SoD SSO access control audit log"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "testing-validation",
+  "name": "Testing & Validation",
+  "role": "QA strategy — test planning, UAT, performance testing, sign-off",
+  "kw": "testing UAT QA test plan validation sign-off"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "user-onboarding",
+  "name": "User Onboarding (ERP)",
+  "role": "ERP user enablement — training design, adoption tracking, knowledge support",
+  "kw": "user onboarding ERP training ERP adoption tracking enablement"
+ },
+ {
+  "line": "skills-erp-implementation",
+  "lineLabel": "Skills — ERP Implementation",
+  "sub": "Skills — ERP Implementation",
+  "id": "workflow-automation",
+  "name": "Workflow Automation",
+  "role": "BPM — approval chains, state machines, scheduled jobs, SLA enforcement",
+  "kw": "workflow automation approval chain state machine BPM business rules"
+ },
+ {
+  "line": "skills-professional-services",
+  "lineLabel": "Skills — Professional Services",
+  "sub": "Skills — Professional Services",
+  "id": "billing",
+  "name": "Billing",
+  "role": "Client billing — T&M, fixed-fee, retainer, milestone invoicing",
+  "kw": "billing T&M fixed fee retainer client invoice"
+ },
+ {
+  "line": "skills-professional-services",
+  "lineLabel": "Skills — Professional Services",
+  "sub": "Skills — Professional Services",
+  "id": "client-collaboration",
+  "name": "Client Collaboration",
+  "role": "Client engagement — Slack Connect, shared docs, portals, QBRs",
+  "kw": "client collaboration client portal QBR status call Slack Connect"
+ },
+ {
+  "line": "skills-professional-services",
+  "lineLabel": "Skills — Professional Services",
+  "sub": "Skills — Professional Services",
+  "id": "portfolio-management",
+  "name": "Portfolio Management",
+  "role": "Project portfolio — health scoring, capacity vs demand, prioritization",
+  "kw": "portfolio project portfolio capacity planning prioritization"
+ },
+ {
+  "line": "skills-professional-services",
+  "lineLabel": "Skills — Professional Services",
+  "sub": "Skills — Professional Services",
+  "id": "project-planning",
+  "name": "Project Planning",
+  "role": "Project execution — milestones, sprint planning, weekly reviews",
+  "kw": "project planning milestone sprint Asana Monday ClickUp"
+ },
+ {
+  "line": "skills-professional-services",
+  "lineLabel": "Skills — Professional Services",
+  "sub": "Skills — Professional Services",
+  "id": "resource-management",
+  "name": "Resource Management",
+  "role": "Resource allocation — utilization, capacity, billable vs non-billable",
+  "kw": "resource management utilization capacity staffing allocation"
+ },
+ {
+  "line": "skills-professional-services",
+  "lineLabel": "Skills — Professional Services",
+  "sub": "Skills — Professional Services",
+  "id": "subcontractor-management",
+  "name": "Subcontractor Management",
+  "role": "Subcontractor ops — SOW scoping, 1099 tracking, W-9 collection",
+  "kw": "subcontractor freelancer SOW 1099 contractor W-9"
+ },
+ {
+  "line": "skills-professional-services",
+  "lineLabel": "Skills — Professional Services",
+  "sub": "Skills — Professional Services",
+  "id": "time-expense",
+  "name": "Time & Expense",
+  "role": "Time tracking and expense management — Harvest, Toggl, Expensify",
+  "kw": "time tracking expense Harvest Toggl Expensify timesheet"
+ },
+ {
+  "line": "skills-sales-and-crm",
+  "lineLabel": "Skills — Sales & CRM",
+  "sub": "Skills — Sales & CRM",
+  "id": "campaign-management",
+  "name": "Campaign Management",
+  "role": "Marketing campaigns — email, paid ads, landing pages, attribution",
+  "kw": "campaign marketing campaign email campaign ads attribution"
+ },
+ {
+  "line": "skills-sales-and-crm",
+  "lineLabel": "Skills — Sales & CRM",
+  "sub": "Skills — Sales & CRM",
+  "id": "commissions",
+  "name": "Commissions",
+  "role": "Sales commissions — plan design, payout calculation, quota management",
+  "kw": "commissions commission plan quota payout ACV"
+ },
+ {
+  "line": "skills-sales-and-crm",
+  "lineLabel": "Skills — Sales & CRM",
+  "sub": "Skills — Sales & CRM",
+  "id": "contracts-renewals",
+  "name": "Contracts & Renewals",
+  "role": "Contract lifecycle — MSA, order forms, auto-renewals, CLM",
+  "kw": "contract renewal MSA CLM order form auto-renewal"
+ },
+ {
+  "line": "skills-sales-and-crm",
+  "lineLabel": "Skills — Sales & CRM",
+  "sub": "Skills — Sales & CRM",
+  "id": "customer-360",
+  "name": "Customer 360",
+  "role": "Unified customer view — CRM + email + product usage + support + billing",
+  "kw": "customer 360 unified view account view CRM data customer data"
+ },
+ {
+  "line": "skills-sales-and-crm",
+  "lineLabel": "Skills — Sales & CRM",
+  "sub": "Skills — Sales & CRM",
+  "id": "lead-management",
+  "name": "Lead Management",
+  "role": "Lead capture, scoring, routing — inbound + outbound pipelines",
+  "kw": "lead management lead scoring lead routing inbound outbound"
+ },
+ {
+  "line": "skills-sales-and-crm",
+  "lineLabel": "Skills — Sales & CRM",
+  "sub": "Skills — Sales & CRM",
+  "id": "pipeline-forecasting",
+  "name": "Pipeline Forecasting",
+  "role": "Sales pipeline — deal reviews, stage probability, monthly forecasts",
+  "kw": "pipeline sales pipeline forecast deal review win rate"
+ },
+ {
+  "line": "skills-sales-and-crm",
+  "lineLabel": "Skills — Sales & CRM",
+  "sub": "Skills — Sales & CRM",
+  "id": "quoting-cpq",
+  "name": "Quoting & CPQ",
+  "role": "Quote generation — templates, pricing rules, e-signatures",
+  "kw": "quoting CPQ quote proposal pricing e-signature"
+ },
+ {
+  "line": "skills-sales-and-crm",
+  "lineLabel": "Skills — Sales & CRM",
+  "sub": "Skills — Sales & CRM",
+  "id": "territory-management",
+  "name": "Territory Management",
+  "role": "Sales territories — geographic/vertical design, quota allocation",
+  "kw": "territory sales territory quota allocation AE territory"
+ },
+ {
+  "line": "skills-supply-chain",
+  "lineLabel": "Skills — Supply Chain",
+  "sub": "Skills — Supply Chain",
+  "id": "demand-planning",
+  "name": "Demand Planning",
+  "role": "Demand forecasting — predict needs, plan inventory readiness",
+  "kw": "demand planning demand forecast seasonal S&OP"
+ },
+ {
+  "line": "skills-supply-chain",
+  "lineLabel": "Skills — Supply Chain",
+  "sub": "Skills — Supply Chain",
+  "id": "inventory",
+  "name": "Inventory Management",
+  "role": "Inventory tracking — stock levels, reorder points, location management",
+  "kw": "inventory stock reorder warehouse stock SKU"
+ },
+ {
+  "line": "skills-supply-chain",
+  "lineLabel": "Skills — Supply Chain",
+  "sub": "Skills — Supply Chain",
+  "id": "logistics",
+  "name": "Logistics",
+  "role": "Logistics ops — shipping, freight, carriers, last-mile delivery",
+  "kw": "logistics shipping freight carrier last mile delivery"
+ },
+ {
+  "line": "skills-supply-chain",
+  "lineLabel": "Skills — Supply Chain",
+  "sub": "Skills — Supply Chain",
+  "id": "procurement",
+  "name": "Procurement",
+  "role": "Procurement — purchase requests, vendor sourcing, PO management",
+  "kw": "procurement purchase order PO sourcing spend"
+ },
+ {
+  "line": "skills-supply-chain",
+  "lineLabel": "Skills — Supply Chain",
+  "sub": "Skills — Supply Chain",
+  "id": "production-planning",
+  "name": "Production Planning",
+  "role": "Manufacturing planning — production scheduling, shop floor management",
+  "kw": "production planning manufacturing shop floor BOM MRP"
+ },
+ {
+  "line": "skills-supply-chain",
+  "lineLabel": "Skills — Supply Chain",
+  "sub": "Skills — Supply Chain",
+  "id": "quality",
+  "name": "Quality Management",
+  "role": "Quality control — inspection, standards, non-conformance, CAPA",
+  "kw": "quality QC inspection CAPA non-conformance ISO"
+ },
+ {
+  "line": "skills-supply-chain",
+  "lineLabel": "Skills — Supply Chain",
+  "sub": "Skills — Supply Chain",
+  "id": "vendor-management",
+  "name": "Vendor Management",
+  "role": "Vendor ops — evaluation, onboarding, performance tracking, risk",
+  "kw": "vendor management supplier vendor evaluation vendor risk"
+ },
+ {
+  "line": "skills-supply-chain",
+  "lineLabel": "Skills — Supply Chain",
+  "sub": "Skills — Supply Chain",
+  "id": "warehouse",
+  "name": "Warehouse Management",
+  "role": "WMS — receiving, putaway, picking, packing, shipping",
+  "kw": "warehouse WMS picking packing receiving putaway"
+ },
+ {
+  "line": "skills-investment-research",
+  "lineLabel": "Skills — Investment Research",
+  "sub": "Skills — Investment Research",
+  "id": "competitive-landscape",
+  "name": "Competitive Landscape",
+  "role": "Sector mapping — competitive structure, moats, disruption vectors",
+  "kw": "competitive landscape sector map moat disruption market share"
+ },
+ {
+  "line": "skills-investment-research",
+  "lineLabel": "Skills — Investment Research",
+  "sub": "Skills — Investment Research",
+  "id": "content-publishing",
+  "name": "Content Publishing",
+  "role": "Investment commentary — research notes, thesis posts, earnings reactions",
+  "kw": "content publishing research note thesis post investment commentary"
+ },
+ {
+  "line": "skills-investment-research",
+  "lineLabel": "Skills — Investment Research",
+  "sub": "Skills — Investment Research",
+  "id": "earnings-call-analysis",
+  "name": "Earnings Call Analysis",
+  "role": "Earnings analysis — prepared remarks, Q&A, guidance, management tone",
+  "kw": "earnings call earnings analysis Q&A guidance management tone"
+ },
+ {
+  "line": "skills-investment-research",
+  "lineLabel": "Skills — Investment Research",
+  "sub": "Skills — Investment Research",
+  "id": "equity-research-framework",
+  "name": "Equity Research",
+  "role": "Equity thesis building — bull/bear/neutral with evidence and valuation",
+  "kw": "equity research bull case bear case thesis stock analysis"
+ },
+ {
+  "line": "skills-investment-research",
+  "lineLabel": "Skills — Investment Research",
+  "sub": "Skills — Investment Research",
+  "id": "reading-10k-10q",
+  "name": "SEC Filing Analysis",
+  "role": "SEC filings — 10-K, 10-Q, 8-K, proxy statement analysis",
+  "kw": "10-K 10-Q 8-K SEC filing proxy statement annual report"
+ },
+ {
+  "line": "skills-investment-research",
+  "lineLabel": "Skills — Investment Research",
+  "sub": "Skills — Investment Research",
+  "id": "valuation-dcf-comps",
+  "name": "Valuation (DCF & Comps)",
+  "role": "Company valuation — DCF, comparable analysis, price targets",
+  "kw": "valuation DCF comparables comps price target WACC"
+ },
+ {
+  "line": "skills-sector-analysis",
+  "lineLabel": "Skills — Sector Analysis",
+  "sub": "Skills — Sector Analysis",
+  "id": "customer-support-tech",
+  "name": "Customer Support Tech Sector",
+  "role": "Sector: helpdesk, CCaaS, VoC, knowledge management, AI chatbots",
+  "kw": "support tech CCaaS helpdesk market VoC"
+ },
+ {
+  "line": "skills-sector-analysis",
+  "lineLabel": "Skills — Sector Analysis",
+  "sub": "Skills — Sector Analysis",
+  "id": "finance-accounting-tech",
+  "name": "Finance & Accounting Tech Sector",
+  "role": "Sector: ERP, AP/AR automation, FP&A, close/consolidation, expense mgmt",
+  "kw": "finance tech accounting tech fintech sector ERP market"
+ },
+ {
+  "line": "skills-sector-analysis",
+  "lineLabel": "Skills — Sector Analysis",
+  "sub": "Skills — Sector Analysis",
+  "id": "hr-tech",
+  "name": "HR Tech Sector",
+  "role": "Sector: payroll, HRIS, talent acquisition, L&D, engagement, benefits",
+  "kw": "HR tech HRIS market payroll market talent tech"
+ },
+ {
+  "line": "skills-sector-analysis",
+  "lineLabel": "Skills — Sector Analysis",
+  "sub": "Skills — Sector Analysis",
+  "id": "platform-it",
+  "name": "Platform & IT Sector",
+  "role": "Sector: cloud, cybersecurity, observability, data infra, DevOps, AI/ML",
+  "kw": "platform IT cloud market cybersecurity market AI infrastructure"
+ },
+ {
+  "line": "skills-sector-analysis",
+  "lineLabel": "Skills — Sector Analysis",
+  "sub": "Skills — Sector Analysis",
+  "id": "project-ops-tech",
+  "name": "Project Ops Tech Sector",
+  "role": "Sector: PSA, work management, consulting services, IT services",
+  "kw": "project ops tech PSA market work management IT services market"
+ },
+ {
+  "line": "skills-sector-analysis",
+  "lineLabel": "Skills — Sector Analysis",
+  "sub": "Skills — Sector Analysis",
+  "id": "sales-crm-tech",
+  "name": "Sales & CRM Tech Sector",
+  "role": "Sector: Salesforce, HubSpot, ZoomInfo, marketing automation, ad tech",
+  "kw": "CRM market Salesforce market marketing automation ad tech"
+ },
+ {
+  "line": "skills-sector-analysis",
+  "lineLabel": "Skills — Sector Analysis",
+  "sub": "Skills — Sector Analysis",
+  "id": "supply-chain-tech",
+  "name": "Supply Chain Tech Sector",
+  "role": "Sector: WMS, procurement tech, logistics carriers, fleet tech",
+  "kw": "supply chain tech WMS market logistics tech fleet tech"
+ },
+ {
+  "line": "skills-templates",
+  "lineLabel": "Skills — Templates",
+  "sub": "Skills — Templates",
+  "id": "fit-gap-matrix",
+  "name": "Fit-Gap Matrix",
+  "role": "Vendor evaluation — requirements scoring, fit vs custom analysis",
+  "kw": "fit gap vendor evaluation requirements scoring vendor selection"
+ },
+ {
+  "line": "skills-templates",
+  "lineLabel": "Skills — Templates",
+  "sub": "Skills — Templates",
+  "id": "go-live-checklist",
+  "name": "Go-Live Checklist",
+  "role": "System launch checklist — data readiness, enablement, rollback",
+  "kw": "go-live checklist launch checklist go no-go readiness"
+ },
+ {
+  "line": "skills-templates",
+  "lineLabel": "Skills — Templates",
+  "sub": "Skills — Templates",
+  "id": "migration-runbook",
+  "name": "Migration Runbook",
+  "role": "System migration — QBO→NetSuite, Salesforce→HubSpot runbooks",
+  "kw": "migration runbook system migration data migration template"
+ },
+ {
+  "line": "skills-templates",
+  "lineLabel": "Skills — Templates",
+  "sub": "Skills — Templates",
+  "id": "requirements-traceability",
+  "name": "Requirements Traceability",
+  "role": "RTM — track requirements through design, build, and test phases",
+  "kw": "requirements traceability RTM requirements tracking traceability matrix"
+ },
+ {
+  "line": "localization",
+  "lineLabel": "Localization",
+  "sub": "Localization",
+  "id": "translation-agent",
+  "name": "Translation Agent",
+  "role": "Multilingual document translation — French, Quebec French, Italian, Malayalam. Structure-preserving with cultural adaptation",
+  "kw": "translate translation French Quebec French Italian Malayalam multilingual localization localisation fr-CA traduction lingua langue italiano document translation translate to French translate to Italian translate to Malayalam bilingual multilingual document language"
+ },
+ {
+  "line": "market-and-credit-research",
+  "lineLabel": "Market & Credit Research",
+  "sub": "Market & Credit Research",
+  "id": "research-desk",
+  "name": "Market & Credit Research Desk",
+  "role": "Specialist desks for market-facing risk: credit spreads and issuer credit, rates and FX, macro regime, portfolio and risk analytics, event studies, market intelligence",
+  "kw": "credit spread high yield investment grade CDS issuer credit counterparty default risk rating yield curve rates FX carry macro regime inflation recession risk portfolio construction factor exposure drawdown value at risk stress test event study earnings catalyst market intelligence probability of default scorecard PD model"
+ },
+ {
+  "line": "investor-relations",
+  "lineLabel": "Investor Relations",
+  "sub": "Investor Relations",
+  "id": "investor-relations",
+  "name": "Investor Relations",
+  "role": "External reporting and market communication — earnings release, MD&A, guidance, analyst Q&A, non-GAAP reconciliation, continuous disclosure",
+  "kw": "investor relations IR earnings release earnings call MD&A management discussion and analysis guidance analyst consensus sell-side buy-side non-GAAP adjusted earnings supplementary financial measures continuous disclosure material change quiet period shareholder proxy annual report quarterly report forward-looking statements investor day 52-112"
+ }
+]
