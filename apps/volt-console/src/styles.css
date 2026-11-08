@@ -177,16 +177,6 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .table th { color: var(--muted); font-weight: 500; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; }
 .table-wrap { overflow-x: auto; }
 
-/* Benchmark bar */
-.bench-bar { position: relative; height: 28px; border-radius: 6px; margin: 26px 0 8px; display: flex; overflow: hidden; border: 1px solid var(--line); }
-.bench-bar div { flex: 1; display: grid; place-items: center; font-size: 11px; color: var(--body); }
-.bench-bar div:nth-child(1) { background: rgba(255, 255, 255, 0.18); color: var(--primary); }
-.bench-bar div:nth-child(2) { background: rgba(255, 255, 255, 0.11); }
-.bench-bar div:nth-child(3) { background: rgba(255, 255, 255, 0.06); }
-.bench-bar div:nth-child(4) { background: rgba(255, 255, 255, 0.02); }
-.bench-wrap { position: relative; }
-.bench-marker { position: absolute; top: 0; transform: translateX(-50%); font-size: 11px; color: var(--primary); text-align: center; }
-.bench-marker::after { content: ""; display: block; width: 2px; height: 40px; background: var(--accent); margin: 2px auto 0; }
 
 .stat { display: flex; flex-direction: column; gap: 2px; }
 .stat .v { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; }
@@ -244,3 +234,12 @@ textarea.csv { min-height: 150px; font-family: ui-monospace, monospace; font-siz
 .aui-tool { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; display: flex; flex-direction: column; gap: 6px; }
 .aui-composer { display: flex; gap: 8px; padding: 10px 12px; border-top: 1px solid var(--line); align-items: flex-end; }
 .aui-composer textarea { flex: 1; resize: none; max-height: 140px; }
+
+/* Visuals: charts drawn from tool data, and mermaid diagrams from agent output */
+.visual { margin: 0; display: grid; gap: 6px; min-width: 0; }
+.visual svg { display: block; }
+.visual-actions { display: flex; gap: 6px; justify-content: flex-end; }
+.visual.mermaid .mermaid-svg { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 12px; }
+.visual.mermaid .mermaid-svg svg { max-width: 100%; height: auto; margin: 0 auto; }
+.run-visuals { display: grid; gap: 10px; grid-column: 1 / -1; align-content: start; }
+.visual-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); }

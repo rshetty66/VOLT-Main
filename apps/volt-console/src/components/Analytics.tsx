@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import type { CatalogResponse } from "../../shared/events";
 import { runTool } from "../api";
+import { BenchmarkChart, ValueCaseChart } from "../charts/Charts";
+import { ChartFrame } from "../charts/Visual";
 
 /** Direct access to the deterministic tools the agents use for numbers. */
 export function Analytics({ catalog }: { catalog: CatalogResponse }) {
@@ -31,12 +33,7 @@ function BenchmarkTool({ catalog }: { catalog: CatalogResponse }) {
     runTool<{ quartile: string; gapToMedian: number; gapToTop25: number }>("apqc_benchmark", { metric, client_value: v }).then((r) => setResult(r.ok ? r.data! : null));
   }, [metric, value]);
 
-  // Axis from best to worst, padded beyond the quartile points.
-  const best = b.lowerIsBetter ? Math.min(b.top25, Number(value) || b.top25) : Math.max(b.top25, Number(value) || b.top25);
-  const worst = b.lowerIsBetter ? Math.max(b.bottom25, Number(value) || 0) : Math.min(b.bottom25, Number(value) || b.bottom25);
-  const span = Math.abs(worst - best) * 1.15 || 1;
-  const start = b.lowerIsBetter ? best - span * 0.05 : best + span * 0.05;
-  const pos = (v: number) => Math.min(100, Math.max(0, (Math.abs(v - start) / span) * 100));
+  const client = value === "" || Number.isNaN(Number(value)) ? undefined : Number(value);
 
   return (
     <div className="card stack">
@@ -51,19 +48,7 @@ function BenchmarkTool({ catalog }: { catalog: CatalogResponse }) {
         </select>
         <input className="input" style={{ maxWidth: 140 }} inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} aria-label="Client value" />
       </div>
-      <div className="bench-wrap">
-        {value !== "" && !Number.isNaN(Number(value)) && (
-          <div className="bench-marker" style={{ left: `${pos(Number(value))}%` }}>
-            client {value}
-          </div>
-        )}
-        <div className="bench-bar">
-          <div style={{ flex: `0 0 ${pos(b.top25)}%` }}>Top 25%</div>
-          <div style={{ flex: `0 0 ${pos(b.median) - pos(b.top25)}%` }}>2nd</div>
-          <div style={{ flex: `0 0 ${pos(b.bottom25) - pos(b.median)}%` }}>3rd</div>
-          <div>Bottom</div>
-        </div>
-      </div>
+      <ChartFrame name={`benchmark-${b.key}`} render={(p) => <BenchmarkChart data={{ benchmark: b, clientValue: client, quartile: result?.quartile }} p={p} />} />
       <div className="stats">
         <Stat label="Top quartile" value={`${b.top25} ${b.unit}`} />
         <Stat label="Median" value={`${b.median} ${b.unit}`} />
@@ -79,6 +64,7 @@ function BenchmarkTool({ catalog }: { catalog: CatalogResponse }) {
 }
 
 interface ValueCase {
+  oneTimeInvestment: number;
   capacityReleasedFtes: number;
   steadyStateAnnualSaving: number;
   npv: number;
@@ -135,6 +121,7 @@ function ValueCaseTool() {
             <Stat label="IRR" value={r.irrPct === null ? "n/a" : `${r.irrPct}%`} />
             <Stat label="Payback" value={r.paybackYears === null ? "beyond horizon" : `${r.paybackYears} yrs`} />
           </div>
+          <ChartFrame name="value-case" render={(p) => <ValueCaseChart data={r} p={p} />} />
           <div className="table-wrap">
             <table className="table">
               <thead>
