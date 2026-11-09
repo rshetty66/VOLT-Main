@@ -34,6 +34,8 @@ export interface GateResult {
   status: 'pass' | 'fail' | 'skipped';
   durationMs: number;
   errorExcerpt?: string;
+  /** Non-failure context for a pass/skip (e.g. browser stages skipped). */
+  note?: string;
 }
 export interface BuildEvent {
   t: string;
@@ -91,8 +93,14 @@ export function compileSpec(input: {
   return req('/spec', { method: 'POST', body: JSON.stringify(input) });
 }
 
-export function runBuild(sessionId: string): Promise<BuildOutcome> {
-  return req(`/build/${encodeURIComponent(sessionId)}/run`, { method: 'POST' });
+export function runBuild(
+  sessionId: string,
+  opts?: { maxRounds?: number },
+): Promise<BuildOutcome> {
+  return req(`/build/${encodeURIComponent(sessionId)}/run`, {
+    method: 'POST',
+    body: JSON.stringify(opts ?? {}),
+  });
 }
 
 export function buildStatus(sessionId: string): Promise<{ events: BuildEvent[]; running: boolean }> {
