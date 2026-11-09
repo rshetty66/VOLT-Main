@@ -48,8 +48,12 @@ api/                 Hono server (boot.ts), routes, AI orchestration
                      workspace (workspace.ts), scaffolder (scaffold.ts),
                      spec compiler (compiler.ts), gate runner G0–G4 (gates.ts),
                      codegen agent loop with one-repair policy (codegen.ts),
-                     service endpoints (routes.ts, /api/builder, authed);
-                     all vitest-covered
+                     per-user history persistence (store.ts), service endpoints
+                     (routes.ts, /api/builder, authed; spec/build/gates/status/
+                     sessions/preview); all vitest-covered
+src/components/volt/BuilderView.tsx
+                     Builder surface — spec review, live build ticker, gate
+                     report, file browser, dist preview, Studio hand-off
 src/                 React client (Vite + Tailwind + shadcn/ui)
   components/volt/   chat, run cards, marketplace, studio, charts, mermaid
   data/              service_lines/ (chunked), layers.json (generated)

@@ -12,6 +12,7 @@ import {
   WorkspaceView,
   ControlView,
 } from '@/components/volt/views';
+import { BuilderView } from '@/components/volt/BuilderView';
 import { useVoltChat } from '@/hooks/useVoltChat';
 
 export default function Home() {
@@ -36,6 +37,7 @@ export default function Home() {
         }}
       />
       <main className="flex min-w-0 flex-1">
+        {surface === 'builder' && <BuilderView />}
         {surface === 'chat' && (
           <ChatView
             messages={messages}

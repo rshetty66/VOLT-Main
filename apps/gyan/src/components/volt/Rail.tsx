@@ -10,6 +10,7 @@ import {
   Gauge,
   RotateCcw,
   Zap,
+  Factory,
 } from 'lucide-react';
 
 export type Surface =
@@ -18,10 +19,12 @@ export type Surface =
   | 'blueprint'
   | 'studio'
   | 'workspace'
-  | 'control';
+  | 'control'
+  | 'builder';
 
 const ITEMS: { id: Surface; label: string; icon: typeof Store }[] = [
   { id: 'chat', label: 'Assistant', icon: MessageSquare },
+  { id: 'builder', label: 'Builder', icon: Factory },
   { id: 'marketplace', label: 'Marketplace', icon: Store },
   { id: 'blueprint', label: 'Blueprint', icon: Layers },
   { id: 'studio', label: 'Studio', icon: Hammer },
