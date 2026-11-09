@@ -44,6 +44,9 @@ api/                 Hono server (boot.ts), routes, AI orchestration
   ai/volt.ts         registry matcher, system prompt, verification contract
   ai/depth.ts        domain depth packs (banking M&A, R2R, IFRS 9, P2P, ERP, TP)
   data/              catalog.json, models.json (generated from the registry)
+  builder/           VOLT Builder core — spec schema + G0 (spec.ts), isolated
+                     workspace (workspace.ts), scaffolder (scaffold.ts),
+                     standalone gate runner G0–G4 (gates.ts, vitest-covered)
 src/                 React client (Vite + Tailwind + shadcn/ui)
   components/volt/   chat, run cards, marketplace, studio, charts, mermaid
   data/              service_lines/ (chunked), layers.json (generated)
