@@ -32,12 +32,10 @@ designs, regulator-ready narratives.
   the answer under an Appendix. Word exports use real heading styles and an
   auto-updating table of contents.
 - **Chat history** — conversations persist in `localStorage` (quota-safe,
-  debounced) and sync per-user server-side when a database is provisioned.
-  Unauthenticated users keep full local history; the UI labels which mode
-  it is showing.
-- **Builder** — chat-first app factory (spec compiler → scaffolder → codegen
-  agent → G0–G4 gate chain → preview). See `api/builder/` and
-  `src/components/volt/BuilderView.tsx`.
+  debounced, capped) so a refresh never loses work; when signed in they also
+  sync to the per-user server history (`conversations` table, auto-provisioned
+  on first use), so history follows the user across browsers and devices. The
+  history panel labels which copy it is showing.
 
 ## Layout
 
