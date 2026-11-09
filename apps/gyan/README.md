@@ -25,7 +25,10 @@ designs, regulator-ready narratives.
   tools, and the model each agent runs on.
 - **Client-ready output** — streamed markdown with charts (Chart.js), Mermaid
   diagrams, and one-click export to PowerPoint/Excel/PDF from chat and from the
-  Studio view.
+  Studio view. Every answer follows the client-first contract: the polished
+  deliverable leads, and all working evidence (squad plan, agent flow,
+  assumptions/risk registers, decisions, data lineage) closes the answer under
+  an Appendix.
 - **Chat history** — conversations persist in `localStorage` (quota-safe,
   debounced, capped) so a refresh never loses work; when signed in they also
   sync to the per-user server history (`conversations` table, auto-provisioned
