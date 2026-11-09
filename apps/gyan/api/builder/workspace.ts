@@ -5,7 +5,7 @@
  * paths against the workspace root and refuse to escape it — generated code
  * must never be able to read or write outside its own project.
  */
-import { mkdir, readFile, readdir, writeFile } from "fs/promises";
+import { mkdir, readFile, readdir, rm, writeFile } from "fs/promises";
 import path from "path";
 
 export class WorkspaceError extends Error {
@@ -39,6 +39,30 @@ export class Workspace {
 
   async read(rel: string): Promise<string> {
     return readFile(this.resolve(rel), "utf8");
+  }
+
+  /**
+   * Remove everything except the given relative paths (e.g. ["spec.json"]),
+   * so a regeneration round starts from a clean tree and cannot leave stale
+   * files behind from an earlier round.
+   */
+  async clear(keep: string[] = []): Promise<void> {
+    const keepAbs = new Set(keep.map((rel) => this.resolve(rel)));
+    const walk = async (dir: string): Promise<void> => {
+      const entries = await readdir(dir, { withFileTypes: true });
+      for (const e of entries) {
+        const abs = path.join(dir, e.name);
+        if (e.isDirectory()) {
+          await walk(abs);
+          if ((await readdir(abs)).length === 0) {
+            await rm(abs, { recursive: true });
+          }
+        } else if (!keepAbs.has(abs)) {
+          await rm(abs);
+        }
+      }
+    };
+    await walk(this.root);
   }
 
   /** Recursive file listing, paths relative to the root. */

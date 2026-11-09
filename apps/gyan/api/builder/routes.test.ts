@@ -181,4 +181,43 @@ describe("builder routes", () => {
     });
     expect(res.status).toBe(400);
   });
+
+  it("runs a full build through the injected codegen dep", async () => {
+    const builtFor: string[] = [];
+    const app2 = new Hono();
+    app2.route(
+      "/api/builder",
+      createBuilderRoutes({
+        authenticate: async () => fakeUser,
+        compile: async (input) => {
+          const spec = validSpec();
+          spec.appName = input.prompt.slice(0, 60);
+          return { spec, g0: checkSpec(spec) };
+        },
+        build: async (_ws, spec) => {
+          builtFor.push((spec as { appName: string }).appName);
+          return {
+            summary: "5/5 gates passed",
+            results: [],
+            rounds: { used: 1, repaired: false },
+            events: [{ t: "scaffold", at: Date.now() }],
+          };
+        },
+        dataDir: dir,
+      }),
+    );
+    await app2.request("/api/builder/spec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "Build it", sessionId: "s6" }),
+    });
+    const res = await app2.request("/api/builder/build/s6/run", {
+      method: "POST",
+    });
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { summary: string; rounds: { used: number } };
+    expect(body.summary).toBe("5/5 gates passed");
+    expect(body.rounds.used).toBe(1);
+    expect(builtFor).toEqual(["Build it"]);
+  });
 });

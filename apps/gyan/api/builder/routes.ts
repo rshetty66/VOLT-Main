@@ -10,6 +10,8 @@
  *   GET  /workspace/:session/file/*     read one file (413 over the read cap)
  *   PUT  /workspace/:session/file/*     write one file (256 KB cap)
  *   POST /gates/:session/run            run the G0–G4 chain from spec.json
+ *   POST /build/:session/run            full build: scaffold → codegen →
+ *                                       gates → one evidence-based repair
  *
  * Everything session-scoped resolves through workspaceFor, which sanitizes
  * the id and confines all file operations to that session's directory.
@@ -19,9 +21,10 @@ import type { User } from "@db/schema";
 import { authenticateRequest } from "../kimi/auth";
 import { log } from "../lib/logger";
 import { workspaceFor, WorkspaceError } from "./workspace";
-import { buildSpecSchema, checkSpec } from "./spec";
+import { buildSpecSchema, checkSpec, type BuildSpec } from "./spec";
 import { compileSpec, type CompileInput } from "./compiler";
 import { runGates, summarize, type GateResult } from "./gates";
+import { runBuild, type BuildOutcome } from "./codegen";
 
 const MAX_WRITE_CHARS = 256 * 1024;
 const MAX_READ_CHARS = 512 * 1024;
@@ -35,6 +38,10 @@ export interface BuilderRouteDeps {
     ws: import("./workspace").Workspace,
     spec: unknown,
   ) => Promise<GateResult[]>;
+  build?: (
+    ws: import("./workspace").Workspace,
+    spec: unknown,
+  ) => Promise<BuildOutcome>;
   dataDir?: string;
 }
 
@@ -51,6 +58,9 @@ export function createBuilderRoutes(
   const gateChain =
     deps.gateChain ??
     ((ws, spec) => runGates(ws, spec as Parameters<typeof runGates>[1]));
+  const build =
+    deps.build ??
+    ((ws, spec) => runBuild(ws, spec as Parameters<typeof runBuild>[1]));
   const dataDir = deps.dataDir ?? builderDataDir();
 
   const app = new Hono<{ Variables: { user: User } }>();
@@ -182,32 +192,80 @@ export function createBuilderRoutes(
     }
   });
 
-  // --- Gate chain ------------------------------------------------------------
+  // --- Spec of record --------------------------------------------------------
 
-  app.post("/gates/:session/run", async (c) => {
-    const ws = wsFor(c.req.param("session"));
+  type Loaded =
+    | { ok: true; ws: import("./workspace").Workspace; spec: BuildSpec }
+    | { ok: false; status: 400 | 409; body: unknown };
+
+  /** Load and validate spec.json for a session. */
+  const loadSpec = async (session: string): Promise<Loaded> => {
+    const ws = wsFor(session);
     let raw: string;
     try {
       raw = await ws.read("spec.json");
     } catch {
-      return c.json(
-        { error: "no spec.json in this session — compile a spec first" },
-        400,
-      );
+      return {
+        ok: false,
+        status: 400,
+        body: { error: "no spec.json in this session — compile a spec first" },
+      };
     }
     const parsed = buildSpecSchema.safeParse(JSON.parse(raw));
     if (!parsed.success) {
-      return c.json({ error: "spec.json failed schema validation" }, 400);
+      return {
+        ok: false,
+        status: 400,
+        body: { error: "spec.json failed schema validation" },
+      };
     }
     const g0 = checkSpec(parsed.data);
     if (!g0.ok) {
+      return {
+        ok: false,
+        status: 409,
+        body: {
+          error: "G0 failed",
+          issues: g0.issues,
+          blockingUnknowns: g0.blockingUnknowns,
+        },
+      };
+    }
+    return { ok: true, ws, spec: parsed.data };
+  };
+
+  // --- Gate chain ------------------------------------------------------------
+
+  app.post("/gates/:session/run", async (c) => {
+    const loaded = await loadSpec(c.req.param("session"));
+    if (!loaded.ok) return c.json(loaded.body, loaded.status);
+    const results = await gateChain(loaded.ws, loaded.spec);
+    return c.json({ results, summary: summarize(results) });
+  });
+
+  // --- Full build: scaffold → codegen → gates → one repair -------------------
+
+  app.post("/build/:session/run", async (c) => {
+    const loaded = await loadSpec(c.req.param("session"));
+    if (!loaded.ok) return c.json(loaded.body, loaded.status);
+    let outcome: BuildOutcome;
+    try {
+      outcome = await build(loaded.ws, loaded.spec);
+    } catch (err) {
+      log.error("builder build failed", {
+        error: err instanceof Error ? err.message : String(err),
+      });
       return c.json(
-        { error: "G0 failed", issues: g0.issues, blockingUnknowns: g0.blockingUnknowns },
-        409,
+        { error: err instanceof Error ? err.message : "build failed" },
+        502,
       );
     }
-    const results = await gateChain(ws, parsed.data);
-    return c.json({ results, summary: summarize(results) });
+    return c.json({
+      summary: outcome.summary,
+      results: outcome.results,
+      rounds: outcome.rounds,
+      events: outcome.events,
+    });
   });
 
   return app;
