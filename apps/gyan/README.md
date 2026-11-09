@@ -60,7 +60,6 @@ src/                 React client (Vite + Tailwind + shadcn/ui)
   components/volt/   chat, run cards, marketplace, studio, charts, mermaid
   data/              service_lines/ (chunked), layers.json (generated)
 contracts/           shared client/server types
-db/                  Drizzle schema (users, conversations, builder history)
 scripts/e2e.mjs      end-to-end suite (Playwright, against the prod bundle)
 ```
 

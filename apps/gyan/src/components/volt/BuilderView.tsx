@@ -2,13 +2,13 @@
  * BuilderView — the VOLT Builder surface (D9 + D13).
  *
  * Chat-first app factory: describe an app, watch the spec compile (G0),
- * approve it, run the full build (codegen + gates + one repair), and read
- * the verification report — then preview the built app, iterate with a
+ * approve it, run the full build (codegen + gates + bounded repairs), and
+ * read the verification report — then preview the built app, iterate with a
  * follow-up prompt, or send the run to Studio as a deliverable.
  *
  * The surface is honest by contract: gate rows show real status with
- * durations and expandable failure excerpts; a build that never ran G4
- * says so instead of faking a pass.
+ * durations and expandable failure excerpts (or pass notes); a build that
+ * never ran G4 says so instead of faking a pass.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router';
@@ -86,11 +86,13 @@ function GateReport({ results }: { results: GateResult[] }) {
             <span className="micro tnum !text-[var(--volt-faint)]">
               {r.status === 'skipped' ? '—' : `${r.durationMs}ms`}
             </span>
-            {r.errorExcerpt && <ChevronRight size={11} className="text-[var(--volt-faint)]" />}
+            {(r.errorExcerpt || r.note) && (
+              <ChevronRight size={11} className="text-[var(--volt-faint)]" />
+            )}
           </button>
-          {open === r.gate && r.errorExcerpt && (
+          {open === r.gate && (r.errorExcerpt || r.note) && (
             <pre className="max-h-48 overflow-auto border-t border-[var(--volt-line-soft)] bg-[#111110] px-3 py-2 font-mono text-[10.5px] leading-relaxed text-[var(--volt-dim)]">
-              {r.errorExcerpt}
+              {r.errorExcerpt ?? r.note}
             </pre>
           )}
         </div>
@@ -459,7 +461,7 @@ export function BuilderView() {
                     <div className="rise mb-5">
                       <div className="micro mb-2 flex items-center gap-2 !text-[var(--volt-faint)]">
                         <Loader2 size={11} className="animate-spin" />
-                        Building {phase.spec.appName} — codegen, gates, one repair
+                        Building {phase.spec.appName} — codegen, gates, up to three rounds
                       </div>
                       <EventTicker events={liveEvents} />
                     </div>
@@ -536,7 +538,8 @@ export function BuilderView() {
                       <p className="max-w-lg text-[13.5px] leading-relaxed text-[var(--volt-dim)]">
                         Builder turns a plain-language brief into a spec, generates
                         the app, and verifies it through five gates — typecheck,
-                        build, boot, and a smoke test — before you ever see it.
+                        build, boot, smoke, and a headless-browser check — before
+                        you ever see it.
                       </p>
                     </div>
                   )}
