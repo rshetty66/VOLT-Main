@@ -32,10 +32,12 @@ designs, regulator-ready narratives.
   the answer under an Appendix. Word exports use real heading styles and an
   auto-updating table of contents.
 - **Chat history** — conversations persist in `localStorage` (quota-safe,
-  debounced, capped) so a refresh never loses work; when signed in they also
-  sync to the per-user server history (`conversations` table, auto-provisioned
-  on first use), so history follows the user across browsers and devices. The
-  history panel labels which copy it is showing.
+  debounced) and sync per-user server-side when a database is provisioned.
+  Unauthenticated users keep full local history; the UI labels which mode
+  it is showing.
+- **Builder** — chat-first app factory (spec compiler → scaffolder → codegen
+  agent → G0–G4 gate chain → preview). See `api/builder/` and
+  `src/components/volt/BuilderView.tsx`.
 
 ## Layout
 
@@ -48,8 +50,12 @@ api/                 Hono server (boot.ts), routes, AI orchestration
                      workspace (workspace.ts), scaffolder (scaffold.ts),
                      spec compiler (compiler.ts), gate runner G0–G4 (gates.ts),
                      codegen agent loop with one-repair policy (codegen.ts),
-                     service endpoints (routes.ts, /api/builder, authed);
-                     all vitest-covered
+                     per-user history persistence (store.ts), service endpoints
+                     (routes.ts, /api/builder, authed; spec/build/gates/status/
+                     sessions/preview); all vitest-covered
+src/components/volt/BuilderView.tsx
+                     Builder surface — spec review, live build ticker, gate
+                     report, file browser, dist preview, Studio hand-off
 src/                 React client (Vite + Tailwind + shadcn/ui)
   components/volt/   chat, run cards, marketplace, studio, charts, mermaid
   data/              service_lines/ (chunked), layers.json (generated)
