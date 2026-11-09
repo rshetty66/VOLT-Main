@@ -164,14 +164,21 @@ export async function runBuild(
   const maxRounds = Math.max(1, deps.maxRounds ?? 2);
   const gateRunner = deps.gateRunner ?? ((w, s) => runGates(w, s));
   const events: BuildEvent[] = [];
-  const push = (t: string, detail?: Record<string, unknown>) =>
-    events.push({ t, at: Date.now(), detail });
+  // Build events stream to buildlog.jsonl as they happen so the status
+  // endpoint can show live progress while a build is still running. The
+  // write is awaited: the log must reflect stage order truthfully.
+  const push = async (t: string, detail?: Record<string, unknown>) => {
+    const event: BuildEvent = { t, at: Date.now(), detail };
+    events.push(event);
+    await ws.append("buildlog.jsonl", JSON.stringify(event) + "\n");
+  };
+  await ws.write("buildlog.jsonl", "");
 
   // Clean tree (spec.json is the resume point), then the trusted skeleton.
   await ws.clear(["spec.json"]);
-  push("clear", { keep: ["spec.json"] });
+  await push("clear", { keep: ["spec.json"] });
   await scaffold(ws, spec);
-  push("scaffold");
+  await push("scaffold");
 
   let lastFailure: string | undefined;
   let results: GateResult[] = [];
@@ -210,22 +217,18 @@ export async function runBuild(
     } catch (err) {
       throw classifyAiError(err);
     }
-    push("generate", { round, durationMs: Date.now() - t0, files: map.files.length });
+    await push("generate", { round, durationMs: Date.now() - t0, files: map.files.length });
 
     const applied = await applyFileMap(ws, map);
-    push("apply", {
+    await push("apply", {
       round,
       written: applied.written.length,
       skipped: applied.skipped,
     });
 
     results = await gateRunner(ws, spec);
-    push("gates", { round, summary: summarize(results) });
+    await push("gates", { round, summary: summarize(results) });
     if (results.every((r) => r.status === "pass")) {
-      await ws.write(
-        "buildlog.jsonl",
-        events.map((e) => JSON.stringify(e)).join("\n") + "\n",
-      );
       return {
         results,
         summary: summarize(results),
@@ -236,10 +239,6 @@ export async function runBuild(
     lastFailure = failureReport(results);
   }
 
-  await ws.write(
-    "buildlog.jsonl",
-    events.map((e) => JSON.stringify(e)).join("\n") + "\n",
-  );
   return {
     results,
     summary: summarize(results),
