@@ -3,6 +3,7 @@
  * inline, deliverable-grade markdown streams live, usage lands in mono tnum.
  */
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {
@@ -19,6 +20,7 @@ import {
   FileText,
   History,
   Trash2,
+  Plus,
 } from 'lucide-react';
 import type { VoltMessage } from '@/hooks/useVoltChat';
 import { errorCopy } from '@/lib/stream';
@@ -41,6 +43,7 @@ import {
   subscribeStore,
   type StoredConversation,
 } from '@/lib/store';
+import { trpc } from '@/providers/trpc';
 import { AgentRun } from './AgentRun';
 import { mdComponents } from './markdown';
 
@@ -250,103 +253,237 @@ function AssistantBody({ m }: { m: VoltMessage }) {
   );
 }
 
-function HistoryMenu({ onLoad }: { onLoad: (c: StoredConversation) => void }) {
-  const [open, setOpen] = useState(false);
-  const [convs, setConvs] = useState<StoredConversation[]>(listConversations);
-  useEffect(() => subscribeStore(() => setConvs(listConversations())), []);
+/** One row in the history panel, regardless of where it is stored. */
+interface HistoryRow {
+  id: string;
+  title: string;
+  updatedAt: number;
+  asks: number;
+}
+
+function formatWhen(ms: number): string {
+  const d = new Date(ms);
+  const today = new Date();
+  const sameDay = d.toDateString() === today.toDateString();
+  return sameDay
+    ? d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })
+    : d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/**
+ * HistoryPanel — slide-over conversation history.
+ * Signed in: reads/writes the per-user server history (survives browsers and
+ * devices). Signed out or sync unavailable: the browser-local store, labeled
+ * honestly. Loading a row restores the whole conversation into the chat.
+ */
+function HistoryPanel({
+  open,
+  currentId,
+  onClose,
+  onLoad,
+  onNew,
+}: {
+  open: boolean;
+  currentId?: string;
+  onClose: () => void;
+  onLoad: (c: StoredConversation) => void;
+  onNew: () => void;
+}) {
+  const me = trpc.auth.me.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const authed = !!me.data;
+  const utils = trpc.useUtils();
+  const remote = trpc.conversations.list.useQuery(undefined, {
+    enabled: authed && open,
+    retry: false,
+  });
+  const removeRemote = trpc.conversations.remove.useMutation({
+    onSuccess: () => void utils.conversations.list.invalidate(),
+  });
+
+  const [localRows, setLocalRows] = useState<StoredConversation[]>(listConversations);
+  useEffect(() => subscribeStore(() => setLocalRows(listConversations())), []);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
+
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setOpen(false);
+      if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [open]);
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  // Remote is the source of truth only when it answered; any failure falls
+  // back to this browser's store so history never appears to vanish.
+  const useRemote = authed && remote.isSuccess;
+  const rows: HistoryRow[] = useRemote
+    ? remote.data.map((c) => ({
+        id: c.id,
+        title: c.title,
+        updatedAt: new Date(c.updatedAt).getTime(),
+        asks: Math.round(c.messageCount / 2),
+      }))
+    : localRows.map((c) => ({
+        id: c.id,
+        title: c.title,
+        updatedAt: c.updatedAt,
+        asks: c.messages.filter((m) => m.role === 'user').length,
+      }));
+
+  const openRow = async (id: string) => {
+    setLoadingId(id);
+    try {
+      if (useRemote) {
+        const full = await utils.conversations.get.fetch({ id });
+        if (full) {
+          onLoad({
+            id: full.id,
+            title: full.title,
+            createdAt: new Date(full.createdAt).getTime(),
+            updatedAt: new Date(full.updatedAt).getTime(),
+            messages: full.messages as VoltMessage[],
+          });
+        }
+      } else {
+        const full = localRows.find((c) => c.id === id);
+        if (full) onLoad(full);
+      }
+      onClose();
+    } catch {
+      /* row vanished or network dropped — leave the list as-is */
+    } finally {
+      setLoadingId(null);
+    }
+  };
+
+  const removeRow = (id: string) => {
+    if (useRemote) {
+      removeRemote.mutate({ id });
+    } else {
+      deleteConversation(id);
+    }
+  };
+
   return (
-    <span className="relative">
-      <button
-        onClick={() => setOpen((o) => !o)}
-        title="Past conversations"
-        aria-label="Past conversations"
-        className="flex h-6 w-6 items-center justify-center rounded text-[var(--volt-faint)] hover:bg-[var(--volt-panel-2)] hover:text-[var(--volt-text)]"
-      >
-        <History size={13} />
-      </button>
-      {open && (
-        <>
-          <span
-            className="fixed inset-0 z-[90] cursor-default"
-            onClick={() => setOpen(false)}
-          />
-          <span className="absolute right-0 top-full z-[100] mt-1 block w-80 rounded-lg border border-[var(--volt-line)] bg-[var(--volt-panel)] py-1 shadow-[0_12px_32px_rgba(0,0,0,0.5)]">
-            <span className="micro block px-3 pb-1 pt-1.5 !text-[var(--volt-faint)]">
-              Conversations · saved in this browser only
-            </span>
-            {convs.length === 0 && (
-              <span className="block px-3 py-2 text-[12px] text-[var(--volt-dim)]">
-                Nothing yet — finished turns are kept here.
-              </span>
-            )}
-            <span className="block max-h-72 overflow-y-auto">
-              {convs.map((c) => (
-                <span
-                  key={c.id}
-                  className="group flex items-center gap-1 px-2 py-1 hover:bg-[var(--volt-panel-2)]"
-                >
-                  <button
-                    onClick={() => {
-                      onLoad(c);
-                      setOpen(false);
-                    }}
-                    className="min-w-0 flex-1 py-1 text-left"
-                  >
-                    <span className="block truncate text-[12.5px] text-[var(--volt-text)]">
-                      {c.title}
-                    </span>
-                    <span className="micro tnum block !text-[var(--volt-faint)]">
-                      {new Date(c.updatedAt).toLocaleDateString(undefined, {
-                        month: 'short',
-                        day: 'numeric',
-                      })}{' '}
-                      · {c.messages.filter((m) => m.role === 'user').length} asks
-                    </span>
-                  </button>
-                  <button
-                    onClick={() => deleteConversation(c.id)}
-                    aria-label={`Delete ${c.title}`}
-                    className="hidden h-6 w-6 shrink-0 items-center justify-center rounded text-[var(--volt-faint)] hover:text-[var(--volt-red)] group-hover:flex"
-                  >
-                    <Trash2 size={11} />
-                  </button>
-                </span>
-              ))}
-            </span>
+    <>
+      <span
+        className="fixed inset-0 z-[90] bg-black/50"
+        onClick={onClose}
+        aria-hidden
+      />
+      <aside className="fixed left-0 top-0 z-[100] flex h-full w-80 max-w-[85vw] flex-col border-r border-[var(--volt-line)] bg-[var(--volt-panel)]">
+        <div className="flex h-12 shrink-0 items-center justify-between border-b border-[var(--volt-line-soft)] px-4">
+          <span className="text-[13px] font-semibold tracking-tight">
+            Conversations
           </span>
-        </>
-      )}
-    </span>
+          <button
+            onClick={onClose}
+            aria-label="Close history"
+            className="flex h-6 w-6 items-center justify-center rounded text-[var(--volt-faint)] hover:bg-[var(--volt-panel-2)] hover:text-[var(--volt-text)]"
+          >
+            <X size={13} />
+          </button>
+        </div>
+        <div className="shrink-0 px-3 pt-3">
+          <button
+            onClick={() => {
+              onNew();
+              onClose();
+            }}
+            className="lift flex w-full items-center gap-2 rounded-lg border border-[var(--volt-line)] px-3 py-2 text-[12.5px] text-[var(--volt-dim)] hover:border-[var(--volt-amber)] hover:text-[var(--volt-text)]"
+          >
+            <Plus size={12} /> New conversation
+          </button>
+        </div>
+        <div className="mt-2 min-h-0 flex-1 overflow-y-auto px-2 pb-2">
+          {rows.length === 0 && (
+            <div className="px-2 py-6 text-center text-[12px] text-[var(--volt-faint)]">
+              Nothing yet — finished turns are kept here.
+            </div>
+          )}
+          {rows.map((r) => (
+            <div
+              key={r.id}
+              className={`group flex items-center gap-1 rounded-lg px-2 py-1 hover:bg-[var(--volt-panel-2)] ${
+                r.id === currentId ? 'bg-[var(--volt-panel-2)]' : ''
+              }`}
+            >
+              <button
+                onClick={() => void openRow(r.id)}
+                disabled={loadingId === r.id}
+                className="min-w-0 flex-1 py-1 text-left"
+              >
+                <span
+                  className={`block truncate text-[12.5px] ${
+                    r.id === currentId
+                      ? 'text-[var(--volt-amber)]'
+                      : 'text-[var(--volt-text)]'
+                  }`}
+                >
+                  {loadingId === r.id ? 'Opening…' : r.title}
+                </span>
+                <span className="micro tnum block !text-[var(--volt-faint)]">
+                  {formatWhen(r.updatedAt)} · {r.asks} {r.asks === 1 ? 'ask' : 'asks'}
+                </span>
+              </button>
+              <button
+                onClick={() => removeRow(r.id)}
+                aria-label={`Delete ${r.title}`}
+                className="hidden h-6 w-6 shrink-0 items-center justify-center rounded text-[var(--volt-faint)] hover:text-[var(--volt-red)] group-hover:flex"
+              >
+                <Trash2 size={11} />
+              </button>
+            </div>
+          ))}
+        </div>
+        <div className="micro shrink-0 border-t border-[var(--volt-line-soft)] px-4 py-2.5 !text-[var(--volt-faint)]">
+          {useRemote ? (
+            'Synced to your account'
+          ) : authed ? (
+            'Sync unavailable — this browser only'
+          ) : (
+            <>
+              This browser only ·{' '}
+              <Link to="/login" className="underline hover:text-[var(--volt-amber)]">
+                Sign in to sync
+              </Link>
+            </>
+          )}
+        </div>
+      </aside>
+    </>
   );
 }
 
 export function ChatView({
   messages,
   busy,
+  currentId,
   onSend,
   onStop,
   onLoad,
+  onNew,
 }: {
   messages: VoltMessage[];
   busy: boolean;
+  currentId?: string;
   onSend: (
     text: string,
     opts?: { architecture?: boolean; attachments?: Attachment[] },
   ) => void;
   onStop: () => void;
   onLoad: (c: StoredConversation) => void;
+  onNew: () => void;
 }) {
   const [draft, setDraft] = useState('');
   const [arch, setArch] = useState(false);
   const [atts, setAtts] = useState<Attachment[]>([]);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
   const taRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -415,7 +552,17 @@ export function ChatView({
           <span className="micro">VOLT · live assistant</span>
         </div>
         <div className="micro tnum flex items-center gap-2">
-          <HistoryMenu onLoad={onLoad} />
+          <button
+            onClick={() => setHistoryOpen(true)}
+            title="Conversation history"
+            aria-label="Conversation history"
+            className="flex h-6 items-center gap-1.5 rounded-md border border-[var(--volt-line)] px-2 text-[var(--volt-dim)] hover:border-[var(--volt-amber)] hover:text-[var(--volt-text)]"
+          >
+            <History size={12} />
+            <span className="font-mono text-[10px] uppercase tracking-[0.08em]">
+              History
+            </span>
+          </button>
           <span
             className={`h-1.5 w-1.5 rounded-full ${busy ? 'shimmer' : 'bg-[var(--volt-green)]'}`}
             style={busy ? { width: 10, borderRadius: 3 } : undefined}
@@ -423,6 +570,13 @@ export function ChatView({
           {busy ? 'working' : 'ready'}
         </div>
       </header>
+      <HistoryPanel
+        open={historyOpen}
+        currentId={currentId}
+        onClose={() => setHistoryOpen(false)}
+        onLoad={onLoad}
+        onNew={onNew}
+      />
 
       {/* conversation */}
       <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto">
