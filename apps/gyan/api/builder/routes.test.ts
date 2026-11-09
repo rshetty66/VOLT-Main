@@ -182,6 +182,147 @@ describe("builder routes", () => {
     expect(res.status).toBe(400);
   });
 
+  it("records the compile through the injected persist dep", async () => {
+    const recorded: unknown[][] = [];
+    const app2 = new Hono();
+    app2.route(
+      "/api/builder",
+      createBuilderRoutes({
+        authenticate: async () => ({ id: 42 }) as unknown as User,
+        compile: async (input) => {
+          const spec = validSpec();
+          spec.appName = input.prompt.slice(0, 60);
+          return { spec, g0: checkSpec(spec) };
+        },
+        persist: {
+          recordSpec: async (uid, sessionId, prompt) => {
+            recorded.push([uid, sessionId, prompt]);
+          },
+        },
+        dataDir: dir,
+      }),
+    );
+    await app2.request("/api/builder/spec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "Persist me", sessionId: "s-persist" }),
+    });
+    expect(recorded).toHaveLength(1);
+    expect(recorded[0][0]).toBe(42);
+    expect(recorded[0][1]).toBe("s-persist");
+  });
+
+  it("serves the built dist/ as a preview with SPA fallback", async () => {
+    await app.request("/api/builder/workspace/s7/file/dist/index.html", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "<html>built app</html>" }),
+    });
+    await app.request("/api/builder/workspace/s7/file/dist/assets/app.js", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "console.log(1);" }),
+    });
+    const root = await app.request("/api/builder/preview/s7/");
+    expect(root.status).toBe(200);
+    expect(root.headers.get("Content-Type")).toContain("text/html");
+    expect(await root.text()).toContain("built app");
+    const asset = await app.request("/api/builder/preview/s7/assets/app.js");
+    expect(asset.status).toBe(200);
+    expect(asset.headers.get("Content-Type")).toContain("text/javascript");
+    // extensionless deep link falls back to the SPA shell
+    const spa = await app.request("/api/builder/preview/s7/invoices");
+    expect(spa.status).toBe(200);
+    expect(await spa.text()).toContain("built app");
+    // nothing built yet → honest 404
+    const missing = await app.request("/api/builder/preview/empty/");
+    expect(missing.status).toBe(404);
+  });
+
+  it("refuses to preview paths outside dist/", async () => {
+    await app.request("/api/builder/workspace/s8/file/spec.json", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "{}" }),
+    });
+    const escape = await app.request(
+      "/api/builder/preview/s8/..%2f..%2fspec.json",
+    );
+    expect(escape.status).toBe(400);
+    // even a literal traversal attempt is confined to dist/ by the prefix
+    const literal = await app.request("/api/builder/preview/s8/../../spec.json");
+    expect([400, 404]).toContain(literal.status);
+  });
+
+  it("returns live build events from the incremental buildlog", async () => {
+    await app.request("/api/builder/workspace/s9/file/buildlog.jsonl", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        content:
+          '{"t":"clear","at":1}\n{"t":"scaffold","at":2}\n{"t":"gates","at":3}\n',
+      }),
+    });
+    const res = await app.request("/api/builder/build/s9/status");
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      events: { t: string }[];
+      running: boolean;
+    };
+    expect(body.events.map((e) => e.t)).toEqual(["clear", "scaffold", "gates"]);
+    expect(body.running).toBe(false);
+    const none = await app.request("/api/builder/build/nope/status");
+    expect(none.status).toBe(404);
+  });
+
+  it("rejects a concurrent second build on the same session", async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const app2 = new Hono();
+    app2.route(
+      "/api/builder",
+      createBuilderRoutes({
+        authenticate: async () => fakeUser,
+        compile: async (input) => {
+          const spec = validSpec();
+          spec.appName = input.prompt.slice(0, 60);
+          return { spec, g0: checkSpec(spec) };
+        },
+        build: async () => {
+          await gate;
+          return {
+            summary: "5/5 gates passed",
+            results: [],
+            rounds: { used: 1, repaired: false },
+            events: [],
+          };
+        },
+        dataDir: dir,
+      }),
+    );
+    await app2.request("/api/builder/spec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "Lock test", sessionId: "s10" }),
+    });
+    const first = app2.request("/api/builder/build/s10/run", { method: "POST" });
+    await new Promise((r) => setTimeout(r, 20));
+    const second = await app2.request("/api/builder/build/s10/run", {
+      method: "POST",
+    });
+    expect(second.status).toBe(409);
+    release();
+    const firstRes = await first;
+    expect(firstRes.status).toBe(200);
+    // after the build finished the lock is gone
+    const third = await app2.request("/api/builder/build/s10/run", {
+      method: "POST",
+    });
+    expect(third.status).toBe(200);
+  });
+
   it("runs a full build through the injected codegen dep", async () => {
     const builtFor: string[] = [];
     const app2 = new Hono();
