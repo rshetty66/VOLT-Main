@@ -10,6 +10,7 @@ import { Paths } from "@contracts/constants";
 import { log } from "./lib/logger";
 import { handleClientLog } from "./lib/clientlog";
 import { chatRoutes } from "./routes/chat";
+import { createBuilderRoutes } from "./builder/routes";
 import { REQUEST_ID_HEADER, runWithRequestId } from "./lib/requestcontext";
 
 const app = new Hono<{ Bindings: HttpBindings }>();
@@ -80,6 +81,8 @@ app.post(
 );
 // VOLT live chat (NDJSON stream). Registered above the /api/* 404 catch-all.
 app.route("/api/chat", chatRoutes);
+// VOLT Builder workspace service (spec compile, workspace files, gate runs).
+app.route("/api/builder", createBuilderRoutes());
 app.all("/api/*", (c) => c.json({ error: "Not Found" }, 404));
 
 // Unhandled request errors must reach /tmp/kimi-logs/app.log, not just stdout:
