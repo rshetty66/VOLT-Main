@@ -14,6 +14,7 @@ import {
   ChevronDown,
   Network,
   Paperclip,
+  Square,
   X,
   FileText,
   History,
@@ -234,7 +235,9 @@ function AssistantBody({ m }: { m: VoltMessage }) {
       )}
       {m.incomplete && !m.errorKind && (
         <div className="micro mt-2 !text-[#e5484d]">
-          Stream interrupted — answer may be incomplete. Ask again to retry.
+          {m.stopped
+            ? 'Stopped — partial answer kept. Ask again to continue.'
+            : 'Stream interrupted — answer may be incomplete. Ask again to retry.'}
         </div>
       )}
       {!m.streaming && (
@@ -329,6 +332,7 @@ export function ChatView({
   messages,
   busy,
   onSend,
+  onStop,
   onLoad,
 }: {
   messages: VoltMessage[];
@@ -337,6 +341,7 @@ export function ChatView({
     text: string,
     opts?: { architecture?: boolean; attachments?: Attachment[] },
   ) => void;
+  onStop: () => void;
   onLoad: (c: StoredConversation) => void;
 }) {
   const [draft, setDraft] = useState('');
@@ -550,15 +555,26 @@ export function ChatView({
                 Arch mode
               </button>
             </span>
-            <button
-              onClick={submit}
-              disabled={!draft.trim() || busy}
-              aria-label="Send"
-              className="flex h-8 w-8 items-center justify-center rounded-lg disabled:opacity-30"
-              style={{ background: 'var(--volt-amber)', color: '#141414' }}
-            >
-              <ArrowUp size={16} strokeWidth={2.4} />
-            </button>
+            {busy ? (
+              <button
+                onClick={onStop}
+                aria-label="Stop generating"
+                title="Stop generating — keep the partial answer"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#4a2c2c] bg-[#221715] text-[#e5484d] hover:border-[#e5484d]"
+              >
+                <Square size={12} fill="currentColor" strokeWidth={0} />
+              </button>
+            ) : (
+              <button
+                onClick={submit}
+                disabled={!draft.trim()}
+                aria-label="Send"
+                className="flex h-8 w-8 items-center justify-center rounded-lg disabled:opacity-30"
+                style={{ background: 'var(--volt-amber)', color: '#141414' }}
+              >
+                <ArrowUp size={16} strokeWidth={2.4} />
+              </button>
+            )}
           </div>
         </div>
       </div>

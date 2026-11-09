@@ -63,6 +63,7 @@ export async function streamChat(
       signal,
     });
   } catch {
+    if (signal?.aborted) return 'broken';
     events.onError?.('transient', 'Network error — check the connection and retry.');
     return 'error';
   }
@@ -102,17 +103,23 @@ export async function streamChat(
     }
   };
 
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    buffer += decoder.decode(value, { stream: true });
-    let idx: number;
-    while ((idx = buffer.indexOf('\n')) >= 0) {
-      handle(buffer.slice(0, idx));
-      buffer = buffer.slice(idx + 1);
+  try {
+    for (;;) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let idx: number;
+      while ((idx = buffer.indexOf('\n')) >= 0) {
+        handle(buffer.slice(0, idx));
+        buffer = buffer.slice(idx + 1);
+      }
     }
+    if (buffer.trim()) handle(buffer);
+  } catch {
+    // Aborted by the user (Stop) or the transport died — either way the
+    // stream is over without a terminal event.
+    if (terminal === 'broken') return 'broken';
   }
-  if (buffer.trim()) handle(buffer);
   return terminal;
 }
 

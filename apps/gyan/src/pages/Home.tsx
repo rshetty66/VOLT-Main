@@ -16,7 +16,7 @@ import { useVoltChat } from '@/hooks/useVoltChat';
 
 export default function Home() {
   const [surface, setSurface] = useState<Surface>('chat');
-  const { messages, busy, send, reset, load } = useVoltChat();
+  const { messages, busy, send, stop, reset, load } = useVoltChat();
 
   const engage = (prompt: string) => {
     setSurface('chat');
@@ -36,7 +36,13 @@ export default function Home() {
       />
       <main className="flex min-w-0 flex-1">
         {surface === 'chat' && (
-          <ChatView messages={messages} busy={busy} onSend={send} onLoad={load} />
+          <ChatView
+            messages={messages}
+            busy={busy}
+            onSend={send}
+            onStop={stop}
+            onLoad={load}
+          />
         )}
         {surface === 'marketplace' && <MarketplaceView onEngage={engage} />}
         {surface === 'blueprint' && <BlueprintView />}
