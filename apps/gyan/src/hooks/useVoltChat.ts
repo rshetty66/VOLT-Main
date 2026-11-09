@@ -2,8 +2,10 @@
  * useVoltChat — conversation state + streaming orchestration for the VOLT assistant.
  * Side effects stay out of state updaters (StrictMode double-invokes them);
  * a ref mirrors messages so send() can build history without a stale closure.
- * Completed turns persist to browser-local storage (see lib/store) and every
- * finished answer registers as a Studio deliverable.
+ * Completed turns persist to browser-local storage (see lib/store) AND, when
+ * the user is signed in, to the server-side per-user history — local stays the
+ * offline fallback, so a failed sync never costs the user their conversation.
+ * Every finished answer registers as a Studio deliverable.
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
@@ -20,6 +22,7 @@ import {
   type StoredConversation,
 } from '@/lib/store';
 import { deliverableName } from '@/lib/exporters';
+import { trpc } from '@/providers/trpc';
 
 export interface AttachmentMeta {
   name: string;
@@ -68,25 +71,55 @@ export function useVoltChat() {
     id: newConvId(),
     createdAt: Date.now(),
   });
+  // Reactive copy of the active conversation id (for history highlighting).
+  const [conversationId, setConversationId] = useState(convRef.current.id);
+
+  // Server-side history: only when signed in, and never fatal on failure —
+  // the browser-local copy below is always written first.
+  const me = trpc.auth.me.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const authedRef = useRef(false);
+  authedRef.current = !!me.data;
+  const saveRemote = trpc.conversations.save.useMutation();
+  const saveRemoteRef = useRef(saveRemote.mutate);
+  saveRemoteRef.current = saveRemote.mutate;
+  const utils = trpc.useUtils();
 
   useEffect(() => {
     messagesRef.current = messages;
   }, [messages]);
 
-  // Persist finished turns (never mid-stream) — debounced, browser-local only.
+  // Persist finished turns (never mid-stream) — debounced. Local first, then
+  // a best-effort sync to the account; on success the history list refreshes.
   useEffect(() => {
     if (messages.length === 0 || messages.some((m) => m.streaming)) return;
     const t = setTimeout(() => {
-      saveConversation({
+      const conv: StoredConversation = {
         id: convRef.current.id,
         title: conversationTitle(messages),
         createdAt: convRef.current.createdAt,
         updatedAt: Date.now(),
         messages: restorable(messages),
-      });
-    }, 300);
+      };
+      saveConversation(conv);
+      if (authedRef.current) {
+        saveRemoteRef.current(
+          { ...conv, messages: conv.messages as unknown as Record<string, unknown>[] },
+          {
+            onSuccess: (r) => {
+              if (r.ok) void utils.conversations.list.invalidate();
+            },
+            onError: () => {
+              /* offline / DB down — local copy already kept */
+            },
+          },
+        );
+      }
+    }, 400);
     return () => clearTimeout(t);
-  }, [messages]);
+  }, [messages, utils]);
 
   const patch = useCallback((id: string, p: Partial<VoltMessage>) => {
     setMessages((ms) => ms.map((m) => (m.id === id ? { ...m, ...p } : m)));
@@ -210,6 +243,7 @@ export function useVoltChat() {
     abortRef.current?.abort();
     abortRef.current = null;
     convRef.current = { id: newConvId(), createdAt: Date.now() };
+    setConversationId(convRef.current.id);
     setMessages([]);
     setBusy(false);
   }, []);
@@ -219,9 +253,10 @@ export function useVoltChat() {
     abortRef.current?.abort();
     abortRef.current = null;
     convRef.current = { id: conv.id, createdAt: conv.createdAt };
+    setConversationId(conv.id);
     setMessages(restorable(conv.messages));
     setBusy(false);
   }, []);
 
-  return { messages, busy, send, stop, reset, load };
+  return { messages, busy, conversationId, send, stop, reset, load };
 }
