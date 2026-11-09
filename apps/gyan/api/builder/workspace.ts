@@ -5,7 +5,7 @@
  * paths against the workspace root and refuse to escape it — generated code
  * must never be able to read or write outside its own project.
  */
-import { mkdir, readFile, readdir, rm, writeFile } from "fs/promises";
+import { appendFile, mkdir, readFile, readdir, rm, writeFile } from "fs/promises";
 import path from "path";
 
 export class WorkspaceError extends Error {
@@ -39,6 +39,22 @@ export class Workspace {
 
   async read(rel: string): Promise<string> {
     return readFile(this.resolve(rel), "utf8");
+  }
+
+  /** Append to a file inside the workspace (creates it on first append). */
+  async append(rel: string, content: string): Promise<void> {
+    const abs = this.resolve(rel);
+    await mkdir(path.dirname(abs), { recursive: true });
+    await appendFile(abs, content, "utf8");
+  }
+
+  async exists(rel: string): Promise<boolean> {
+    try {
+      await readFile(this.resolve(rel));
+      return true;
+    } catch {
+      return false;
+    }
   }
 
   /**

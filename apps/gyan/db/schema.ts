@@ -7,6 +7,7 @@ import {
   timestamp,
   bigint,
   json,
+  boolean,
   index,
 } from "drizzle-orm/mysql-core";
 
@@ -53,3 +54,76 @@ export const conversations = mysqlTable(
 
 export type Conversation = typeof conversations.$inferSelect;
 export type InsertConversation = typeof conversations.$inferInsert;
+
+/**
+ * Builder (D10) — one project per generated app name, sessions are build
+ * attempts, artifacts are the verification output of a build. Same contract
+ * as conversations: the deploy bundle ships no migrations folder, so the
+ * tables are created lazily by api/builder/store.ts on first use, and the
+ * whole Builder history feature is simply disabled when no DATABASE_URL is
+ * provisioned. The filesystem workspace under BUILDER_DATA_DIR remains the
+ * source of truth for code; these rows are the per-user index and the
+ * durable record of what was built and how it verified.
+ */
+export const builderProjects = mysqlTable(
+  "builder_projects",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    userId: bigint("userId", { mode: "number", unsigned: true }).notNull(),
+    name: varchar("name", { length: 255 }).notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [index("builder_projects_userId_idx").on(t.userId)],
+);
+
+export type BuilderProject = typeof builderProjects.$inferSelect;
+export type InsertBuilderProject = typeof builderProjects.$inferInsert;
+
+export const builderSessions = mysqlTable(
+  "builder_sessions",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    projectId: varchar("projectId", { length: 64 }).notNull(),
+    userId: bigint("userId", { mode: "number", unsigned: true }).notNull(),
+    prompt: text("prompt").notNull(),
+    status: mysqlEnum("status", ["spec", "building", "passed", "failed"])
+      .default("spec")
+      .notNull(),
+    spec: json("spec"),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [
+    index("builder_sessions_userId_idx").on(t.userId),
+    index("builder_sessions_projectId_idx").on(t.projectId),
+  ],
+);
+
+export type BuilderSession = typeof builderSessions.$inferSelect;
+export type InsertBuilderSession = typeof builderSessions.$inferInsert;
+
+export const builderArtifacts = mysqlTable(
+  "builder_artifacts",
+  {
+    id: serial("id").primaryKey(),
+    sessionId: varchar("sessionId", { length: 64 }).notNull(),
+    kind: mysqlEnum("kind", ["build"]).default("build").notNull(),
+    summary: varchar("summary", { length: 255 }).notNull(),
+    rounds: json("rounds"),
+    gateResults: json("gateResults"),
+    events: json("events"),
+    ok: boolean("ok").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+  },
+  (t) => [index("builder_artifacts_sessionId_idx").on(t.sessionId)],
+);
+
+export type BuilderArtifact = typeof builderArtifacts.$inferSelect;
+export type InsertBuilderArtifact = typeof builderArtifacts.$inferInsert;
