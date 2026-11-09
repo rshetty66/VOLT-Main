@@ -29,6 +29,8 @@ export interface ExportRequest {
   tables?: ExportTable[];
   /** Uploaded template whose fonts, colours and page setup the file follows. */
   templateId?: string;
+  /** Heading for the section that holds the chart-<n> pictures (default "Results"). */
+  figuresTitle?: string;
 }
 
 export const EXPORT_MIME: Record<ExportFormat, string> = {

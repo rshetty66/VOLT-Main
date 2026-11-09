@@ -21,7 +21,7 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
 
   const titled = (title: string): Slide => {
     const slide = pptx.addSlide();
-    slide.addText(title, { x: M, y: 0.3, w: W - 2 * M, h: 0.8, fontFace: s.headingFont, fontSize: 26, bold: true, color: s.headingColor, valign: "middle" });
+    slide.addText(title, { x: M, y: 0.3, w: W - 2 * M, h: 0.8, fontFace: s.headingFont, fontSize: 26, bold: true, color: s.headingColor, valign: "middle", fit: "shrink" });
     slide.addShape(pptx.ShapeType.line, { x: M, y: 1.12, w: W - 2 * M, h: 0, line: { color: s.accent, width: 1.5 } });
     return slide;
   };
@@ -42,7 +42,8 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
     x: 0.9, y: H / 2 + 0.2, w: W - 1.8, h: 1, fontFace: s.bodyFont, fontSize: 16, color: "5B6862", valign: "top",
   });
 
-  for (const c of (req.images ?? []).filter((i) => i.ref.startsWith("chart-"))) picture(c.caption ? `Results: ${c.caption}` : "Results", c);
+  const figures = req.figuresTitle ?? "Results";
+  for (const c of (req.images ?? []).filter((i) => i.ref.startsWith("chart-"))) picture(c.caption ? `${figures}: ${c.caption}` : figures, c);
 
   // Body: text accumulates on the current section's slide until it is full or a table or picture interrupts it.
   let section = "Summary";

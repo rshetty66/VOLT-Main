@@ -116,6 +116,15 @@ describe("PowerPoint export", () => {
     expect(all).toContain("<a:tbl>");
     expect(Object.keys(files).filter((f) => f.startsWith("ppt/media/")).length).toBeGreaterThanOrEqual(2);
     expect(all).toContain(profile.theme!.fonts.major);
+    expect(all).toContain("Results: Days to close");
+  });
+
+  it("titles the picture slides with figuresTitle when given", async () => {
+    const out = await exportDocument(req("pptx", { figuresTitle: "Diagram" }), null);
+    const files = unzip(out.data);
+    const all = Object.keys(files).filter((f) => /^ppt\/slides\/slide\d+\.xml$/.test(f)).map((s) => text(files, s)).join("\n");
+    expect(all).toContain("Diagram: Days to close");
+    expect(all).not.toContain("Results:");
   });
 });
 

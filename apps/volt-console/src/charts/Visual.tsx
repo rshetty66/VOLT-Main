@@ -1,12 +1,12 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { DARK, LIGHT, type Palette } from "./palette";
 import { renderMermaid } from "./mermaid";
+import { staticMarkup } from "./staticMarkup";
 import { datedName, downloadBlob, downloadText, svgToPng } from "../download";
 
 /** Light-palette SVG markup for a chart, used by every download. */
 export async function chartSvg(render: (p: Palette) => ReactElement): Promise<string> {
-  const { renderToStaticMarkup } = await import("react-dom/server");
-  return renderToStaticMarkup(render(LIGHT));
+  return staticMarkup(render(LIGHT));
 }
 
 function DownloadButtons({ name, svg }: { name: string; svg: () => Promise<string> }) {

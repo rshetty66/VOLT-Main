@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../shared/events";
 import { fetchCatalog, listTemplates, streamRun } from "./api";
 import type { TemplateSummary } from "../shared/templates";
@@ -14,7 +14,10 @@ import { Templates } from "./components/Templates";
 import { Workbench } from "./components/workbench/Workbench";
 import { TemplateContext } from "./exports";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "health";
+// Loaded on first visit: the Architecture view carries its diagrams and the 3D scene.
+const Architecture = lazy(() => import("./components/Architecture").then((m) => ({ default: m.Architecture })));
+
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "architecture" | "health";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -88,6 +91,7 @@ export function App() {
     ["templates", "Templates", templates.length || ""],
     ["analytics", "Analytics", catalog.benchmarks.length],
     ["finance", "Finance Workbench", ""],
+    ["architecture", "Architecture", ""],
     ["health", "Capability Health", catalog.health.missingSkills.length],
   ];
 
@@ -142,6 +146,11 @@ export function App() {
         {view === "templates" && <Templates templates={templates} refresh={refreshTemplates} activeTemplate={activeTemplate} setActiveTemplate={setActiveTemplate} />}
         {view === "analytics" && <Analytics catalog={catalog} />}
         {view === "finance" && <Workbench live={live} />}
+        {view === "architecture" && (
+          <Suspense fallback={<div className="empty"><span className="spinner" /> Loading the architecture views</div>}>
+            <Architecture />
+          </Suspense>
+        )}
         {view === "health" && <Health catalog={catalog} onOpenAgent={setOpenAgent} />}
       </main>
       </TemplateContext.Provider>

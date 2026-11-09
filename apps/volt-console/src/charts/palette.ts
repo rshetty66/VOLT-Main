@@ -15,6 +15,12 @@ export interface Palette {
   pass: string;
   fail: string;
   notRun: string;
+  /** Diagram boxes: plain, recommended path, and "differs from the bank" highlight. */
+  box: string;
+  boxLine: string;
+  boxAccent: string;
+  boxHighlight: string;
+  highlight: string;
   font: string;
 }
 
@@ -32,6 +38,11 @@ export const DARK: Palette = {
   pass: "#5cc8ad",
   fail: "#f28b82",
   notRun: "#64748b",
+  box: "#0f172a",
+  boxLine: "#475569",
+  boxAccent: "#1e3a33",
+  boxHighlight: "#3a2b19",
+  highlight: "#f0b36a",
   font,
 };
 
@@ -47,5 +58,10 @@ export const LIGHT: Palette = {
   pass: "#1f7a4d",
   fail: "#b3261e",
   notRun: "#8a948f",
+  box: "#ffffff",
+  boxLine: "#c9d1cd",
+  boxAccent: "#e2efeb",
+  boxHighlight: "#f8ead9",
+  highlight: "#a35a12",
   font,
 };

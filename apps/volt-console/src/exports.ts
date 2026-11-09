@@ -7,9 +7,11 @@ import type { Run } from "./runState";
 import { chartFor } from "./charts/RunVisuals";
 import { chartableResults, type ChartableResult } from "./charts/results";
 import { chartSvg } from "./charts/Visual";
+import { staticMarkup } from "./charts/staticMarkup";
 import { renderMermaid } from "./charts/mermaid";
 import { isMermaid } from "./charts/mermaidBlock";
 import { downloadBlob, downloadText, svgSize, svgToPng } from "./download";
+import type { Palette } from "./charts/palette";
 
 /** The template selected in the top bar; downloads follow its fonts and colours. */
 export const TemplateContext = createContext("");
@@ -21,8 +23,12 @@ export interface Deliverable {
   subtitle?: string;
   markdown: string;
   charts?: ChartableResult[];
+  /** Other pictures (for example architecture diagrams), placed with the charts. */
+  visuals?: { caption: string; render: (p: Palette) => ReactElement }[];
   tables?: ExportTable[];
   templateId?: string;
+  /** Heading for the pictures section in Word and PowerPoint (default "Results"). */
+  figuresTitle?: string;
 }
 
 /** The ```mermaid blocks of a markdown text, in document order (the server numbers them the same way). */
@@ -84,8 +90,22 @@ async function base64(blob: Blob): Promise<string> {
   return btoa(bin);
 }
 
+const CAPTION: Record<ChartableResult["kind"], (r: ChartableResult) => string> = {
+  benchmark: (r) => (r.kind === "benchmark" ? r.data.benchmark.metric : ""),
+  maturity: () => "Finance maturity: current and target",
+  valueCase: () => "Value case: net benefit and cumulative cash",
+};
+
+/** Charts first, then any other visuals, each with its caption. */
+function figures(d: Deliverable) {
+  return [
+    ...(d.charts ?? []).map((c) => ({ caption: CAPTION[c.kind](c), render: chartFor(c).render })),
+    ...(d.visuals ?? []),
+  ];
+}
+
 async function pictures(d: Deliverable) {
-  const charts = await Promise.all((d.charts ?? []).map((c) => chartSvg(chartFor(c).render)));
+  const charts = await Promise.all(figures(d).map((f) => chartSvg(f.render)));
   const diagrams = await Promise.all(mermaidSources(d.markdown).map((code) => renderMermaid(code, "default").catch(() => "")));
   return { charts, diagrams };
 }
@@ -96,18 +116,12 @@ async function asImage(ref: string, svg: string, caption?: string): Promise<Expo
   return { ref, png: await base64(await svgToPng(svg, 2)), width, height, caption };
 }
 
-const CAPTION: Record<ChartableResult["kind"], (r: ChartableResult) => string> = {
-  benchmark: (r) => (r.kind === "benchmark" ? r.data.benchmark.metric : ""),
-  maturity: () => "Finance maturity: current and target",
-  valueCase: () => "Value case: net benefit and cumulative cash",
-};
 
 /** A standalone HTML page with the charts and diagrams inline as SVG. */
 export async function htmlDocument(d: Deliverable): Promise<string> {
-  const { renderToStaticMarkup } = await import("react-dom/server");
   const { charts, diagrams } = await pictures(d);
   let n = 0;
-  const body = renderToStaticMarkup(
+  const body = await staticMarkup(
     createElement(ReactMarkdown, {
       remarkPlugins: [remarkGfm],
       components: {
@@ -123,7 +137,7 @@ export async function htmlDocument(d: Deliverable): Promise<string> {
     }),
   );
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  const results = charts.length ? `<h2>Results</h2>${charts.map((svg) => `<figure>${svg}</figure>`).join("")}` : "";
+  const results = charts.length ? `<h2>${esc(d.figuresTitle ?? "Results")}</h2>${charts.map((svg) => `<figure>${svg}</figure>`).join("")}` : "";
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(d.title)}</title>
@@ -153,12 +167,12 @@ export async function downloadDeliverable(format: DownloadFormat, d: Deliverable
   if (format !== "xlsx") {
     const { charts, diagrams } = await pictures(d);
     const made = await Promise.all([
-      ...charts.map((svg, i) => asImage(`chart-${i}`, svg, d.charts?.[i] ? CAPTION[d.charts[i].kind](d.charts[i]) : undefined)),
+      ...charts.map((svg, i) => asImage(`chart-${i}`, svg, figures(d)[i]?.caption)),
       ...diagrams.map((svg, i) => asImage(`diagram-${i}`, svg)),
     ]);
     images.push(...made.filter((x): x is ExportImage => !!x));
   }
-  const body: ExportRequest = { format, title: d.title, subtitle: d.subtitle, markdown: d.markdown, images, tables: format === "xlsx" ? d.tables : undefined, templateId: d.templateId || undefined };
+  const body: ExportRequest = { format, title: d.title, subtitle: d.subtitle, markdown: d.markdown, images, tables: format === "xlsx" ? d.tables : undefined, templateId: d.templateId || undefined, figuresTitle: d.figuresTitle };
   const r = await fetch("/api/export", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error ?? `Download failed (${r.status})`);
   downloadBlob(exportFileName(d.title, format), await r.blob());

@@ -50,7 +50,7 @@ export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uin
 
   const charts = (req.images ?? []).filter((i) => i.ref.startsWith("chart-"));
   if (charts.length) {
-    body.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("Results")] }));
+    body.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(req.figuresTitle ?? "Results")] }));
     for (const c of charts) body.push(image(c, maxImg), ...(c.caption ? [caption(c.caption)] : []));
   }
 

@@ -28,6 +28,7 @@ const schema = z.object({
     .max(30)
     .optional(),
   templateId: z.string().max(80).optional(),
+  figuresTitle: z.string().max(80).optional(),
 });
 
 /** POST / : returns the requested file as an attachment. Mounted with its own body limit, before the app's 1 MB JSON parser. */
