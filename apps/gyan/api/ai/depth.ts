@@ -75,6 +75,19 @@ export const DEPTH_PACKS: DepthPack[] = [
 - Controls: intercompany agreement register, monthly IC matching vs segment 11, BEPS alignment sign-off, year-end true-up JE pattern.
 - Artifact bar: transaction-method matrix, markup benchmarking table (label source assumptions), invoice flow (mermaid), policy governance (owner, annual review date, audit-defense file contents).`,
   },
+  {
+    id: "bank-integration",
+    triggers:
+      /\b(merger|acquisition|acqui|day ?1|day ?2|integration readiness|cutover|migration gate|carve.?out|tsa|transition service|synerg|imo)\b/i,
+    content: `DEPTH PACK — Bank M&A / Day 2 integration (Canadian regulatory context):
+- Perimeter discipline: separate the transactions (share purchase vs asset/portfolio purchase vs TSA services); map retained vs transferred scope explicitly. Three different clocks — legal close, published migration window, verified operational completion — each with its own owner; never collapse them into one "integration date".
+- Charter & licence: charter consolidation is a staged regulatory decision (OSFI letters patent / continuance approvals), never a Day 1 action. Keep charters until approvals land, then consolidate with pre-filed applications.
+- Year-end change: a fiscal year-end move (e.g. to December 31) creates a transition year. Deliverables: transition close calendar (stub period length, comparative periods, audit implications), legal-entity reporting inventory (which entity files which OSFI/financial returns, from when), reconciliation tests (subledger-to-GL per entity per period), named Controller + Regulatory Reporting sign-offs.
+- Migration gates: per gate — control, measurable criterion (e.g. loan subledger-to-GL reconciled to the cent; material exceptions dispositioned), evidence artifact, owner, approver, rollback trigger. Critical controls cleared explicitly, never by average.
+- Regulatory continuity: record applicability per guideline with entity + effective date + evidence expected — OSFI E-21 (operational risk & resilience), B-10 (third-party: TSAs and reverse-TSAs count), B-13 (technology & cyber), BCAR return continuity through entity changes.
+- Value & governance: gross vs net synergy bridge; one-time integration cost; coexistence (dual-run) cost as an explicitly tracked line, not buried; synergy office auditing quarterly against the deal model; decision rights and escalation (IMO → steering committee).
+- Artifact bar: dated perimeter map table, options matrix with decision criteria and reversal conditions, gate table (control | criterion | evidence | owner | approver | rollback), transition close calendar, 30/60/100-day plan with accountable owners and decisions due.`,
+  },
 ];
 
 /** Pick at most two packs relevant to the user's message (token budget). */
