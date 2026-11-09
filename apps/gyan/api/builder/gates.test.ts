@@ -2,7 +2,7 @@ import { mkdtemp, rm } from "fs/promises";
 import { tmpdir } from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { runGates, summarize, type GateConfig } from "./gates";
+import { runGates, screenRoutes, summarize, type GateConfig } from "./gates";
 import type { BuildSpec } from "./spec";
 import { Workspace } from "./workspace";
 
@@ -55,6 +55,7 @@ describe("runGates", () => {
     build?: string;
     start?: string;
     smoke?: string | null;
+    browser?: GateConfig["browser"];
   }): Promise<GateConfig> {
     await ws.write("server.cjs", SERVER_CJS);
     if (opts.smoke != null) await ws.write("smoke.mjs", opts.smoke);
@@ -63,6 +64,9 @@ describe("runGates", () => {
       build: opts.build ?? OK_BUILD,
       start: opts.start ?? START,
       timeoutMs: 15_000,
+      // Tests exercise the browser stage explicitly via injected probes;
+      // the default keeps the real chromium out of unit tests.
+      browser: opts.browser ?? { disabled: true },
     };
   }
 
@@ -156,5 +160,91 @@ describe("runGates", () => {
     const results = await runGates(ws, spec, config);
     expect(results[0]).toMatchObject({ gate: "G0", status: "fail" });
     expect(results.slice(1).every((r) => r.status === "skipped")).toBe(true);
+  });
+
+  it("passes G4 with a note when the browser probe is skipped", async () => {
+    const config = await project({
+      smoke: "process.exit(0)\n",
+      browser: {
+        probe: async () => ({
+          ok: true,
+          consoleErrors: [],
+          skipped: "no chromium binary found",
+        }),
+      },
+    });
+    const results = await runGates(ws, validSpec(), config);
+    const g4 = results.find((r) => r.gate === "G4");
+    expect(g4?.status).toBe("pass");
+    expect(g4?.note).toContain("browser stages skipped");
+  });
+
+  it("fails G4 when the browser probe sees console errors", async () => {
+    const config = await project({
+      smoke: "process.exit(0)\n",
+      browser: {
+        probe: async () => ({
+          ok: false,
+          consoleErrors: ["console.error: boom"],
+        }),
+      },
+    });
+    const results = await runGates(ws, validSpec(), config);
+    const g4 = results.find((r) => r.gate === "G4");
+    expect(g4?.status).toBe("fail");
+    expect(g4?.errorExcerpt).toContain("browser probe failed");
+    expect(g4?.errorExcerpt).toContain("boom");
+    expect(summarize(results)).toContain("gate G4 failed");
+  });
+
+  it("fails G4 when the primary-action round-trip does nothing", async () => {
+    const config = await project({
+      smoke: "process.exit(0)\n",
+      browser: {
+        probe: async () => ({
+          ok: false,
+          consoleErrors: [],
+          actionError: "primary action click produced no DOM change or navigation",
+        }),
+      },
+    });
+    const results = await runGates(ws, validSpec(), config);
+    const g4 = results.find((r) => r.gate === "G4");
+    expect(g4?.status).toBe("fail");
+    expect(g4?.errorExcerpt).toContain("no DOM change");
+  });
+
+  it("notes a fully verified G4 pass from the browser probe", async () => {
+    const config = await project({
+      smoke: "process.exit(0)\n",
+      browser: { probe: async () => ({ ok: true, consoleErrors: [] }) },
+    });
+    const results = await runGates(ws, validSpec(), config);
+    const g4 = results.find((r) => r.gate === "G4");
+    expect(g4?.status).toBe("pass");
+    expect(g4?.note).toBe("smoke + browser probe passed");
+  });
+
+  it("passes G4 with a note when the browser stage is disabled", async () => {
+    const config = await project({
+      smoke: "process.exit(0)\n",
+      browser: { disabled: true },
+    });
+    const results = await runGates(ws, validSpec(), config);
+    const g4 = results.find((r) => r.gate === "G4");
+    expect(g4?.status).toBe("pass");
+    expect(g4?.note).toContain("browser stages disabled");
+  });
+});
+
+describe("screenRoutes", () => {
+  it("maps the start screen to / and kebab-cases the rest", () => {
+    const spec = validSpec();
+    spec.screens = [
+      { name: "Home", purpose: "start", primaryAction: "go", reads: [], writes: [] },
+      { name: "Invoice List", purpose: "list", primaryAction: "add", reads: [], writes: [] },
+      { name: "Audit  Trail!", purpose: "review", primaryAction: "run", reads: [], writes: [] },
+    ];
+    expect(screenRoutes(spec)).toEqual(["/", "/invoice-list", "/audit-trail"]);
   });
 });
