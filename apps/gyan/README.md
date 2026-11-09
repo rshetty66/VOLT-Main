@@ -24,11 +24,13 @@ designs, regulator-ready narratives.
 - **Marketplace** — every specialist browsable by service line, with triggers,
   tools, and the model each agent runs on.
 - **Client-ready output** — streamed markdown with charts (Chart.js), Mermaid
-  diagrams, and one-click export to PowerPoint/Excel/PDF from chat and from the
-  Studio view. Every answer follows the client-first contract: the polished
-  deliverable leads, and all working evidence (squad plan, agent flow,
-  assumptions/risk registers, decisions, data lineage) closes the answer under
-  an Appendix.
+  diagrams, and one-click export to Word/Excel/PDF/HTML/Markdown from chat and
+  from the Studio view. Every answer follows the client-first contract: the
+  polished deliverable leads (Decision Brief and verified deal perimeter first
+  for named transactions), and all working evidence (squad plan, agent flow,
+  assumptions/risk registers, decisions, data lineage, claim register) closes
+  the answer under an Appendix. Word exports use real heading styles and an
+  auto-updating table of contents.
 - **Chat history** — conversations persist in `localStorage` (quota-safe,
   debounced, capped) so a refresh never loses work; when signed in they also
   sync to the per-user server history (`conversations` table, auto-provisioned
@@ -39,7 +41,8 @@ designs, regulator-ready narratives.
 
 ```
 api/                 Hono server (boot.ts), routes, AI orchestration
-  ai/volt.ts         registry matcher, compact catalog digest, model routing
+  ai/volt.ts         registry matcher, system prompt, verification contract
+  ai/depth.ts        domain depth packs (banking M&A, R2R, IFRS 9, P2P, ERP, TP)
   data/              catalog.json, models.json (generated from the registry)
 src/                 React client (Vite + Tailwind + shadcn/ui)
   components/volt/   chat, run cards, marketplace, studio, charts, mermaid
