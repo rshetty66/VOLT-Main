@@ -1,7 +1,9 @@
 /**
  * store.ts — browser-local persistence for Gyan.
- * Honest contract: conversations and deliverables live in THIS browser's
- * localStorage only — no server copy, lost if site data is cleared.
+ * Contract: conversations and deliverables always land in THIS browser's
+ * localStorage first. When the user is signed in, conversations additionally
+ * sync to the server-side per-user history (see api/queries/conversations.ts)
+ * — localStorage then acts as the offline fallback, not the only copy.
  */
 import type { VoltMessage } from '@/hooks/useVoltChat';
 

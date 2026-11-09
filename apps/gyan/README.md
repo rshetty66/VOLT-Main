@@ -26,8 +26,11 @@ designs, regulator-ready narratives.
 - **Client-ready output** — streamed markdown with charts (Chart.js), Mermaid
   diagrams, and one-click export to PowerPoint/Excel/PDF from chat and from the
   Studio view.
-- **Browser persistence** — conversations and deliverables persist in
-  `localStorage` (quota-safe, debounced, capped) so a refresh never loses work.
+- **Chat history** — conversations persist in `localStorage` (quota-safe,
+  debounced, capped) so a refresh never loses work; when signed in they also
+  sync to the per-user server history (`conversations` table, auto-provisioned
+  on first use), so history follows the user across browsers and devices. The
+  history panel labels which copy it is showing.
 
 ## Layout
 

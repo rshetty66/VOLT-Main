@@ -5,7 +5,9 @@ import {
   varchar,
   text,
   timestamp,
-  // bigint,
+  bigint,
+  json,
+  index,
 } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("users", {
@@ -26,15 +28,28 @@ export const users = mysqlTable("users", {
 export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
-// TODO: Add your tables here. See docs/Database.md for schema examples and patterns.
-//
-// Example:
-// export const posts = mysqlTable("posts", {
-//   id: serial("id").primaryKey(),
-//   title: varchar("title", { length: 255 }).notNull(),
-//   content: text("content"),
-//   createdAt: timestamp("created_at").notNull().defaultNow(),
-// });
-//
-// Note: FK columns referencing a serial() PK must use:
-//   bigint("columnName", { mode: "number", unsigned: true }).notNull()
+/**
+ * Chat history, one row per conversation. The full message list is stored as
+ * JSON — the client owns the VoltMessage shape and syncs whole conversations,
+ * so a separate messages table would only add bookkeeping. Tied to the signed
+ *-in user; the app still works (browser-local history) when no DB is
+ * provisioned, so this table is created lazily by api/queries/conversations.
+ */
+export const conversations = mysqlTable(
+  "conversations",
+  {
+    id: varchar("id", { length: 64 }).primaryKey(),
+    userId: bigint("userId", { mode: "number", unsigned: true }).notNull(),
+    title: varchar("title", { length: 255 }).notNull(),
+    messages: json("messages").notNull(),
+    createdAt: timestamp("createdAt").defaultNow().notNull(),
+    updatedAt: timestamp("updatedAt")
+      .defaultNow()
+      .notNull()
+      .$onUpdate(() => new Date()),
+  },
+  (t) => [index("conversations_userId_idx").on(t.userId)],
+);
+
+export type Conversation = typeof conversations.$inferSelect;
+export type InsertConversation = typeof conversations.$inferInsert;
