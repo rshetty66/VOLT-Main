@@ -154,9 +154,10 @@ function extractTables(md: string): { headers: string[]; rows: string[][] }[] {
 }
 
 /**
- * Build a real .docx (not HTML-in-a-zip): headings, styled tables with a
- * shaded header row, code blocks, bullets, blockquotes. Mermaid diagrams
- * degrade to a placeholder note — Word can't take inline SVG.
+ * Build a real .docx (not HTML-in-a-zip): headings as genuine Word heading
+ * styles (navigation pane works), an auto-updating TOC field, styled tables
+ * with a shaded header row, code blocks, bullets, blockquotes. Mermaid
+ * diagrams degrade to a placeholder note — Word can't take inline SVG.
  */
 async function buildDocx(md: string): Promise<Blob> {
   const {
@@ -170,6 +171,9 @@ async function buildDocx(md: string): Promise<Blob> {
     WidthType,
     ShadingType,
     BorderStyle,
+    HeadingLevel,
+    TableOfContents,
+    PageBreak,
   } = await import('docx');
 
   const AMBER = 'D9A527';
@@ -197,8 +201,11 @@ async function buildDocx(md: string): Promise<Blob> {
     return out.length ? out : [new TextRun({ text: '', ...base })];
   };
 
-  const body: (InstanceType<typeof Paragraph> | InstanceType<typeof Table>)[] =
-    [];
+  const body: (
+    | InstanceType<typeof Paragraph>
+    | InstanceType<typeof Table>
+    | InstanceType<typeof TableOfContents>
+  )[] = [];
 
   body.push(
     new Paragraph({
@@ -213,6 +220,18 @@ async function buildDocx(md: string): Promise<Blob> {
       ],
       spacing: { after: 240 },
     }),
+  );
+
+  body.push(
+    new Paragraph({
+      children: runs('Contents', { bold: true, size: 24, color: INK }),
+      spacing: { before: 120, after: 120 },
+    }),
+    new TableOfContents('Table of Contents', {
+      hyperlink: true,
+      headingStyleRange: '1-3',
+    }),
+    new Paragraph({ children: [new PageBreak()] }),
   );
 
   const lines = md.split('\n');
@@ -322,6 +341,12 @@ async function buildDocx(md: string): Promise<Blob> {
       body.push(
         new Paragraph({
           children: runs(h[2], { bold: true, size, color: INK }),
+          heading:
+            level === 1
+              ? HeadingLevel.HEADING_1
+              : level === 2
+                ? HeadingLevel.HEADING_2
+                : HeadingLevel.HEADING_3,
           spacing: { before: level === 1 ? 120 : 280, after: 120 },
           border:
             level === 1
@@ -420,6 +445,7 @@ async function buildDocx(md: string): Promise<Blob> {
   }
 
   const doc = new Document({
+    features: { updateFields: true },
     sections: [{ properties: {}, children: body }],
   });
   return Packer.toBlob(doc);
