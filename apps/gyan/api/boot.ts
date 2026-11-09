@@ -4,7 +4,7 @@ import type { HttpBindings } from "@hono/node-server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { appRouter } from "./router";
 import { createContext } from "./context";
-import { env } from "./lib/env.ts";
+import { env } from "./lib/env";
 import { createOAuthCallbackHandler } from "./kimi/auth";
 import { Paths } from "@contracts/constants";
 import { log } from "./lib/logger";
@@ -16,7 +16,7 @@ import { REQUEST_ID_HEADER, runWithRequestId } from "./lib/requestcontext";
 const app = new Hono<{ Bindings: HttpBindings }>();
 
 // One middleware for both halves of request observability, because they need the
-// same: scope and the same id:
+// same scope and the same id:
 //   - G3 correlation: mint a request id, echo it on the response header (what the
 //     browser logger reads), and run the rest of the request inside it so every
 //     server log line carries it.
@@ -65,9 +65,9 @@ app.get(Paths.oauthCallback, createOAuthCallbackHandler());
 app.use("/api/trpc/*", async (c) => {
   return fetchRequestHandler({
     endpoint: "/api/trpc",
+    req: c.req.raw,
     router: appRouter,
     createContext,
-    req: c.req.raw,
   });
 });
 // Browser-side log sink (see lib/clientlog.ts). Must be registered before the
