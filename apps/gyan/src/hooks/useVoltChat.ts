@@ -44,6 +44,8 @@ export interface VoltMessage {
   errorMessage?: string;
   streaming?: boolean;
   incomplete?: boolean;
+  /** the user pressed Stop — partial answer kept, not an error */
+  stopped?: boolean;
 }
 
 let seq = 0;
@@ -173,11 +175,15 @@ export function useVoltChat() {
           ctrl.signal,
           opts?.architecture ? { visualMode: 'architecture' } : undefined,
         );
-        if (terminal === 'broken') {
+        if (ctrl.signal.aborted) {
+          // User pressed Stop: keep the partial answer, flag it, and never
+          // register a half-written answer as a Studio deliverable.
+          patch(asstId, { streaming: false, incomplete: true, stopped: true });
+        } else if (terminal === 'broken') {
           patch(asstId, { streaming: false, incomplete: true });
         }
         // A finished, non-empty answer becomes a Studio deliverable.
-        if (!failed && finalText.trim()) {
+        if (!failed && !ctrl.signal.aborted && finalText.trim()) {
           addDeliverable({
             id: asstId,
             name: deliverableName(finalText, userMsg.content),
@@ -194,6 +200,11 @@ export function useVoltChat() {
     },
     [busy, patch],
   );
+
+  /** Abort the in-flight stream, keeping whatever has streamed so far. */
+  const stop = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
 
   const reset = useCallback(() => {
     abortRef.current?.abort();
@@ -212,5 +223,5 @@ export function useVoltChat() {
     setBusy(false);
   }, []);
 
-  return { messages, busy, send, reset, load };
+  return { messages, busy, send, stop, reset, load };
 }
