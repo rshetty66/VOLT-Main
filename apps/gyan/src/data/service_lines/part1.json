@@ -1,0 +1,895 @@
+[
+ {
+  "id": "core-accounting",
+  "label": "Core Accounting",
+  "icon": "⚡",
+  "color": "#C41E3A",
+  "accent": "#FF4D6D",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Core Accounting specialists",
+  "subCategories": [
+   {
+    "id": "core-accounting-all",
+    "label": "Core Accounting",
+    "agents": [
+     {
+      "id": "accounting-policy-engine",
+      "name": "Accounting Policy Engine",
+      "role": "IFRS/US GAAP analysis, policy drafting, journal entries",
+      "tools": [],
+      "triggers": [
+       "IFRS",
+       "GAAP",
+       "accounting treatment",
+       "policy",
+       "standard"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "accounting-hub-architect",
+      "name": "Accounting Hub Architect",
+      "role": "Multi-ERP hub design — Oracle AHCS, SAP Central Finance",
+      "tools": [],
+      "triggers": [
+       "hub",
+       "multi-ERP",
+       "AHCS",
+       "central finance",
+       "centralized"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "coa-architect",
+       "name": "COA Architect",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Segment architecture, natural-account logic, legacy-to-target mapping, CVR rules."
+      }
+     },
+     {
+      "id": "coa-designer",
+      "name": "COA Designer",
+      "role": "Chart of Accounts design, rationalization, segment architecture",
+      "tools": [],
+      "triggers": [
+       "COA",
+       "chart of accounts",
+       "segments",
+       "natural account"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "coa-architect",
+       "name": "COA Architect",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Segment architecture, natural-account logic, legacy-to-target mapping, CVR rules."
+      }
+     },
+     {
+      "id": "consolidation-reporting-agent",
+      "name": "Consolidation & Reporting",
+      "role": "Group consolidation, IC elimination, multi-GAAP reporting",
+      "tools": [],
+      "triggers": [
+       "consolidation",
+       "elimination",
+       "NCI",
+       "intercompany",
+       "group reporting"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "close-consolidation",
+       "name": "Close & Consolidation (R2R)",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Eliminations, NCI, multi-GAAP, close calendars, FCCS/OneStream mechanics."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "specialized-finance",
+  "label": "Specialized Finance",
+  "icon": "🏦",
+  "color": "#8b7ce8",
+  "accent": "#a89cf0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Specialized Finance specialists",
+  "subCategories": [
+   {
+    "id": "specialized-finance-all",
+    "label": "Specialized Finance",
+    "agents": [
+     {
+      "id": "revenue-recognition-agent",
+      "name": "Revenue Recognition",
+      "role": "IFRS 15 / ASC 606 — 5-step revenue model, SaaS, licenses",
+      "tools": [],
+      "triggers": [
+       "revenue",
+       "ASC 606",
+       "IFRS 15",
+       "SaaS",
+       "contract"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "rev-rec",
+       "name": "Revenue Recognition (IFRS 15)",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "5-step model, contract modifications, SaaS and license patterns."
+      }
+     },
+     {
+      "id": "lease-accounting-agent",
+      "name": "Lease Accounting",
+      "role": "IFRS 16 / ASC 842 — ROU assets, lease liabilities, modifications",
+      "tools": [],
+      "triggers": [
+       "lease",
+       "ROU",
+       "ASC 842",
+       "IFRS 16",
+       "right-of-use"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "tax-accounting-agent",
+      "name": "Tax Accounting",
+      "role": "IAS 12 / ASC 740, Pillar Two, transfer pricing, VAT/GST",
+      "tools": [],
+      "triggers": [
+       "tax",
+       "deferred",
+       "Pillar Two",
+       "transfer pricing",
+       "VAT"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "tax-advisor",
+       "name": "Tax & Pillar Two",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "IAS 12/ASC 740 mechanics, Pillar Two, transfer pricing; rates served by retrieval."
+      }
+     },
+     {
+      "id": "treasury-management-agent",
+      "name": "Treasury Management",
+      "role": "Cash forecasting, FX hedging, debt structuring, working capital",
+      "tools": [],
+      "triggers": [
+       "treasury",
+       "cash",
+       "FX",
+       "hedge",
+       "working capital",
+       "debt"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "esg-reporting-agent",
+      "name": "ESG Reporting",
+      "role": "ISSB, CSRD/ESRS, GHG accounting, carbon credits, TCFD",
+      "tools": [],
+      "triggers": [
+       "ESG",
+       "ISSB",
+       "CSRD",
+       "GHG",
+       "carbon",
+       "sustainability"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "internal-audit-agent",
+      "name": "Internal Audit",
+      "role": "Risk-based audit, SOX ICFR, fraud detection, continuous monitoring",
+      "tools": [],
+      "triggers": [
+       "audit",
+       "SOX",
+       "ICFR",
+       "fraud",
+       "controls",
+       "compliance"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "sox-controls",
+       "name": "SOX & Controls",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Control matrices, SOD, test procedures, evidence conventions."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "transaction-advisory",
+  "label": "Transaction Advisory",
+  "icon": "📊",
+  "color": "#46a758",
+  "accent": "#6bc47e",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Transaction Advisory specialists",
+  "subCategories": [
+   {
+    "id": "transaction-advisory-all",
+    "label": "Transaction Advisory",
+    "agents": [
+     {
+      "id": "ma-due-diligence-agent",
+      "name": "M&A Due Diligence",
+      "role": "QoE, normalized EBITDA, PPA, earn-outs, integration planning",
+      "tools": [],
+      "triggers": [
+       "M&A",
+       "due diligence",
+       "QoE",
+       "PPA",
+       "acquisition",
+       "merger"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "financial-modeling-agent",
+      "name": "Financial Modeling",
+      "role": "DCF, LBO, merger models, Monte Carlo, business case ROI",
+      "tools": [],
+      "triggers": [
+       "DCF",
+       "valuation",
+       "LBO",
+       "model",
+       "business case",
+       "ROI"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "si-delivery",
+  "label": "SI Delivery",
+  "icon": "🔄",
+  "color": "#4c9be8",
+  "accent": "#74b5f0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "SI Delivery specialists",
+  "subCategories": [
+   {
+    "id": "si-delivery-all",
+    "label": "SI Delivery",
+    "agents": [
+     {
+      "id": "si-finance-process-lead",
+      "name": "Finance Process Lead",
+      "role": "R2R, O2C, P2P process design and optimization",
+      "tools": [],
+      "triggers": [
+       "R2R",
+       "O2C",
+       "P2P",
+       "process",
+       "record to report"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "si-functional-lead",
+      "name": "Functional Lead",
+      "role": "Oracle, SAP, Workday, OneStream, Anaplan configuration",
+      "tools": [],
+      "triggers": [
+       "Oracle",
+       "SAP",
+       "Workday",
+       "ERP",
+       "configuration",
+       "functional"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "si-data-architect",
+      "name": "Data Architect",
+      "role": "Data migration, MDM, data governance, ETL",
+      "tools": [],
+      "triggers": [
+       "migration",
+       "MDM",
+       "data governance",
+       "ETL",
+       "data quality"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "si-integration-lead",
+      "name": "Integration Lead",
+      "role": "APIs, middleware, B2B/EDI — MuleSoft, Boomi, OIC",
+      "tools": [],
+      "triggers": [
+       "integration",
+       "API",
+       "middleware",
+       "MuleSoft",
+       "Boomi",
+       "EDI"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "si-security-controls-lead",
+      "name": "Security & Controls Lead",
+      "role": "SOD, SOX compliance, role-based access, security design",
+      "tools": [],
+      "triggers": [
+       "SOD",
+       "security",
+       "access",
+       "role",
+       "SOX controls"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "sox-controls",
+       "name": "SOX & Controls",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Control matrices, SOD, test procedures, evidence conventions."
+      }
+     },
+     {
+      "id": "si-change-management-lead",
+      "name": "Change Management Lead",
+      "role": "OCM, training, adoption, business readiness",
+      "tools": [],
+      "triggers": [
+       "change management",
+       "OCM",
+       "training",
+       "adoption",
+       "readiness"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "si-data-analytics-lead",
+      "name": "Data & Analytics Lead",
+      "role": "Power BI, Tableau, reporting strategy, dashboards",
+      "tools": [],
+      "triggers": [
+       "Power BI",
+       "Tableau",
+       "reporting",
+       "dashboard",
+       "analytics",
+       "BI"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-config-agent",
+      "name": "Oracle Config Automation",
+      "role": "Oracle ERP Cloud FBDI workbook automation — parse, validate, deploy, drift detect",
+      "tools": [],
+      "triggers": [
+       "FBDI",
+       "workbook",
+       "Oracle config",
+       "Oracle ERP",
+       "deploy config",
+       "configuration workbook"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "erp-config",
+       "name": "ERP Config Automation",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "FBDI/HDL workbook grammar, config deploy, drift detection, test-script generation."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "data-engineering",
+  "label": "Data Engineering",
+  "icon": "🧭",
+  "color": "#d97706",
+  "accent": "#f2a93b",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Data Engineering specialists",
+  "subCategories": [
+   {
+    "id": "data-engineering-all",
+    "label": "Data Engineering",
+    "agents": [
+     {
+      "id": "l2-sql-generation",
+      "name": "L2 SQL Generation Agent",
+      "role": "Converts GAAP Excel + Informatica XML into DB2 SQL queries per reporting package and L2 category for a regulatory data hub",
+      "tools": [],
+      "triggers": [
+       "L2 SQL",
+       "GAAP",
+       "Informatica",
+       "DB2",
+       "regulatory data hub",
+       "reporting package"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "source-to-target-mapping",
+      "name": "Source-to-Target Mapping Agent",
+      "role": "Traces field-level lineage from GAAP/Informatica/CDS to produce S2T mapping spreadsheets and DSIS specs",
+      "tools": [],
+      "triggers": [
+       "source to target",
+       "S2T",
+       "mapping",
+       "data lineage",
+       "DSIS",
+       "field mapping"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "file-search-agent",
+      "name": "File Search Agent",
+      "role": "Parses XML, SQL, Excel files to answer questions about columns, transformations, lookups, and joins",
+      "tools": [],
+      "triggers": [
+       "file search",
+       "parse XML",
+       "parse SQL",
+       "column search",
+       "lookup",
+       "joins"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "enablers",
+  "label": "Enablers",
+  "icon": "🛡️",
+  "color": "#0e9f8a",
+  "accent": "#3cc4ae",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Enablers specialists",
+  "subCategories": [
+   {
+    "id": "enablers-all",
+    "label": "Enablers",
+    "agents": [
+     {
+      "id": "apqc-researcher",
+      "name": "APQC Researcher",
+      "role": "APQC benchmarks, PCF mapping, target setting, gap analysis",
+      "tools": [],
+      "triggers": [
+       "APQC",
+       "benchmark",
+       "PCF",
+       "best practice",
+       "quartile"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "benchmark-service",
+       "name": "Benchmark Data Service",
+       "base": "retrieval, not a model",
+       "kind": "retrieval",
+       "blurb": "APQC benchmarks served by retrieval with source tags — numbers are never fine-tuned."
+      }
+     },
+     {
+      "id": "databricks-pipeline-agent",
+      "name": "Databricks Pipeline",
+      "role": "Lakehouse architecture, Delta Live Tables, Vector Search",
+      "tools": [],
+      "triggers": [
+       "Databricks",
+       "delta",
+       "pipeline",
+       "lakehouse",
+       "streaming"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "rapid-prototyper",
+      "name": "Rapid Prototyper",
+      "role": "15-minute client demos — dashboards, calculators, mockups",
+      "tools": [],
+      "triggers": [
+       "prototype",
+       "demo",
+       "mockup",
+       "quick",
+       "visual"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "creative-designer",
+      "name": "Creative Designer",
+      "role": "Executive dashboards, pitch decks, interactive GUIs",
+      "tools": [],
+      "triggers": [
+       "design",
+       "visual",
+       "GUI",
+       "dashboard",
+       "presentation",
+       "deck"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "process-flow-generator",
+      "name": "Process Flow Generator",
+      "role": "Mermaid flowcharts, swim-lane diagrams, SIPOC charts, L1-L5 process decomposition",
+      "tools": [],
+      "triggers": [
+       "process flow",
+       "flowchart",
+       "mermaid",
+       "swim lane",
+       "SIPOC",
+       "diagram"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "fact-check-agent",
+      "name": "Fact-Check Agent",
+      "role": "Citation audit, provenance verification, source mapping",
+      "tools": [],
+      "triggers": [
+       "fact-check",
+       "verify",
+       "citation",
+       "source",
+       "audit"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "project-knowledge-base",
+      "name": "Project Knowledge Base",
+      "role": "Project-aware document intelligence — auto-indexes docs, answers with citations",
+      "tools": [],
+      "triggers": [
+       "knowledge base",
+       "document search",
+       "project docs",
+       "citation",
+       "document intelligence"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "project-agents",
+  "label": "Project Agents",
+  "icon": "🤝",
+  "color": "#b055c9",
+  "accent": "#cd82e0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Project Agents specialists",
+  "subCategories": [
+   {
+    "id": "project-agents-all",
+    "label": "Project Agents",
+    "agents": [
+     {
+      "id": "policy-harmonization",
+      "name": "Policy Harmonization",
+      "role": "Global policy design, harmonization, country overlays, compliance alignment",
+      "tools": [],
+      "triggers": [
+       "policy",
+       "harmonization",
+       "T&E",
+       "expense limit",
+       "per diem",
+       "global standard"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "workshop-facilitator",
+      "name": "Workshop Facilitator",
+      "role": "Workshop agendas, pre-work, facilitation guides, outputs",
+      "tools": [],
+      "triggers": [
+       "workshop",
+       "agenda",
+       "facilitation",
+       "pre-work",
+       "action items"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "pmo-tracker",
+      "name": "PMO Tracker",
+      "role": "Sprint planning, RAID logs, status reports, resource tracking",
+      "tools": [],
+      "triggers": [
+       "project plan",
+       "sprint",
+       "RAID",
+       "status",
+       "RACI",
+       "PMO"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "synthetic-data",
+      "name": "Synthetic Data Generator",
+      "role": "Generates realistic enterprise data for testing, demos, and analytics",
+      "tools": [],
+      "triggers": [
+       "synthetic",
+       "data",
+       "PowerBI",
+       "test data",
+       "transaction",
+       "generate"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "data-safeguard",
+      "name": "Data Safeguard",
+      "role": "Data protection, anonymization, compliance, PII detection",
+      "tools": [],
+      "triggers": [
+       "data protection",
+       "anonymize",
+       "PII",
+       "GDPR",
+       "compliance",
+       "security"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "process-flow",
+      "name": "Process Flow & Taxonomy",
+      "role": "L1-L5 process taxonomy, requirements, user stories, KPIs, design decisions",
+      "tools": [],
+      "triggers": [
+       "process",
+       "taxonomy",
+       "L1",
+       "L2",
+       "L3",
+       "workflow"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ }
+]

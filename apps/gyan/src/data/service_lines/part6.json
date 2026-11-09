@@ -1,0 +1,1559 @@
+[
+ {
+  "id": "skills-finance-operations",
+  "label": "Skills — Finance Operations",
+  "icon": "🔄",
+  "color": "#4c9be8",
+  "accent": "#74b5f0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — Finance Operations specialists",
+  "subCategories": [
+   {
+    "id": "skills-finance-operations-all",
+    "label": "Skills — Finance Operations",
+    "agents": [
+     {
+      "id": "accounts-payable",
+      "name": "Accounts Payable",
+      "role": "AP automation — vendor invoices, approvals, payment runs",
+      "tools": [
+       "accounts-payable"
+      ],
+      "triggers": [
+       "accounts payable",
+       "AP",
+       "vendor invoice",
+       "bill pay",
+       "payment run"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "accounts-receivable",
+      "name": "Accounts Receivable",
+      "role": "AR management — invoicing, collections, aging analysis",
+      "tools": [
+       "accounts-receivable"
+      ],
+      "triggers": [
+       "accounts receivable",
+       "AR",
+       "invoicing",
+       "collections",
+       "aging"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "budgeting-forecasting",
+      "name": "Budgeting & Forecasting",
+      "role": "Budget models, cash forecasting, runway analysis",
+      "tools": [
+       "budgeting-forecasting"
+      ],
+      "triggers": [
+       "budget",
+       "forecast",
+       "cash flow",
+       "runway",
+       "burn rate",
+       "FP&A"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "consolidation-skill",
+      "name": "Consolidation (Small Entity)",
+      "role": "Multi-entity consolidation for small orgs — parent/subsidiary, SPV",
+      "tools": [
+       "consolidation"
+      ],
+      "triggers": [
+       "consolidation small",
+       "multi-entity",
+       "subsidiary",
+       "SPV",
+       "intercompany small"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "close-consolidation",
+       "name": "Close & Consolidation (R2R)",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Eliminations, NCI, multi-GAAP, close calendars, FCCS/OneStream mechanics."
+      }
+     },
+     {
+      "id": "fixed-assets",
+      "name": "Fixed Assets",
+      "role": "Capital equipment tracking, depreciation, asset registers",
+      "tools": [
+       "fixed-assets"
+      ],
+      "triggers": [
+       "fixed assets",
+       "depreciation",
+       "capital equipment",
+       "asset register"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "general-ledger",
+      "name": "General Ledger",
+      "role": "GL setup and maintenance — COA, single entity, monthly reporting",
+      "tools": [
+       "general-ledger"
+      ],
+      "triggers": [
+       "general ledger",
+       "GL",
+       "chart of accounts small",
+       "COA setup",
+       "bookkeeping"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "period-close",
+      "name": "Period Close",
+      "role": "Monthly close process — reconciliation, P&L, balance sheet",
+      "tools": [
+       "period-close"
+      ],
+      "triggers": [
+       "period close",
+       "monthly close",
+       "close process",
+       "reconciliation close"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "close-consolidation",
+       "name": "Close & Consolidation (R2R)",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Eliminations, NCI, multi-GAAP, close calendars, FCCS/OneStream mechanics."
+      }
+     },
+     {
+      "id": "tax-compliance",
+      "name": "Tax Compliance",
+      "role": "Tax filings — sales tax, payroll tax, income tax prep",
+      "tools": [
+       "tax-compliance"
+      ],
+      "triggers": [
+       "tax compliance",
+       "sales tax",
+       "payroll tax",
+       "1099",
+       "tax filing"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "tax-advisor",
+       "name": "Tax & Pillar Two",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "IAS 12/ASC 740 mechanics, Pillar Two, transfer pricing; rates served by retrieval."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "skills-human-resources",
+  "label": "Skills — Human Resources",
+  "icon": "🧭",
+  "color": "#d97706",
+  "accent": "#f2a93b",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — Human Resources specialists",
+  "subCategories": [
+   {
+    "id": "skills-human-resources-all",
+    "label": "Skills — Human Resources",
+    "agents": [
+     {
+      "id": "benefits",
+      "name": "Benefits Administration",
+      "role": "Employee benefits — health plans, 401(k), FSA, enrollment",
+      "tools": [
+       "benefits"
+      ],
+      "triggers": [
+       "benefits",
+       "health plan",
+       "401k",
+       "FSA",
+       "PEO",
+       "enrollment"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "leave-attendance",
+      "name": "Leave & Attendance",
+      "role": "PTO, sick leave, parental leave, attendance tracking",
+      "tools": [
+       "leave-attendance"
+      ],
+      "triggers": [
+       "leave",
+       "PTO",
+       "attendance",
+       "sick leave",
+       "parental leave",
+       "time off"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "offboarding",
+      "name": "Offboarding",
+      "role": "Employee separation — exit interviews, access revocation, final pay",
+      "tools": [
+       "offboarding"
+      ],
+      "triggers": [
+       "offboarding",
+       "termination",
+       "exit interview",
+       "separation",
+       "COBRA"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "onboarding",
+      "name": "Onboarding",
+      "role": "New hire onboarding — day-1 setup, week-1 immersion, 30/60/90 check-ins",
+      "tools": [
+       "onboarding"
+      ],
+      "triggers": [
+       "onboarding",
+       "new hire",
+       "day one",
+       "orientation",
+       "30-60-90"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "payroll",
+      "name": "Payroll",
+      "role": "Payroll processing — W-2, 1099, international contractors",
+      "tools": [
+       "payroll"
+      ],
+      "triggers": [
+       "payroll",
+       "W-2",
+       "1099",
+       "contractor pay",
+       "Gusto",
+       "Rippling"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "performance-reviews",
+      "name": "Performance Reviews",
+      "role": "Performance review cycles — goal-setting, self-review, calibration",
+      "tools": [
+       "performance-reviews"
+      ],
+      "triggers": [
+       "performance review",
+       "review cycle",
+       "goal setting",
+       "calibration",
+       "Lattice"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "recruitment",
+      "name": "Recruitment",
+      "role": "Hiring pipeline — ATS, job postings, referrals, interviews",
+      "tools": [
+       "recruitment"
+      ],
+      "triggers": [
+       "recruitment",
+       "hiring",
+       "ATS",
+       "job posting",
+       "interview",
+       "candidate"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "training-development",
+      "name": "Training & Development",
+      "role": "L&D programs — training design, learning stipends, workshops",
+      "tools": [
+       "training-development"
+      ],
+      "triggers": [
+       "training",
+       "L&D",
+       "learning",
+       "development",
+       "workshop",
+       "course"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "skills-erp-implementation",
+  "label": "Skills — ERP Implementation",
+  "icon": "🛡️",
+  "color": "#0e9f8a",
+  "accent": "#3cc4ae",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — ERP Implementation specialists",
+  "subCategories": [
+   {
+    "id": "skills-erp-implementation-all",
+    "label": "Skills — ERP Implementation",
+    "agents": [
+     {
+      "id": "api-design",
+      "name": "API Design",
+      "role": "ERP API design — REST endpoints, versioning, webhooks, rate limiting",
+      "tools": [
+       "api-design"
+      ],
+      "triggers": [
+       "API design",
+       "REST",
+       "webhook",
+       "endpoint",
+       "rate limit",
+       "API versioning"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "erp-change-management",
+      "name": "ERP Change Management",
+      "role": "OCM for ERP implementations — stakeholder engagement, training, adoption",
+      "tools": [
+       "change-management-adoption"
+      ],
+      "triggers": [
+       "ERP change management",
+       "OCM ERP",
+       "stakeholder engagement",
+       "adoption ERP"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "configuration-management",
+      "name": "Configuration Management",
+      "role": "ERP config as code — promotion pipelines, drift detection, releases",
+      "tools": [
+       "configuration-management"
+      ],
+      "triggers": [
+       "configuration management",
+       "config as code",
+       "drift detection",
+       "promotion pipeline"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "data-migration",
+      "name": "Data Migration",
+      "role": "Legacy data migration — profiling, mapping, transformation, cutover",
+      "tools": [
+       "data-migration"
+      ],
+      "triggers": [
+       "data migration",
+       "cutover",
+       "legacy migration",
+       "data profiling",
+       "field mapping"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "data-modeling",
+      "name": "Data Modeling",
+      "role": "Enterprise data schemas — entities, relationships, multi-tenancy",
+      "tools": [
+       "data-modeling"
+      ],
+      "triggers": [
+       "data model",
+       "schema design",
+       "entity relationship",
+       "multi-tenancy"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "deployment-golive",
+      "name": "Deployment & Go-Live",
+      "role": "Go-live planning — cutover runbooks, rollback, hypercare",
+      "tools": [
+       "deployment-golive"
+      ],
+      "triggers": [
+       "go-live",
+       "deployment",
+       "cutover",
+       "rollback",
+       "hypercare",
+       "go no-go"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "disaster-recovery",
+      "name": "Disaster Recovery",
+      "role": "DR/BCP — RTO/RPO, backup strategies, failover, DR testing",
+      "tools": [
+       "disaster-recovery"
+      ],
+      "triggers": [
+       "disaster recovery",
+       "DR",
+       "BCP",
+       "RTO",
+       "RPO",
+       "failover"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "integrations",
+      "name": "Integrations",
+      "role": "System integration — API connections, data syncs, middleware, events",
+      "tools": [
+       "integrations"
+      ],
+      "triggers": [
+       "integration",
+       "middleware",
+       "API connection",
+       "data sync",
+       "EDI"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "localization-i18n",
+      "name": "Localization & i18n",
+      "role": "Global ERP — multi-language, multi-currency, timezone, compliance",
+      "tools": [
+       "localization-i18n"
+      ],
+      "triggers": [
+       "localization",
+       "i18n",
+       "multi-language",
+       "multi-currency",
+       "timezone",
+       "locale"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "master-data-management",
+      "name": "Master Data Management",
+      "role": "MDM — golden records, data stewardship, deduplication, quality",
+      "tools": [
+       "master-data-management"
+      ],
+      "triggers": [
+       "MDM",
+       "master data",
+       "golden record",
+       "data stewardship",
+       "deduplication"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "observability",
+      "name": "Observability",
+      "role": "ERP observability — logging, metrics, tracing, alerting, SLA monitoring",
+      "tools": [
+       "observability"
+      ],
+      "triggers": [
+       "observability",
+       "monitoring",
+       "logging",
+       "tracing",
+       "alerting",
+       "metrics"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "performance-optimization",
+      "name": "Performance Optimization",
+      "role": "ERP performance — DB tuning, caching, batch processing, capacity",
+      "tools": [
+       "performance-optimization"
+      ],
+      "triggers": [
+       "performance optimization",
+       "database tuning",
+       "caching",
+       "batch",
+       "capacity"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "reports-dashboards",
+      "name": "Reports & Dashboards",
+      "role": "Enterprise reporting — KPIs, dashboard design, scheduled distribution",
+      "tools": [
+       "reports-dashboards"
+      ],
+      "triggers": [
+       "reports",
+       "dashboard",
+       "KPI",
+       "BI",
+       "analytics",
+       "reporting"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "security-roles",
+      "name": "Security & Roles",
+      "role": "Access control — RBAC, SoD, SSO, field-level security, audit logging",
+      "tools": [
+       "security-roles"
+      ],
+      "triggers": [
+       "security roles",
+       "RBAC",
+       "SoD",
+       "SSO",
+       "access control",
+       "audit log"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "sox-controls",
+       "name": "SOX & Controls",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Control matrices, SOD, test procedures, evidence conventions."
+      }
+     },
+     {
+      "id": "testing-validation",
+      "name": "Testing & Validation",
+      "role": "QA strategy — test planning, UAT, performance testing, sign-off",
+      "tools": [
+       "testing-validation"
+      ],
+      "triggers": [
+       "testing",
+       "UAT",
+       "QA",
+       "test plan",
+       "validation",
+       "sign-off"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "user-onboarding",
+      "name": "User Onboarding (ERP)",
+      "role": "ERP user enablement — training design, adoption tracking, knowledge support",
+      "tools": [
+       "user-onboarding"
+      ],
+      "triggers": [
+       "user onboarding ERP",
+       "training ERP",
+       "adoption tracking",
+       "enablement"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "workflow-automation",
+      "name": "Workflow Automation",
+      "role": "BPM — approval chains, state machines, scheduled jobs, SLA enforcement",
+      "tools": [
+       "workflow-automation"
+      ],
+      "triggers": [
+       "workflow automation",
+       "approval chain",
+       "state machine",
+       "BPM",
+       "business rules"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "skills-professional-services",
+  "label": "Skills — Professional Services",
+  "icon": "🤝",
+  "color": "#b055c9",
+  "accent": "#cd82e0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — Professional Services specialists",
+  "subCategories": [
+   {
+    "id": "skills-professional-services-all",
+    "label": "Skills — Professional Services",
+    "agents": [
+     {
+      "id": "billing",
+      "name": "Billing",
+      "role": "Client billing — T&M, fixed-fee, retainer, milestone invoicing",
+      "tools": [
+       "billing"
+      ],
+      "triggers": [
+       "billing",
+       "T&M",
+       "fixed fee",
+       "retainer",
+       "client invoice"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "client-collaboration",
+      "name": "Client Collaboration",
+      "role": "Client engagement — Slack Connect, shared docs, portals, QBRs",
+      "tools": [
+       "client-collaboration"
+      ],
+      "triggers": [
+       "client collaboration",
+       "client portal",
+       "QBR",
+       "status call",
+       "Slack Connect"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "portfolio-management",
+      "name": "Portfolio Management",
+      "role": "Project portfolio — health scoring, capacity vs demand, prioritization",
+      "tools": [
+       "portfolio-management"
+      ],
+      "triggers": [
+       "portfolio",
+       "project portfolio",
+       "capacity planning",
+       "prioritization"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "project-planning",
+      "name": "Project Planning",
+      "role": "Project execution — milestones, sprint planning, weekly reviews",
+      "tools": [
+       "project-planning"
+      ],
+      "triggers": [
+       "project planning",
+       "milestone",
+       "sprint",
+       "Asana",
+       "Monday",
+       "ClickUp"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "resource-management",
+      "name": "Resource Management",
+      "role": "Resource allocation — utilization, capacity, billable vs non-billable",
+      "tools": [
+       "resource-management"
+      ],
+      "triggers": [
+       "resource management",
+       "utilization",
+       "capacity",
+       "staffing",
+       "allocation"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "subcontractor-management",
+      "name": "Subcontractor Management",
+      "role": "Subcontractor ops — SOW scoping, 1099 tracking, W-9 collection",
+      "tools": [
+       "subcontractor-management"
+      ],
+      "triggers": [
+       "subcontractor",
+       "freelancer",
+       "SOW",
+       "1099 contractor",
+       "W-9"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "time-expense",
+      "name": "Time & Expense",
+      "role": "Time tracking and expense management — Harvest, Toggl, Expensify",
+      "tools": [
+       "time-expense"
+      ],
+      "triggers": [
+       "time tracking",
+       "expense",
+       "Harvest",
+       "Toggl",
+       "Expensify",
+       "timesheet"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "skills-sales-and-crm",
+  "label": "Skills — Sales & CRM",
+  "icon": "🏗️",
+  "color": "#9b9d95",
+  "accent": "#c0c2ba",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — Sales & CRM specialists",
+  "subCategories": [
+   {
+    "id": "skills-sales-and-crm-all",
+    "label": "Skills — Sales & CRM",
+    "agents": [
+     {
+      "id": "campaign-management",
+      "name": "Campaign Management",
+      "role": "Marketing campaigns — email, paid ads, landing pages, attribution",
+      "tools": [
+       "campaign-management"
+      ],
+      "triggers": [
+       "campaign",
+       "marketing campaign",
+       "email campaign",
+       "ads",
+       "attribution"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "commissions",
+      "name": "Commissions",
+      "role": "Sales commissions — plan design, payout calculation, quota management",
+      "tools": [
+       "commissions"
+      ],
+      "triggers": [
+       "commissions",
+       "commission plan",
+       "quota",
+       "payout",
+       "ACV"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "contracts-renewals",
+      "name": "Contracts & Renewals",
+      "role": "Contract lifecycle — MSA, order forms, auto-renewals, CLM",
+      "tools": [
+       "contracts-renewals"
+      ],
+      "triggers": [
+       "contract",
+       "renewal",
+       "MSA",
+       "CLM",
+       "order form",
+       "auto-renewal"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "customer-360",
+      "name": "Customer 360",
+      "role": "Unified customer view — CRM + email + product usage + support + billing",
+      "tools": [
+       "customer-360"
+      ],
+      "triggers": [
+       "customer 360",
+       "unified view",
+       "account view",
+       "CRM data",
+       "customer data"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "lead-management",
+      "name": "Lead Management",
+      "role": "Lead capture, scoring, routing — inbound + outbound pipelines",
+      "tools": [
+       "lead-management"
+      ],
+      "triggers": [
+       "lead management",
+       "lead scoring",
+       "lead routing",
+       "inbound",
+       "outbound"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "pipeline-forecasting",
+      "name": "Pipeline Forecasting",
+      "role": "Sales pipeline — deal reviews, stage probability, monthly forecasts",
+      "tools": [
+       "pipeline-forecasting"
+      ],
+      "triggers": [
+       "pipeline",
+       "sales pipeline",
+       "forecast",
+       "deal review",
+       "win rate"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "quoting-cpq",
+      "name": "Quoting & CPQ",
+      "role": "Quote generation — templates, pricing rules, e-signatures",
+      "tools": [
+       "quoting-cpq"
+      ],
+      "triggers": [
+       "quoting",
+       "CPQ",
+       "quote",
+       "proposal",
+       "pricing",
+       "e-signature"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "territory-management",
+      "name": "Territory Management",
+      "role": "Sales territories — geographic/vertical design, quota allocation",
+      "tools": [
+       "territory-management"
+      ],
+      "triggers": [
+       "territory",
+       "sales territory",
+       "quota allocation",
+       "AE territory"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "skills-supply-chain",
+  "label": "Skills — Supply Chain",
+  "icon": "⚡",
+  "color": "#C41E3A",
+  "accent": "#FF4D6D",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — Supply Chain specialists",
+  "subCategories": [
+   {
+    "id": "skills-supply-chain-all",
+    "label": "Skills — Supply Chain",
+    "agents": [
+     {
+      "id": "demand-planning",
+      "name": "Demand Planning",
+      "role": "Demand forecasting — predict needs, plan inventory readiness",
+      "tools": [
+       "demand-planning"
+      ],
+      "triggers": [
+       "demand planning",
+       "demand forecast",
+       "seasonal",
+       "S&OP"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "inventory",
+      "name": "Inventory Management",
+      "role": "Inventory tracking — stock levels, reorder points, location management",
+      "tools": [
+       "inventory"
+      ],
+      "triggers": [
+       "inventory",
+       "stock",
+       "reorder",
+       "warehouse stock",
+       "SKU"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "logistics",
+      "name": "Logistics",
+      "role": "Logistics ops — shipping, freight, carriers, last-mile delivery",
+      "tools": [
+       "logistics"
+      ],
+      "triggers": [
+       "logistics",
+       "shipping",
+       "freight",
+       "carrier",
+       "last mile",
+       "delivery"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "procurement",
+      "name": "Procurement",
+      "role": "Procurement — purchase requests, vendor sourcing, PO management",
+      "tools": [
+       "procurement"
+      ],
+      "triggers": [
+       "procurement",
+       "purchase order",
+       "PO",
+       "sourcing",
+       "spend"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "production-planning",
+      "name": "Production Planning",
+      "role": "Manufacturing planning — production scheduling, shop floor management",
+      "tools": [
+       "production-planning"
+      ],
+      "triggers": [
+       "production planning",
+       "manufacturing",
+       "shop floor",
+       "BOM",
+       "MRP"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "quality",
+      "name": "Quality Management",
+      "role": "Quality control — inspection, standards, non-conformance, CAPA",
+      "tools": [
+       "quality"
+      ],
+      "triggers": [
+       "quality",
+       "QC",
+       "inspection",
+       "CAPA",
+       "non-conformance",
+       "ISO"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "vendor-management",
+      "name": "Vendor Management",
+      "role": "Vendor ops — evaluation, onboarding, performance tracking, risk",
+      "tools": [
+       "vendor-management"
+      ],
+      "triggers": [
+       "vendor management",
+       "supplier",
+       "vendor evaluation",
+       "vendor risk"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "warehouse",
+      "name": "Warehouse Management",
+      "role": "WMS — receiving, putaway, picking, packing, shipping",
+      "tools": [
+       "warehouse"
+      ],
+      "triggers": [
+       "warehouse",
+       "WMS",
+       "picking",
+       "packing",
+       "receiving",
+       "putaway"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "skills-investment-research",
+  "label": "Skills — Investment Research",
+  "icon": "🏦",
+  "color": "#8b7ce8",
+  "accent": "#a89cf0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — Investment Research specialists",
+  "subCategories": [
+   {
+    "id": "skills-investment-research-all",
+    "label": "Skills — Investment Research",
+    "agents": [
+     {
+      "id": "competitive-landscape",
+      "name": "Competitive Landscape",
+      "role": "Sector mapping — competitive structure, moats, disruption vectors",
+      "tools": [
+       "competitive-landscape"
+      ],
+      "triggers": [
+       "competitive landscape",
+       "sector map",
+       "moat",
+       "disruption",
+       "market share"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "content-publishing",
+      "name": "Content Publishing",
+      "role": "Investment commentary — research notes, thesis posts, earnings reactions",
+      "tools": [
+       "content-publishing"
+      ],
+      "triggers": [
+       "content publishing",
+       "research note",
+       "thesis post",
+       "investment commentary"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "earnings-call-analysis",
+      "name": "Earnings Call Analysis",
+      "role": "Earnings analysis — prepared remarks, Q&A, guidance, management tone",
+      "tools": [
+       "earnings-call-analysis"
+      ],
+      "triggers": [
+       "earnings call",
+       "earnings analysis",
+       "Q&A",
+       "guidance",
+       "management tone"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "equity-research-framework",
+      "name": "Equity Research",
+      "role": "Equity thesis building — bull/bear/neutral with evidence and valuation",
+      "tools": [
+       "equity-research-framework"
+      ],
+      "triggers": [
+       "equity research",
+       "bull case",
+       "bear case",
+       "thesis",
+       "stock analysis"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "reading-10k-10q",
+      "name": "SEC Filing Analysis",
+      "role": "SEC filings — 10-K, 10-Q, 8-K, proxy statement analysis",
+      "tools": [
+       "reading-10k-10q"
+      ],
+      "triggers": [
+       "10-K",
+       "10-Q",
+       "8-K",
+       "SEC filing",
+       "proxy statement",
+       "annual report"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "sec-reporting",
+       "name": "SEC Reporting & XBRL",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "10-K/10-Q/8-K drafting, S-X/S-K compliance, US GAAP taxonomy tagging."
+      }
+     },
+     {
+      "id": "valuation-dcf-comps",
+      "name": "Valuation (DCF & Comps)",
+      "role": "Company valuation — DCF, comparable analysis, price targets",
+      "tools": [
+       "valuation-dcf-comps"
+      ],
+      "triggers": [
+       "valuation",
+       "DCF",
+       "comparables",
+       "comps",
+       "price target",
+       "WACC"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ }
+]
