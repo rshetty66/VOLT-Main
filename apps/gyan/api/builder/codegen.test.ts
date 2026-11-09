@@ -170,6 +170,27 @@ describe("runBuild", () => {
     expect(events).toEqual(["clear", "scaffold", "generate", "apply", "gates"]);
   });
 
+  it("streams buildlog.jsonl incrementally so status polling sees progress", async () => {
+    let seenAtGenerate = "";
+    const outcome = await runBuild(ws, validSpec(), {
+      generate: async () => {
+        seenAtGenerate = await ws.read("buildlog.jsonl").catch(() => "");
+        return { object: fileMap({ "src/App.tsx": "export {}" }) };
+      },
+      gateRunner: async () => PASS,
+    });
+    // By the time generation runs, clear+scaffold are already on disk.
+    const early = seenAtGenerate.trim().split("\n").map((l) => JSON.parse(l).t);
+    expect(early).toEqual(["clear", "scaffold"]);
+    expect(outcome.events.map((e) => e.t)).toEqual([
+      "clear",
+      "scaffold",
+      "generate",
+      "apply",
+      "gates",
+    ]);
+  });
+
   it("throws when generation output does not match the file map schema", async () => {
     await expect(
       runBuild(ws, validSpec(), {
