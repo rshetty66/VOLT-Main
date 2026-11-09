@@ -1,4 +1,8 @@
 node_modules/
 dist/
 .env
+# Env content exported to .txt must never commit (the original incident shape)
+.env*.txt
+*.env
+*.env.txt
 data/
