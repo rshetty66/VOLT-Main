@@ -1,0 +1,404 @@
+[
+ {
+  "id": "skills-sector-analysis",
+  "label": "Skills — Sector Analysis",
+  "icon": "📊",
+  "color": "#46a758",
+  "accent": "#6bc47e",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — Sector Analysis specialists",
+  "subCategories": [
+   {
+    "id": "skills-sector-analysis-all",
+    "label": "Skills — Sector Analysis",
+    "agents": [
+     {
+      "id": "customer-support-tech",
+      "name": "Customer Support Tech Sector",
+      "role": "Sector: helpdesk, CCaaS, VoC, knowledge management, AI chatbots",
+      "tools": [
+       "customer-support-tech"
+      ],
+      "triggers": [
+       "support tech",
+       "CCaaS",
+       "helpdesk market",
+       "VoC"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "finance-accounting-tech",
+      "name": "Finance & Accounting Tech Sector",
+      "role": "Sector: ERP, AP/AR automation, FP&A, close/consolidation, expense mgmt",
+      "tools": [
+       "finance-accounting-tech"
+      ],
+      "triggers": [
+       "finance tech",
+       "accounting tech",
+       "fintech sector",
+       "ERP market"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "hr-tech",
+      "name": "HR Tech Sector",
+      "role": "Sector: payroll, HRIS, talent acquisition, L&D, engagement, benefits",
+      "tools": [
+       "hr-tech"
+      ],
+      "triggers": [
+       "HR tech",
+       "HRIS market",
+       "payroll market",
+       "talent tech"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "platform-it",
+      "name": "Platform & IT Sector",
+      "role": "Sector: cloud, cybersecurity, observability, data infra, DevOps, AI/ML",
+      "tools": [
+       "platform-it"
+      ],
+      "triggers": [
+       "platform IT",
+       "cloud market",
+       "cybersecurity market",
+       "AI infrastructure"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "project-ops-tech",
+      "name": "Project Ops Tech Sector",
+      "role": "Sector: PSA, work management, consulting services, IT services",
+      "tools": [
+       "project-ops-tech"
+      ],
+      "triggers": [
+       "project ops tech",
+       "PSA market",
+       "work management",
+       "IT services market"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sales-crm-tech",
+      "name": "Sales & CRM Tech Sector",
+      "role": "Sector: Salesforce, HubSpot, ZoomInfo, marketing automation, ad tech",
+      "tools": [
+       "sales-crm-tech"
+      ],
+      "triggers": [
+       "CRM market",
+       "Salesforce market",
+       "marketing automation",
+       "ad tech"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "supply-chain-tech",
+      "name": "Supply Chain Tech Sector",
+      "role": "Sector: WMS, procurement tech, logistics carriers, fleet tech",
+      "tools": [
+       "supply-chain-tech"
+      ],
+      "triggers": [
+       "supply chain tech",
+       "WMS market",
+       "logistics tech",
+       "fleet tech"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "skills-templates",
+  "label": "Skills — Templates",
+  "icon": "🔄",
+  "color": "#4c9be8",
+  "accent": "#74b5f0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — Templates specialists",
+  "subCategories": [
+   {
+    "id": "skills-templates-all",
+    "label": "Skills — Templates",
+    "agents": [
+     {
+      "id": "fit-gap-matrix",
+      "name": "Fit-Gap Matrix",
+      "role": "Vendor evaluation — requirements scoring, fit vs custom analysis",
+      "tools": [
+       "fit-gap-matrix"
+      ],
+      "triggers": [
+       "fit gap",
+       "vendor evaluation",
+       "requirements scoring",
+       "vendor selection"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "go-live-checklist",
+      "name": "Go-Live Checklist",
+      "role": "System launch checklist — data readiness, enablement, rollback",
+      "tools": [
+       "go-live-checklist"
+      ],
+      "triggers": [
+       "go-live checklist",
+       "launch checklist",
+       "go no-go",
+       "readiness"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "migration-runbook",
+      "name": "Migration Runbook",
+      "role": "System migration — QBO→NetSuite, Salesforce→HubSpot runbooks",
+      "tools": [
+       "migration-runbook"
+      ],
+      "triggers": [
+       "migration runbook",
+       "system migration",
+       "data migration template"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "requirements-traceability",
+      "name": "Requirements Traceability",
+      "role": "RTM — track requirements through design, build, and test phases",
+      "tools": [
+       "requirements-traceability"
+      ],
+      "triggers": [
+       "requirements traceability",
+       "RTM",
+       "requirements tracking",
+       "traceability matrix"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "localization",
+  "label": "Localization",
+  "icon": "🧭",
+  "color": "#d97706",
+  "accent": "#f2a93b",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Localization specialists",
+  "subCategories": [
+   {
+    "id": "localization-all",
+    "label": "Localization",
+    "agents": [
+     {
+      "id": "translation-agent",
+      "name": "Translation Agent",
+      "role": "Multilingual document translation — French, Quebec French, Italian, Malayalam. Structure-preserving with cultural adaptation",
+      "tools": [],
+      "triggers": [
+       "translate",
+       "translation",
+       "French",
+       "Quebec French",
+       "Italian",
+       "Malayalam"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "market-and-credit-research",
+  "label": "Market & Credit Research",
+  "icon": "🛡️",
+  "color": "#0e9f8a",
+  "accent": "#3cc4ae",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Market & Credit Research specialists",
+  "subCategories": [
+   {
+    "id": "market-and-credit-research-all",
+    "label": "Market & Credit Research",
+    "agents": [
+     {
+      "id": "research-desk",
+      "name": "Market & Credit Research Desk",
+      "role": "Specialist desks for market-facing risk: credit spreads and issuer credit, rates and FX, macro regime, portfolio and risk analytics, event studies, market intelligence",
+      "tools": [
+       "llmquant-credit",
+       "llmquant-risk",
+       "llmquant-macro",
+       "llmquant-rates-fx",
+       "llmquant-portfolio",
+       "llmquant-events",
+       "llmquant-data",
+       "llmquant-market-intelligence",
+       "credit-risk-modelling"
+      ],
+      "triggers": [
+       "credit spread",
+       "high yield",
+       "investment grade",
+       "CDS",
+       "issuer credit",
+       "counterparty"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "investor-relations",
+  "label": "Investor Relations",
+  "icon": "🤝",
+  "color": "#b055c9",
+  "accent": "#cd82e0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Investor Relations specialists",
+  "subCategories": [
+   {
+    "id": "investor-relations-all",
+    "label": "Investor Relations",
+    "agents": [
+     {
+      "id": "investor-relations",
+      "name": "Investor Relations",
+      "role": "External reporting and market communication — earnings release, MD&A, guidance, analyst Q&A, non-GAAP reconciliation, continuous disclosure",
+      "tools": [],
+      "triggers": [
+       "investor relations",
+       "IR",
+       "earnings release",
+       "earnings call",
+       "MD&A",
+       "management discussion and analysis"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "sec-reporting",
+       "name": "SEC Reporting & XBRL",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "10-K/10-Q/8-K drafting, S-X/S-K compliance, US GAAP taxonomy tagging."
+      }
+     }
+    ]
+   }
+  ]
+ }
+]
