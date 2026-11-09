@@ -3,6 +3,8 @@ import type { CatalogResponse } from "../../shared/events";
 import { runTool } from "../api";
 import { BenchmarkChart, ValueCaseChart } from "../charts/Charts";
 import { ChartFrame } from "../charts/Visual";
+import { DownloadMenu } from "./DownloadMenu";
+import { chartTables } from "../exports";
 
 /** Direct access to the deterministic tools the agents use for numbers. */
 export function Analytics({ catalog }: { catalog: CatalogResponse }) {
@@ -37,7 +39,16 @@ function BenchmarkTool({ catalog }: { catalog: CatalogResponse }) {
 
   return (
     <div className="card stack">
-      <div className="micro">APQC benchmark position</div>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="micro">APQC benchmark position</div>
+        <DownloadMenu
+          formats={["xlsx", "docx", "pptx"]}
+          build={() => {
+            const data = { benchmark: b, clientValue: client, quartile: result?.quartile, gapToTop25: result?.gapToTop25 };
+            return { title: `APQC benchmark: ${b.metric}`, subtitle: "VOLT Analytics, APQC Open Standards Benchmarking (built-in sample set)", markdown: `Client value ${client ?? "not set"} ${b.unit}: ${result?.quartile ?? "no position"}.`, charts: [{ id: "b", kind: "benchmark", data }], tables: chartTables([{ id: "b", kind: "benchmark", data }]) };
+          }}
+        />
+      </div>
       <div className="row" style={{ flexWrap: "nowrap" }}>
         <select className="select" value={metric} onChange={(e) => setMetric(e.target.value)}>
           {catalog.benchmarks.map((x) => (
@@ -100,7 +111,21 @@ function ValueCaseTool() {
 
   return (
     <div className="card stack">
-      <div className="micro">Finance transformation value case</div>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="micro">Finance transformation value case</div>
+        {r && (
+          <DownloadMenu
+            formats={["xlsx", "docx", "pptx"]}
+            build={() => ({
+              title: "Finance transformation value case",
+              subtitle: "VOLT Analytics, deterministic value-case tool",
+              markdown: `Steady-state saving ${money(r.steadyStateAnnualSaving)} a year from ${r.capacityReleasedFtes} FTE of capacity released. NPV ${money(r.npv)}, IRR ${r.irrPct === null ? "n/a" : `${r.irrPct}%`}, payback ${r.paybackYears === null ? "beyond the horizon" : `${r.paybackYears} years`}.`,
+              charts: [{ id: "v", kind: "valueCase", data: r }],
+              tables: chartTables([{ id: "v", kind: "valueCase", data: r }]),
+            })}
+          />
+        )}
+      </div>
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))" }}>
         {field("finance_ftes", "Finance FTEs")}
         {field("loaded_cost_per_fte", "Loaded cost / FTE")}

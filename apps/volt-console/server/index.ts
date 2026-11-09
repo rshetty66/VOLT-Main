@@ -10,6 +10,7 @@
  *   GET  /api/templates/:id        formatting profile and guide
  *   GET  /api/templates/:id/original   the uploaded file
  *   DELETE /api/templates/:id
+ *   POST /api/export               build a Word, PowerPoint or Excel download from a deliverable
  *   GET  /api/finance-architecture/demo       synthetic golden case + lifecycle reference
  *   POST /api/finance-architecture/validate   run the skill's offline journal / mapping validator
  *   POST /api/finance-architecture/sources/find      Claude web_search for an issuer's published statements (live only)
@@ -37,6 +38,7 @@ import { MODEL, errorMessage, getSession, intakeFor, runLive, type Emit, type Ru
 import { runDemo } from "./demo.js";
 import { commandPrompt, commandStatus, loadRudraCommands, matchCommand } from "./commands.js";
 import { TemplateError, templateStore } from "./templates.js";
+import { exportRouter } from "./export/route.js";
 import { demoDocuments, multiBasisAllowance, runValidator } from "./financeArchitecture.js";
 import { COPILOTKIT_PATH, copilotkitHandler } from "./copilotkit.js";
 import { MAX_SOURCE_BYTES, SourceError, extractFigures, findFilings, ingestDocument, verifyFigures } from "./sources.js";
@@ -58,6 +60,8 @@ const mode = detectMode();
 
 // CopilotKit reads its own request bodies, so it is mounted before the JSON parser. Live mode only.
 if (mode === "live") app.use(copilotkitHandler());
+// Downloads (Word, PowerPoint, Excel) carry images, so they get their own body limit ahead of the 1 MB JSON parser.
+app.use("/api/export", exportRouter((id) => templateStore().get(id)));
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/api/healthz", (_req, res) => {

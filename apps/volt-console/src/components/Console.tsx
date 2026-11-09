@@ -3,6 +3,8 @@ import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 import type { ActivityItem, Lane, Run } from "../runState";
 import { Markdown } from "./Markdown";
 import { RunVisuals } from "../charts/RunVisuals";
+import { DownloadMenu } from "./DownloadMenu";
+import { runDeliverable } from "../exports";
 
 const EXAMPLES = [
   "Our month-end close takes 12 days on SAP S/4HANA and DSO is 55. Build a plan to reach a 5-day close.",
@@ -145,6 +147,9 @@ function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: Cat
           </button>
         )}
         {run.state === "stopped" && <span className="badge">stopped</span>}
+        {run.state !== "running" && run.text.trim() && (
+          <DownloadMenu build={(lanes) => runDeliverable(run, lanes)} option={run.laneOrder.length ? "Include specialist notes as an appendix" : undefined} />
+        )}
       </div>
       <div className="run-body">
         {run.phases.length > 0 && (
