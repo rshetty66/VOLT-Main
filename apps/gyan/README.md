@@ -47,6 +47,7 @@ api/                 Hono server (boot.ts), routes, AI orchestration
   builder/           VOLT Builder core — spec schema + G0 (spec.ts), isolated
                      workspace (workspace.ts), scaffolder (scaffold.ts),
                      spec compiler (compiler.ts), gate runner G0–G4 (gates.ts),
+                     codegen agent loop with one-repair policy (codegen.ts),
                      service endpoints (routes.ts, /api/builder, authed);
                      all vitest-covered
 src/                 React client (Vite + Tailwind + shadcn/ui)

@@ -47,6 +47,16 @@ describe("Workspace", () => {
     expect(await ws.list()).toEqual(["src/index.ts"]);
   });
 
+  it("clear removes everything except the keep list", async () => {
+    await ws.write("spec.json", "{}");
+    await ws.write("src/old.ts", "x");
+    await ws.write("dist/out.js", "x");
+    await ws.clear(["spec.json"]);
+    expect(await ws.list()).toEqual(["spec.json"]);
+    await ws.clear();
+    expect(await ws.list()).toEqual([]);
+  });
+
   it("throws on empty session id", () => {
     expect(() => workspaceFor("/data", "")).toThrow(WorkspaceError);
   });
