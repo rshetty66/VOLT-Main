@@ -3,8 +3,9 @@
  *
  * Orchestrates one build: scaffold the workspace, ask the model for the
  * complete file map, apply it, run the gate chain. If a gate fails, the
- * failure evidence goes back to the model for exactly ONE repair round —
- * the loop never invents a third attempt and never reports a fake pass.
+ * failure evidence goes back to the model for another repair round, up to
+ * a bounded maxRounds (default 3: one initial attempt + two repairs, cap 5)
+ * — the loop never exceeds the budget and never reports a fake pass.
  * The runner (gates.ts) stays pure; the repair policy lives here alone.
  *
  * Contract artifacts: buildlog.jsonl in the workspace records every stage
@@ -59,13 +60,18 @@ Stack contract (must boot headless with dummy env):
 - Vite + React 18 + TypeScript. package.json scripts: "check": "tsc --noEmit", "build": "vite build", "start": "vite preview --port $PORT --strictPort".
 - Include: package.json, tsconfig.json, vite.config.ts, index.html, src/main.tsx, src/App.tsx, and one source file per declared screen under src/screens/. Plain CSS or inline styles — no UI kit installs beyond react/react-dom.
 - Data: browser localStorage behind a small typed store. State on the screen how to clear it. No backend, no secrets, no network calls to third-party APIs.
-- smoke.mjs: a Node script (built-in fetch only, no installs) that reads APP_URL and asserts the primary flow responds: root returns 200 HTML that references the app, and every data-backed screen route you define returns 200. Exit non-zero with a clear message on any failure. This replaces the scaffold placeholder — G4 runs it.
+- smoke.mjs: a Node script (built-in fetch only, no installs) that verifies the app in three named stages and exits non-zero on the first failure, printing one "stage <name>: ok" line per stage:
+  1. html-sanity — APP_URL returns 200 text/html containing the mount element (<div id="root">) and a <script> tag.
+  2. assets-200 — every src/href referenced by a <script> or <link> tag in index.html returns 200 (resolve relative URLs against APP_URL).
+  3. routes-200 — SMOKE_SCREENS is a JSON array of routes (see the routing contract below); every route returns 200.
+- Routing contract: the first screen in the spec is the start screen at "/", every other screen is served at "/<kebab-case-name>".
+- Browser contract for the runner's stages 4-5 (no work needed in the app beyond this): every screen's primary-action control carries data-testid="primary-action", and clicking it must change the DOM or navigate without throwing. The verification runner clicks it headlessly and fails the build on console.error, uncaught exceptions, or a click that throws or does nothing.
 - Typecheck clean under tsc --noEmit with "strict": true. No any-spam; the app must actually implement the spec's entities, screens, and primary flow.
 - Keep it small and real: a complete, working, unglamorous app beats an ambitious shell. Every declared screen exists and renders; the primary action of each screen works against the store.
 - path values are repo-relative forward-slash paths (e.g. "src/screens/InvoiceList.tsx"). Allowed extensions: ts, tsx, js, jsx, mjs, cjs, json, html, css, md, txt, svg. Never write spec.json, buildlog.jsonl, or anything under node_modules/ or dist/.`;
 }
 
-/** Round 1 asks for the app; the repair round appends the gate evidence. */
+/** Round 1 asks for the app; repair rounds append the gate evidence. */
 export function buildCodegenMessages(
   spec: BuildSpec,
   failure?: string,
@@ -147,7 +153,7 @@ export interface CodegenDeps {
     spec: BuildSpec,
     config?: GateConfig,
   ) => Promise<GateResult[]>;
-  /** Total generation rounds: 1 initial + (maxRounds-1) repairs. Default 2. */
+  /** Total generation rounds: 1 initial + (maxRounds-1) repairs. Default 3. */
   maxRounds?: number;
 }
 
@@ -161,7 +167,7 @@ export async function runBuild(
   spec: BuildSpec,
   deps: CodegenDeps = {},
 ): Promise<BuildOutcome> {
-  const maxRounds = Math.max(1, deps.maxRounds ?? 2);
+  const maxRounds = Math.max(1, Math.min(5, deps.maxRounds ?? 3));
   const gateRunner = deps.gateRunner ?? ((w, s) => runGates(w, s));
   const events: BuildEvent[] = [];
   // Build events stream to buildlog.jsonl as they happen so the status

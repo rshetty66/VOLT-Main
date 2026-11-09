@@ -10,6 +10,7 @@
  *   GET  /workspace/:session/file/*     read one file (413 over the read cap)
  *   PUT  /workspace/:session/file/*     write one file (256 KB cap)
  *   POST /gates/:session/run            run the G0–G4 chain from spec.json
+ *   POST /build/:session/run            full build; optional { maxRounds } (1–5)
  *
  * Everything session-scoped resolves through workspaceFor, which sanitizes
  * the id and confines all file operations to that session's directory.
@@ -47,6 +48,7 @@ export interface BuilderRouteDeps {
   build?: (
     ws: import("./workspace").Workspace,
     spec: unknown,
+    opts?: { maxRounds?: number },
   ) => Promise<BuildOutcome>;
   dataDir?: string;
   /** Persistence hooks — injectable for tests; default to the real store. */
@@ -72,7 +74,10 @@ export function createBuilderRoutes(
     ((ws, spec) => runGates(ws, spec as Parameters<typeof runGates>[1]));
   const build =
     deps.build ??
-    ((ws, spec) => runBuild(ws, spec as Parameters<typeof runBuild>[1]));
+    ((ws, spec, opts) =>
+      runBuild(ws, spec as Parameters<typeof runBuild>[1], {
+        maxRounds: opts?.maxRounds,
+      }));
   const dataDir = deps.dataDir ?? builderDataDir();
   const persist = deps.persist ?? {};
   const recordSpec = persist.recordSpec ?? recordSpecCompile;
@@ -307,13 +312,44 @@ export function createBuilderRoutes(
     return c.json({ results, summary: summarize(results) });
   });
 
-  // --- Full build: scaffold → codegen → gates → one repair -------------------
+  // --- Full build: scaffold → codegen → gates → bounded repairs --------------
+
+  const MIN_ROUNDS = 1;
+  const MAX_ROUNDS = 5;
+  const DEFAULT_ROUNDS = 3;
+
+  /**
+   * Optional { maxRounds } body: total generation rounds (1 initial +
+   * repairs). Clamped to 1–5; the default matches the codegen policy.
+   */
+  const parseRounds = async (c: import("hono").Context): Promise<
+    { ok: true; maxRounds?: number } | { ok: false; body: unknown }
+  > => {
+    const raw = await c.req.text();
+    if (!raw.trim()) return { ok: true, maxRounds: undefined };
+    let body: { maxRounds?: unknown };
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      return { ok: false, body: { error: "Invalid JSON body" } };
+    }
+    if (typeof body.maxRounds !== "number" || !Number.isFinite(body.maxRounds)) {
+      return { ok: false, body: { error: "maxRounds must be a number" } };
+    }
+    const clamped = Math.min(
+      MAX_ROUNDS,
+      Math.max(MIN_ROUNDS, Math.round(body.maxRounds)),
+    );
+    return { ok: true, maxRounds: clamped };
+  };
 
   app.post("/build/:session/run", async (c) => {
     const session = c.req.param("session");
     if (running.has(session)) {
       return c.json({ error: "a build is already running for this session" }, 409);
     }
+    const rounds = await parseRounds(c);
+    if (!rounds.ok) return c.json(rounds.body, 400);
     const loaded = await loadSpec(session);
     if (!loaded.ok) return c.json(loaded.body, loaded.status);
     const uid = Number(c.get("user").id);
@@ -327,7 +363,9 @@ export function createBuilderRoutes(
     running.add(session);
     let outcome: BuildOutcome;
     try {
-      outcome = await build(loaded.ws, loaded.spec);
+      outcome = await build(loaded.ws, loaded.spec, {
+        maxRounds: rounds.maxRounds ?? DEFAULT_ROUNDS,
+      });
     } catch (err) {
       log.error("builder build failed", {
         error: err instanceof Error ? err.message : String(err),
