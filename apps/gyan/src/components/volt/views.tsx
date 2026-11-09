@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Search, ArrowRight, FileText, Check, X, Download, Sparkles } from 'lucide-react';
-import serviceLines from '@/data/service_lines.json';
+import serviceLines from '@/data/service_lines';
 import layersData from '@/data/layers.json';
 import { CloseTrend, ProgressDonut, HBars } from './charts';
 import {
