@@ -46,11 +46,13 @@ api/                 Hono server (boot.ts), routes, AI orchestration
   data/              catalog.json, models.json (generated from the registry)
   builder/           VOLT Builder core — spec schema + G0 (spec.ts), isolated
                      workspace (workspace.ts), scaffolder (scaffold.ts),
-                     spec compiler (compiler.ts), gate runner G0–G4 (gates.ts),
-                     codegen agent loop with one-repair policy (codegen.ts),
-                     per-user history persistence (store.ts), service endpoints
-                     (routes.ts, /api/builder, authed; spec/build/gates/status/
-                     sessions/preview); all vitest-covered
+                     spec compiler (compiler.ts), gate runner G0–G4 (gates.ts;
+                     G4 runs the staged smoke.mjs plus a headless-chromium
+                     console/primary-action probe), codegen agent loop with
+                     bounded repair rounds (codegen.ts), chromium probe
+                     (browser.ts), per-user history persistence (store.ts),
+                     service endpoints (routes.ts, /api/builder, authed; spec/
+                     build/gates/status/sessions/preview); all vitest-covered
 src/components/volt/BuilderView.tsx
                      Builder surface — spec review, live build ticker, gate
                      report, file browser, dist preview, Studio hand-off

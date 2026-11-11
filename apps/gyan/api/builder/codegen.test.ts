@@ -61,9 +61,15 @@ describe("codegen contract", () => {
     expect(p).toContain("smoke.mjs");
     expect(p).toContain("localStorage");
     expect(p).toContain("Never write spec.json");
+    // D12 staged smoke contract: named fetch stages + browser stages.
+    expect(p).toContain("html-sanity");
+    expect(p).toContain("assets-200");
+    expect(p).toContain("routes-200");
+    expect(p).toContain('data-testid="primary-action"');
+    expect(p).toContain("SMOKE_SCREENS");
   });
 
-  it("repair round appends failure evidence as a new user message", () => {
+  it("repair rounds append failure evidence as new user messages", () => {
     const report = failureReport(G1_FAIL);
     expect(report).toContain("gate G1 failed");
     expect(report).toContain("TS2304");
@@ -134,10 +140,11 @@ describe("runBuild", () => {
     expect(outcome.summary).toBe("5/5 gates passed");
   });
 
-  it("repairs exactly once with gate evidence, then stops when still failing", async () => {
+  it("repairs with gate evidence up to maxRounds, then stops when still failing", async () => {
     const prompts: string[] = [];
     let gateCalls = 0;
     const outcome = await runBuild(ws, validSpec(), {
+      maxRounds: 2,
       generate: async (args) => {
         prompts.push(args.messages.map((m) => String(m.content)).join("\n"));
         return { object: fileMap({ "src/App.tsx": "export {}" }) };
@@ -153,6 +160,38 @@ describe("runBuild", () => {
     expect(gateCalls).toBe(2);
     expect(outcome.rounds).toEqual({ used: 2, repaired: true });
     expect(outcome.summary).toContain("gate G1 failed");
+  });
+
+  it("uses up to three rounds by default and reports the honest count", async () => {
+    let generateCalls = 0;
+    let gateCalls = 0;
+    const outcome = await runBuild(ws, validSpec(), {
+      generate: async () => {
+        generateCalls++;
+        return { object: fileMap({ "src/App.tsx": "export {}" }) };
+      },
+      gateRunner: async () => {
+        gateCalls++;
+        return G1_FAIL;
+      },
+    });
+    expect(generateCalls).toBe(3);
+    expect(gateCalls).toBe(3);
+    expect(outcome.rounds).toEqual({ used: 3, repaired: true });
+  });
+
+  it("never exceeds the five-round cap even when asked to", async () => {
+    let generateCalls = 0;
+    const outcome = await runBuild(ws, validSpec(), {
+      maxRounds: 99,
+      generate: async () => {
+        generateCalls++;
+        return { object: fileMap({ "src/App.tsx": "export {}" }) };
+      },
+      gateRunner: async () => G1_FAIL,
+    });
+    expect(generateCalls).toBe(5);
+    expect(outcome.rounds).toEqual({ used: 5, repaired: true });
   });
 
   it("scaffolds, preserves spec.json, and writes buildlog.jsonl", async () => {

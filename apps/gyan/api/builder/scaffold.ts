@@ -25,10 +25,11 @@ const PACKAGE_JSON = {
   },
 };
 
-/** Placeholder the codegen agent must replace with a real smoke test. */
+/** Placeholder the codegen agent must replace with a real staged smoke test. */
 const SMOKE_MJS = `// smoke.mjs — Builder G4 smoke harness.
-// The codegen agent replaces this with a Playwright script that exercises
-// the primary flow. Until then it fails closed so G4 can never fake-pass.
+// The codegen agent replaces this with a staged fetch script (html-sanity,
+// assets-200, routes-200). Until then it fails closed so G4 can never
+// fake-pass; the browser stages of G4 run in the Builder runner itself.
 const url = process.env.APP_URL;
 if (!url) {
   console.error("APP_URL is required");

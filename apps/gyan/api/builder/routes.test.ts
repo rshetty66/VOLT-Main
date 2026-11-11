@@ -323,6 +323,60 @@ describe("builder routes", () => {
     expect(third.status).toBe(200);
   });
 
+  it("passes maxRounds through to the build, clamped to 1-5", async () => {
+    const seen: (number | undefined)[] = [];
+    const app2 = new Hono();
+    app2.route(
+      "/api/builder",
+      createBuilderRoutes({
+        authenticate: async () => fakeUser,
+        compile: async (input) => {
+          const spec = validSpec();
+          spec.appName = input.prompt.slice(0, 60);
+          return { spec, g0: checkSpec(spec) };
+        },
+        build: async (_ws, _spec, opts) => {
+          seen.push(opts?.maxRounds);
+          return {
+            summary: "5/5 gates passed",
+            results: [],
+            rounds: { used: 1, repaired: false },
+            events: [],
+          };
+        },
+        dataDir: dir,
+      }),
+    );
+    await app2.request("/api/builder/spec", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "Rounds", sessionId: "s-rounds" }),
+    });
+    // default
+    await app2.request("/api/builder/build/s-rounds/run", { method: "POST" });
+    // clamped high and low
+    await app2.request("/api/builder/build/s-rounds/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maxRounds: 99 }),
+    });
+    await app2.request("/api/builder/build/s-rounds/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maxRounds: 0 }),
+    });
+    expect(seen).toEqual([3, 5, 1]);
+  });
+
+  it("rejects a non-numeric maxRounds", async () => {
+    const res = await app.request("/api/builder/build/s5/run", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ maxRounds: "many" }),
+    });
+    expect(res.status).toBe(400);
+  });
+
   it("runs a full build through the injected codegen dep", async () => {
     const builtFor: string[] = [];
     const app2 = new Hono();
