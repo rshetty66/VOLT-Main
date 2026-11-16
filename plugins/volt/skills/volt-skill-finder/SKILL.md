@@ -41,6 +41,7 @@ always-on listing to save context, and opened through this skill.
 | OSFI BCAR submission readiness | `osfi-regulatory-expert`, `regulatory-reporting` |
 | Mortgage lifecycle to accounting events, hub, EPM and OSFI lineage | `design-finance-architecture` (core, hand-written; also `/volt:design-finance-architecture`), `accounting-policy-banking-insurance` |
 | Animated client demo of a close dashboard or landing page | `react-bits-prototyping` (core, hand-written), `creative-design` |
+| OneStream cube and dimension design, bank NII and ECL planning model, finance data platform feeding the EPM | `onestream-fpa-data-architect` (core, hand-written), `onestream-fpa-transformation`, `si-data-architect` |
 
 ## Anti-Patterns
 
