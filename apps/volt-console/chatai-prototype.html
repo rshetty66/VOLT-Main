@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VOLT — ChatAI Command Center</title>
+<style>
+:root {
+  --void: #0f172a; --surface: #1e293b; --elevated: #334155;
+  --border: #475569; --muted: #64748b; --body: #94a3b8;
+  --heading: #e2e8f0; --primary: #f8fafc; --accent: #ffffff;
+  --line: rgba(255,255,255,0.1); --line-strong: rgba(255,255,255,0.2);
+  --ok: #4ade80; --warn: #facc15; --err: #f87171;
+  --font: "Inter", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, monospace;
+  color-scheme: dark;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--void);color:var(--primary);font:400 14px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+
+/* Layout */
+.app{display:grid;grid-template-columns:220px 1fr;grid-template-rows:48px 1fr;height:100vh}
+.topbar{grid-column:1/-1;display:flex;align-items:center;gap:12px;padding:0 20px;border-bottom:1px solid var(--line);background:var(--void)}
+.brand{display:flex;align-items:baseline;gap:10px;margin-right:auto}
+.brand b{font-size:18px;font-weight:700;letter-spacing:.08em}
+.brand span{color:var(--body);font-size:13px}
+.badge{font-size:10px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:2px 7px;border-radius:5px;border:1px solid var(--line-strong)}
+.badge.live{background:var(--accent);color:#0b1220;border-color:var(--accent)}
+.badge.demo{color:var(--body)}
+.nav{border-right:1px solid var(--line);padding:14px 10px;display:flex;flex-direction:column;gap:2px;overflow-y:auto}
+.nav button{text-align:left;background:none;border:0;border-radius:8px;padding:8px 12px;color:var(--body);cursor:pointer;display:flex;justify-content:space-between;align-items:center;width:100%}
+.nav button:hover{background:rgba(255,255,255,.05);color:var(--primary)}
+.nav button.active{background:var(--surface);color:var(--primary);font-weight:500}
+.nav .count{font-size:11px;color:var(--muted)}
+.nav .sep{height:1px;background:var(--line);margin:10px 4px}
+.main{overflow-y:auto;padding:24px;min-width:0}
+
+.cc{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;max-width:1240px;margin:0 auto}
+@media(max-width:1100px){.cc{grid-template-columns:1fr}}
+.page-title{font-size:22px;font-weight:600;letter-spacing:-.01em;margin-bottom:4px}
+.page-sub{color:var(--body);max-width:72ch;margin-bottom:0}
+.micro{font-size:10px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:14px 16px}
+.stack{display:flex;flex-direction:column;gap:12px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+.btn{border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line-strong);background:rgba(255,255,255,.08);color:var(--primary);font-weight:500}
+.btn:hover{background:rgba(255,255,255,.16)}
+.btn.primary{background:var(--accent);color:#0b1220;border-color:var(--accent)}
+.btn.primary:hover{background:rgba(255,255,255,.85)}
+.btn.ghost{background:none;border-color:transparent;color:var(--body)}
+.btn.ghost:hover{color:var(--primary);background:rgba(255,255,255,.05)}
+.btn:disabled{opacity:.4;pointer-events:none}
+.btn.sm{padding:4px 10px;font-size:12px}
+
+.select{background:var(--void);border:1px solid var(--border);border-radius:8px;padding:7px 10px;outline:none;width:auto;max-width:280px}
+.select:focus{border-color:var(--accent)}
+.textarea{width:100%;background:var(--void);border:1px solid var(--border);border-radius:8px;padding:9px 12px;outline:none;resize:vertical;min-height:88px;line-height:1.5}
+.textarea:focus{border-color:var(--accent)}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;background:rgba(255,255,255,.06);border:1px solid var(--line);color:var(--heading);font-size:12px}
+
+.qgrid{display:grid;gap:10px;grid-template-columns:repeat(auto-fill,minmax(260px,1fr))}
+.qcard{text-align:left;padding:12px 14px;cursor:pointer;background:var(--surface);border:1px solid var(--line);border-radius:10px;color:var(--body);font-size:13px;line-height:1.5;transition:border-color .15s}
+.qcard:hover{border-color:var(--line-strong);color:var(--primary)}
+
+.run-box{background:var(--void);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.run-head{padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--line);display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.run-body{padding:14px;font-size:13px;color:var(--heading);line-height:1.6;min-height:60px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--muted);flex:none}
+.dot.running{background:var(--accent);animation:pulse 1.2s infinite ease-in-out}
+.dot.done{background:var(--ok)}
+@keyframes pulse{50%{opacity:.3}}
+
+.phases{display:flex;gap:6px;flex-wrap:wrap;margin:8px 0 10px}
+.phase-chip{padding:4px 10px;border-radius:8px;border:1px solid var(--line);color:var(--muted);font-size:11px}
+.phase-chip.done{color:var(--heading);background:rgba(255,255,255,.06)}
+.phase-chip.running{color:var(--primary);border-color:var(--line-strong)}
+
+.lanes{display:grid;gap:8px;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));margin:10px 0}
+.lane{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.lane-name{font-weight:600;font-size:13px;margin-bottom:4px}
+.lane-layer{font-size:11px;color:var(--muted);margin-bottom:6px}
+.lane-text{font-size:12px;color:var(--body);line-height:1.5}
+
+.spinner{width:12px;height:12px;border:2px solid var(--line-strong);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+.answer h2{font-size:16px;margin:12px 0 6px;color:var(--primary)}
+.answer h3{font-size:14px;margin:10px 0 4px;color:var(--primary)}
+.answer p{margin:4px 0;color:var(--heading)}
+.answer table{border-collapse:collapse;width:100%;margin:8px 0;font-size:12px}
+.answer th,.answer td{border:1px solid var(--line);padding:5px 9px;text-align:left}
+.answer th{background:rgba(255,255,255,.05);color:var(--primary)}
+.answer ul,.answer ol{margin:4px 0 4px 18px;color:var(--heading)}
+.answer li{margin:2px 0}
+.answer strong{color:var(--primary)}
+.answer code{background:rgba(255,255,255,.08);padding:1px 5px;border-radius:4px;font-family:var(--mono);font-size:11px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand"><b>VOLT</b><span>Agentic Console · Vision, Orchestrate, Launch, Transform</span></div>
+    <span class="badge demo">DEMO</span>
+    <span style="font-size:12px;color:var(--muted)">offline simulator · claude-opus-5-5</span>
+    <span style="font-size:12px;color:var(--muted)">volt plugin@59787eb</span>
+  </header>
+  <nav class="nav">
+    <button class="active" onclick="switchTab('chatai',this)">ChatAI</button>
+    <div class="sep"></div>
+    <button onclick="switchTab('console',this)">Agent Console</button>
+    <button onclick="switchTab('workflows',this)">Workflows <span class="count">35</span></button>
+    <button onclick="switchTab('agents',this)">Agents <span class="count">236</span></button>
+    <button onclick="switchTab('skills',this)">Skill Finder <span class="count">378</span></button>
+    <button onclick="switchTab('services',this)">Services <span class="count">60</span></button>
+    <button onclick="switchTab('analytics',this)">Analytics <span class="count">12</span></button>
+    <button onclick="switchTab('finance',this)">Finance Workbench</button>
+    <button onclick="switchTab('health',this)">Capability Health <span class="count">90</span></button>
+  </nav>
+  <main class="main">
+    <div id="view-chatai">
+      <div class="cc">
+        <section class="stack">
+          <div>
+            <h1 class="page-title">ChatAI Command Center</h1>
+            <p class="page-sub">Unified chat for ask, workflow, and specialist-agent execution with a live artifact panel.</p>
+          </div>
+          <div class="card stack">
+            <div class="row">
+              <span class="micro">Mode</span>
+              <select class="select" id="modeSelect" onchange="onModeChange()">
+                <option value="ask">Ask (Rudra orchestration)</option>
+                <option value="workflow">Workflow run</option>
+                <option value="agent">Direct agent</option>
+                <option value="workbench">Finance Workbench</option>
+              </select>
+              <span id="workflowPicker" class="row" style="display:none">
+                <span class="micro">Workflow</span>
+                <select class="select" id="wfSelect">
+                  <option value="finance-assessment">Finance Function Assessment</option>
+                  <option value="coa-design">COA Design</option>
+                  <option value="close-optimization">Finance Close Optimization</option>
+                  <option value="ma-due-diligence">M&amp;A Due Diligence</option>
+                  <option value="erp-implementation">ERP Implementation</option>
+                  <option value="bcar-capital-reporting">BCAR Capital Reporting</option>
+                  <option value="finance-ai-strategy">Finance AI Strategy &amp; Roadmap</option>
+                </select>
+              </span>
+              <span id="agentPicker" class="row" style="display:none">
+                <span class="micro">Agent</span>
+                <select class="select" id="agentSelect">
+                  <option value="rudra">rudra — master orchestrator</option>
+                  <option value="coa-designer">coa-designer</option>
+                  <option value="financial-modeling-agent">financial-modeling-agent</option>
+                  <option value="apqc-researcher">apqc-researcher</option>
+                  <option value="si-finance-process-lead">si-finance-process-lead</option>
+                </select>
+              </span>
+            </div>
+            <div id="composerBox">
+              <textarea class="textarea" id="promptInput" rows="4" placeholder="Ask your question or describe the client context…" onkeydown="if((event.metaKey||event.ctrlKey)&&event.key==='Enter')run()"></textarea>
+              <div class="row" style="justify-content:space-between;margin-top:8px">
+                <span style="font-size:12px;color:var(--muted)">Ctrl/Cmd+Enter to send</span>
+                <button class="btn primary" id="runBtn" onclick="run()">Run</button>
+              </div>
+            </div>
+            <div id="workbenchBox" style="display:none">
+              <span class="page-sub">Open the Finance Architecture Workbench.</span>
+              <button class="btn primary" onclick="switchTab('finance',null)" style="margin-left:12px">Open Workbench</button>
+            </div>
+          </div>
+          <div class="qgrid" id="quickPrompts">
+            <button class="qcard" onclick="fillPrompt(this.textContent)">Design a consulting proposal for close optimization with measurable KPIs and 90-day milestones.</button>
+            <button class="qcard" onclick="fillPrompt(this.textContent)">Compare Oracle ERP Cloud and SAP S/4HANA for a multi-entity finance transformation.</button>
+          </div>
+          <div id="responseArea" style="display:none" class="stack">
+            <div class="run-box">
+              <div class="run-head">
+                <span class="dot" id="runDot"></span>
+                <span class="micro" id="runTitle">Running…</span>
+                <span style="margin-left:auto;font-size:11px;color:var(--muted)" id="runMeta"></span>
+                <button class="btn sm ghost" id="stopBtn" onclick="stopRun()">Stop</button>
+              </div>
+              <div class="run-body">
+                <div id="phasesRow" class="phases"></div>
+                <div id="lanesRow" class="lanes" style="display:none"></div>
+                <div class="answer" id="answerBox"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+        <aside class="stack">
+          <div class="card stack">
+            <span class="micro">Run Artifacts</span>
+            <span style="color:var(--muted)" id="artifactEmpty">No run yet.</span>
+            <div id="artifactContent" style="display:none" class="stack">
+              <div><div class="micro" style="margin-bottom:6px">Status</div><div class="row" id="artifactStatus"></div></div>
+              <div id="artifactPhasesSec" style="display:none"><div class="micro" style="margin-bottom:6px">Phases</div><div class="stack" style="gap:4px" id="artifactPhasesList"></div></div>
+              <div id="artifactToolsSec" style="display:none"><div class="micro" style="margin-bottom:6px">Tools used</div><div class="row" id="artifactToolsList"></div></div>
+              <div id="artifactAgentsSec" style="display:none"><div class="micro" style="margin-bottom:6px">Specialists</div><div class="row" id="artifactAgentsList"></div></div>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </div>
+    <div id="view-console" style="display:none"><h1 class="page-title">Agent Console</h1><p class="page-sub">Use ChatAI for the new experience.</p></div>
+    <div id="view-workflows" style="display:none"><h1 class="page-title">Workflows <span style="font-size:14px;font-weight:400;color:var(--muted)">35</span></h1><p class="page-sub">35 multi-phase workflows. Launch one from ChatAI.</p></div>
+    <div id="view-agents" style="display:none"><h1 class="page-title">Agent Registry <span style="font-size:14px;font-weight:400;color:var(--muted)">236</span></h1><p class="page-sub">236 specialist agents across 48 layers.</p></div>
+    <div id="view-skills" style="display:none"><h1 class="page-title">Skill Finder <span style="font-size:14px;font-weight:400;color:var(--muted)">378</span></h1><p class="page-sub">378 VOLT skills.</p></div>
+    <div id="view-services" style="display:none"><h1 class="page-title">Services <span style="font-size:14px;font-weight:400;color:var(--muted)">60</span></h1><p class="page-sub">60-service consulting catalogue.</p></div>
+    <div id="view-analytics" style="display:none"><h1 class="page-title">Analytics</h1><p class="page-sub">APQC benchmark positioning and value cases.</p></div>
+    <div id="view-finance" style="display:none"><h1 class="page-title">Finance Architecture Workbench</h1><p class="page-sub">Six-step workbench: Sources — Event Designer — Journal Simulator — Mapping Prover — Crosswalk — Evidence Pack.</p></div>
+    <div id="view-health" style="display:none"><h1 class="page-title">Capability Health</h1><p class="page-sub">Registry vs. shipped plugin coverage.</p></div>
+  </main>
+</div>
+<script>
+const VIEWS=['chatai','console','workflows','agents','skills','services','analytics','finance','health'];
+function switchTab(id,btn){VIEWS.forEach(v=>{const el=document.getElementById('view-'+v);if(el)el.style.display=(v===id)?'':'none';});document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));if(btn)btn.classList.add('active');}
+function onModeChange(){const mode=document.getElementById('modeSelect').value;document.getElementById('workflowPicker').style.display=mode==='workflow'?'':'none';document.getElementById('agentPicker').style.display=mode==='agent'?'':'none';document.getElementById('composerBox').style.display=mode==='workbench'?'none':'';document.getElementById('workbenchBox').style.display=mode==='workbench'?'':'none';const qcards={ask:['Design a consulting proposal for close optimization with measurable KPIs and 90-day milestones.','Compare Oracle ERP Cloud and SAP S/4HANA for a multi-entity finance transformation.'],workflow:['Banking client with fragmented BCAR reporting needs an implementation plan and governance model.','Global enterprise needs ERP migration roadmap with data conversion, testing, and cutover timeline.'],agent:['Assess my finance process maturity and recommend top 5 improvements with business value.','Draft an executive-ready summary of finance AI opportunities with a value-case table.'],workbench:[]};document.getElementById('quickPrompts').innerHTML=(qcards[mode]||[]).map(p=>`<button class="qcard" onclick="fillPrompt(this.textContent)">${p}</button>`).join('');}
+function fillPrompt(text){document.getElementById('promptInput').value=text;document.getElementById('promptInput').focus();}
+const DEMO_RUNS={ask:{title:'Rudra orchestration',phases:[{name:'Routing & planning'},{name:'Specialist consultation'},{name:'Synthesis'}],tools:['apqc_benchmark','find_agents','find_skills','load_skill','build_value_case'],agents:['apqc-researcher','si-finance-process-lead','financial-modeling-agent','creative-designer'],answer:`<h2>Finance Close Optimization — Consulting Proposal</h2><p><strong>Situation:</strong> Client operates an 8–12 day month-end close on SAP S/4HANA with high manual reconciliation burden.</p><h3>Recommended Approach</h3><table><tr><th>Phase</th><th>Deliverable</th><th>Duration</th><th>KPI Target</th></tr><tr><td>1 — Diagnose</td><td>Close baseline map, APQC benchmark</td><td>Weeks 1–2</td><td>Baseline confirmed</td></tr><tr><td>2 — Design</td><td>Future-state close calendar</td><td>Weeks 3–4</td><td>Target: 5-day close</td></tr><tr><td>3 — Implement</td><td>Reconciliation automation, ERP config</td><td>Weeks 5–10</td><td>Recon cycle &lt;1 day</td></tr><tr><td>4 — Sustain</td><td>KPI dashboard, operator runbook</td><td>Weeks 11–12</td><td>80% journal auto-posting</td></tr></table><h3>Value Case</h3><ul><li><strong>Close days reduced:</strong> 12 to 5 days (58%)</li><li><strong>FTE redeployment:</strong> 4 FTEs freed for analysis</li><li><strong>Loaded benefit:</strong> ~$460K annually</li></ul>`},workflow:{title:'Finance Function Assessment — workflow run',phases:[{name:'1. Current State'},{name:'2. Gap Analysis'},{name:'3. Recommendations'},{name:'4. Executive Report'}],tools:['apqc_benchmark','score_maturity','find_skills','build_value_case'],agents:['apqc-researcher','si-finance-process-lead','internal-audit-agent','financial-modeling-agent','creative-designer','fact-check-agent'],answer:`<h2>Finance Function Assessment — Executive Report</h2><p><strong>Overall Maturity:</strong> Level 2.4 / 5 (bottom quartile vs. APQC peers)</p><h3>Key Findings</h3><table><tr><th>Domain</th><th>Current</th><th>Target</th><th>Gap</th></tr><tr><td>Record-to-Report</td><td>12-day close</td><td>5-day close</td><td>HIGH</td></tr><tr><td>Planning &amp; Forecasting</td><td>Excel-based</td><td>Integrated EPM</td><td>HIGH</td></tr><tr><td>Controls &amp; Compliance</td><td>Manual SOX testing</td><td>Continuous monitoring</td><td>MEDIUM</td></tr></table><h3>Top Recommendations</h3><ol><li>Close acceleration program (90-day delivery)</li><li>EPM platform deployment (Oracle PBCS or OneStream)</li><li>Automated reconciliation</li><li>Finance data lake with self-service BI</li></ol><p>Total addressable value: <strong>$2.1M–$3.4M annually</strong>.</p>`},agent:{title:'coa-designer — direct agent',phases:[],tools:['find_skills','load_skill'],agents:['coa-designer'],answer:`<h2>COA Design — Assessment &amp; Recommendations</h2><h3>Design Principles</h3><ul><li><strong>Segment model:</strong> Entity | Account | Cost Centre | Product | Project | Intercompany | Future</li><li><strong>Account length:</strong> 6-digit natural account (expandable to 8)</li><li><strong>Hierarchy:</strong> FSI-compliant rollup supporting IFRS statutory + management reporting</li></ul><h3>High-Priority Gaps</h3><table><tr><th>Gap</th><th>Impact</th><th>Fix</th></tr><tr><td>No intercompany segment</td><td>Elimination failures</td><td>Add 4-digit IC partner code</td></tr><tr><td>Mixed P&amp;L and BS in same range</td><td>Automation errors</td><td>Restructure 1xxxxx=BS, 4xxxxx=P&amp;L</td></tr><tr><td>No project segment</td><td>Cannot track programme costs</td><td>Add optional project segment</td></tr></table>`}};
+let runTimer=null,running=false;
+function run(){const prompt=document.getElementById('promptInput').value.trim();if(!prompt)return;const mode=document.getElementById('modeSelect').value;if(mode==='workbench'){switchTab('finance',null);return;}startRun(mode);}
+function startRun(mode){running=true;const data=DEMO_RUNS[mode]||DEMO_RUNS.ask;document.getElementById('responseArea').style.display='';document.getElementById('artifactEmpty').style.display='none';document.getElementById('artifactContent').style.display='';document.getElementById('runBtn').disabled=true;document.getElementById('runDot').className='dot running';document.getElementById('runTitle').textContent=data.title;document.getElementById('runMeta').textContent='Demo mode · simulating…';document.getElementById('stopBtn').style.display='';document.getElementById('answerBox').innerHTML='<span class="spinner"></span> Working…';document.getElementById('phasesRow').innerHTML='';document.getElementById('lanesRow').style.display='none';document.getElementById('artifactStatus').innerHTML='<span class="chip">running</span><span class="chip">'+mode+'</span>';document.getElementById('artifactPhasesSec').style.display=data.phases.length?'':'none';document.getElementById('artifactPhasesList').innerHTML=data.phases.map(p=>`<span class="chip">${p.name}</span>`).join('');document.getElementById('artifactToolsSec').style.display=data.tools.length?'':'none';document.getElementById('artifactToolsList').innerHTML=data.tools.map(t=>`<span class="chip">${t}</span>`).join('');document.getElementById('artifactAgentsSec').style.display=data.agents.length?'':'none';document.getElementById('artifactAgentsList').innerHTML=data.agents.map(a=>`<span class="chip">${a}</span>`).join('');let phaseIdx=0;const phasesEl=document.getElementById('phasesRow');function nextPhase(){if(!running)return;if(phaseIdx<data.phases.length){const p=data.phases[phaseIdx];const chip=document.createElement('span');chip.className='phase-chip running';chip.textContent=p.name;chip.id='ph-'+phaseIdx;phasesEl.appendChild(chip);setTimeout(()=>{const c=document.getElementById('ph-'+phaseIdx);if(c)c.className='phase-chip done';},900);phaseIdx++;runTimer=setTimeout(nextPhase,1200);}else{showLanes(data.agents,()=>finishRun(data));}}if(data.phases.length){runTimer=setTimeout(nextPhase,400);}else{runTimer=setTimeout(()=>finishRun(data),1200);}}
+function showLanes(agents,cb){if(!running)return;const lanesEl=document.getElementById('lanesRow');lanesEl.style.display='';const previews={'apqc-researcher':'Benchmarking against APQC peers across 8 finance process areas…','si-finance-process-lead':'Mapping current-state process flows and identifying bottleneck patterns…','financial-modeling-agent':'Building value case: ROI, NPV/IRR, payback using deterministic tools…','creative-designer':'Structuring executive narrative with McKinsey-style visualizations…','fact-check-agent':'Cross-checking all figures against cited sources…','coa-designer':'Reviewing account segment model and legacy-to-target mapping…','internal-audit-agent':'Assessing control environment and compliance implications…'};lanesEl.innerHTML=agents.slice(0,4).map(a=>`<div class="lane"><div class="lane-name">${a}</div><div class="lane-layer">Specialist</div><div class="lane-text">${previews[a]||'Analysing…'} <span class="spinner"></span></div></div>`).join('');setTimeout(()=>{lanesEl.style.display='none';cb();},1800);}
+function finishRun(data){if(!running)return;running=false;clearTimeout(runTimer);document.getElementById('runDot').className='dot done';document.getElementById('runMeta').textContent='Demo · completed';document.getElementById('stopBtn').style.display='none';document.getElementById('runBtn').disabled=false;document.getElementById('answerBox').innerHTML=data.answer;document.getElementById('artifactStatus').innerHTML='<span class="chip">done</span><span class="chip">'+document.getElementById('modeSelect').value+'</span>';}
+function stopRun(){running=false;clearTimeout(runTimer);document.getElementById('runDot').className='dot';document.getElementById('runMeta').textContent='stopped';document.getElementById('stopBtn').style.display='none';document.getElementById('runBtn').disabled=false;document.getElementById('answerBox').textContent='Run stopped.';}
+</script>
+</body>
+</html>
