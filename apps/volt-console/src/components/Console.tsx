@@ -47,16 +47,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
       {runs.length === 0 && (
         <div className="stack">
           <div className="hero">
-            <div>
-            <h1 className="page-title">Agent Console</h1>
-            <p className="page-sub">
-              Ask Rudra, VOLT's master orchestrator. It routes your request across {catalog.agents.length} specialist agents, delegates
-              workstreams to them in parallel, pulls VOLT skill packs through the Skill Finder, runs APQC benchmarks and value-case
-              maths as tools, and synthesises one executive deliverable. Pick an agent to talk to it directly, or launch a full
-              multi-phase run from Workflows.
-            </p>
-            </div>
-            <img className="hero-ink" src="/brand/ink-accent.png" alt="" />
+            <img className="hero-ink" src="/brand/ink-accent.png" alt="VOLT Agent Console" />
           </div>
           {!live && (
             <div className="card body">
@@ -131,6 +122,8 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
   // The research engine's gates, run on the finished answer against the run's source register.
   const gates = run.state !== "running" && run.tier && run.text.trim() ? evidenceGates(run.text, run.sources, run.tier) : [];
   const openGates = gates.filter((g) => !g.pass);
+  // Each specialist's finished workstream, readable while the lead is still writing the summary.
+  const readySections = run.laneOrder.map((id) => run.lanes[id]).filter((l) => l && l.state === "done" && l.text.trim());
   const elapsed = Math.round(((run.finishedAt ?? Date.now()) - run.startedAt) / 1000);
   const [, tick] = useState(0);
   useEffect(() => {
@@ -184,6 +177,21 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
               <div key={i} className={`phase ${p?.state ?? ""}`}>
                 {i + 1}. {p?.name}
               </div>
+            ))}
+          </div>
+        )}
+        {readySections.length > 0 && (
+          <div className="sections">
+            <div className="micro">
+              Sections ready to review ({readySections.length}){run.state === "running" ? " · the summary is still being written" : ""}
+            </div>
+            {readySections.map((l) => (
+              <details key={l.id} className="section">
+                <summary>{l.name}</summary>
+                <div className="section-body">
+                  <Markdown text={l.text} />
+                </div>
+              </details>
             ))}
           </div>
         )}
