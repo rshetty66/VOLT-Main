@@ -49,6 +49,9 @@ const security = securityConfig();
 assertSafeToListen(security);
 const app = express();
 app.disable("x-powered-by");
+// Behind a reverse proxy (Render, Fly, nginx) set VOLT_TRUST_PROXY=1 so req.ip and req.secure come from X-Forwarded-*;
+// without it every visitor shares the proxy's address and one rate-limit budget.
+if (process.env.VOLT_TRUST_PROXY) app.set("trust proxy", Number(process.env.VOLT_TRUST_PROXY) || 1);
 
 /** Live when any Claude credential source is configured; VOLT_MODE overrides. */
 function detectMode(): RunMode {
