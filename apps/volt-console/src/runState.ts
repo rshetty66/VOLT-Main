@@ -133,3 +133,28 @@ function summariseInput(input: unknown): string {
   const v = o.query ?? o.agent_id ?? o.skill_id ?? o.metric ?? "";
   return String(v).slice(0, 120);
 }
+
+export interface WorkSummary {
+  specialists: number;
+  finished: number;
+  failed: number;
+  /** Names of the specialists still working, in start order. */
+  working: string[];
+  toolCalls: number;
+  /** Error messages from the orchestrator and every specialist: these stay visible even when the work is collapsed. */
+  errors: string[];
+}
+
+/** The one-line story of a run: who was consulted, how many tools ran, and anything that went wrong. */
+export function summariseWork(run: Run): WorkSummary {
+  const lanes = run.laneOrder.map((id) => run.lanes[id]).filter(Boolean);
+  const items = [...run.activity, ...lanes.flatMap((l) => l.activity)];
+  return {
+    specialists: lanes.length,
+    finished: lanes.filter((l) => l.state !== "running").length,
+    failed: lanes.filter((l) => l.state === "failed").length,
+    working: lanes.filter((l) => l.state === "running").map((l) => l.name),
+    toolCalls: items.filter((a) => a.kind === "tool").length,
+    errors: items.filter((a) => a.isError).map((a) => a.text),
+  };
+}

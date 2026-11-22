@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
-import type { ActivityItem, Lane, Run } from "../runState";
+import { summariseWork, type ActivityItem, type Lane, type Run } from "../runState";
 import { Markdown } from "./Markdown";
 
 const EXAMPLES = [
@@ -121,6 +121,8 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
 
 function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: CatalogResponse; onStop: () => void; onOpenAgent: (id: string) => void }) {
   const lanes = run.laneOrder.map((id) => run.lanes[id]);
+  const work = summariseWork(run);
+  const [showWork, setShowWork] = useState(false);
   const elapsed = Math.round(((run.finishedAt ?? Date.now()) - run.startedAt) / 1000);
   const [, tick] = useState(0);
   useEffect(() => {
@@ -145,36 +147,71 @@ function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: Cat
         )}
         {run.state === "stopped" && <span className="badge">stopped</span>}
       </div>
-      <div className="run-body">
-        {run.phases.length > 0 && (
-          <div className="phases">
-            {run.phases.map((p, i) => (
-              <div key={i} className={`phase ${p?.state ?? ""}`}>
-                {i + 1}. {p?.name}
-                <span className="muted"> · {p?.agents.length} agents</span>
-              </div>
+      <div className="run-body single">
+        {(work.specialists > 0 || work.toolCalls > 0) && (
+          <button className="work-strip" aria-expanded={showWork} onClick={() => setShowWork((x) => !x)}>
+            {run.state === "running" ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <span className="dot done" />}
+            <span className="work-text">{workLine(work, run.state === "running")}</span>
+            <span className="work-toggle">{showWork ? "Hide work" : "Show work"}</span>
+          </button>
+        )}
+        {work.errors.length > 0 && (
+          <div className="run-errors" role="alert">
+            {work.errors.map((m, i) => (
+              <div key={i}>{m}</div>
             ))}
           </div>
         )}
-        {lanes.length > 0 && (
-          <div className="lanes">
-            {lanes.map((l) => (
-              <LaneCard key={l.id} lane={l} catalog={catalog} onOpenAgent={onOpenAgent} />
-            ))}
+        {showWork && (
+          <div className="details">
+            {run.phases.length > 0 && (
+              <div className="phases">
+                {run.phases.map((p, i) => (
+                  <div key={i} className={`phase ${p?.state ?? ""}`}>
+                    {i + 1}. {p?.name}
+                    <span className="muted"> · {p?.agents.length} agents</span>
+                  </div>
+                ))}
+              </div>
+            )}
+            {lanes.length > 0 && (
+              <div className="lanes">
+                {lanes.map((l) => (
+                  <LaneCard key={l.id} lane={l} catalog={catalog} onOpenAgent={onOpenAgent} />
+                ))}
+              </div>
+            )}
+            <div>
+              <div className="micro" style={{ marginBottom: 8 }}>
+                Activity
+              </div>
+              <Activity items={run.activity} />
+            </div>
           </div>
         )}
         <div className="answer">
           {run.text ? <Markdown text={run.text} /> : run.state === "running" ? <p className="muted"><span className="spinner" /> Rudra is working…</p> : null}
         </div>
-        <aside>
-          <div className="micro" style={{ marginBottom: 8 }}>
-            Activity
-          </div>
-          <Activity items={run.activity} />
-        </aside>
       </div>
     </section>
   );
+}
+
+/** "Consulting 3 of 6 specialists: Oracle GL, SAP FI" while running; "Consulted 6 specialists · 4 tool calls" when done. */
+function workLine(w: ReturnType<typeof summariseWork>, running: boolean): string {
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  const parts: string[] = [];
+  if (w.specialists > 0) {
+    if (running) {
+      const names = w.working.slice(0, 2).join(", ") + (w.working.length > 2 ? ` +${w.working.length - 2}` : "");
+      parts.push(w.working.length > 0 ? `Consulting ${w.finished} of ${plural(w.specialists, "specialist")} done: ${names}` : `Consulted ${plural(w.specialists, "specialist")}, writing up`);
+    } else {
+      parts.push(`Consulted ${plural(w.specialists, "specialist")}`);
+    }
+  }
+  if (w.toolCalls > 0) parts.push(plural(w.toolCalls, "tool call"));
+  if (w.failed > 0) parts.push(`${w.failed} failed`);
+  return parts.join(" · ") || "Working";
 }
 
 function LaneCard({ lane, onOpenAgent }: { lane: Lane; catalog: CatalogResponse; onOpenAgent: (id: string) => void }) {
