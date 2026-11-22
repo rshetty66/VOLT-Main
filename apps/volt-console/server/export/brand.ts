@@ -15,16 +15,7 @@ export interface BrandLogo {
   height: number;
 }
 
-/** The VOLT palette from the brand board (hex codes as printed on it). */
-export const BRAND = {
-  obsidian: "0A0D14", // Cosmic Obsidian
-  cyan: "00E5FF", // Electric Cyber Blue
-  indigo: "1A1E2E", // Deep Space Indigo
-  gold: "D4AF37", // Copper Gold
-  // The background of the logo image itself (the board photo renders Obsidian as this slate); covers use it so the logo has no visible box.
-  cover: "1E252C",
-  tagline: "Vision · Orchestrate · Launch · Transform",
-} as const;
+export { BRAND } from "../../shared/brand.js";
 
 let cached: BrandLogo | null | undefined;
 

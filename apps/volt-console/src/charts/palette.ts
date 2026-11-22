@@ -20,32 +20,34 @@ export interface Palette {
 
 const font = "Inter, system-ui, -apple-system, Segoe UI, sans-serif";
 
+/** Brand colours (shared/brand.ts): quartile bands run from cyan (top) through indigo and gold to orange (bottom). */
 export const DARK: Palette = {
-  bg: "#1e293b",
-  ink: "#e2e8f0",
-  muted: "#94a3b8",
+  bg: "#1a1e2e",
+  ink: "#e6eaf2",
+  muted: "#a9b1c7",
   grid: "rgba(255,255,255,0.12)",
-  band: ["#3d6b62", "#36505e", "#3f4a5c", "#4a4152"],
-  series: "#5cc8ad",
-  series2: "#9db8ff",
-  negative: "#f28b82",
-  pass: "#5cc8ad",
-  fail: "#f28b82",
-  notRun: "#64748b",
+  band: ["#0a4b57", "#2a3250", "#554a1d", "#6a2a14"],
+  series: "#00e5ff",
+  series2: "#d4af37",
+  negative: "#ff5722",
+  pass: "#00e5ff",
+  fail: "#ff5722",
+  notRun: "#6c7694",
   font,
 };
 
+/** For downloads: dark indigo, gold and orange read on white; cyan is used as its darker shade for contrast. */
 export const LIGHT: Palette = {
   bg: "#ffffff",
-  ink: "#1d2622",
-  muted: "#5b6862",
-  grid: "#d5dbd7",
-  band: ["#cfe8df", "#dde7ee", "#e8e6f0", "#f3e3e1"],
-  series: "#1f6b5a",
-  series2: "#3a5ba0",
-  negative: "#b3261e",
-  pass: "#1f7a4d",
-  fail: "#b3261e",
-  notRun: "#8a948f",
+  ink: "#1a1e2e",
+  muted: "#5a6278",
+  grid: "#d9dce6",
+  band: ["#c9f4fb", "#e4e7f1", "#f4ead0", "#fdd9cb"],
+  series: "#1a1e2e",
+  series2: "#d4af37",
+  negative: "#ff5722",
+  pass: "#0097a7",
+  fail: "#ff5722",
+  notRun: "#8a90a5",
   font,
 };

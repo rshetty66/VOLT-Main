@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import type { ExportRequest } from "../../shared/export.js";
 import { cellValue, contentsOf, markdownBlocks, plain } from "./blocks.js";
+import { TONE_STYLE, toneFor } from "../../shared/brand.js";
 import { BRAND, brandLogo } from "./brand.js";
 import type { ExportStyle } from "./style.js";
 
@@ -35,7 +36,9 @@ function addTable(wb: ExcelJS.Workbook, name: string, columns: string[], rows: (
         cell.value = v.value;
         if (v.format) cell.numFmt = v.format;
       }
-      cell.font = { name: s.bodyFont };
+      const tone = s.brand && typeof raw === "string" ? toneFor(columns[i], raw) : null;
+      cell.font = tone ? { name: s.bodyFont, bold: true, color: { argb: `FF${TONE_STYLE[tone].ink}` } } : { name: s.bodyFont };
+      if (tone) cell.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${TONE_STYLE[tone].fill}` } };
     });
   }
   ws.columns.forEach((col, i) => {

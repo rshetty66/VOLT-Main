@@ -16,7 +16,7 @@
 import crypto from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
-import { leadDeliverableGuide, specialistDeliverableGuide } from "./deliverable.js";
+import { assessDepth, leadDeliverableGuide, specialistDeliverableGuide, strengthenPrompt, wantsDeliverable } from "./deliverable.js";
 import { ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 
@@ -44,7 +44,7 @@ const ORCHESTRATOR_EFFORT = (process.env.VOLT_ORCHESTRATOR_EFFORT ?? "high") as 
 const SPECIALIST_EFFORT = (process.env.VOLT_SPECIALIST_EFFORT ?? "medium") as Effort;
 const USE_FALLBACKS = (process.env.VOLT_FALLBACKS ?? "on") !== "off";
 const MAX_TURNS = 16;
-const MAX_CONSULT_CHARS = 14_000;
+const MAX_CONSULT_CHARS = 24_000;
 
 interface Session {
   id: string;
@@ -91,7 +91,7 @@ You lead a bench of VOLT specialist agents. For any request that spans more than
 4. Never do finance arithmetic in your head: benchmarks, maturity scores, NPV/IRR and value cases come from the apqc_benchmark, score_maturity, appraise_investment and build_value_case tools.
 5. Synthesise. The user reads your final answer, not the specialists' raw output: reconcile disagreements, keep what is decision-relevant, and write it as the firm's own work (no references to the specialists).
 
-Write the final answer as an executive-grade consulting deliverable in Markdown: a one-paragraph answer first, then structured sections and tables. Where a picture clarifies an architecture, data flow or process, include at most one Mermaid diagram in a \`\`\`mermaid code block (flowchart or sequenceDiagram, short plain labels, no styling); the console draws it and carries it into downloads. State assumptions and data gaps plainly instead of inventing client facts. If a simple question needs no delegation, answer it directly.
+Write the final answer as an executive-grade consulting deliverable in Markdown: a one-paragraph answer first, then structured sections and tables. Where a picture clarifies an architecture, process, roadmap or prioritisation, include Mermaid diagrams (up to four) in \`\`\`mermaid code blocks (flowchart, gantt, quadrantChart or pie; short plain labels, no styling); the console draws them and carries them into downloads. State assumptions and data gaps plainly instead of inventing client facts. If a simple question needs no delegation, answer it directly.
 
 ${leadDeliverableGuide()}
 
@@ -110,7 +110,7 @@ function specialistSystem(catalog: Catalog, agent: AgentDef): string {
 
 ## Working inside VOLT
 You are the ${agent.name} agent (${agent.layer}). ${agent.description}
-You have been brought in on a workstream. Answer the brief with a focused, practitioner-grade deliverable in Markdown (headings, tables where useful), typically 400-900 words. You may add at most one short Mermaid diagram in a \`\`\`mermaid block when it clarifies a flow. Lead with the answer. Be explicit about assumptions, risks and the data you would need to firm up the view.
+You have been brought in on a workstream. Answer the brief with a practitioner-grade deliverable in Markdown, typically 1,200 to 2,000 words, at the depth of a senior practitioner's client workpaper: quantified findings with the arithmetic, options with their trade-offs, risks with mitigations, assumptions and data gaps, and at least two exhibits (tables with a Source line). You may add up to two short Mermaid diagrams (flowchart, gantt, quadrantChart or pie) in \`\`\`mermaid blocks when they clarify a flow or a plan. Lead with the answer. Be explicit about assumptions, risks and the data you would need to firm up the view.
 Use tools for numbers (apqc_benchmark, score_maturity, appraise_investment, build_value_case) and the Skill Finder (find_skills, load_skill) for VOLT method packs.${shipped.length ? `\nYour registered VOLT skills: ${shipped.join(", ")}.` : ""}${specialistDeliverableGuide() ? `\n\n${specialistDeliverableGuide()}` : ""}`;
 }
 
@@ -351,7 +351,7 @@ export async function runLive(catalog: Catalog, req: RunInput, session: Session,
   }
 
   session.messages.push({ role: "user", content: withTemplate(req) });
-  await runAgentLoop({
+  const lead: LoopOptions = {
     catalog,
     lane: ORCHESTRATOR_LANE,
     system: orchestratorSystem(catalog),
@@ -360,7 +360,22 @@ export async function runLive(catalog: Catalog, req: RunInput, session: Session,
     effort: ORCHESTRATOR_EFFORT,
     emit,
     signal,
-  });
+  };
+  await reviewDraft(lead, await runAgentLoop(lead), req.prompt);
+}
+
+/**
+ * The partner-review pass: when the lead agent's draft of a client deliverable falls short of the depth standard,
+ * it is sent back once with the specific gaps, and the screen replaces the draft with the rewrite.
+ */
+async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, always = false) {
+  if (loop.signal.aborted || !draft.trim() || (!always && !wantsDeliverable(prompt))) return;
+  const report = assessDepth(draft);
+  if (report.ok) return;
+  loop.emit({ type: "status", lane: loop.lane, text: `Partner review: strengthening the draft (${report.gaps.length} gap${report.gaps.length === 1 ? "" : "s"})` });
+  loop.emit({ type: "text_reset", lane: loop.lane });
+  loop.messages.push({ role: "user", content: strengthenPrompt(report) });
+  await runAgentLoop(loop);
 }
 
 export function intakeFor(catalog: Catalog, workflowId: string) {
@@ -408,12 +423,12 @@ Deliver your ${phase.name} contribution from the ${agent.name} perspective. Buil
 ${context}
 
 Specialist outputs, by phase:
-${outputs.map((o) => `### ${o.phase} — ${o.agent.name}\n${o.text.slice(0, 8000)}`).join("\n\n")}
+${outputs.map((o) => `### ${o.phase} — ${o.agent.name}\n${o.text.slice(0, 16000)}`).join("\n\n")}
 
-Synthesise the final executive deliverable for the client: an executive summary, the integrated findings by phase, a recommendations table (recommendation, owner workstream, priority, value/risk), key risks and assumptions, and next steps. Number the sections. Write it for the client: do not name the specialists or describe how the work was done, and where they disagreed state the position taken and why. Use the analytics tools for any figures you add.`;
+Synthesise the final executive deliverable for the client: an executive summary, the integrated findings by phase, a recommendations table (recommendation, owner workstream, priority, value/risk), key risks and assumptions, and next steps. Number the sections and follow the depth and differentiation standard. Write it for the client: do not name the specialists or describe how the work was done, and where they disagreed state the position taken and why. Use the analytics tools for any figures you add.`;
   session.messages.push({ role: "user", content: synthesisPrompt });
   emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Rudra is synthesising the workflow deliverable" });
-  await runAgentLoop({
+  const synthesis: LoopOptions = {
     catalog,
     lane: ORCHESTRATOR_LANE,
     system: orchestratorSystem(catalog),
@@ -422,7 +437,8 @@ Synthesise the final executive deliverable for the client: an executive summary,
     effort: ORCHESTRATOR_EFFORT,
     emit,
     signal,
-  });
+  };
+  await reviewDraft(synthesis, await runAgentLoop(synthesis), req.prompt, true);
 }
 
 export function errorMessage(err: unknown): string {

@@ -1,6 +1,7 @@
 import PptxGenJS from "pptxgenjs";
 import type { ExportImage, ExportRequest } from "../../shared/export.js";
 import { contentsOf, markdownBlocks, plain, type Run } from "./blocks.js";
+import { TONE_STYLE, toneFor } from "../../shared/brand.js";
 import { BRAND, brandLogo } from "./brand.js";
 import type { ExportStyle } from "./style.js";
 
@@ -130,7 +131,13 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
         flush();
         const slide = titled(part++ ? `${section} (cont.)` : section);
         const head = b.header.map((h) => ({ text: h, options: { bold: true, color: s.headerInk, fill: { color: s.headerFill } } }));
-        const rows = b.rows.map((r) => b.header.map((_, i) => ({ text: r[i] ?? "" })));
+        const rows = b.rows.map((r) =>
+          b.header.map((h, i) => {
+            const text = r[i] ?? "";
+            const tone = s.brand ? toneFor(h, text) : null;
+            return tone ? { text, options: { bold: true, color: TONE_STYLE[tone].ink, fill: { color: TONE_STYLE[tone].fill } } } : { text };
+          }),
+        );
         slide.addTable([head, ...rows], {
           x: M, y: 1.35, w: W - 2 * M, fontFace: s.bodyFont, fontSize: 12, color: s.ink, border: { type: "solid", pt: 0.75, color: "C9D1CD" },
           autoPage: true, autoPageRepeatHeader: true, autoPageSlideStartY: 1.35,

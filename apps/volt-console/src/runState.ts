@@ -104,6 +104,12 @@ export function applyEvent(run: Run, e: VoltEvent): Run {
       else r.text += e.text;
       return r;
     }
+    case "text_reset": {
+      const l = lane(e.lane);
+      if (l) r.lanes[e.lane] = { ...l, text: "" };
+      else r.text = "";
+      return r;
+    }
     case "status":
       pushActivity(e.lane, { id: crypto.randomUUID(), kind: "status", text: e.text });
       return r;

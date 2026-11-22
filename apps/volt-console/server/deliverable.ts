@@ -26,8 +26,33 @@ export function deliverableStandards(pluginDir = PLUGIN_DIR): string | null {
 
 const CONSOLE_RULES = `In this console the answer is read by the client, so:
 - Do not mention agents, specialists, tools, routing, the console or how the work was done. Where the specialists disagreed, state the position taken and why, without naming them.
-- Diagrams are limited to one Mermaid flowchart or sequenceDiagram; show every other exhibit as a table, with its Exhibit title and Source line.
 - Number the \`##\` sections so they can be cited in a meeting. The numbered section headings become the table of contents of the downloaded file.`;
+
+/**
+ * How deep and how differentiated the deliverable must be. It maps onto the five sections of run-client-deliverable.md
+ * (which stay the table of contents): the depth lives in the "###" sub-sections under them.
+ */
+export const DEPTH_STANDARD = `### Depth and differentiation standard
+
+This deliverable is read next to the work of other major consulting firms, and it should win the engagement. Write 3,500 to 6,000 words for an assessment, plan, design or business case (shorter only for a narrow question). Every section carries analysis, not description. Under the five sections above, use these \`###\` sub-sections:
+
+1. **Executive summary** (200 words or fewer, able to stand alone): the answer; the quantified prize as a range with its main driver; the recommended path and what it costs; the three decisions the client must take; and the one insight that changes how they should think about the problem.
+2. **Findings**: \`### Current-state baseline\` (the client's numbers against APQC benchmarks from apqc_benchmark, and the seven-dimension maturity from score_maturity; any figure the client did not give is stated as an assumption); \`### Root causes\` (a MECE issue tree, each cause quantified and ranked by its contribution to the gap); \`### What good looks like\` (leading practice, with its source).
+3. **Recommendations**: a recommendations table (recommendation, what changes, owner, priority, value, timing, dependency); \`### Options considered\` (three real options scored against weighted criteria in a table, what each costs and forecloses, and the condition under which another option wins); \`### Target operating model\` or \`### Target architecture\` (design principles, process, roles, systems, data and controls, with one diagram); \`### Business case\` (each value lever with its arithmetic, investment and run cost, NPV, IRR and payback from build_value_case and appraise_investment, a low, base and high range, sensitivity on the two drivers that move the answer, and when the benefits land); \`### Roadmap\` (phases with durations, milestones, dependencies, critical path, resourcing and governance, no-regret moves first, and a Gantt chart).
+4. **Key risks and assumptions**: a risk register (risk, likelihood, impact, mitigation, owner); every assumption with how it will be validated; data gaps; and the regulatory and control implications for the client's sector and jurisdiction.
+5. **Next steps**: the decisions needed in the next 30 days, a 30-60-90 day plan with owners, and what is needed from the client.
+
+How it wins the work:
+- Open with a point of view the client has not heard: a non-obvious, evidenced insight about their situation, not a restatement of the request.
+- Be specific to this client. Their numbers, platform, regulator, scale and constraints appear throughout; nothing could be pasted into another client's document.
+- Show the arithmetic so the reader can price your credibility, and give ranges with their drivers.
+- Sequence with intent: what to do first and why, no-regret moves versus big bets, and what to stop doing.
+- Name the trade-offs and the conditions under which you would advise differently.
+- Never invent credentials, client names, case studies, statistics or quotes. A figure without a source is labelled [Estimate] with its basis, or [Verify]. Say what data you need rather than assuming it.
+
+Exhibits: at least five. Most are tables with an Exhibit title, a Source line and a read-out that says what it means. Use up to four Mermaid diagrams where a picture does the work: a flowchart (target architecture or process), a gantt (the roadmap), a quadrantChart (effort against impact), a pie (the split of one total). Plain short labels, no colours in the markup.
+
+Colour coding: in the priority, risk and status columns of tables write exactly High, Medium or Low (or Red, Amber or Green). The downloaded files colour these from the VOLT palette.`;
 
 /** The instructions that make the lead agent's final answer a client deliverable. Empty when the plugin files are missing. */
 export function leadDeliverableGuide(pluginDir = PLUGIN_DIR): string {
@@ -38,6 +63,7 @@ export function leadDeliverableGuide(pluginDir = PLUGIN_DIR): string {
     "## The final answer is a client deliverable",
     structure ? `The deliverable contains, in this order (from the VOLT Client Deliverable Production workflow):\n\n${structure}` : "",
     CONSOLE_RULES,
+    DEPTH_STANDARD,
     standards ? `### Client deliverable standards\n\n${standards}` : "",
   ]
     .filter(Boolean)
@@ -47,5 +73,58 @@ export function leadDeliverableGuide(pluginDir = PLUGIN_DIR): string {
 /** What a specialist's notes follow: the same writing standards, since the notes can be handed to the client as an appendix. */
 export function specialistDeliverableGuide(pluginDir = PLUGIN_DIR): string {
   const standards = deliverableStandards(pluginDir);
-  return standards ? `## Writing standard\nYour notes may go to the client as an appendix, so write them to the standard below. Diagrams: at most one Mermaid flowchart or sequenceDiagram; show other exhibits as tables.\n\n${standards}` : "";
+  return standards ? `## Writing standard\nYour notes may go to the client as an appendix, so write them to the standard below. Go to the depth of a senior practitioner\'s client workpaper, not a summary. Diagrams: up to two Mermaid diagrams (flowchart, gantt, quadrantChart or pie); show other exhibits as tables.\n\n${standards}` : "";
+}
+
+// ── The depth check: a thin draft is sent back for one rewrite ────────────────────────────────────────────
+
+export interface DepthReport {
+  words: number;
+  tables: number;
+  exhibits: number;
+  /** What the draft lacks, in words the lead agent can act on. Empty when the draft meets the standard. */
+  gaps: string[];
+  ok: boolean;
+}
+
+const MIN_WORDS = 2200;
+const SECTION_CHECKS: [string, RegExp][] = [
+  ["an executive summary", /executive summary|^##\s*(\d+[.)]\s*)?summary/im],
+  ["findings (the current-state baseline and root causes)", /finding|current[- ]state|baseline|diagnos/i],
+  ["recommendations, with options considered", /recommend/i],
+  ["a business case (value, investment, NPV or payback)", /\b(NPV|IRR|payback|business case|ROI)\b/i],
+  ["a roadmap (phases, milestones, dependencies)", /roadmap|phase \d|milestone/i],
+  ["key risks and assumptions", /risk/i],
+  ["next steps", /next steps/i],
+];
+
+/** Measures a final answer against the depth standard. Pure, so it can be tested and tuned without a model. */
+export function assessDepth(markdown: string): DepthReport {
+  const prose = markdown.replace(/```[\s\S]*?```/g, " ");
+  const words = (prose.match(/\S+/g) ?? []).length;
+  const tables = (markdown.match(/^\|[\s:-]+\|[\s|:-]*$/gm) ?? []).length;
+  const exhibits = (markdown.match(/\*\*Exhibit\s+\d+/gi) ?? []).length;
+  const gaps: string[] = [];
+  if (words < MIN_WORDS) gaps.push(`it is about ${words} words; a client deliverable of this kind needs 3,500 to 6,000, with real analysis in each section`);
+  for (const [label, re] of SECTION_CHECKS) if (!re.test(markdown)) gaps.push(`it is missing ${label}`);
+  if (tables < 3) gaps.push(`it has ${tables} table${tables === 1 ? "" : "s"}; it needs at least three (recommendations, options scored against criteria, a risk register) and five exhibits in all`);
+  if (exhibits < 3) gaps.push("its exhibits are not labelled `**Exhibit N: title**` with a Source line and a read-out");
+  if (!/\bSource:/i.test(markdown)) gaps.push("no exhibit carries a Source line");
+  if (/\b(specialists?|sub-?agents?|consult_agent|find_agents)\b/i.test(prose)) gaps.push("it refers to specialists, agents or tools, which the client must not see");
+  return { words, tables, exhibits, gaps, ok: gaps.length === 0 };
+}
+
+/** Whether a request calls for a full client deliverable rather than a short answer or a command. */
+export function wantsDeliverable(prompt: string): boolean {
+  const p = prompt.trim();
+  if (!p || p.startsWith("/")) return false;
+  return p.length >= 120 || /\b(plan|assess|assessment|design|business case|roadmap|strategy|recommend|diagnos\w*|benchmark|options|proposal|transform\w*|readiness|architecture|approach|case for)\b/i.test(p);
+}
+
+/** The instruction for the one rewrite of a thin draft. */
+export function strengthenPrompt(report: DepthReport): string {
+  return `Partner review. Your draft does not yet meet the depth standard for a client deliverable that has to win the work:
+${report.gaps.map((g) => `- ${g}`).join("\n")}
+
+Rewrite the complete deliverable. Keep everything that is strong and add what is missing, following the depth and differentiation standard and the section structure you were given. Use the analytics tools for every figure you add, and consult the specialists again if a section needs more depth. Return only the full revised deliverable, as the client will read it, with no commentary about this review.`;
 }

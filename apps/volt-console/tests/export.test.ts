@@ -6,6 +6,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 import { contentsOf, markdownBlocks } from "../server/export/blocks";
 import { brandLogo } from "../server/export/brand";
+import { toneFor } from "../shared/brand";
 import { exportDocument, styleFrom } from "../server/export";
 import { exportRouter } from "../server/export/route";
 import { extractTemplate } from "../server/templates";
@@ -285,5 +286,25 @@ describe("VOLT branding", () => {
     expect(media(pptx, "ppt/media/")).toBe(0);
     const xlsx = unzip((await exportDocument(noImages("xlsx"), profile("brand-template.xlsx"))).data);
     expect(media(xlsx, "xl/media/")).toBe(0);
+  });
+});
+
+describe("colour coding", () => {
+  it("codes priority, risk and status words only in the columns that are about them", () => {
+    expect(toneFor("Priority", "High")).toBe("high");
+    expect(toneFor("Likelihood", " medium ")).toBe("mid");
+    expect(toneFor("Status", "**Green**")).toBe("low");
+    expect(toneFor("Position", "Bottom quartile")).toBe("high");
+    expect(toneFor("Value", "High")).toBeNull(); // a benefit column is not a warning
+    expect(toneFor("Priority", "Soon")).toBeNull();
+  });
+
+  it("shades a High priority cell orange and a Low one cyan in the Word file", async () => {
+    const md = "## Risks\n\n| Risk | Priority |\n|---|---|\n| Data quality | High |\n| Training | Low |\n";
+    const xml = text(unzip((await exportDocument({ format: "docx", title: "T", markdown: md } as ExportRequest, null)).data), "word/document.xml");
+    expect(xml).toContain('w:fill="FF5722"');
+    expect(xml).toContain('w:fill="00E5FF"');
+    const client = text(unzip((await exportDocument({ format: "docx", title: "T", markdown: md } as ExportRequest, extractTemplate(fixture("brand-template.docx"), "brand-template.docx"))).data), "word/document.xml");
+    expect(client).not.toContain('w:fill="FF5722"');
   });
 });

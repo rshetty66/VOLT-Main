@@ -127,11 +127,11 @@ export async function htmlDocument(d: Deliverable): Promise<string> {
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(d.title)}</title>
 <style>
-body{font:15px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#1d2622;background:#fff;max-width:960px;margin:0 auto;padding:32px 20px}
-h1,h2,h3{line-height:1.25;color:#1f3d36}h1{font-size:28px}.sub{color:#5b6862;margin-top:-8px}
-table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}th,td{border:1px solid #d5dbd7;padding:6px 9px;text-align:left;vertical-align:top}th{background:#eef3f1}
+body{font:15px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#1a1e2e;background:#fff;max-width:960px;margin:0 auto;padding:32px 20px}
+h1,h2,h3{line-height:1.25;color:#1a1e2e}h1{font-size:28px}.sub{color:#5a6278;margin-top:-8px}
+table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}th,td{border:1px solid #d9dce6;padding:6px 9px;text-align:left;vertical-align:top}th{background:#1a1e2e;color:#fff}
 code{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f2f4f3;padding:1px 4px;border-radius:3px}pre{background:#f2f4f3;padding:12px;overflow:auto}pre code{background:none;padding:0}
-figure{margin:16px 0;overflow-x:auto}figure svg{max-width:100%;height:auto}blockquote{margin:12px 0;padding-left:12px;border-left:3px solid #1f6b5a;color:#3b4a44}
+figure{margin:16px 0;overflow-x:auto}figure svg{max-width:100%;height:auto}blockquote{margin:12px 0;padding-left:12px;border-left:3px solid #d4af37;color:#3b4258}
 </style></head><body>
 <h1>${esc(d.title)}</h1>${d.subtitle ? `<p class="sub">${esc(d.subtitle)}</p>` : ""}
 ${results}

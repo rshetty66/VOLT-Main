@@ -33,6 +33,23 @@ describe("live agent loop (mocked Messages API)", () => {
     expect(rudraText).toContain("Final answer from Rudra");
   });
 
+  it("sends a thin draft of a deliverable back once, and the screen replaces it", async () => {
+    const events = await run({ prompt: "Build a plan to cut our month-end close from 12 days to 5 on SAP S/4HANA" });
+    const types = events.map((e) => e.type);
+    expect(types).toContain("text_reset");
+    expect(events.some((e) => e.type === "status" && e.text.startsWith("Partner review"))).toBe(true);
+    const reset = types.indexOf("text_reset");
+    const text = (from: number, to: number) => events.slice(from, to).filter((e) => e.type === "text_delta" && e.lane === "rudra").map((e) => (e as { text: string }).text).join("");
+    expect(text(0, reset)).toContain("Final answer from Rudra");
+    expect(text(reset, events.length)).toContain("REVISED DELIVERABLE");
+    expect(types.filter((t) => t === "text_reset")).toHaveLength(1);
+  });
+
+  it("leaves a short question alone", async () => {
+    const events = await run({ prompt: "What is DSO?" });
+    expect(events.map((e) => e.type)).not.toContain("text_reset");
+  });
+
   it("sends the client deliverable standards and structure to the lead and the specialists", () => {
     const system = (r: { body: { system: { text: string }[] } }) => r.body.system.map((x) => x.text).join("\n");
     const lead = mock.requests.find((r) => r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;

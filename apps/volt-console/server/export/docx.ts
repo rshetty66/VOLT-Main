@@ -3,6 +3,7 @@ import {
 } from "docx";
 import type { ExportImage, ExportRequest } from "../../shared/export.js";
 import { contentsOf, markdownBlocks, type Run } from "./blocks.js";
+import { TONE_STYLE, toneFor } from "../../shared/brand.js";
 import { BRAND, brandLogo } from "./brand.js";
 import type { ExportStyle } from "./style.js";
 
@@ -27,16 +28,20 @@ function image(img: ExportImage, maxWidthPx: number) {
 function table(header: string[], rows: string[][], s: ExportStyle) {
   const border = { style: BorderStyle.SINGLE, size: 4, color: "C9D1CD" };
   const borders = { top: border, bottom: border, left: border, right: border };
-  const cell = (t: string, head: boolean) =>
-    new TableCell({
+  const cell = (t: string, head: boolean, column = "") => {
+    // Priority, risk and status words are colour coded with the brand palette (orange high, gold medium, cyan low).
+    const tone = !head && s.brand ? toneFor(column, t) : null;
+    const fill = head ? s.headerFill : tone ? TONE_STYLE[tone].fill : undefined;
+    return new TableCell({
       borders,
-      shading: head ? { type: ShadingType.CLEAR, color: "auto", fill: s.headerFill } : undefined,
+      shading: fill ? { type: ShadingType.CLEAR, color: "auto", fill } : undefined,
       margins: { top: 60, bottom: 60, left: 100, right: 100 },
-      children: [new Paragraph({ children: [new TextRun({ text: t, bold: head, color: head ? s.headerInk : undefined, size: (s.bodySizePt - 1) * 2 })] })],
+      children: [new Paragraph({ children: [new TextRun({ text: t, bold: head || !!tone, color: head ? s.headerInk : tone ? TONE_STYLE[tone].ink : undefined, size: (s.bodySizePt - 1) * 2 })] })],
     });
+  };
   return new Table({
     width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [new TableRow({ tableHeader: true, children: header.map((h) => cell(h, true)) }), ...rows.map((r) => new TableRow({ children: header.map((_, i) => cell(r[i] ?? "", false)) }))],
+    rows: [new TableRow({ tableHeader: true, children: header.map((h) => cell(h, true)) }), ...rows.map((r) => new TableRow({ children: header.map((h, i) => cell(r[i] ?? "", false, h)) }))],
   });
 }
 
