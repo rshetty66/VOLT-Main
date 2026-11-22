@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Request, Response } from "express";
-import { assertSafeToListen, rateLimit, requestToken, requireToken, sameOriginWrites, securityConfig, tokenMatches } from "../server/security.js";
+import { assertSafeToListen, loginPostHandler, rateLimit, requestToken, requireToken, sameOriginWrites, securityConfig, tokenMatches } from "../server/security.js";
 import { getSession } from "../server/orchestrator.js";
 
 const cfg = (env: Record<string, string> = {}) => securityConfig({ ...env } as NodeJS.ProcessEnv);
@@ -79,5 +79,32 @@ describe("sessions", () => {
     const s = getSession("attacker-chosen-id");
     expect(s.id).not.toBe("attacker-chosen-id");
     expect(getSession(s.id)).toBe(s);
+  });
+});
+
+describe("sign-in form", () => {
+  const c = cfg({ VOLT_ACCESS_TOKEN: "t".repeat(20) });
+  const post = (body: unknown) => {
+    const out = { status: 200, json: undefined as unknown, cookie: undefined as unknown[] | undefined };
+    const res = {
+      status(n: number) { out.status = n; return this; },
+      json(b: unknown) { out.json = b; return this; },
+      cookie(...a: unknown[]) { out.cookie = a; return this; },
+    } as unknown as Response;
+    loginPostHandler(c)({ body, secure: true, get: () => undefined } as unknown as Request, res, () => {});
+    return out;
+  };
+  it("sets the HttpOnly cookie for the right token, trimming spaces", () => {
+    const out = post({ token: `  ${"t".repeat(20)} ` });
+    expect(out.status).toBe(200);
+    expect(out.cookie?.[0]).toBe("volt_token");
+    expect((out.cookie?.[2] as { httpOnly: boolean }).httpOnly).toBe(true);
+  });
+  it("refuses a wrong or missing token and sets no cookie", () => {
+    for (const body of [{ token: "nope" }, {}, undefined]) {
+      const out = post(body);
+      expect(out.status).toBe(401);
+      expect(out.cookie).toBeUndefined();
+    }
   });
 });

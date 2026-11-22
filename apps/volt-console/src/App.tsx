@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../shared/events";
-import { fetchCatalog, listTemplates, streamRun } from "./api";
+import { fetchCatalog, listTemplates, streamRun, UnauthorizedError } from "./api";
+import { SignIn } from "./components/SignIn";
 import type { TemplateSummary } from "../shared/templates";
 import { applyEvent, newRun, type Run } from "./runState";
 import { Console } from "./components/Console";
@@ -19,6 +20,7 @@ export type View = "console" | "workflows" | "agents" | "skills" | "services" | 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [loadError, setLoadError] = useState("");
+  const [needsSignIn, setNeedsSignIn] = useState(false);
   const [view, setView] = useState<View>("console");
   const [runs, setRuns] = useState<Run[]>([]);
   const [target, setTarget] = useState<string>("rudra");
@@ -29,10 +31,13 @@ export function App() {
   const sessions = useRef(new Map<string, string>());
   const controllers = useRef(new Map<string, AbortController>());
 
-  useEffect(() => {
-    fetchCatalog().then(setCatalog, (e) => setLoadError(String(e)));
+  const load = useCallback(() => {
+    setLoadError("");
+    setNeedsSignIn(false);
+    fetchCatalog().then(setCatalog, (e) => (e instanceof UnauthorizedError ? setNeedsSignIn(true) : setLoadError(String(e))));
     listTemplates().then(setTemplates, () => setTemplates([]));
   }, []);
+  useEffect(load, [load]);
 
   const refreshTemplates = useCallback(async () => {
     const list = await listTemplates();
@@ -75,6 +80,7 @@ export function App() {
     setRuns((rs) => rs.map((r) => (r.id === runId ? { ...r, state: "stopped", finishedAt: Date.now() } : r)));
   };
 
+  if (needsSignIn) return <SignIn onSignedIn={load} />;
   if (loadError) return <div className="empty">Could not load the VOLT catalog: {loadError}</div>;
   if (!catalog) return <div className="empty"><span className="spinner" /> Loading VOLT capabilities…</div>;
 

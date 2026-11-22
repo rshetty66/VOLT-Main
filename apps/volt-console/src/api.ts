@@ -21,10 +21,30 @@ export async function deleteTemplate(id: string): Promise<void> {
   if (!r.ok && r.status !== 404) throw new Error(`Delete failed (${r.status})`);
 }
 
+/** Thrown when the server wants the access token; the app answers with the sign-in screen. */
+export class UnauthorizedError extends Error {
+  constructor() {
+    super("Access token required");
+  }
+}
+
 export async function fetchCatalog(): Promise<CatalogResponse> {
   const r = await fetch("/api/catalog");
+  if (r.status === 401) throw new UnauthorizedError();
   if (!r.ok) throw new Error(`Catalog failed: ${r.status}`);
   return r.json();
+}
+
+/** Signs in with the access token. Resolves to an empty string on success, or the message to show. */
+export async function signIn(token: string): Promise<string> {
+  try {
+    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
+    if (r.ok) return "";
+    const body = await r.json().catch(() => ({}));
+    return r.status === 429 ? "Too many attempts. Wait a minute and try again." : body.error ?? `Sign-in failed (${r.status})`;
+  } catch {
+    return "Could not reach the server.";
+  }
 }
 
 export async function getJSON<T>(url: string): Promise<T> {

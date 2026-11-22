@@ -44,7 +44,7 @@ import { COPILOTKIT_PATH, copilotkitHandler } from "./copilotkit.js";
 import { MAX_SOURCE_BYTES, SourceError, extractFigures, findFilings, ingestDocument, verifyFigures } from "./sources.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
-import { assertSafeToListen, limitCostly, loginHandler, requireToken, sameOriginWrites, securityConfig } from "./security.js";
+import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requireToken, sameOriginWrites, securityConfig } from "./security.js";
 
 const catalog = loadCatalog();
 const security = securityConfig();
@@ -75,7 +75,10 @@ const mode = detectMode();
 app.use(requireToken(security));
 app.use(sameOriginWrites(security));
 app.use(limitCostly(security.rateLimitPerMinute));
-app.get("/api/login", loginHandler(security));
+// Sign-in attempts are rate limited per client; the form posts here, the URL form still works.
+const loginLimit = rateLimit(10);
+app.get("/api/login", loginLimit, loginHandler(security));
+app.post("/api/login", loginLimit, express.json({ limit: "2kb" }), loginPostHandler(security));
 
 // CopilotKit reads its own request bodies, so it is mounted before the JSON parser. Live mode only.
 if (mode === "live") app.use(copilotkitHandler());

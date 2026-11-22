@@ -69,14 +69,28 @@ export function requestToken(req: Pick<Request, "headers">): string | undefined 
   return cookieValue(req.headers.cookie, COOKIE);
 }
 
+const setSession = (req: Request, res: Response, token: string) =>
+  res.cookie(COOKIE, token, { httpOnly: true, sameSite: "strict", secure: req.secure || req.get("x-forwarded-proto") === "https", maxAge: 12 * 60 * 60 * 1000, path: "/" });
+
 /** Login route: GET /api/login?token=... sets the cookie and redirects to the app. */
 export function loginHandler(cfg: SecurityConfig): RequestHandler {
   return (req, res) => {
     if (!cfg.token) return void res.redirect("/");
     const given = typeof req.query.token === "string" ? req.query.token : undefined;
     if (!tokenMatches(given, cfg.token)) return void res.status(401).json({ error: "Invalid access token." });
-    res.cookie(COOKIE, cfg.token, { httpOnly: true, sameSite: "strict", secure: req.secure || req.get("x-forwarded-proto") === "https", maxAge: 12 * 60 * 60 * 1000, path: "/" });
+    setSession(req, res, cfg.token);
     res.redirect("/");
+  };
+}
+
+/** Sign-in form: POST /api/login {"token": "..."} sets the same cookie, so the token never sits in a URL. */
+export function loginPostHandler(cfg: SecurityConfig): RequestHandler {
+  return (req, res) => {
+    if (!cfg.token) return void res.json({ ok: true });
+    const given = typeof req.body?.token === "string" ? req.body.token.trim() : undefined;
+    if (!tokenMatches(given, cfg.token)) return void res.status(401).json({ error: "That access token is not right." });
+    setSession(req, res, cfg.token);
+    res.json({ ok: true });
   };
 }
 

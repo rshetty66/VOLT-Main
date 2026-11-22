@@ -257,3 +257,7 @@ textarea.csv { min-height: 150px; font-family: ui-monospace, monospace; font-siz
 @media (max-width: 760px) { .hero-ink { display: none; } }
 .work-evidence { flex: none; font-size: 12px; color: var(--muted); white-space: nowrap; }
 .work-evidence.bad { color: var(--orange); }
+
+.signin { display: grid; place-items: center; min-height: 100%; padding: 24px; }
+.signin-card { display: grid; gap: 12px; width: min(380px, 100%); padding: 24px; }
+.signin-logo { width: 100%; height: auto; border-radius: 6px; }
