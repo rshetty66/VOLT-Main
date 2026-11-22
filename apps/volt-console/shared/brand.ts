@@ -1,7 +1,7 @@
 /**
  * The VOLT brand board: one palette for the app, the charts and every download (hex without "#").
- * Cosmic Obsidian, Deep Space Indigo, Electric Cyber Blue and Copper Gold are the hex codes printed on the board.
- * Rudra's Fire Orange is not legible on the board; #FF5722 is the closest reading and matches the swatch. Confirm it.
+ * Hex codes as printed on the board. Rudra's Fire Orange is blurry in the photos but reads #FF5722, and the swatch agrees (its green
+ * channel measures about 85; #FF5722 has 87, where #FF9722 would be 151).
  */
 export const BRAND = {
   obsidian: "0A0D14", // Cosmic Obsidian: page background
