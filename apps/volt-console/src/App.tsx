@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../shared/events";
 import { fetchCatalog, listTemplates, streamRun, UnauthorizedError } from "./api";
 import { SignIn } from "./components/SignIn";
+import { History } from "./components/History";
+import { loadHistory, mergeHistory, saveHistory } from "./history";
 import type { TemplateSummary } from "../shared/templates";
 import { applyEvent, newRun, type Run } from "./runState";
 import { Console } from "./components/Console";
@@ -15,7 +17,7 @@ import { Templates } from "./components/Templates";
 import { Workbench } from "./components/workbench/Workbench";
 import { TemplateContext } from "./exports";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "health";
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "health" | "history";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -23,6 +25,7 @@ export function App() {
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const [view, setView] = useState<View>("console");
   const [runs, setRuns] = useState<Run[]>([]);
+  const [history, setHistory] = useState<Run[]>(() => loadHistory());
   const [target, setTarget] = useState<string>("rudra");
   const [forceDemo, setForceDemo] = useState(false);
   const [openAgent, setOpenAgent] = useState<string | null>(null);
@@ -38,6 +41,15 @@ export function App() {
     listTemplates().then(setTemplates, () => setTemplates([]));
   }, []);
   useEffect(load, [load]);
+
+  // Finished runs are saved in this browser so a reload does not lose the conversation.
+  useEffect(() => {
+    setHistory((h) => {
+      const next = mergeHistory(h, runs);
+      return next.length === h.length && next.every((r, i) => r === h[i]) ? h : next;
+    });
+  }, [runs]);
+  useEffect(() => saveHistory(history), [history]);
 
   const refreshTemplates = useCallback(async () => {
     const list = await listTemplates();
@@ -94,6 +106,7 @@ export function App() {
     ["templates", "Templates", templates.length || ""],
     ["analytics", "Analytics", catalog.benchmarks.length],
     ["finance", "Finance Workbench", ""],
+    ["history", "History", history.length || ""],
     ["health", "Capability Health", catalog.health.missingSkills.length],
   ];
 
@@ -148,6 +161,23 @@ export function App() {
         {view === "templates" && <Templates templates={templates} refresh={refreshTemplates} activeTemplate={activeTemplate} setActiveTemplate={setActiveTemplate} />}
         {view === "analytics" && <Analytics catalog={catalog} />}
         {view === "finance" && <Workbench live={live} />}
+        {view === "history" && (
+          <History
+            history={history}
+            onOpen={(run) => {
+              setRuns((rs) => (rs.some((r) => r.id === run.id) ? rs : [...rs, run]));
+              setView("console");
+            }}
+            onDelete={(id) => {
+              setHistory((h) => h.filter((r) => r.id !== id));
+              setRuns((rs) => rs.filter((r) => r.id !== id));
+            }}
+            onClear={() => {
+              setHistory([]);
+              setRuns((rs) => rs.filter((r) => r.state === "running"));
+            }}
+          />
+        )}
         {view === "health" && <Health catalog={catalog} onOpenAgent={setOpenAgent} />}
       </main>
       </TemplateContext.Provider>
