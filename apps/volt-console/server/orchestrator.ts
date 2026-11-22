@@ -17,7 +17,7 @@ import { lateForRewrite, runBudgetMs } from "./budget.js";
 import crypto from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
-import { assessDepth, leadDeliverableGuide, specialistDeliverableGuide, strengthenPrompt, wantsDeliverable } from "./deliverable.js";
+import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, wantsDeliverable } from "./deliverable.js";
 import { SourceRegistry, sourceForTool, sourcesFromWebSearch } from "./research.js";
 import { evidenceGates } from "../shared/research.js";
 import { ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
@@ -43,7 +43,7 @@ ${req.template.guide}`;
 type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 
 export const MODEL = process.env.VOLT_MODEL ?? "claude-opus-5-5";
-const ORCHESTRATOR_EFFORT = (process.env.VOLT_ORCHESTRATOR_EFFORT ?? "high") as Effort;
+const ORCHESTRATOR_EFFORT = (process.env.VOLT_ORCHESTRATOR_EFFORT ?? "medium") as Effort;
 const SPECIALIST_EFFORT = (process.env.VOLT_SPECIALIST_EFFORT ?? "medium") as Effort;
 /** Claude's own web_search, opt-in: sources then come from real pages. Off by default until it has had a live test. */
 const WEB_RESEARCH = (process.env.VOLT_WEB_RESEARCH ?? "off") === "on";
@@ -51,6 +51,8 @@ const WEB_SEARCH_TOOL = { type: "web_search_20260209", name: "web_search", max_u
 const USE_FALLBACKS = (process.env.VOLT_FALLBACKS ?? "on") !== "off";
 const MAX_TURNS = 16;
 const MAX_CONSULT_CHARS = 24_000;
+/** Specialists a single run may consult. Each one is a full model run, so this bounds the time and the cost. */
+export const MAX_CONSULTS = Number(process.env.VOLT_MAX_CONSULTS) > 0 ? Number(process.env.VOLT_MAX_CONSULTS) : 4;
 
 interface Session {
   id: string;
@@ -92,7 +94,7 @@ function orchestratorSystem(catalog: Catalog): string {
 ## How you work in this console
 You lead a bench of VOLT specialist agents. For any request that spans more than one domain, or needs depth you would otherwise approximate:
 1. Decide which workstreams the request really needs. Use find_agents when the right specialist is not obvious from the roster below.
-2. Delegate with consult_agent. Give each specialist a self-contained brief (client context, the precise question, the deliverable you need back). Put independent consults in the same turn so they run in parallel.
+2. Delegate with consult_agent. Give each specialist a self-contained brief (client context, the precise question, the deliverable you need back). Put independent consults in the same turn so they run in parallel. Consult at most four specialists in a run: choose the workstreams that matter most.
 3. Use find_skills then load_skill when a VOLT method or reference pack would sharpen the answer.
 4. Never do finance arithmetic in your head: benchmarks, maturity scores, NPV/IRR and value cases come from the apqc_benchmark, score_maturity, appraise_investment and build_value_case tools.
 5. Synthesise. The user reads your final answer, not the specialists' raw output: reconcile disagreements, keep what is decision-relevant, and write it as the firm's own work (no references to the specialists).
@@ -116,7 +118,7 @@ function specialistSystem(catalog: Catalog, agent: AgentDef): string {
 
 ## Working inside VOLT
 You are the ${agent.name} agent (${agent.layer}). ${agent.description}
-You have been brought in on a workstream. Answer the brief with a practitioner-grade deliverable in Markdown, typically 1,200 to 2,000 words, at the depth of a senior practitioner's client workpaper: quantified findings with the arithmetic, options with their trade-offs, risks with mitigations, assumptions and data gaps, and at least two exhibits (tables with a Source line). You may add up to two short Mermaid diagrams (flowchart, gantt, quadrantChart or pie) in \`\`\`mermaid blocks when they clarify a flow or a plan. Lead with the answer. Be explicit about assumptions, risks and the data you would need to firm up the view.
+You have been brought in on a workstream. Answer the brief with a practitioner-grade deliverable in Markdown, typically 700 to 1,000 words, at the depth of a senior practitioner's client workpaper: quantified findings with the arithmetic, options with their trade-offs, risks with mitigations, assumptions and data gaps, and at least two exhibits (tables with a Source line). You may add up to two short Mermaid diagrams (flowchart, gantt, quadrantChart or pie) in \`\`\`mermaid blocks when they clarify a flow or a plan. Lead with the answer. Be explicit about assumptions, risks and the data you would need to firm up the view.
 Use tools for numbers (apqc_benchmark, score_maturity, appraise_investment, build_value_case) and the Skill Finder (find_skills, load_skill) for VOLT method packs.${shipped.length ? `\nYour registered VOLT skills: ${shipped.join(", ")}.` : ""}${specialistDeliverableGuide() ? `\n\n${specialistDeliverableGuide()}` : ""}`;
 }
 
@@ -272,6 +274,8 @@ async function executeTool(
     const { agent_id, brief } = parsed.data as { agent_id: string; brief: string };
     const agent = catalog.agentById.get(agent_id);
     if (!agent) return fail(`Unknown agent '${agent_id}'. Use find_agents to look it up.`);
+    if (registry.consults >= MAX_CONSULTS) return fail(`Consult limit reached (${MAX_CONSULTS} specialists per run). Do not consult more: write the answer from the work you already have.`);
+    registry.consults++;
     try {
       const text = await runSpecialist(catalog, agent, brief, tu.id, lane, emit, signal, registry);
       emit({ type: "tool_result", lane, callId: tu.id, name, summary: `${agent.name} delivered ${text.length.toLocaleString()} chars` });
@@ -406,6 +410,9 @@ async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, alw
   const evidence = evidenceGates(draft, loop.registry.sources, loop.registry.tier).filter((g) => !g.pass);
   const report = { ...depth, gaps: [...depth.gaps, ...evidence.map((g) => g.detail)] };
   if (!report.gaps.length) return;
+  // A rewrite costs about two minutes, so it is kept for a draft that is too short or cites sources that do not exist.
+  // Smaller gaps are left to the reader's review.
+  if (depth.words >= MIN_WORDS && !evidence.some((g) => g.id === "G1")) return;
   if (lateForRewrite(Date.now() - loop.registry.startedAt, runBudgetMs())) {
     loop.emit({ type: "status", lane: loop.lane, text: `Partner review: ${report.gaps.length} gap${report.gaps.length === 1 ? "" : "s"} found, but the run is near its time limit, so the draft is kept as written` });
     return;

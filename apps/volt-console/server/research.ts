@@ -15,6 +15,8 @@ export class SourceRegistry {
   readonly tier: Tier;
   /** When the run began, for the time budget. */
   readonly startedAt = Date.now();
+  /** Specialists consulted so far in this run, for the consult cap. */
+  consults = 0;
 
   constructor(prompt: string) {
     this.tier = classifyDepth(prompt);

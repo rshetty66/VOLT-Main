@@ -103,7 +103,7 @@ export interface DepthReport {
   ok: boolean;
 }
 
-const MIN_WORDS = 2200;
+export const MIN_WORDS = 2200;
 const SECTION_CHECKS: [string, RegExp][] = [
   ["an executive summary", /executive summary|^##\s*(\d+[.)]\s*)?summary/im],
   ["findings (the current-state baseline and root causes)", /finding|current[- ]state|baseline|diagnos/i],
