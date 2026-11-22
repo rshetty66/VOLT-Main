@@ -1,0 +1,877 @@
+[
+ {
+  "id": "erp-cross-platform",
+  "label": "ERP — Cross-Platform",
+  "icon": "🧭",
+  "color": "#d97706",
+  "accent": "#f2a93b",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "ERP — Cross-Platform specialists",
+  "subCategories": [
+   {
+    "id": "erp-cross-platform-all",
+    "label": "ERP — Cross-Platform",
+    "agents": [
+     {
+      "id": "erp-test-lead",
+      "name": "ERP Test Lead",
+      "role": "ERP testing — SIT, UAT, regression, automation (RSAT, Selenium, TOSCA)",
+      "tools": [],
+      "triggers": [
+       "ERP testing",
+       "SIT",
+       "UAT",
+       "regression test",
+       "RSAT",
+       "TOSCA"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "erp-cutover-go-live-lead",
+      "name": "ERP Cutover & Go-Live Lead",
+      "role": "Cutover planning, mock cutovers, go/no-go, rollback, hypercare",
+      "tools": [],
+      "triggers": [
+       "cutover",
+       "go-live",
+       "mock cutover",
+       "hypercare",
+       "rollback",
+       "go/no-go"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "erp-data-migration-lead",
+      "name": "ERP Data Migration Lead",
+      "role": "Data profiling, cleansing, mapping, migration cycles, reconciliation",
+      "tools": [],
+      "triggers": [
+       "data migration",
+       "data profiling",
+       "data cleansing",
+       "FBDI",
+       "LSMW",
+       "EIB"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "erp-solution-architect",
+      "name": "ERP Solution Architect",
+      "role": "Cross-module design authority — fit-gap, extension strategy, integration architecture",
+      "tools": [],
+      "triggers": [
+       "solution architect",
+       "design authority",
+       "fit-gap",
+       "extension",
+       "cross-module",
+       "ERP architecture"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "epm-oracle-cloud",
+  "label": "EPM — Oracle Cloud",
+  "icon": "🛡️",
+  "color": "#0e9f8a",
+  "accent": "#3cc4ae",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "EPM — Oracle Cloud specialists",
+  "subCategories": [
+   {
+    "id": "epm-oracle-cloud-all",
+    "label": "EPM — Oracle Cloud",
+    "agents": [
+     {
+      "id": "oracle-pbcs-epbcs-lead",
+      "name": "Oracle PBCS/EPBCS Lead",
+      "role": "Oracle Planning Cloud — driver-based planning, Groovy rules, workforce planning",
+      "tools": [],
+      "triggers": [
+       "PBCS",
+       "EPBCS",
+       "Oracle Planning",
+       "Groovy",
+       "driver-based planning",
+       "Smart View"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-fccs-lead",
+      "name": "Oracle FCCS Lead",
+      "role": "Oracle Financial Consolidation — multi-entity rules, ownership hierarchies, close workflows",
+      "tools": [],
+      "triggers": [
+       "FCCS",
+       "Oracle consolidation",
+       "financial consolidation",
+       "intercompany elimination",
+       "close manager",
+       "Oracle EPM FCCS"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "close-consolidation",
+       "name": "Close & Consolidation (R2R)",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Eliminations, NCI, multi-GAAP, close calendars, FCCS/OneStream mechanics."
+      }
+     },
+     {
+      "id": "oracle-arcs-lead",
+      "name": "Oracle ARCS Lead",
+      "role": "Oracle Account Reconciliation — compliance profiles, auto-matching, risk-based frequency",
+      "tools": [],
+      "triggers": [
+       "ARCS",
+       "account reconciliation",
+       "Oracle ARCS",
+       "auto-matching",
+       "reconciliation compliance",
+       "balance substantiation"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-edmcs-lead",
+      "name": "Oracle EDMCS Lead",
+      "role": "Oracle Enterprise Data Management — dimension governance, metadata orchestration",
+      "tools": [],
+      "triggers": [
+       "EDMCS",
+       "enterprise data management",
+       "dimension governance",
+       "metadata",
+       "Oracle EDMCS",
+       "hierarchy management"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "coa-architect",
+       "name": "COA Architect",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Segment architecture, natural-account logic, legacy-to-target mapping, CVR rules."
+      }
+     },
+     {
+      "id": "oracle-narrative-reporting-lead",
+      "name": "Oracle Narrative Reporting Lead",
+      "role": "Oracle Narrative Reporting — board books, data-connected doclets, XBRL disclosure",
+      "tools": [],
+      "triggers": [
+       "narrative reporting",
+       "Oracle NR",
+       "board book",
+       "doclet",
+       "management commentary",
+       "XBRL"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-pcm-lead",
+      "name": "Oracle PCM Lead",
+      "role": "Oracle Profitability & Cost Management — ABC costing, driver allocation, profitability",
+      "tools": [],
+      "triggers": [
+       "PCM",
+       "profitability",
+       "cost management",
+       "activity-based costing",
+       "cost allocation",
+       "Oracle PCM"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "epm-onestream-and-anaplan",
+  "label": "EPM — OneStream & Anaplan",
+  "icon": "🤝",
+  "color": "#b055c9",
+  "accent": "#cd82e0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "EPM — OneStream & Anaplan specialists",
+  "subCategories": [
+   {
+    "id": "epm-onestream-and-anaplan-all",
+    "label": "EPM — OneStream & Anaplan",
+    "agents": [
+     {
+      "id": "onestream-specialist",
+      "name": "OneStream Specialist",
+      "role": "OneStream XF — unified consolidation, planning, reporting on single platform",
+      "tools": [],
+      "triggers": [
+       "OneStream",
+       "OneStream XF",
+       "MarketPlace",
+       "unified EPM",
+       "OneStream consolidation",
+       "OneStream planning"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "close-consolidation",
+       "name": "Close & Consolidation (R2R)",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Eliminations, NCI, multi-GAAP, close calendars, FCCS/OneStream mechanics."
+      }
+     },
+     {
+      "id": "anaplan-specialist",
+      "name": "Anaplan Specialist",
+      "role": "Anaplan connected planning — HyperBlock engine, ALM, self-service dashboards",
+      "tools": [],
+      "triggers": [
+       "Anaplan",
+       "HyperBlock",
+       "connected planning",
+       "ALM",
+       "Anaplan model",
+       "territory planning"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "epm-specialty",
+  "label": "EPM — Specialty",
+  "icon": "🏗️",
+  "color": "#9b9d95",
+  "accent": "#c0c2ba",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "EPM — Specialty specialists",
+  "subCategories": [
+   {
+    "id": "epm-specialty-all",
+    "label": "EPM — Specialty",
+    "agents": [
+     {
+      "id": "epm-workforce-planning-lead",
+      "name": "EPM Workforce Planning Lead",
+      "role": "Strategic workforce planning — headcount modeling, compensation, attrition scenarios",
+      "tools": [],
+      "triggers": [
+       "workforce planning",
+       "headcount",
+       "compensation planning",
+       "attrition",
+       "merit planning",
+       "FTE planning"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "epm-capital-planning-lead",
+      "name": "EPM Capital Planning Lead",
+      "role": "Capital expenditure planning — NPV/IRR, project ranking, asset lifecycle modeling",
+      "tools": [],
+      "triggers": [
+       "capital planning",
+       "capex",
+       "NPV",
+       "IRR",
+       "capital budget",
+       "project ranking"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "ai-change-management",
+  "label": "AI Change Management",
+  "icon": "⚡",
+  "color": "#C41E3A",
+  "accent": "#FF4D6D",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "AI Change Management specialists",
+  "subCategories": [
+   {
+    "id": "ai-change-management-all",
+    "label": "AI Change Management",
+    "agents": [
+     {
+      "id": "agentic-change-orchestrator",
+      "name": "Agentic Change Orchestrator",
+      "role": "AI-driven OCM — persona-based comms, real-time sentiment, predictive resistance, autonomous nudges",
+      "tools": [],
+      "triggers": [
+       "agentic change",
+       "AI OCM",
+       "adaptive change",
+       "sentiment analysis",
+       "predictive resistance",
+       "change orchestrator"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "digital-adoption-platform-architect",
+      "name": "Digital Adoption Platform Architect",
+      "role": "DAP design — in-app guidance, contextual help, process compliance, WalkMe/Whatfix",
+      "tools": [],
+      "triggers": [
+       "DAP",
+       "digital adoption",
+       "in-app guidance",
+       "WalkMe",
+       "Whatfix",
+       "contextual help"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "ai-resistance-analytics-lead",
+      "name": "AI Resistance Analytics Lead",
+      "role": "Resistance detection via AI — behavioral analytics, intervention targeting, effectiveness measurement",
+      "tools": [],
+      "triggers": [
+       "resistance analytics",
+       "change resistance",
+       "behavioral analytics",
+       "resistance detection",
+       "intervention",
+       "adoption analytics"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "ai-learning-experience-architect",
+      "name": "AI Learning Experience Architect",
+      "role": "Adaptive learning — personalized paths, blended learning, competency assessment",
+      "tools": [],
+      "triggers": [
+       "learning experience",
+       "adaptive learning",
+       "personalized learning",
+       "blended learning",
+       "competency",
+       "e-learning"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "change-impact-assessment-lead",
+      "name": "Change Impact Assessment Lead",
+      "role": "Systematic impact assessment — process, role, technology, org impacts, readiness scoring",
+      "tools": [],
+      "triggers": [
+       "change impact",
+       "impact assessment",
+       "readiness assessment",
+       "impact register",
+       "stakeholder analysis",
+       "go-live readiness"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "change-measurement-value-lead",
+      "name": "Change Measurement & Value Lead",
+      "role": "Adoption analytics — leading/lagging indicators, value realization, OCM ROI",
+      "tools": [],
+      "triggers": [
+       "change measurement",
+       "adoption metrics",
+       "value realization",
+       "OCM ROI",
+       "adoption dashboard",
+       "leading indicators"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "manda-finance",
+  "label": "M&A Finance",
+  "icon": "🏦",
+  "color": "#8b7ce8",
+  "accent": "#a89cf0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "M&A Finance specialists",
+  "subCategories": [
+   {
+    "id": "manda-finance-all",
+    "label": "M&A Finance",
+    "agents": [
+     {
+      "id": "ma-day1-readiness-lead",
+      "name": "M&A Day 1 Readiness Lead",
+      "role": "Day 1 standalone operations — 8 pillars, TSA design, war room, go/no-go",
+      "tools": [],
+      "triggers": [
+       "Day 1 readiness",
+       "M&A Day 1",
+       "standalone operations",
+       "TSA",
+       "war room",
+       "go/no-go"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "ma-day2-finance-integration-lead",
+      "name": "M&A Day 2 Finance Integration Lead",
+      "role": "Post-close finance integration — 100-day plan, 4 waves, TSA exit, synergy tracking",
+      "tools": [],
+      "triggers": [
+       "Day 2 integration",
+       "post-close",
+       "100-day plan",
+       "TSA exit",
+       "synergy tracking",
+       "finance integration"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "ma-financial-due-diligence-lead",
+      "name": "M&A Financial Due Diligence Lead",
+      "role": "Buy-side/sell-side QoE — EBITDA normalization, working capital, debt-like items",
+      "tools": [],
+      "triggers": [
+       "financial due diligence",
+       "QoE",
+       "EBITDA normalization",
+       "working capital peg",
+       "buy-side DD",
+       "sell-side DD"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "ma-synergy-value-architect",
+      "name": "M&A Synergy Value Architect",
+      "role": "Synergy identification — cost synergies, revenue synergies, integration costs, realization tracking",
+      "tools": [],
+      "triggers": [
+       "synergy",
+       "cost synergy",
+       "revenue synergy",
+       "synergy tracking",
+       "integration costs",
+       "value creation"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "ma-carve-out-finance-lead",
+      "name": "M&A Carve-Out Finance Lead",
+      "role": "Carve-out finance — standalone financial statements, cost allocation, TSA design",
+      "tools": [],
+      "triggers": [
+       "carve-out",
+       "divestiture",
+       "standalone financials",
+       "cost allocation",
+       "TSA service",
+       "separation accounting"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "ma-purchase-price-allocation-lead",
+      "name": "M&A Purchase Price Allocation Lead",
+      "role": "PPA under IFRS 3/ASC 805 — intangible valuation, goodwill, contingent consideration",
+      "tools": [],
+      "triggers": [
+       "PPA",
+       "purchase price allocation",
+       "IFRS 3",
+       "ASC 805",
+       "goodwill",
+       "intangible valuation"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "ma-tsa-standalone-finance-lead",
+      "name": "M&A TSA & Standalone Finance Lead",
+      "role": "TSA management — service definitions, exit criteria, standalone finance build",
+      "tools": [],
+      "triggers": [
+       "TSA",
+       "transition service",
+       "standalone finance",
+       "service agreement",
+       "TSA exit",
+       "separation"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "skills-customer-support",
+  "label": "Skills — Customer Support",
+  "icon": "📊",
+  "color": "#46a758",
+  "accent": "#6bc47e",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Skills — Customer Support specialists",
+  "subCategories": [
+   {
+    "id": "skills-customer-support-all",
+    "label": "Skills — Customer Support",
+    "agents": [
+     {
+      "id": "customer-satisfaction",
+      "name": "Customer Satisfaction",
+      "role": "CSAT surveys, NPS tracking, customer feedback aggregation",
+      "tools": [
+       "customer-satisfaction"
+      ],
+      "triggers": [
+       "CSAT",
+       "NPS",
+       "customer satisfaction",
+       "survey",
+       "feedback"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "escalation",
+      "name": "Escalation Management",
+      "role": "Ticket escalation, tier routing, engineering-bug handoff",
+      "tools": [
+       "escalation"
+      ],
+      "triggers": [
+       "escalation",
+       "tier 1",
+       "tier 2",
+       "escalate",
+       "handoff"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "field-service",
+      "name": "Field Service",
+      "role": "Field-service ops — scheduling, dispatching, route optimization",
+      "tools": [
+       "field-service"
+      ],
+      "triggers": [
+       "field service",
+       "dispatch",
+       "route",
+       "technician",
+       "scheduling"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "knowledge-base-skill",
+      "name": "Knowledge Base Builder",
+      "role": "Customer-facing KB — article creation, deflection, agent assist",
+      "tools": [
+       "knowledge-base"
+      ],
+      "triggers": [
+       "knowledge base",
+       "KB",
+       "help articles",
+       "deflection",
+       "self-service"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "omnichannel",
+      "name": "Omnichannel Support",
+      "role": "Multi-channel support coordination — email, chat, social, phone",
+      "tools": [
+       "omnichannel"
+      ],
+      "triggers": [
+       "omnichannel",
+       "multichannel",
+       "support channels",
+       "chat",
+       "social support"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sla-management",
+      "name": "SLA Management",
+      "role": "SLA definition, response/resolution targets, breach tracking",
+      "tools": [
+       "sla-management"
+      ],
+      "triggers": [
+       "SLA",
+       "service level",
+       "response time",
+       "resolution time",
+       "breach"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "ticket-lifecycle",
+      "name": "Ticket Lifecycle",
+      "role": "Support ticket management — triage, routing, resolution, handoffs",
+      "tools": [
+       "ticket-lifecycle"
+      ],
+      "triggers": [
+       "ticket",
+       "support ticket",
+       "triage",
+       "helpdesk",
+       "Zendesk",
+       "Intercom"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ }
+]

@@ -1,0 +1,26 @@
+{
+ "claude": {
+  "label": "Claude (Cowork)",
+  "icon": "🤖",
+  "color": "#C95A20",
+  "desc": "Native Claude.ai plugin with full skill system"
+ },
+ "perplexity": {
+  "label": "Perplexity",
+  "icon": "🔍",
+  "color": "#20B2AA",
+  "desc": "Research & intelligence queries via Perplexity API"
+ },
+ "copilot": {
+  "label": "GitHub Copilot",
+  "icon": "💻",
+  "color": "#24292E",
+  "desc": "Code generation & technical implementation"
+ },
+ "github": {
+  "label": "GitHub Actions",
+  "icon": "⚡",
+  "color": "#2EA043",
+  "desc": "CI/CD automated consulting workflows"
+ }
+}

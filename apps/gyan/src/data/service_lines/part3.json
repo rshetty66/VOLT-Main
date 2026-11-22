@@ -1,0 +1,912 @@
+[
+ {
+  "id": "orchestration",
+  "label": "Orchestration",
+  "icon": "🤝",
+  "color": "#b055c9",
+  "accent": "#cd82e0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Orchestration specialists",
+  "subCategories": [
+   {
+    "id": "orchestration-all",
+    "label": "Orchestration",
+    "agents": [
+     {
+      "id": "solution-architect",
+      "name": "Solution Architect",
+      "role": "Technology stack recommendation — ERP, EPM, data, analytics, AI platform design",
+      "tools": [],
+      "triggers": [
+       "solution architecture",
+       "technology stack",
+       "platform selection",
+       "ERP selection",
+       "EPM selection",
+       "technology strategy"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "transformation-diagnostician",
+      "name": "Transformation Diagnostician",
+      "role": "Finance transformation maturity assessment — 7 dimensions, 1-5 scoring",
+      "tools": [],
+      "triggers": [
+       "maturity assessment",
+       "diagnostic",
+       "transformation readiness",
+       "current state",
+       "gap analysis",
+       "maturity model"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "erp-oracle-cloud",
+  "label": "ERP — Oracle Cloud",
+  "icon": "🏗️",
+  "color": "#9b9d95",
+  "accent": "#c0c2ba",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "ERP — Oracle Cloud specialists",
+  "subCategories": [
+   {
+    "id": "erp-oracle-cloud-all",
+    "label": "ERP — Oracle Cloud",
+    "agents": [
+     {
+      "id": "oracle-gl-specialist",
+      "name": "Oracle GL Specialist",
+      "role": "Oracle Fusion GL — multi-GAAP ledgers, SLA rules, COA, period-end close",
+      "tools": [],
+      "triggers": [
+       "oracle GL",
+       "general ledger",
+       "SLA rules",
+       "subledger accounting",
+       "multi-GAAP",
+       "ledger"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-ap-ar-specialist",
+      "name": "Oracle AP/AR Specialist",
+      "role": "Oracle Fusion Payables & Receivables — invoice processing, cash application, collections",
+      "tools": [],
+      "triggers": [
+       "oracle AP",
+       "oracle AR",
+       "payables",
+       "receivables",
+       "invoice",
+       "cash application"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-projects-specialist",
+      "name": "Oracle Projects Specialist",
+      "role": "Oracle Fusion PPM — project costing, billing, revenue recognition, CIP",
+      "tools": [],
+      "triggers": [
+       "oracle projects",
+       "PPM",
+       "project costing",
+       "project billing",
+       "CIP",
+       "capitalization"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-fa-specialist",
+      "name": "Oracle Fixed Assets Specialist",
+      "role": "Oracle Fusion Fixed Assets — depreciation, asset books, CIP-to-asset, impairment",
+      "tools": [],
+      "triggers": [
+       "oracle fixed assets",
+       "depreciation",
+       "asset book",
+       "CCA",
+       "MACRS",
+       "capitalization"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "procurement",
+  "label": "Procurement",
+  "icon": "⚡",
+  "color": "#C41E3A",
+  "accent": "#FF4D6D",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Procurement specialists",
+  "subCategories": [
+   {
+    "id": "procurement-all",
+    "label": "Procurement",
+    "agents": [
+     {
+      "id": "oracle-procurement-specialist",
+      "name": "Oracle Procurement Cloud Specialist",
+      "role": "Oracle Procurement Cloud — self-service procurement, sourcing, supplier portal, purchasing",
+      "tools": [],
+      "triggers": [
+       "Oracle Procurement",
+       "Oracle Sourcing",
+       "procurement cloud Oracle",
+       "purchase order Oracle",
+       "supplier portal Oracle"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "procurement-transformation-lead",
+      "name": "Procurement Transformation Lead",
+      "role": "Source-to-Pay strategy — procurement operating model, category management, supplier strategy, Coupa/Ariba",
+      "tools": [
+       "digital-procurement-core"
+      ],
+      "triggers": [
+       "procurement transformation",
+       "source to pay",
+       "procure to pay",
+       "category management",
+       "spend analytics",
+       "supplier management"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-ariba-specialist",
+      "name": "SAP Ariba Specialist",
+      "role": "SAP Ariba — sourcing, procurement, supplier management, contract management, Ariba Network",
+      "tools": [],
+      "triggers": [
+       "SAP Ariba",
+       "Ariba Sourcing",
+       "Ariba Buying",
+       "Ariba Network",
+       "procurement SAP",
+       "guided buying"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "coupa-specialist",
+      "name": "Coupa Procurement Specialist",
+      "role": "Coupa BSM — procure-to-pay, invoicing, expense management, supply chain design, treasury",
+      "tools": [],
+      "triggers": [
+       "Coupa",
+       "Coupa BSM",
+       "procure to pay Coupa",
+       "Coupa invoicing",
+       "business spend management"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "erp-sap-s-4hana",
+  "label": "ERP — SAP S/4HANA",
+  "icon": "🏦",
+  "color": "#8b7ce8",
+  "accent": "#a89cf0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "ERP — SAP S/4HANA specialists",
+  "subCategories": [
+   {
+    "id": "erp-sap-s-4hana-all",
+    "label": "ERP — SAP S/4HANA",
+    "agents": [
+     {
+      "id": "sap-fico-specialist",
+      "name": "SAP FI/CO Specialist",
+      "role": "SAP S/4HANA Finance & Controlling — Universal Journal, CO-PA, Material Ledger",
+      "tools": [],
+      "triggers": [
+       "SAP FI",
+       "SAP CO",
+       "FICO",
+       "S/4HANA finance",
+       "Universal Journal",
+       "CO-PA"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-mm-sd-specialist",
+      "name": "SAP MM/SD Specialist",
+      "role": "SAP S/4HANA Materials Management & Sales Distribution — P2P and O2C",
+      "tools": [],
+      "triggers": [
+       "SAP MM",
+       "SAP SD",
+       "materials management",
+       "sales distribution",
+       "procurement SAP",
+       "pricing condition"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-basis-architect",
+      "name": "SAP Basis Architect",
+      "role": "SAP Basis — HANA infrastructure, TMS, RISE migration, Fiori, security",
+      "tools": [],
+      "triggers": [
+       "SAP Basis",
+       "HANA",
+       "RISE",
+       "SUM",
+       "DMO",
+       "Fiori"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-pp-pm-specialist",
+      "name": "SAP PP/PM Specialist",
+      "role": "SAP S/4HANA Production Planning & Plant Maintenance — MRP, scheduling, equipment",
+      "tools": [],
+      "triggers": [
+       "SAP PP",
+       "SAP PM",
+       "production planning",
+       "plant maintenance",
+       "MRP",
+       "manufacturing"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-ewm-tm-specialist",
+      "name": "SAP EWM/TM Specialist",
+      "role": "SAP Extended Warehouse & Transportation Management — logistics optimization",
+      "tools": [],
+      "triggers": [
+       "SAP EWM",
+       "SAP TM",
+       "warehouse",
+       "transportation",
+       "logistics",
+       "picking"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-bank-analyzer-lead",
+      "name": "SAP Bank Analyzer Lead",
+      "role": "SAP Bank Analyzer / FSDP — financial instruments, risk analytics, subledger, regulatory reporting",
+      "tools": [],
+      "triggers": [
+       "Bank Analyzer",
+       "FSDP",
+       "banking analytics",
+       "risk weighted",
+       "Basel",
+       "financial instruments"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "fin-instruments",
+       "name": "Financial Instruments (IFRS 9)",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Classification & measurement, ECL staging, hedge accounting, EL bridges."
+      }
+     },
+     {
+      "id": "sap-bca-specialist",
+      "name": "SAP BCA Specialist",
+      "role": "SAP Bank Customer Accounts — deposits, loans, payment transactions, account management",
+      "tools": [],
+      "triggers": [
+       "BCA",
+       "bank customer accounts",
+       "deposits",
+       "loans",
+       "payment transactions",
+       "SAP banking operations"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-fpsl-lead",
+      "name": "SAP FPSL Lead",
+      "role": "SAP Financial Products Subledger — IFRS 17, IFRS 9, insurance & financial instrument accounting",
+      "tools": [],
+      "triggers": [
+       "FPSL",
+       "Financial Products Subledger",
+       "IFRS 17",
+       "IFRS 9",
+       "insurance accounting",
+       "ECL"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "ifrs17-insurance",
+       "name": "Insurance (IFRS 17)",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "BBA/PAA/VFA measurement, CSM, risk adjustment, FPSL subledger."
+      }
+     },
+     {
+      "id": "sap-insurance-accounting-specialist",
+      "name": "SAP Insurance Accounting Specialist",
+      "role": "Insurance contract management — IFRS 17 measurement models (BBA, PAA, VFA), CSM, risk adjustment",
+      "tools": [],
+      "triggers": [
+       "insurance IFRS 17",
+       "BBA",
+       "PAA",
+       "VFA",
+       "risk adjustment",
+       "coverage units"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "ifrs17-insurance",
+       "name": "Insurance (IFRS 17)",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "BBA/PAA/VFA measurement, CSM, risk adjustment, FPSL subledger."
+      }
+     },
+     {
+      "id": "sap-concur-expense-lead",
+      "name": "SAP Concur Expense Lead",
+      "role": "SAP Concur Expense — policy configuration, approval workflows, receipt processing, audit rules",
+      "tools": [],
+      "triggers": [
+       "Concur Expense",
+       "expense management",
+       "expense report",
+       "receipt processing",
+       "corporate card",
+       "expense policy"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-concur-travel-lead",
+      "name": "SAP Concur Travel Lead",
+      "role": "SAP Concur Travel — booking, TMC integration, travel policy, pre-trip approvals",
+      "tools": [],
+      "triggers": [
+       "Concur Travel",
+       "travel booking",
+       "TMC",
+       "GDS",
+       "travel policy",
+       "corporate travel"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-concur-invoice-lead",
+      "name": "SAP Concur Invoice Lead",
+      "role": "SAP Concur Invoice — AP automation, PO matching, vendor management, payment processing",
+      "tools": [],
+      "triggers": [
+       "Concur Invoice",
+       "AP automation",
+       "invoice processing",
+       "PO matching",
+       "vendor management",
+       "accounts payable Concur"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "hcm-sap-successfactors",
+  "label": "HCM — SAP SuccessFactors",
+  "icon": "📊",
+  "color": "#46a758",
+  "accent": "#6bc47e",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "HCM — SAP SuccessFactors specialists",
+  "subCategories": [
+   {
+    "id": "hcm-sap-successfactors-all",
+    "label": "HCM — SAP SuccessFactors",
+    "agents": [
+     {
+      "id": "sap-sf-core-hr-lead",
+      "name": "SAP SuccessFactors Core HR Lead",
+      "role": "SAP SuccessFactors Employee Central — core HR, org management, position management, employee lifecycle",
+      "tools": [],
+      "triggers": [
+       "SuccessFactors",
+       "Employee Central",
+       "SAP SF",
+       "core HR",
+       "position management",
+       "org management"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-sf-recruiting-lead",
+      "name": "SAP SF Recruiting & Onboarding Lead",
+      "role": "SAP SuccessFactors Recruiting & Onboarding — talent acquisition, candidate experience, onboarding workflows",
+      "tools": [],
+      "triggers": [
+       "SF Recruiting",
+       "SuccessFactors Recruiting",
+       "Onboarding 2.0",
+       "talent acquisition",
+       "candidate experience",
+       "SAP hiring"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-sf-performance-lead",
+      "name": "SAP SF Performance & Goals Lead",
+      "role": "SAP SuccessFactors Performance & Goals — continuous PM, goal alignment, calibration, 360 reviews",
+      "tools": [],
+      "triggers": [
+       "SF Performance",
+       "SuccessFactors Goals",
+       "calibration",
+       "360 review",
+       "performance management SAP",
+       "OKR"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-sf-compensation-lead",
+      "name": "SAP SF Compensation Lead",
+      "role": "SAP SuccessFactors Compensation — base pay, variable pay, total rewards, pay equity analysis",
+      "tools": [],
+      "triggers": [
+       "SF Compensation",
+       "SuccessFactors Comp",
+       "variable pay",
+       "merit cycle",
+       "total rewards",
+       "pay equity"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-sf-learning-lead",
+      "name": "SAP SF Learning Lead",
+      "role": "SAP SuccessFactors Learning — LMS, compliance training, learning paths, skill development",
+      "tools": [],
+      "triggers": [
+       "SF Learning",
+       "SuccessFactors LMS",
+       "compliance training",
+       "learning management",
+       "skill development",
+       "training SAP"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-sf-succession-lead",
+      "name": "SAP SF Succession & Development Lead",
+      "role": "SAP SuccessFactors Succession & Development — talent pipeline, career paths, talent pools, development plans",
+      "tools": [],
+      "triggers": [
+       "SF Succession",
+       "SuccessFactors talent",
+       "9-box",
+       "career path",
+       "talent pipeline",
+       "development plan"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "sap-sf-workforce-analytics-lead",
+      "name": "SAP SF Workforce Analytics Lead",
+      "role": "SAP SuccessFactors Workforce Analytics & People Analytics — headcount, turnover, diversity, predictive analytics",
+      "tools": [],
+      "triggers": [
+       "SF Analytics",
+       "People Analytics",
+       "workforce analytics",
+       "headcount reporting",
+       "attrition prediction",
+       "diversity metrics"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "hcm-workday",
+  "label": "HCM — Workday",
+  "icon": "🔄",
+  "color": "#4c9be8",
+  "accent": "#74b5f0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "HCM — Workday specialists",
+  "subCategories": [
+   {
+    "id": "hcm-workday-all",
+    "label": "HCM — Workday",
+    "agents": [
+     {
+      "id": "workday-hcm-lead",
+      "name": "Workday HCM Core Lead",
+      "role": "Workday HCM Core — org design, staffing models, worker lifecycle, supervisory orgs, business processes",
+      "tools": [],
+      "triggers": [
+       "Workday HCM",
+       "Workday Core",
+       "supervisory org",
+       "business process Workday",
+       "staffing model",
+       "worker lifecycle"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "workday-recruiting-lead",
+      "name": "Workday Recruiting Lead",
+      "role": "Workday Recruiting — talent acquisition, candidate pipelines, offer management, onboarding",
+      "tools": [],
+      "triggers": [
+       "Workday Recruiting",
+       "Workday Onboarding",
+       "talent acquisition Workday",
+       "candidate pipeline",
+       "job requisition Workday"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "workday-compensation-lead",
+      "name": "Workday Compensation Lead",
+      "role": "Workday Advanced Compensation — comp plans, merit cycles, bonus plans, total rewards",
+      "tools": [],
+      "triggers": [
+       "Workday Compensation",
+       "Workday merit",
+       "bonus plan Workday",
+       "total rewards Workday",
+       "compensation grid"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "workday-payroll-lead",
+      "name": "Workday Payroll Lead",
+      "role": "Workday Payroll — payroll processing, tax configuration, GL mapping, pay groups, retro calculations",
+      "tools": [],
+      "triggers": [
+       "Workday Payroll",
+       "payroll processing",
+       "GL mapping payroll",
+       "pay groups",
+       "tax configuration Workday",
+       "payroll accounting"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "workday-learning-lead",
+      "name": "Workday Learning Lead",
+      "role": "Workday Learning — learning content, campaigns, compliance, skill assessments",
+      "tools": [],
+      "triggers": [
+       "Workday Learning",
+       "learning management Workday",
+       "compliance training Workday",
+       "skill assessment",
+       "learning campaign"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "workday-absence-time-lead",
+      "name": "Workday Absence & Time Tracking Lead",
+      "role": "Workday Absence Management & Time Tracking — leave policies, accruals, time entry, scheduling",
+      "tools": [],
+      "triggers": [
+       "Workday Absence",
+       "Workday Time Tracking",
+       "leave management",
+       "accrual Workday",
+       "time entry",
+       "scheduling Workday"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "hr-transformation",
+  "label": "HR Transformation",
+  "icon": "🧭",
+  "color": "#d97706",
+  "accent": "#f2a93b",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "HR Transformation specialists",
+  "subCategories": [
+   {
+    "id": "hr-transformation-all",
+    "label": "HR Transformation",
+    "agents": [
+     {
+      "id": "hr-transformation-lead",
+      "name": "HR Transformation Lead",
+      "role": "End-to-end HR/People transformation — HR operating model, service delivery, HCM strategy, workforce planning, employee experience",
+      "tools": [
+       "hr-transformation-core"
+      ],
+      "triggers": [
+       "hr transformation",
+       "people transformation",
+       "workforce transformation",
+       "hr operating model",
+       "hr target operating model",
+       "chro"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ }
+]

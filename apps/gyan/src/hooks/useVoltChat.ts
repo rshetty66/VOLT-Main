@@ -1,0 +1,262 @@
+/**
+ * useVoltChat — conversation state + streaming orchestration for the VOLT assistant.
+ * Side effects stay out of state updaters (StrictMode double-invokes them);
+ * a ref mirrors messages so send() can build history without a stale closure.
+ * Completed turns persist to browser-local storage (see lib/store) AND, when
+ * the user is signed in, to the server-side per-user history — local stays the
+ * offline fallback, so a failed sync never costs the user their conversation.
+ * Every finished answer registers as a Studio deliverable.
+ */
+import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  streamChat,
+  type AgentRef,
+  type ChatErrorKind,
+  type HistoryMessage,
+} from '@/lib/stream';
+import { foldAttachments, type Attachment } from '@/lib/attachments';
+import {
+  addDeliverable,
+  conversationTitle,
+  saveConversation,
+  type StoredConversation,
+} from '@/lib/store';
+import { deliverableName } from '@/lib/exporters';
+import { trpc } from '@/providers/trpc';
+
+export interface AttachmentMeta {
+  name: string;
+  size: number;
+  kind: Attachment['kind'];
+  summary?: string;
+  truncated?: boolean;
+}
+
+export interface VoltMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  /** the user question that produced this answer (assistant messages) */
+  prompt?: string;
+  /** files the user attached with this message (user messages) */
+  attachments?: AttachmentMeta[];
+  agents?: AgentRef[];
+  model?: string;
+  usage?: { inputTokens?: number; outputTokens?: number };
+  errorKind?: ChatErrorKind;
+  errorMessage?: string;
+  streaming?: boolean;
+  incomplete?: boolean;
+  /** the user pressed Stop — partial answer kept, not an error */
+  stopped?: boolean;
+}
+
+let seq = 0;
+const nextId = () => `m${++seq}-${Date.now()}`;
+const newConvId = () => `c-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+
+/** Strip runtime-only flags so restored conversations render as finished. */
+function restorable(messages: VoltMessage[]): VoltMessage[] {
+  return messages.map((m) =>
+    m.streaming || m.incomplete ? { ...m, streaming: false } : m,
+  );
+}
+
+export function useVoltChat() {
+  const [messages, setMessages] = useState<VoltMessage[]>([]);
+  const [busy, setBusy] = useState(false);
+  const abortRef = useRef<AbortController | null>(null);
+  const messagesRef = useRef<VoltMessage[]>([]);
+  const convRef = useRef<{ id: string; createdAt: number }>({
+    id: newConvId(),
+    createdAt: Date.now(),
+  });
+  // Reactive copy of the active conversation id (for history highlighting).
+  const [conversationId, setConversationId] = useState(convRef.current.id);
+
+  // Server-side history: only when signed in, and never fatal on failure —
+  // the browser-local copy below is always written first.
+  const me = trpc.auth.me.useQuery(undefined, {
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+  const authedRef = useRef(false);
+  authedRef.current = !!me.data;
+  const saveRemote = trpc.conversations.save.useMutation();
+  const saveRemoteRef = useRef(saveRemote.mutate);
+  saveRemoteRef.current = saveRemote.mutate;
+  const utils = trpc.useUtils();
+
+  useEffect(() => {
+    messagesRef.current = messages;
+  }, [messages]);
+
+  // Persist finished turns (never mid-stream) — debounced. Local first, then
+  // a best-effort sync to the account; on success the history list refreshes.
+  useEffect(() => {
+    if (messages.length === 0 || messages.some((m) => m.streaming)) return;
+    const t = setTimeout(() => {
+      const conv: StoredConversation = {
+        id: convRef.current.id,
+        title: conversationTitle(messages),
+        createdAt: convRef.current.createdAt,
+        updatedAt: Date.now(),
+        messages: restorable(messages),
+      };
+      saveConversation(conv);
+      if (authedRef.current) {
+        saveRemoteRef.current(
+          { ...conv, messages: conv.messages as unknown as Record<string, unknown>[] },
+          {
+            onSuccess: (r) => {
+              if (r.ok) void utils.conversations.list.invalidate();
+            },
+            onError: () => {
+              /* offline / DB down — local copy already kept */
+            },
+          },
+        );
+      }
+    }, 400);
+    return () => clearTimeout(t);
+  }, [messages, utils]);
+
+  const patch = useCallback((id: string, p: Partial<VoltMessage>) => {
+    setMessages((ms) => ms.map((m) => (m.id === id ? { ...m, ...p } : m)));
+  }, []);
+
+  const send = useCallback(
+    (
+      text: string,
+      opts?: { architecture?: boolean; attachments?: Attachment[] },
+    ) => {
+      const content = text.trim();
+      const atts = (opts?.attachments ?? []).filter(
+        (a) => a.status === 'ready' && a.text,
+      );
+      if ((!content && atts.length === 0) || busy) return;
+
+      const userMsg: VoltMessage = {
+        id: nextId(),
+        role: 'user',
+        content: content || 'Analyze the attached file(s).',
+        attachments:
+          atts.length > 0
+            ? atts.map((a) => ({
+                name: a.name,
+                size: a.size,
+                kind: a.kind,
+                summary: a.summary,
+                truncated: a.truncated,
+              }))
+            : undefined,
+      };
+      const asstId = nextId();
+      const asstMsg: VoltMessage = {
+        id: asstId,
+        role: 'assistant',
+        content: '',
+        prompt: userMsg.content,
+        streaming: true,
+      };
+
+      const history: HistoryMessage[] = [...messagesRef.current, userMsg].map(
+        (m, i, arr) => {
+          const base = { role: m.role, content: m.content };
+          // fold attachment text only into the message just sent
+          if (i === arr.length - 1 && atts.length > 0) {
+            return { ...base, content: foldAttachments(base.content, atts) };
+          }
+          return base;
+        },
+      );
+      setMessages((ms) => [...ms, userMsg, asstMsg]);
+      setBusy(true);
+
+      const run = async () => {
+        const ctrl = new AbortController();
+        abortRef.current = ctrl;
+        let finalText = '';
+        let failed = false;
+        let squad: AgentRef[] | undefined;
+        const terminal = await streamChat(
+          history,
+          {
+            onRun: (agents) => {
+              squad = agents;
+              patch(asstId, { agents });
+            },
+            onDelta: (d) => {
+              finalText += d;
+              setMessages((ms) =>
+                ms.map((m) =>
+                  m.id === asstId ? { ...m, content: m.content + d } : m,
+                ),
+              );
+            },
+            onDone: ({ model, usage }) =>
+              patch(asstId, { model, usage, streaming: false }),
+            onError: (kind, message) => {
+              failed = true;
+              patch(asstId, {
+                errorKind: kind,
+                errorMessage: message,
+                streaming: false,
+              });
+            },
+          },
+          ctrl.signal,
+          opts?.architecture ? { visualMode: 'architecture' } : undefined,
+        );
+        if (ctrl.signal.aborted) {
+          // User pressed Stop: keep the partial answer, flag it, and never
+          // register a half-written answer as a Studio deliverable.
+          patch(asstId, { streaming: false, incomplete: true, stopped: true });
+        } else if (terminal === 'broken') {
+          patch(asstId, { streaming: false, incomplete: true });
+        }
+        // A finished, non-empty answer becomes a Studio deliverable.
+        if (!failed && !ctrl.signal.aborted && finalText.trim()) {
+          addDeliverable({
+            id: asstId,
+            name: deliverableName(finalText, userMsg.content),
+            prompt: userMsg.content,
+            content: finalText,
+            agents: squad?.map((a) => ({ id: a.id, name: a.name })),
+            at: Date.now(),
+          });
+        }
+        abortRef.current = null;
+        setBusy(false);
+      };
+      void run();
+    },
+    [busy, patch],
+  );
+
+  /** Abort the in-flight stream, keeping whatever has streamed so far. */
+  const stop = useCallback(() => {
+    abortRef.current?.abort();
+  }, []);
+
+  const reset = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    convRef.current = { id: newConvId(), createdAt: Date.now() };
+    setConversationId(convRef.current.id);
+    setMessages([]);
+    setBusy(false);
+  }, []);
+
+  /** Restore a stored conversation (aborts any in-flight stream). */
+  const load = useCallback((conv: StoredConversation) => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    convRef.current = { id: conv.id, createdAt: conv.createdAt };
+    setConversationId(conv.id);
+    setMessages(restorable(conv.messages));
+    setBusy(false);
+  }, []);
+
+  return { messages, busy, conversationId, send, stop, reset, load };
+}

@@ -50,8 +50,13 @@ interface Session {
   /** Conversation with the lead agent (Rudra, or the directly-addressed agent). */
   messages: Anthropic.Beta.BetaMessageParam[];
   agentId?: string;
+  /** True while a run is using this conversation; a second run on it is refused (see /api/run). */
+  busy?: boolean;
+  lastUsed: number;
 }
 
+const SESSION_TTL_MS = 6 * 60 * 60 * 1000;
+const MAX_SESSIONS = 500;
 const sessions = new Map<string, Session>();
 
 let client: Anthropic | null = null;
@@ -292,10 +297,24 @@ async function runSpecialist(
 
 // ── Run kinds ────────────────────────────────────────────────────────────────
 
+/**
+ * Returns the conversation for a server-issued id. Ids are never chosen by the client: an unknown or missing
+ * id starts a new session with a fresh random id. Idle sessions expire and the store is capped.
+ */
 export function getSession(id?: string): Session {
+  const now = Date.now();
+  for (const [key, s] of sessions) if (!s.busy && now - s.lastUsed > SESSION_TTL_MS) sessions.delete(key);
   const existing = id ? sessions.get(id) : undefined;
-  if (existing) return existing;
-  const s: Session = { id: id ?? crypto.randomUUID(), messages: [] };
+  if (existing) {
+    existing.lastUsed = now;
+    return existing;
+  }
+  while (sessions.size >= MAX_SESSIONS) {
+    const oldest = [...sessions.values()].find((s) => !s.busy);
+    if (!oldest) break;
+    sessions.delete(oldest.id);
+  }
+  const s: Session = { id: crypto.randomUUID(), messages: [], lastUsed: now };
   sessions.set(s.id, s);
   return s;
 }

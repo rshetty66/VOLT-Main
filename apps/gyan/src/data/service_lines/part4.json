@@ -1,0 +1,534 @@
+[
+ {
+  "id": "hcm-oracle-cloud",
+  "label": "HCM — Oracle Cloud",
+  "icon": "🛡️",
+  "color": "#0e9f8a",
+  "accent": "#3cc4ae",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "HCM — Oracle Cloud specialists",
+  "subCategories": [
+   {
+    "id": "hcm-oracle-cloud-all",
+    "label": "HCM — Oracle Cloud",
+    "agents": [
+     {
+      "id": "oracle-hcm-core-lead",
+      "name": "Oracle HCM Cloud Core Lead",
+      "role": "Oracle HCM Cloud Core HR — workforce structures, person records, employment lifecycle, HDL",
+      "tools": [],
+      "triggers": [
+       "Oracle HCM",
+       "Oracle Cloud HR",
+       "HDL",
+       "HCM Data Loader",
+       "Oracle HR",
+       "workforce structures Oracle"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-recruiting-lead",
+      "name": "Oracle Recruiting Cloud Lead",
+      "role": "Oracle Recruiting Cloud — requisitions, candidate experience, AI matching, onboarding",
+      "tools": [],
+      "triggers": [
+       "Oracle Recruiting",
+       "Oracle Onboarding",
+       "Oracle Journeys",
+       "candidate matching Oracle",
+       "talent acquisition Oracle"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-compensation-lead",
+      "name": "Oracle Compensation Lead",
+      "role": "Oracle Compensation — workforce compensation, salary planning, total comp statements",
+      "tools": [],
+      "triggers": [
+       "Oracle Compensation",
+       "Oracle salary planning",
+       "total comp Oracle",
+       "compensation management Oracle"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-payroll-lead",
+      "name": "Oracle Payroll Lead",
+      "role": "Oracle Payroll — payroll processing, costing, GL integration, statutory reporting",
+      "tools": [],
+      "triggers": [
+       "Oracle Payroll",
+       "Oracle payroll processing",
+       "payroll GL Oracle",
+       "fast formula payroll",
+       "payroll costing Oracle"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-learning-lead",
+      "name": "Oracle Learning Cloud Lead",
+      "role": "Oracle Learning — LMS, learning communities, compliance, skills development",
+      "tools": [],
+      "triggers": [
+       "Oracle Learning",
+       "Oracle LMS",
+       "learning cloud Oracle",
+       "compliance training Oracle"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "oracle-talent-mgmt-lead",
+      "name": "Oracle Talent Management Lead",
+      "role": "Oracle Talent Management — performance, goals, succession, career development, talent review",
+      "tools": [],
+      "triggers": [
+       "Oracle Talent",
+       "Oracle Performance",
+       "Oracle Succession",
+       "talent review Oracle",
+       "9-box Oracle",
+       "career development Oracle"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "risk-and-compliance",
+  "label": "Risk & Compliance",
+  "icon": "🤝",
+  "color": "#b055c9",
+  "accent": "#cd82e0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Risk & Compliance specialists",
+  "subCategories": [
+   {
+    "id": "risk-and-compliance-all",
+    "label": "Risk & Compliance",
+    "agents": [
+     {
+      "id": "third-party-risk-lead",
+      "name": "Third Party Risk Management Lead",
+      "role": "TPRM framework design, vendor risk assessment, regulatory compliance (B-10, OCC, DORA), ongoing monitoring",
+      "tools": [
+       "third-party-risk-management"
+      ],
+      "triggers": [
+       "third party risk",
+       "TPRM",
+       "vendor risk",
+       "supplier risk",
+       "third party due diligence",
+       "third party governance"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "change-management",
+  "label": "Change Management",
+  "icon": "🏗️",
+  "color": "#9b9d95",
+  "accent": "#c0c2ba",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Change Management specialists",
+  "subCategories": [
+   {
+    "id": "change-management-all",
+    "label": "Change Management",
+    "agents": [
+     {
+      "id": "persona-based-change-lead",
+      "name": "Persona-Based Change Management Lead",
+      "role": "Persona-based change management — role-specific adoption strategies, journey maps, communication plans",
+      "tools": [],
+      "triggers": [
+       "persona based change",
+       "role specific adoption",
+       "persona journey map",
+       "personalized change",
+       "adoption strategy persona"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "business-readiness-lead",
+      "name": "Business Readiness Lead",
+      "role": "Business readiness assessment — go-live readiness, cutover planning, operational readiness",
+      "tools": [],
+      "triggers": [
+       "business readiness",
+       "go-live readiness",
+       "cutover planning",
+       "operational readiness",
+       "hypercare",
+       "readiness assessment"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "industry-public-sector",
+  "label": "Industry — Public Sector",
+  "icon": "⚡",
+  "color": "#C41E3A",
+  "accent": "#FF4D6D",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Industry — Public Sector specialists",
+  "subCategories": [
+   {
+    "id": "industry-public-sector-all",
+    "label": "Industry — Public Sector",
+    "agents": [
+     {
+      "id": "public-sector-finance-lead",
+      "name": "Public Sector Finance Lead",
+      "role": "Public sector finance — fund accounting, grants management, encumbrance accounting, PSAB/GASB compliance",
+      "tools": [],
+      "triggers": [
+       "fund accounting",
+       "grants management",
+       "public sector finance",
+       "PSAB",
+       "GASB",
+       "encumbrance"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "grants-management-specialist",
+      "name": "Grants Management Specialist",
+      "role": "Grants lifecycle — application, award, compliance, reporting, closeout, SEFA/Schedule of Expenditures",
+      "tools": [],
+      "triggers": [
+       "grants management",
+       "grant compliance",
+       "SEFA",
+       "sub-recipient",
+       "cost allocation",
+       "federal grants"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "municipal-erp-specialist",
+      "name": "Municipal & Local Government ERP Specialist",
+      "role": "Municipal ERP — property tax, utility billing, permitting, citizen services, bylaw management",
+      "tools": [],
+      "triggers": [
+       "municipal ERP",
+       "property tax",
+       "utility billing",
+       "permitting",
+       "citizen services",
+       "local government"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "higher-education-specialist",
+      "name": "Higher Education ERP Specialist",
+      "role": "University/college ERP — student financials, research accounting, endowment, tuition, SIS integration",
+      "tools": [],
+      "triggers": [
+       "higher education ERP",
+       "university finance",
+       "student financials",
+       "research accounting",
+       "endowment",
+       "tuition"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "healthcare-finance-specialist",
+      "name": "Healthcare Finance Specialist",
+      "role": "Healthcare finance — patient accounting, revenue cycle, MIS reporting, OHRS, hospital funding formulas",
+      "tools": [],
+      "triggers": [
+       "healthcare finance",
+       "patient accounting",
+       "revenue cycle",
+       "MIS reporting",
+       "OHRS",
+       "hospital funding"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "industry-financial-services",
+  "label": "Industry — Financial Services",
+  "icon": "🏦",
+  "color": "#8b7ce8",
+  "accent": "#a89cf0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "Industry — Financial Services specialists",
+  "subCategories": [
+   {
+    "id": "industry-financial-services-all",
+    "label": "Industry — Financial Services",
+    "agents": [
+     {
+      "id": "financial-services-specialist",
+      "name": "Financial Services Industry Specialist",
+      "role": "Financial services consulting — banking operations, insurance accounting, wealth management, regulatory compliance",
+      "tools": [],
+      "triggers": [
+       "financial services",
+       "banking operations",
+       "insurance accounting",
+       "IFRS 9",
+       "IFRS 17",
+       "AML"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "fin-instruments",
+       "name": "Financial Instruments (IFRS 9)",
+       "base": "Mistral fine-tune",
+       "kind": "dedicated",
+       "blurb": "Classification & measurement, ECL staging, hedge accounting, EL bridges."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "hcm-cross-platform",
+  "label": "HCM — Cross-Platform",
+  "icon": "📊",
+  "color": "#46a758",
+  "accent": "#6bc47e",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "HCM — Cross-Platform specialists",
+  "subCategories": [
+   {
+    "id": "hcm-cross-platform-all",
+    "label": "HCM — Cross-Platform",
+    "agents": [
+     {
+      "id": "job-architecture-lead",
+      "name": "Job Architecture Lead",
+      "role": "Job architecture design — job families, levels, grading, competency frameworks, career pathing",
+      "tools": [],
+      "triggers": [
+       "job architecture",
+       "job family",
+       "job grading",
+       "competency framework",
+       "career pathing",
+       "role profile"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ },
+ {
+  "id": "erp-other-platforms",
+  "label": "ERP — Other Platforms",
+  "icon": "🔄",
+  "color": "#4c9be8",
+  "accent": "#74b5f0",
+  "bg": "from-neutral-900 to-neutral-800",
+  "description": "ERP — Other Platforms specialists",
+  "subCategories": [
+   {
+    "id": "erp-other-platforms-all",
+    "label": "ERP — Other Platforms",
+    "agents": [
+     {
+      "id": "workday-financials-specialist",
+      "name": "Workday Financials Specialist",
+      "role": "Workday Financial Management — worktags, foundation data, business processes, Prism",
+      "tools": [],
+      "triggers": [
+       "Workday",
+       "worktag",
+       "Workday financials",
+       "Prism Analytics",
+       "Workday GL",
+       "business process"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "dynamics365-specialist",
+      "name": "Dynamics 365 Specialist",
+      "role": "Microsoft D365 Finance & Operations — financial dimensions, Power Platform, dual-write",
+      "tools": [],
+      "triggers": [
+       "Dynamics 365",
+       "D365",
+       "Microsoft ERP",
+       "Power Platform",
+       "Dataverse",
+       "dual-write"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     },
+     {
+      "id": "netsuite-specialist",
+      "name": "NetSuite Specialist",
+      "role": "NetSuite OneWorld — multi-subsidiary, SuiteCloud, SuiteScript, SuiteAnalytics",
+      "tools": [],
+      "triggers": [
+       "NetSuite",
+       "OneWorld",
+       "SuiteScript",
+       "SuiteFlow",
+       "SuiteCloud",
+       "SuiteAnalytics"
+      ],
+      "platforms": [],
+      "model": {
+       "id": "gyan-core",
+       "name": "Gyan Core",
+       "base": "orchestration model",
+       "kind": "core",
+       "blurb": "General orchestration model with depth packs — strategy, synthesis, judgment work."
+      }
+     }
+    ]
+   }
+  ]
+ }
+]

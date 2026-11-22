@@ -1,7 +1,12 @@
 node_modules/
 dist/
 .env
+# Env content exported to .txt must never commit (the original incident shape)
+.env*.txt
+*.env
+*.env.txt
 data/
+plugin-volt/
 
 # Added by CopilotKit CLI: browser snapshots a coding agent writes.
 .playwright-mcp/

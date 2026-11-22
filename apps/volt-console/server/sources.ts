@@ -108,8 +108,13 @@ export async function ingestDocument(data: Buffer, mediaType: string, meta: { ti
     fs.writeFileSync(tmp, data);
     try {
       const r = await runPython("pdf_pages.py", [tmp]);
-      const out = JSON.parse(r.stdout || "{}");
-      if (r.code !== 0) throw new SourceError("unreadable", out.detail ?? (r.stderr.trim() || "The PDF could not be read."));
+      let out: { pages?: StoredSource["pages"]; detail?: string } = {};
+      try {
+        out = JSON.parse(r.stdout || "{}");
+      } catch {
+        /* non-JSON output is handled as unreadable below */
+      }
+      if (r.code !== 0 || !out.pages) throw new SourceError("unreadable", out.detail ?? (r.stderr.trim() || "The PDF could not be read."));
       pages = out.pages;
     } finally {
       fs.rmSync(tmp, { force: true });
@@ -142,7 +147,8 @@ export async function verifyFigures(sourceId: string, figures: Figure[]): Promis
     tenant_id: "WORKBENCH",
     source: { title: src.title, url: src.url ?? null, sha256: src.sha256, retrieved_at: src.retrievedAt },
     pages: src.pages,
-    figures,
+    // Provenance comes from the stored document, never from the caller.
+    figures: figures.map((f) => ({ ...f, evidence_class: src.evidenceClass })),
     ties: standardTies(figures.map((f) => f.id)),
   };
   const tmp = path.join(os.tmpdir(), `volt-verify-${crypto.randomUUID()}.json`);

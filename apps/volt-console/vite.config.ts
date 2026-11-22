@@ -23,6 +23,10 @@ export default defineConfig({
   build: { rollupOptions: { output: { minify: { codegen: { asciiOnly: true } } } } },
   server: {
     port: 5173,
-    proxy: { "/api": { target: `http://localhost:${process.env.PORT ?? 8787}`, changeOrigin: true } },
+    // Dev tunnels (Codespaces / VS Code ports) serve the app under *.devtunnels.ms or *.github.dev; Vite refuses unknown hosts.
+    allowedHosts: [".devtunnels.ms", ".app.github.dev"],
+    // The proxy keeps the browser's Host header (no changeOrigin), so the API's same-origin check on writes sees the
+    // tunnel host on both Origin and Host and needs no VOLT_ALLOWED_ORIGINS in dev.
+    proxy: { "/api": { target: `http://localhost:${process.env.PORT ?? 8787}` } },
   },
 });

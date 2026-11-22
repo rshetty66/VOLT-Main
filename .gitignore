@@ -5,6 +5,10 @@
 .env.development
 .env.test
 .env.production
+# Env content exported to .txt must never commit (the original incident shape)
+.env*.txt
+*.env
+*.env.txt
 
 # API keys and secrets
 *.key

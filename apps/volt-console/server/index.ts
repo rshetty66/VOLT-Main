@@ -42,9 +42,16 @@ import { COPILOTKIT_PATH, copilotkitHandler } from "./copilotkit.js";
 import { MAX_SOURCE_BYTES, SourceError, extractFigures, findFilings, ingestDocument, verifyFigures } from "./sources.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
+import { assertSafeToListen, limitCostly, loginHandler, requireToken, sameOriginWrites, securityConfig } from "./security.js";
 
 const catalog = loadCatalog();
+const security = securityConfig();
+assertSafeToListen(security);
 const app = express();
+app.disable("x-powered-by");
+// Behind a reverse proxy (Render, Fly, nginx) set VOLT_TRUST_PROXY=1 so req.ip and req.secure come from X-Forwarded-*;
+// without it every visitor shares the proxy's address and one rate-limit budget.
+if (process.env.VOLT_TRUST_PROXY) app.set("trust proxy", Number(process.env.VOLT_TRUST_PROXY) || 1);
 
 /** Live when any Claude credential source is configured; VOLT_MODE overrides. */
 function detectMode(): RunMode {
@@ -52,9 +59,21 @@ function detectMode(): RunMode {
   if (forced === "live" || forced === "demo") return forced;
   const env = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_PROFILE", "ANTHROPIC_FEDERATION_RULE_ID"];
   if (env.some((k) => process.env[k])) return "live";
-  return fs.existsSync(path.join(os.homedir(), ".config", "anthropic")) ? "live" : "demo";
+  // A credentials directory counts only when it holds something; an empty or stale folder stays in demo.
+  const dir = path.join(os.homedir(), ".config", "anthropic");
+  try {
+    return fs.readdirSync(dir).length > 0 ? "live" : "demo";
+  } catch {
+    return "demo";
+  }
 }
 const mode = detectMode();
+
+// Access control comes first, ahead of every parser and route (including CopilotKit).
+app.use(requireToken(security));
+app.use(sameOriginWrites(security));
+app.use(limitCostly(security.rateLimitPerMinute));
+app.get("/api/login", loginHandler(security));
 
 // CopilotKit reads its own request bodies, so it is mounted before the JSON parser. Live mode only.
 if (mode === "live") app.use(copilotkitHandler());
@@ -278,6 +297,10 @@ app.post("/api/run", async (req, res) => {
   if (parsed.data.templateId && !template) return void res.status(400).json({ error: "unknown template" });
   const body: RunInput = { ...parsed.data, template: template ? { id: template.id, name: template.name, guide: template.guide } : undefined };
 
+  const session = getSession(body.sessionId);
+  if (session.busy) return void res.status(409).json({ error: "A run is already in progress for this conversation. Wait for it to finish or stop it first.", code: "session_busy" });
+  session.busy = true;
+
   res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
   const controller = new AbortController();
   res.on("close", () => controller.abort());
@@ -286,7 +309,6 @@ app.post("/api/run", async (req, res) => {
   };
 
   const runMode: RunMode = body.demo || mode === "demo" ? "demo" : "live";
-  const session = getSession(body.sessionId);
   const kind = body.workflowId ? "workflow" : body.agentId && body.agentId !== "rudra" ? "agent" : "orchestrate";
   const title = body.workflowId
     ? catalog.workflowById.get(body.workflowId)?.name ?? body.workflowId
@@ -296,15 +318,17 @@ app.post("/api/run", async (req, res) => {
   emit({ type: "run_start", runId: crypto.randomUUID(), sessionId: session.id, mode: runMode, model: runMode === "live" ? MODEL : "simulator", kind, title });
   if (body.template) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Formatting template "${body.template.name}" attached` });
   // Rudra commands ("/compare ...") apply to Rudra runs only, not to a single specialist or a workflow.
-  const commands = kind === "orchestrate" ? loadRudraCommands() : [];
-  const command = kind === "orchestrate" ? matchCommand(body.prompt, commands) : null;
-  if (command) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: commandStatus(command) });
-
   try {
+    const commands = kind === "orchestrate" ? loadRudraCommands() : [];
+    const command = kind === "orchestrate" ? matchCommand(body.prompt, commands) : null;
+    if (command) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: commandStatus(command) });
+
     if (runMode === "demo") await runDemo(catalog, body, emit, controller.signal);
     else await runLive(catalog, command ? { ...body, prompt: commandPrompt(body.prompt, command, commands) } : body, session, emit, controller.signal);
   } catch (err) {
     if (!controller.signal.aborted) emit({ type: "error", lane: ORCHESTRATOR_LANE, message: errorMessage(err) });
+  } finally {
+    session.busy = false;
   }
   emit({ type: "done", sessionId: session.id });
   res.end();
@@ -313,7 +337,7 @@ app.post("/api/run", async (req, res) => {
 // JSON errors for the API (for example an upload over the size limit), instead of Express's HTML page.
 app.use("/api", (err: { status?: number; type?: string; message?: string }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const status = err.type === "entity.too.large" ? 413 : err.status && err.status < 500 ? err.status : 500;
-  const error = status === 413 ? `Templates must be ${MAX_TEMPLATE_BYTES / 1024 / 1024} MB or smaller.` : status === 500 ? "Server error" : err.message;
+  const error = status === 413 ? "That upload or request is larger than this endpoint allows." : status === 500 ? "Server error" : err.message;
   if (status === 500) console.error(err);
   res.status(status).json({ error, code: status === 413 ? "too_large" : undefined });
 });
@@ -324,8 +348,11 @@ if (process.env.NODE_ENV === "production") {
   app.get(/^(?!\/api\/).*/, (_req, res) => res.sendFile(path.join(dist, "index.html")));
 }
 
+// On Vercel the app runs as a serverless function (api/index.ts) and Vercel owns the socket, so nothing listens here.
+export default app;
+
 const port = Number(process.env.PORT ?? 8787);
-app.listen(port, () => {
-  console.log(`VOLT Agentic Console API on http://localhost:${port} (${mode} mode, model ${MODEL})`);
+if (!process.env.VERCEL) app.listen(port, security.host, () => {
+  console.log(`VOLT Agentic Console API on http://${security.host}:${port} (${mode} mode, model ${MODEL}${security.token ? ", access token required" : ""})`);
   console.log(`Catalog: ${catalog.agents.length} agents, ${catalog.workflows.length} workflows, ${catalog.skills.length} skills from ${catalog.source.name}@${catalog.source.commit?.slice(0, 7) ?? "?"}`);
 });

@@ -78,6 +78,19 @@ the `list_templates` and `get_template` tools. Uploads are untrusted: the packag
 and macros and media are never read. The sample templates used by the tests are rebuilt with
 `python3 tests/fixtures/make-templates.py`.
 
+## Access control
+
+The API listens on `127.0.0.1` by default. To expose it (a Codespaces Public port, a shared host), set a token first:
+
+| Variable | Effect |
+|---|---|
+| `VOLT_HOST` | Bind address. Anything other than loopback needs `VOLT_ACCESS_TOKEN`, or the server refuses to start. |
+| `VOLT_ACCESS_TOKEN` | At least 16 characters. Every `/api` route except `/api/healthz` then needs `Authorization: Bearer <token>`, or the cookie that `GET /api/login?token=<token>` sets (open that URL once in the browser). |
+| `VOLT_ALLOWED_ORIGINS` | Comma-separated extra origins allowed to make write requests. Same-origin is always allowed. |
+| `VOLT_RATE_LIMIT` | Requests per minute per client on the routes that spend Claude tokens (default 30). |
+
+Conversation ids are issued by the server, expire after 6 hours idle, and only one run can use a conversation at a time.
+
 ## Test
 
 ```bash
