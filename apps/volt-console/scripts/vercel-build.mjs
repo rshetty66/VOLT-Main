@@ -29,6 +29,12 @@ await build({
   logLevel: "warning",
 });
 
+// CopilotKit's Express adapter loads `express` by name at run time (live mode), which a bundle cannot contain.
+// Install the same version next to the bundle so require("express") resolves from /var/task/node_modules.
+const expressVersion = JSON.parse(fs.readFileSync(path.join(root, "node_modules", "express", "package.json"), "utf8")).version;
+fs.writeFileSync(path.join(fn, "package.json"), JSON.stringify({ name: "volt-console-function", private: true, dependencies: { express: expressVersion } }));
+execSync("npm install --omit=dev --ignore-scripts --no-audit --no-fund --no-package-lock", { cwd: fn, stdio: "inherit" });
+
 if (!fs.existsSync(path.join(plugin, "skills"))) throw new Error(`VOLT plugin not found at ${plugin}`);
 fs.cpSync(plugin, path.join(fn, "plugin-volt"), { recursive: true });
 
