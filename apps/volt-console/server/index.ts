@@ -348,8 +348,11 @@ if (process.env.NODE_ENV === "production") {
   app.get(/^(?!\/api\/).*/, (_req, res) => res.sendFile(path.join(dist, "index.html")));
 }
 
+// On Vercel the app runs as a serverless function (api/index.ts) and Vercel owns the socket, so nothing listens here.
+export default app;
+
 const port = Number(process.env.PORT ?? 8787);
-app.listen(port, security.host, () => {
+if (!process.env.VERCEL) app.listen(port, security.host, () => {
   console.log(`VOLT Agentic Console API on http://${security.host}:${port} (${mode} mode, model ${MODEL}${security.token ? ", access token required" : ""})`);
   console.log(`Catalog: ${catalog.agents.length} agents, ${catalog.workflows.length} workflows, ${catalog.skills.length} skills from ${catalog.source.name}@${catalog.source.commit?.slice(0, 7) ?? "?"}`);
 });

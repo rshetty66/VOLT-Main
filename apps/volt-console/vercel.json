@@ -1,0 +1,12 @@
+{
+  "installCommand": "npm ci --ignore-scripts",
+  "buildCommand": "npm run build && rm -rf plugin-volt && cp -R ../../plugins/volt plugin-volt",
+  "outputDirectory": "dist",
+  "functions": {
+    "api/index.ts": { "includeFiles": "plugin-volt/**", "maxDuration": 300 }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/((?!api/).*)", "destination": "/index.html" }
+  ]
+}
