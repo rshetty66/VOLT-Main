@@ -1,6 +1,10 @@
 import { useEffect, useState } from "react";
 import type { CatalogResponse } from "../../shared/events";
 import { runTool } from "../api";
+import { BenchmarkChart, ValueCaseChart } from "../charts/Charts";
+import { ChartFrame } from "../charts/Visual";
+import { DownloadMenu } from "./DownloadMenu";
+import { chartTables } from "../exports";
 
 /** Direct access to the deterministic tools the agents use for numbers. */
 export function Analytics({ catalog }: { catalog: CatalogResponse }) {
@@ -31,16 +35,20 @@ function BenchmarkTool({ catalog }: { catalog: CatalogResponse }) {
     runTool<{ quartile: string; gapToMedian: number; gapToTop25: number }>("apqc_benchmark", { metric, client_value: v }).then((r) => setResult(r.ok ? r.data! : null));
   }, [metric, value]);
 
-  // Axis from best to worst, padded beyond the quartile points.
-  const best = b.lowerIsBetter ? Math.min(b.top25, Number(value) || b.top25) : Math.max(b.top25, Number(value) || b.top25);
-  const worst = b.lowerIsBetter ? Math.max(b.bottom25, Number(value) || 0) : Math.min(b.bottom25, Number(value) || b.bottom25);
-  const span = Math.abs(worst - best) * 1.15 || 1;
-  const start = b.lowerIsBetter ? best - span * 0.05 : best + span * 0.05;
-  const pos = (v: number) => Math.min(100, Math.max(0, (Math.abs(v - start) / span) * 100));
+  const client = value === "" || Number.isNaN(Number(value)) ? undefined : Number(value);
 
   return (
     <div className="card stack">
-      <div className="micro">APQC benchmark position</div>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="micro">APQC benchmark position</div>
+        <DownloadMenu
+          formats={["xlsx", "docx", "pptx"]}
+          build={() => {
+            const data = { benchmark: b, clientValue: client, quartile: result?.quartile, gapToTop25: result?.gapToTop25 };
+            return { title: `APQC benchmark: ${b.metric}`, subtitle: "VOLT Analytics, APQC Open Standards Benchmarking (built-in sample set)", markdown: `Client value ${client ?? "not set"} ${b.unit}: ${result?.quartile ?? "no position"}.`, charts: [{ id: "b", kind: "benchmark", data }], tables: chartTables([{ id: "b", kind: "benchmark", data }]) };
+          }}
+        />
+      </div>
       <div className="row" style={{ flexWrap: "nowrap" }}>
         <select className="select" value={metric} onChange={(e) => setMetric(e.target.value)}>
           {catalog.benchmarks.map((x) => (
@@ -51,19 +59,7 @@ function BenchmarkTool({ catalog }: { catalog: CatalogResponse }) {
         </select>
         <input className="input" style={{ maxWidth: 140 }} inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} aria-label="Client value" />
       </div>
-      <div className="bench-wrap">
-        {value !== "" && !Number.isNaN(Number(value)) && (
-          <div className="bench-marker" style={{ left: `${pos(Number(value))}%` }}>
-            client {value}
-          </div>
-        )}
-        <div className="bench-bar">
-          <div style={{ flex: `0 0 ${pos(b.top25)}%` }}>Top 25%</div>
-          <div style={{ flex: `0 0 ${pos(b.median) - pos(b.top25)}%` }}>2nd</div>
-          <div style={{ flex: `0 0 ${pos(b.bottom25) - pos(b.median)}%` }}>3rd</div>
-          <div>Bottom</div>
-        </div>
-      </div>
+      <ChartFrame name={`benchmark-${b.key}`} render={(p) => <BenchmarkChart data={{ benchmark: b, clientValue: client, quartile: result?.quartile }} p={p} />} />
       <div className="stats">
         <Stat label="Top quartile" value={`${b.top25} ${b.unit}`} />
         <Stat label="Median" value={`${b.median} ${b.unit}`} />
@@ -79,6 +75,7 @@ function BenchmarkTool({ catalog }: { catalog: CatalogResponse }) {
 }
 
 interface ValueCase {
+  oneTimeInvestment: number;
   capacityReleasedFtes: number;
   steadyStateAnnualSaving: number;
   npv: number;
@@ -114,7 +111,21 @@ function ValueCaseTool() {
 
   return (
     <div className="card stack">
-      <div className="micro">Finance transformation value case</div>
+      <div className="row" style={{ justifyContent: "space-between" }}>
+        <div className="micro">Finance transformation value case</div>
+        {r && (
+          <DownloadMenu
+            formats={["xlsx", "docx", "pptx"]}
+            build={() => ({
+              title: "Finance transformation value case",
+              subtitle: "VOLT Analytics, deterministic value-case tool",
+              markdown: `Steady-state saving ${money(r.steadyStateAnnualSaving)} a year from ${r.capacityReleasedFtes} FTE of capacity released. NPV ${money(r.npv)}, IRR ${r.irrPct === null ? "n/a" : `${r.irrPct}%`}, payback ${r.paybackYears === null ? "beyond the horizon" : `${r.paybackYears} years`}.`,
+              charts: [{ id: "v", kind: "valueCase", data: r }],
+              tables: chartTables([{ id: "v", kind: "valueCase", data: r }]),
+            })}
+          />
+        )}
+      </div>
       <div className="grid" style={{ gridTemplateColumns: "repeat(auto-fill, minmax(170px, 1fr))" }}>
         {field("finance_ftes", "Finance FTEs")}
         {field("loaded_cost_per_fte", "Loaded cost / FTE")}
@@ -135,6 +146,7 @@ function ValueCaseTool() {
             <Stat label="IRR" value={r.irrPct === null ? "n/a" : `${r.irrPct}%`} />
             <Stat label="Payback" value={r.paybackYears === null ? "beyond horizon" : `${r.paybackYears} yrs`} />
           </div>
+          <ChartFrame name="value-case" render={(p) => <ValueCaseChart data={r} p={p} />} />
           <div className="table-wrap">
             <table className="table">
               <thead>

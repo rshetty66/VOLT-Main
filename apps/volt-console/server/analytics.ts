@@ -207,6 +207,7 @@ export function buildValueCase(v: ValueCaseInput) {
     discountRate: v.discountRate ?? 0.08,
   });
   return {
+    oneTimeInvestment: v.oneTimeInvestment,
     capacityReleasedFtes: round(v.financeFtes * (v.automationPct / 100)),
     steadyStateAnnualSaving: round(steadyStateSaving),
     closeCycleReductionDays:

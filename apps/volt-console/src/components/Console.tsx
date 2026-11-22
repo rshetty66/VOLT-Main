@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 import { summariseWork, type ActivityItem, type Lane, type Run } from "../runState";
 import { Markdown } from "./Markdown";
+import { RunVisuals } from "../charts/RunVisuals";
+import { DownloadMenu } from "./DownloadMenu";
+import { runDeliverable } from "../exports";
 
 const EXAMPLES = [
   "Our month-end close takes 12 days on SAP S/4HANA and DSO is 55. Build a plan to reach a 5-day close.",
@@ -146,6 +149,9 @@ function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: Cat
           </button>
         )}
         {run.state === "stopped" && <span className="badge">stopped</span>}
+        {run.state !== "running" && run.text.trim() && (
+          <DownloadMenu build={(lanes) => runDeliverable(run, lanes)} option={run.laneOrder.length ? "Include specialist notes as an appendix" : undefined} />
+        )}
       </div>
       <div className="run-body single">
         {(work.specialists > 0 || work.toolCalls > 0) && (
@@ -189,6 +195,7 @@ function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: Cat
             </div>
           </div>
         )}
+        <RunVisuals run={run} />
         <div className="answer">
           {run.text ? <Markdown text={run.text} /> : run.state === "running" ? <p className="muted"><span className="spinner" /> Rudra is working…</p> : null}
         </div>

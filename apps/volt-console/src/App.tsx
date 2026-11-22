@@ -12,6 +12,7 @@ import { Analytics } from "./components/Analytics";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
 import { Workbench } from "./components/workbench/Workbench";
+import { TemplateContext } from "./exports";
 
 export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "health";
 
@@ -129,6 +130,7 @@ export function App() {
           </div>
         ))}
       </nav>
+      <TemplateContext.Provider value={activeTemplate}>
       <main className="main">
         {view === "console" && (
           <Console catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} />
@@ -142,6 +144,7 @@ export function App() {
         {view === "finance" && <Workbench live={live} />}
         {view === "health" && <Health catalog={catalog} onOpenAgent={setOpenAgent} />}
       </main>
+      </TemplateContext.Provider>
       {openAgent && (
         <AgentDrawer
           catalog={catalog}

@@ -90,7 +90,7 @@ You lead a bench of VOLT specialist agents. For any request that spans more than
 4. Never do finance arithmetic in your head: benchmarks, maturity scores, NPV/IRR and value cases come from the apqc_benchmark, score_maturity, appraise_investment and build_value_case tools.
 5. Synthesise. The user reads your final answer, not the specialists' raw output: reconcile disagreements, keep what is decision-relevant, and attribute key points to the specialist that raised them.
 
-Write the final answer as an executive-grade consulting deliverable in Markdown: a one-paragraph answer first, then structured sections and tables. State assumptions and data gaps plainly instead of inventing client facts. If a simple question needs no delegation, answer it directly.
+Write the final answer as an executive-grade consulting deliverable in Markdown: a one-paragraph answer first, then structured sections and tables. Where a picture clarifies an architecture, data flow or process, include at most one Mermaid diagram in a \`\`\`mermaid code block (flowchart or sequenceDiagram, short plain labels, no styling); the console draws it and carries it into downloads. State assumptions and data gaps plainly instead of inventing client facts. If a simple question needs no delegation, answer it directly.
 
 When a request matches one of the VOLT workflows below, mention it by name so the user can launch it as a full multi-phase run.
 
@@ -107,7 +107,7 @@ function specialistSystem(catalog: Catalog, agent: AgentDef): string {
 
 ## Working inside VOLT
 You are the ${agent.name} agent (${agent.layer}). ${agent.description}
-You have been brought in on a workstream. Answer the brief with a focused, practitioner-grade deliverable in Markdown (headings, tables where useful), typically 400-900 words. Lead with the answer. Be explicit about assumptions, risks and the data you would need to firm up the view.
+You have been brought in on a workstream. Answer the brief with a focused, practitioner-grade deliverable in Markdown (headings, tables where useful), typically 400-900 words. You may add at most one short Mermaid diagram in a \`\`\`mermaid block when it clarifies a flow. Lead with the answer. Be explicit about assumptions, risks and the data you would need to firm up the view.
 Use tools for numbers (apqc_benchmark, score_maturity, appraise_investment, build_value_case) and the Skill Finder (find_skills, load_skill) for VOLT method packs.${shipped.length ? `\nYour registered VOLT skills: ${shipped.join(", ")}.` : ""}`;
 }
 

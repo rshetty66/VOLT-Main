@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Markdown } from "../Markdown";
+import { DownloadMenu } from "../DownloadMenu";
 
 interface Props {
   markdown: string;
@@ -26,6 +27,7 @@ export function EvidencePack({ markdown, preparedBy, reviewedBy, setPreparedBy, 
         <div className="micro">Evidence pack</div>
         <div className="row">
           {copied && <span className="muted" style={{ fontSize: 12 }}>{copied}</span>}
+          <DownloadMenu formats={["docx", "xlsx", "md", "html"]} build={() => ({ title: "Finance architecture evidence pack", subtitle: "VOLT Finance Workbench, deterministic checks only", markdown: markdown.replace(/^# .*\n+/, "") })} />
           <button className="btn sm primary" onClick={copy}>Copy pack</button>
         </div>
       </div>
