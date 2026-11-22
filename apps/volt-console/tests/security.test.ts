@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Request, Response } from "express";
-import { assertSafeToListen, loginPostHandler, rateLimit, requestToken, requireToken, sameOriginWrites, securityConfig, tokenMatches } from "../server/security.js";
+import { SESSION_MS, assertSafeToListen, loginPostHandler, rateLimit, requestToken, requireToken, sameOriginWrites, securityConfig, tokenMatches } from "../server/security.js";
 import { getSession } from "../server/orchestrator.js";
 
 const cfg = (env: Record<string, string> = {}) => securityConfig({ ...env } as NodeJS.ProcessEnv);
@@ -99,6 +99,8 @@ describe("sign-in form", () => {
     expect(out.status).toBe(200);
     expect(out.cookie?.[0]).toBe("volt_token");
     expect((out.cookie?.[2] as { httpOnly: boolean }).httpOnly).toBe(true);
+    expect((out.cookie?.[2] as { maxAge: number }).maxAge).toBe(SESSION_MS);
+    expect(SESSION_MS).toBeGreaterThanOrEqual(24 * 60 * 60 * 1000);
   });
   it("refuses a wrong or missing token and sets no cookie", () => {
     for (const body of [{ token: "nope" }, {}, undefined]) {

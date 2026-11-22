@@ -15,6 +15,9 @@ import crypto from "node:crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
 
 export const COOKIE = "volt_token";
+/** How long a sign-in lasts: 30 days, so the token is typed once per browser. VOLT_SESSION_DAYS changes it. */
+const days = Number(process.env.VOLT_SESSION_DAYS);
+export const SESSION_MS = (Number.isFinite(days) && days > 0 ? days : 30) * 24 * 60 * 60 * 1000;
 const LOOPBACK = new Set(["127.0.0.1", "::1", "localhost"]);
 
 export interface SecurityConfig {
@@ -70,7 +73,7 @@ export function requestToken(req: Pick<Request, "headers">): string | undefined 
 }
 
 const setSession = (req: Request, res: Response, token: string) =>
-  res.cookie(COOKIE, token, { httpOnly: true, sameSite: "strict", secure: req.secure || req.get("x-forwarded-proto") === "https", maxAge: 12 * 60 * 60 * 1000, path: "/" });
+  res.cookie(COOKIE, token, { httpOnly: true, sameSite: "strict", secure: req.secure || req.get("x-forwarded-proto") === "https", maxAge: SESSION_MS, path: "/" });
 
 /** Login route: GET /api/login?token=... sets the cookie and redirects to the app. */
 export function loginHandler(cfg: SecurityConfig): RequestHandler {
