@@ -5,6 +5,7 @@ import express from "express";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
 import { contentsOf, markdownBlocks } from "../server/export/blocks";
+import { brandLogo } from "../server/export/brand";
 import { exportDocument, styleFrom } from "../server/export";
 import { exportRouter } from "../server/export/route";
 import { extractTemplate } from "../server/templates";
@@ -166,7 +167,12 @@ describe("export route", () => {
   });
 
   it("derives styles with VOLT defaults when no template is selected", () => {
-    expect(styleFrom(null)).toMatchObject({ bodyFont: "Calibri", accent: "1F6B5A" });
+    // The VOLT brand board: Copper Gold accent, Deep Space Indigo headings and table headers.
+    expect(styleFrom(null)).toMatchObject({ brand: true, bodyFont: "Calibri", accent: "D4AF37", headingColor: "1A1E2E", headerFill: "1A1E2E" });
+  });
+
+  it("is not branded when a client template is selected", () => {
+    expect(styleFrom(extractTemplate(fixture("brand-template.docx"), "brand-template.docx")).brand).toBe(false);
   });
 });
 
@@ -237,5 +243,47 @@ describe("table of contents", () => {
   it("adds no Contents to a short document", async () => {
     const xml = text(unzip((await exportDocument(req("docx", { markdown: "## Only\n\ntext\n", images: [] }), null)).data), "word/document.xml");
     expect(xml).not.toContain(">Contents<");
+  });
+});
+
+describe("VOLT branding", () => {
+  const media = (files: Record<string, Uint8Array>, dir: string) => Object.keys(files).filter((f) => f.startsWith(dir) && !f.endsWith("/")).length;
+  const noImages = (format: ExportRequest["format"]) => req(format, { images: [], subtitle: "22 November 2026" });
+  const profile = (name: string) => extractTemplate(fixture(name), name);
+
+  it("finds the logo and reads its size from the PNG header", () => {
+    const logo = brandLogo();
+    expect(logo && [logo.width, logo.height]).toEqual([895, 335]);
+  });
+
+  it("puts the logo on the Word cover and the VOLT line in the footer", async () => {
+    const files = unzip((await exportDocument(noImages("docx"), null)).data);
+    expect(media(files, "word/media/")).toBe(1);
+    const footer = Object.keys(files).find((f) => /^word\/footer\d*\.xml$/.test(f));
+    expect(footer && text(files, footer)).toContain("VOLT");
+    expect(footer && text(files, footer)).toContain("Orchestrate");
+  });
+
+  it("brands the PowerPoint cover and content slides", async () => {
+    const files = unzip((await exportDocument(noImages("pptx"), null)).data);
+    expect(media(files, "ppt/media/")).toBeGreaterThanOrEqual(1);
+    expect(text(files, "ppt/slides/slide1.xml")).toContain("1E252C");
+    expect(text(files, "ppt/slides/slide2.xml")).toContain("VOLT");
+  });
+
+  it("puts the logo band on the Excel sheets", async () => {
+    const files = unzip((await exportDocument(noImages("xlsx"), null)).data);
+    expect(media(files, "xl/media/")).toBeGreaterThanOrEqual(1);
+    expect(Object.keys(files).some((f) => f.startsWith("xl/drawings/"))).toBe(true);
+  });
+
+  it("leaves a client template's own look alone: no VOLT logo or footer", async () => {
+    const docx = unzip((await exportDocument(noImages("docx"), profile("brand-template.docx"))).data);
+    expect(media(docx, "word/media/")).toBe(0);
+    expect(Object.keys(docx).some((f) => /^word\/footer/.test(f))).toBe(false);
+    const pptx = unzip((await exportDocument(noImages("pptx"), profile("brand-template.pptx"))).data);
+    expect(media(pptx, "ppt/media/")).toBe(0);
+    const xlsx = unzip((await exportDocument(noImages("xlsx"), profile("brand-template.xlsx"))).data);
+    expect(media(xlsx, "xl/media/")).toBe(0);
   });
 });

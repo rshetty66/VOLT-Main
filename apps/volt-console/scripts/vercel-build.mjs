@@ -35,6 +35,9 @@ const expressVersion = JSON.parse(fs.readFileSync(path.join(root, "node_modules"
 fs.writeFileSync(path.join(fn, "package.json"), JSON.stringify({ name: "volt-console-function", private: true, dependencies: { express: expressVersion } }));
 execSync("npm install --omit=dev --ignore-scripts --no-audit --no-fund --no-package-lock", { cwd: fn, stdio: "inherit" });
 
+// The VOLT logo for exports sits in a brand/ folder next to the bundle (server/export/brand.ts looks there).
+fs.cpSync(path.join(root, "public", "brand"), path.join(fn, "brand"), { recursive: true });
+
 if (!fs.existsSync(path.join(plugin, "skills"))) throw new Error(`VOLT plugin not found at ${plugin}`);
 fs.cpSync(plugin, path.join(fn, "plugin-volt"), { recursive: true });
 

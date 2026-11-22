@@ -1,8 +1,9 @@
 import {
-  AlignmentType, BorderStyle, Document, HeadingLevel, ImageRun, PageBreak, Packer, Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, WidthType,
+  AlignmentType, BorderStyle, Document, Footer, HeadingLevel, ImageRun, PageBreak, PageNumber, Packer, Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, WidthType,
 } from "docx";
 import type { ExportImage, ExportRequest } from "../../shared/export.js";
 import { contentsOf, markdownBlocks, type Run } from "./blocks.js";
+import { BRAND, brandLogo } from "./brand.js";
 import type { ExportStyle } from "./style.js";
 
 const HEADING = [HeadingLevel.HEADING_1, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3, HeadingLevel.HEADING_4, HeadingLevel.HEADING_5, HeadingLevel.HEADING_6];
@@ -43,7 +44,9 @@ export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uin
   const images = new Map((req.images ?? []).map((i) => [i.ref, i]));
   const maxImg = (s.page.widthIn - s.page.margins.left - s.page.margins.right) * PX_PER_IN;
   const caption = (t: string) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: t, italics: true, size: 18, color: "5B6862" })] });
+  const logo = s.brand ? brandLogo() : null;
   const body: (Paragraph | Table)[] = [
+    ...(logo ? [image({ ref: "brand", png: logo.png.toString("base64"), width: logo.width, height: logo.height }, Math.min(maxImg, 520))] : []),
     new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(req.title)] }),
     ...(req.subtitle ? [new Paragraph({ spacing: { after: 240 }, children: [new TextRun({ text: req.subtitle, color: "5B6862" })] })] : []),
   ];
@@ -121,6 +124,24 @@ export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uin
             margin: { top: tw(s.page.margins.top), right: tw(s.page.margins.right), bottom: tw(s.page.margins.bottom), left: tw(s.page.margins.left) },
           },
         },
+        ...(s.brand
+          ? {
+              footers: {
+                default: new Footer({
+                  children: [
+                    new Paragraph({
+                      alignment: AlignmentType.CENTER,
+                      border: { top: { style: BorderStyle.SINGLE, size: 6, color: BRAND.gold, space: 6 } },
+                      children: [
+                        new TextRun({ text: `VOLT  ·  ${BRAND.tagline}  ·  Page `, size: 16, color: "5B6862" }),
+                        new TextRun({ children: [PageNumber.CURRENT], size: 16, color: "5B6862" }),
+                      ],
+                    }),
+                  ],
+                }),
+              },
+            }
+          : {}),
         children: body,
       },
     ],

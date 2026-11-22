@@ -1,6 +1,7 @@
 import ExcelJS from "exceljs";
 import type { ExportRequest } from "../../shared/export.js";
 import { cellValue, contentsOf, markdownBlocks, plain } from "./blocks.js";
+import { BRAND, brandLogo } from "./brand.js";
 import type { ExportStyle } from "./style.js";
 
 /** Sheet names: at most 31 characters, none of []:*?/\ and unique within the workbook. */
@@ -44,6 +45,24 @@ function addTable(wb: ExcelJS.Workbook, name: string, columns: string[], rows: (
   return ws;
 }
 
+const logoIds = new WeakMap<ExcelJS.Workbook, number>();
+
+/** A dark band with the VOLT logo across the top of a sheet (only when no client template is selected). */
+function brandBand(wb: ExcelJS.Workbook, ws: ExcelJS.Worksheet, s: ExportStyle, cols: number) {
+  const logo = s.brand ? brandLogo() : null;
+  if (!logo) return;
+  for (let r = 1; r <= 6; r++) {
+    const row = ws.addRow([]);
+    row.height = 22;
+    for (let c = 1; c <= cols; c++) row.getCell(c).fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${BRAND.cover}` } };
+  }
+  // One copy of the image per workbook, shared by every sheet that shows it.
+  let id = logoIds.get(wb);
+  if (id === undefined) logoIds.set(wb, (id = wb.addImage({ base64: logo.png.toString("base64"), extension: "png" })));
+  const width = 330;
+  ws.addImage(id, { tl: { col: 0.1, row: 0.1 }, ext: { width, height: Math.round((width * logo.height) / logo.width) } });
+}
+
 /** Summary sheet, one sheet per markdown table (named after its section) and one per structured table. */
 export async function writeXlsx(req: ExportRequest, s: ExportStyle): Promise<Uint8Array> {
   const wb = new ExcelJS.Workbook();
@@ -55,6 +74,8 @@ export async function writeXlsx(req: ExportRequest, s: ExportStyle): Promise<Uin
   const contents = contentsOf(blocks);
   const contentsSheet = contents.length ? wb.addWorksheet(name("Contents")) : null;
   const summary = wb.addWorksheet(name("Summary"));
+  if (contentsSheet) brandBand(wb, contentsSheet, s, 2);
+  brandBand(wb, summary, s, 2);
   summary.addRow([req.title]).font = { name: s.headingFont, size: 16, bold: true, color: { argb: `FF${s.headingColor}` } };
   if (req.subtitle) summary.addRow([req.subtitle]).font = { name: s.bodyFont, italic: true };
   if (!req.subtitle) summary.addRow([`Generated ${new Date().toISOString().slice(0, 10)}`]).font = { name: s.bodyFont, color: { argb: "FF5B6862" } };

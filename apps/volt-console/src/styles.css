@@ -38,8 +38,8 @@ code, pre { font-family: var(--mono); font-size: 13px; }
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   padding: 10px 20px; border-bottom: 1px solid var(--line); background: var(--void);
 }
-.brand { display: flex; align-items: baseline; gap: 10px; margin-right: auto; }
-.brand b { font-size: 18px; font-weight: 700; letter-spacing: 0.08em; }
+.brand { display: flex; align-items: center; gap: 12px; margin-right: auto; }
+.brand .brand-mark { height: 30px; width: auto; border-radius: 6px; align-self: center; display: block; }
 .brand span { color: var(--body); font-size: 13px; }
 .nav { border-right: 1px solid var(--line); padding: 14px 10px; display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
 .nav button {

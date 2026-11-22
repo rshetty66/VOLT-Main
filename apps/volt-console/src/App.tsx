@@ -95,7 +95,7 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <b>VOLT</b>
+          <img className="brand-mark" src="/brand/volt-mark.png" alt="VOLT" />
           <span>Agentic Console · Vision, Orchestrate, Launch, Transform</span>
         </div>
         <span className={`badge ${live ? "live" : ""}`}>{live ? "Live" : "Demo"}</span>

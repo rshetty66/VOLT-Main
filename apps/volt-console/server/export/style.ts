@@ -1,7 +1,10 @@
 import type { TemplateProfile } from "../../shared/templates.js";
+import { BRAND } from "./brand.js";
 
 /** Fonts, colours and page setup for an export: the selected template where it has them, VOLT defaults otherwise. */
 export interface ExportStyle {
+  /** True when no client template is selected: the file carries VOLT's own branding (logo, palette, footer). */
+  brand: boolean;
   bodyFont: string;
   headingFont: string;
   /** RRGGBB, no "#". */
@@ -25,15 +28,16 @@ export function styleFrom(p: TemplateProfile | null | undefined): ExportStyle {
   const pptTitle = p?.powerpoint?.textStyles.title;
   const pptBody = p?.powerpoint?.textStyles.body[0];
   const header = p?.excel?.sheets.find((s) => s.headerRow)?.headerRow;
-  const accent = hex(theme?.colors.accent1) ?? "1F6B5A";
+  const accent = hex(theme?.colors.accent1) ?? BRAND.gold;
   const bodyFont = normal?.font ?? pptBody?.font ?? p?.excel?.defaultFont?.font ?? p?.word?.defaults.font ?? theme?.fonts.minor ?? "Calibri";
   return {
+    brand: !p,
     bodyFont,
     headingFont: h1?.font ?? pptTitle?.font ?? theme?.fonts.major ?? bodyFont,
-    ink: hex(normal?.color) ?? hex(theme?.colors.dk1) ?? "1D2622",
+    ink: hex(normal?.color) ?? hex(theme?.colors.dk1) ?? BRAND.indigo,
     accent,
-    headingColor: hex(h1?.color) ?? hex(pptTitle?.color) ?? accent,
-    headerFill: hex(header?.fill) ?? accent,
+    headingColor: hex(h1?.color) ?? hex(pptTitle?.color) ?? (p ? accent : BRAND.indigo),
+    headerFill: hex(header?.fill) ?? (p ? accent : BRAND.indigo),
     headerInk: hex(header?.color) ?? "FFFFFF",
     bodySizePt: normal?.sizePt ?? 11,
     page: {
