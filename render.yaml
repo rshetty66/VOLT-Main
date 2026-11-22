@@ -1,6 +1,8 @@
 # Render blueprint for the VOLT Console. In Render: New > Blueprint > pick this repository.
 # Then open the service > Environment and enter ANTHROPIC_API_KEY. VOLT_ACCESS_TOKEN is generated for you:
-# read it there, then open https://<service>.onrender.com/api/login?token=<token> once in each browser.
+# read it there, then open https://<service>.onrender.com and type it into the Sign in screen (once per browser).
+# Render has no 300-second function limit, so long runs finish; the run time budget is off unless you set
+# VOLT_RUN_BUDGET_SECONDS.
 services:
   - type: web
     name: volt-console
