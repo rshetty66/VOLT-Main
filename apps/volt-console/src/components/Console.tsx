@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
-import { summariseWork, type ActivityItem, type Lane, type Run } from "../runState";
+import { summariseWork, type Run } from "../runState";
 import { Markdown } from "./Markdown";
 import { RunVisuals } from "../charts/RunVisuals";
 import { DownloadMenu } from "./DownloadMenu";
@@ -71,7 +71,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
       )}
 
       {runs.map((run) => (
-        <RunView key={run.id} run={run} catalog={catalog} onStop={() => onStop(run.id)} onOpenAgent={onOpenAgent} />
+        <RunView key={run.id} run={run} onStop={() => onStop(run.id)} />
       ))}
       <div ref={endRef} />
 
@@ -122,10 +122,8 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   );
 }
 
-function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: CatalogResponse; onStop: () => void; onOpenAgent: (id: string) => void }) {
-  const lanes = run.laneOrder.map((id) => run.lanes[id]);
+function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
   const work = summariseWork(run);
-  const [showWork, setShowWork] = useState(false);
   const elapsed = Math.round(((run.finishedAt ?? Date.now()) - run.startedAt) / 1000);
   const [, tick] = useState(0);
   useEffect(() => {
@@ -155,11 +153,10 @@ function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: Cat
       </div>
       <div className="run-body single">
         {(work.specialists > 0 || work.toolCalls > 0) && (
-          <button className="work-strip" aria-expanded={showWork} onClick={() => setShowWork((x) => !x)}>
+          <div className="work-strip">
             {run.state === "running" ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <span className="dot done" />}
             <span className="work-text">{workLine(work, run.state === "running")}</span>
-            <span className="work-toggle">{showWork ? "Hide work" : "Show work"}</span>
-          </button>
+          </div>
         )}
         {work.errors.length > 0 && (
           <div className="run-errors" role="alert">
@@ -168,34 +165,15 @@ function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: Cat
             ))}
           </div>
         )}
-        {showWork && (
-          <div className="details">
-            {run.phases.length > 0 && (
-              <div className="phases">
-                {run.phases.map((p, i) => (
-                  <div key={i} className={`phase ${p?.state ?? ""}`}>
-                    {i + 1}. {p?.name}
-                    <span className="muted"> · {p?.agents.length} agents</span>
-                  </div>
-                ))}
+        {run.phases.length > 0 && (
+          <div className="phases">
+            {run.phases.map((p, i) => (
+              <div key={i} className={`phase ${p?.state ?? ""}`}>
+                {i + 1}. {p?.name}
               </div>
-            )}
-            {lanes.length > 0 && (
-              <div className="lanes">
-                {lanes.map((l) => (
-                  <LaneCard key={l.id} lane={l} catalog={catalog} onOpenAgent={onOpenAgent} />
-                ))}
-              </div>
-            )}
-            <div>
-              <div className="micro" style={{ marginBottom: 8 }}>
-                Activity
-              </div>
-              <Activity items={run.activity} />
-            </div>
+            ))}
           </div>
         )}
-        <RunVisuals run={run} />
         <div className="answer">
           {run.text ? <Markdown text={run.text} /> : run.state === "running" ? <p className="muted"><span className="spinner" /> Rudra is working…</p> : null}
         </div>
@@ -219,58 +197,4 @@ function workLine(w: ReturnType<typeof summariseWork>, running: boolean): string
   if (w.toolCalls > 0) parts.push(plural(w.toolCalls, "tool call"));
   if (w.failed > 0) parts.push(`${w.failed} failed`);
   return parts.join(" · ") || "Working";
-}
-
-function LaneCard({ lane, onOpenAgent }: { lane: Lane; catalog: CatalogResponse; onOpenAgent: (id: string) => void }) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <div className={`lane ${expanded ? "expanded" : ""}`}>
-      <div className="lane-head" onClick={() => setExpanded((x) => !x)}>
-        <span className={`dot ${lane.state}`} />
-        <span>{lane.icon}</span>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div className="name">{lane.name}</div>
-          <div className="muted" style={{ fontSize: 11 }}>
-            {lane.layer}
-          </div>
-        </div>
-        <button
-          className="btn ghost sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenAgent(lane.agentId);
-          }}
-        >
-          ⓘ
-        </button>
-      </div>
-      <div className="lane-body">
-        {lane.activity.length > 0 && (
-          <div style={{ marginBottom: 8 }}>
-            <Activity items={lane.activity} />
-          </div>
-        )}
-        {lane.text ? <Markdown text={lane.text} /> : lane.state === "running" ? <span className="muted"><span className="spinner" /> thinking…</span> : null}
-      </div>
-    </div>
-  );
-}
-
-const ICON: Record<ActivityItem["kind"], string> = { status: "·", tool: "ƒ", error: "!", fallback: "~", phase: "▸" };
-
-function Activity({ items }: { items: ActivityItem[] }) {
-  if (items.length === 0) return <div className="muted" style={{ fontSize: 12 }}>—</div>;
-  return (
-    <div className="activity">
-      {items.map((a) => (
-        <div key={a.id} className={`act ${a.isError ? "error" : ""}`}>
-          <span className="ico">{a.pending ? <span className="spinner" style={{ width: 10, height: 10 }} /> : ICON[a.kind]}</span>
-          <div>
-            {a.kind === "tool" ? <b>{a.text}</b> : <span>{a.text}</span>}
-            {a.detail && <div className="detail">{a.detail}</div>}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
 }

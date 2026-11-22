@@ -126,12 +126,6 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .phase.running { color: var(--primary); border-color: var(--line-strong); }
 .phase.done { color: var(--heading); background: rgba(255, 255, 255, 0.06); }
 
-.lanes { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); grid-column: 1 / -1; }
-.lane { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; display: flex; flex-direction: column; min-width: 0; }
-.lane-head { padding: 10px 12px; display: flex; gap: 8px; align-items: center; border-bottom: 1px solid var(--line); cursor: pointer; }
-.lane-head .name { font-weight: 600; font-size: 13px; }
-.lane-body { padding: 10px 12px; max-height: 340px; overflow-y: auto; font-size: 13px; }
-.lane.expanded .lane-body { max-height: none; }
 
 .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); flex: none; }
 .dot.running { background: var(--accent); animation: pulse 1.2s infinite ease-in-out; }
@@ -139,18 +133,10 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .dot.failed { background: transparent; border: 1px solid var(--body); }
 @keyframes pulse { 50% { opacity: 0.3; } }
 
-.activity { display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
-.act { display: grid; grid-template-columns: 14px 1fr; gap: 8px; color: var(--body); }
-.act .ico { color: var(--muted); font-family: var(--mono); }
-.act b { color: var(--heading); font-weight: 500; font-family: var(--mono); font-size: 12px; }
-.act.error { color: var(--heading); }
-.act .detail { color: var(--muted); word-break: break-word; }
 
 .answer { min-width: 0; }
-.work-strip { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--body); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
-.work-strip:hover { border-color: var(--line-strong); }
+.work-strip { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--body); font-size: 13px; }
 .work-strip .work-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.work-strip .work-toggle { color: var(--muted); font-size: 12px; flex: none; }
 .run-errors { display: grid; gap: 6px; padding: 10px 12px; border: 1px solid var(--line-strong); border-radius: 10px; color: var(--heading); font-size: 13px; word-break: break-word; }
 .details { display: grid; gap: 12px; }
 .usage { font-size: 11px; color: var(--muted); font-family: var(--mono); }
