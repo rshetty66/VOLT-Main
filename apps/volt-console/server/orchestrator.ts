@@ -13,6 +13,7 @@
  * Every agent is a manual streaming tool loop so the UI can show progress
  * updates, tool calls and text as they happen.
  */
+import { lateForRewrite, runBudgetMs } from "./budget.js";
 import crypto from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
@@ -405,6 +406,10 @@ async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, alw
   const evidence = evidenceGates(draft, loop.registry.sources, loop.registry.tier).filter((g) => !g.pass);
   const report = { ...depth, gaps: [...depth.gaps, ...evidence.map((g) => g.detail)] };
   if (!report.gaps.length) return;
+  if (lateForRewrite(Date.now() - loop.registry.startedAt, runBudgetMs())) {
+    loop.emit({ type: "status", lane: loop.lane, text: `Partner review: ${report.gaps.length} gap${report.gaps.length === 1 ? "" : "s"} found, but the run is near its time limit, so the draft is kept as written` });
+    return;
+  }
   loop.emit({ type: "status", lane: loop.lane, text: `Partner review: strengthening the draft (${report.gaps.length} gap${report.gaps.length === 1 ? "" : "s"})` });
   loop.emit({ type: "text_reset", lane: loop.lane });
   loop.messages.push({ role: "user", content: strengthenPrompt(report) });

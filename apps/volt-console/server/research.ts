@@ -13,6 +13,8 @@ const month = () => new Date().toISOString().slice(0, 7);
 export class SourceRegistry {
   readonly sources: SourceRecord[] = [];
   readonly tier: Tier;
+  /** When the run began, for the time budget. */
+  readonly startedAt = Date.now();
 
   constructor(prompt: string) {
     this.tier = classifyDepth(prompt);
