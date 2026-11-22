@@ -44,6 +44,7 @@ import { COPILOTKIT_PATH, copilotkitHandler } from "./copilotkit.js";
 import { MAX_SOURCE_BYTES, SourceError, extractFigures, findFilings, ingestDocument, verifyFigures } from "./sources.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
+import { startHeartbeat } from "./sse.js";
 import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requireToken, sameOriginWrites, securityConfig } from "./security.js";
 
 const catalog = loadCatalog();
@@ -308,9 +309,10 @@ app.post("/api/run", async (req, res) => {
   if (session.busy) return void res.status(409).json({ error: "A run is already in progress for this conversation. Wait for it to finish or stop it first.", code: "session_busy" });
   session.busy = true;
 
-  res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
+  res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive", "X-Accel-Buffering": "no" });
   const controller = new AbortController();
   res.on("close", () => controller.abort());
+  startHeartbeat(res);
   const emit: Emit = (e: VoltEvent) => {
     if (!res.writableEnded) res.write(`data: ${JSON.stringify(e)}\n\n`);
   };

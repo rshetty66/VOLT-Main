@@ -70,7 +70,11 @@ export async function* streamRun(req: RunRequest, signal: AbortSignal): AsyncGen
   const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
   let buf = "";
   while (true) {
-    const { value, done } = await reader.read();
+    // A dropped connection surfaces as the browser's bare "TypeError: Load failed"; say what happened instead.
+    const { value, done } = await reader.read().catch((e) => {
+      if (signal.aborted) throw e;
+      throw new Error("The connection dropped before the answer finished. Run it again.");
+    });
     if (done) break;
     buf += value;
     let i: number;
