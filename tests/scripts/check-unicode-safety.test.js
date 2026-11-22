@@ -97,6 +97,24 @@ if (
 else failed++;
 
 if (
+  test('allows emoji and U+FE0F under apps/gyan but still rejects other invisibles there', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'unicode-gyan-'));
+    const dir = path.join(root, 'apps', 'gyan', 'src', 'data');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, 'ok.json'), JSON.stringify({ icon: String.fromCodePoint(0x1F3E6) + String.fromCodePoint(0xFE0F) }));
+    assert.strictEqual(runCheck(root).status, 0);
+    fs.writeFileSync(path.join(dir, 'bad.json'), JSON.stringify({ x: 'a' + String.fromCodePoint(0x202E) + 'b' }));
+    assert.strictEqual(runCheck(root).status, 1);
+    // The same emoji outside apps/gyan still fail.
+    fs.rmSync(path.join(dir, 'bad.json'));
+    fs.writeFileSync(path.join(root, 'other.json'), JSON.stringify({ icon: String.fromCodePoint(0x1F3E6) }));
+    assert.strictEqual(runCheck(root).status, 1);
+  })
+)
+  passed++;
+else failed++;
+
+if (
   test('plain symbols like copyright remain allowed', () => {
     const root = makeTempRoot('ecc-unicode-symbols-');
     fs.mkdirSync(path.join(root, 'docs'), { recursive: true });
