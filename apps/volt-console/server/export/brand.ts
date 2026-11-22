@@ -33,6 +33,19 @@ function readLogo(): BrandLogo | null {
   return null;
 }
 
+/** The small ink-wash accent (black ink on transparent). Optional, like the logo. */
+export function brandAccent(): BrandLogo | null {
+  for (const dir of [process.env.VOLT_BRAND_DIR, path.resolve(here, "../../public/brand"), path.join(here, "brand")].filter((d): d is string => !!d)) {
+    try {
+      const png = fs.readFileSync(path.join(dir, "ink-accent.png"));
+      if (png.length > 24) return { png, width: png.readUInt32BE(16), height: png.readUInt32BE(20) };
+    } catch {
+      /* next */
+    }
+  }
+  return null;
+}
+
 export function brandLogo(): BrandLogo | null {
   if (cached === undefined) cached = readLogo();
   return cached;

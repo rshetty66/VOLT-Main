@@ -45,6 +45,37 @@ describe("live agent loop (mocked Messages API)", () => {
     expect(types.filter((t) => t === "text_reset")).toHaveLength(1);
   });
 
+  it("records tool results in the source register and sends each key back to the model", async () => {
+    const events = await run({ prompt: "12 day close on SAP" });
+    const sources = events.filter((e) => e.type === "source").map((e) => (e as { record: { key: string; title: string; type: string } }).record);
+    expect(sources[0]).toMatchObject({ key: "S01", type: "client input" });
+    expect(sources.find((x) => x.key === "S02")).toMatchObject({ title: "APQC benchmark: days_to_close", type: "benchmark table" });
+    expect(events.find((e) => e.type === "research")).toMatchObject({ tier: "STANDARD" });
+    // the lead's second request carries the benchmark result with its key
+    const withResult = mock.requests.filter((r) => JSON.stringify(r.body.messages).includes("Source key: S02"));
+    expect(withResult.length).toBeGreaterThan(0);
+    expect(JSON.stringify(withResult[0].body.messages)).toContain("Cite this result as [S02]");
+  });
+
+  it("sends the failed evidence gates back in the partner review", async () => {
+    await run({ prompt: "Build a plan to cut our month-end close from 12 days to 5 on SAP S/4HANA" });
+    const review = mock.requests.find((r) => typeof r.body.messages.at(-1)?.content === "string" && String(r.body.messages.at(-1).content).startsWith("Partner review"));
+    expect(review).toBeTruthy();
+    const text = String(review!.body.messages.at(-1).content);
+    expect(text).toContain("Contradictions and tensions");
+    expect(text).toContain("Residue");
+    expect(text).toContain("Scope and method");
+  });
+
+  it("gives the lead the evidence rules and the specialists the short form", () => {
+    const system = (r: { body: { system: { text: string }[] } }) => r.body.system.map((x) => x.text).join("\n");
+    const lead = mock.requests.find((r) => r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;
+    const specialist = mock.requests.find((r) => !r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;
+    expect(system(lead)).toContain("Cite by source key");
+    expect(system(lead)).toContain("## 6. Evidence and method");
+    expect(system(specialist)).toContain("Cite the source key");
+  });
+
   it("leaves a short question alone", async () => {
     const events = await run({ prompt: "What is DSO?" });
     expect(events.map((e) => e.type)).not.toContain("text_reset");

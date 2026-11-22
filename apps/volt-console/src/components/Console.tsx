@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
+import { evidenceGates } from "../../shared/research";
 import { summariseWork, type Run } from "../runState";
 import { Markdown } from "./Markdown";
 import { RunVisuals } from "../charts/RunVisuals";
@@ -45,7 +46,8 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
     <div className="console">
       {runs.length === 0 && (
         <div className="stack">
-          <div>
+          <div className="hero">
+            <div>
             <h1 className="page-title">Agent Console</h1>
             <p className="page-sub">
               Ask Rudra, VOLT's master orchestrator. It routes your request across {catalog.agents.length} specialist agents, delegates
@@ -53,6 +55,8 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               maths as tools, and synthesises one executive deliverable. Pick an agent to talk to it directly, or launch a full
               multi-phase run from Workflows.
             </p>
+            </div>
+            <img className="hero-ink" src="/brand/ink-accent.png" alt="" />
           </div>
           {!live && (
             <div className="card body">
@@ -124,6 +128,9 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
 
 function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
   const work = summariseWork(run);
+  // The research engine's gates, run on the finished answer against the run's source register.
+  const gates = run.state !== "running" && run.tier && run.text.trim() ? evidenceGates(run.text, run.sources, run.tier) : [];
+  const openGates = gates.filter((g) => !g.pass);
   const elapsed = Math.round(((run.finishedAt ?? Date.now()) - run.startedAt) / 1000);
   const [, tick] = useState(0);
   useEffect(() => {
@@ -148,14 +155,20 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
         )}
         {run.state === "stopped" && <span className="badge">stopped</span>}
         {run.state !== "running" && run.text.trim() && (
-          <DownloadMenu build={(lanes) => runDeliverable(run, lanes)} option={run.laneOrder.length ? "Include specialist notes as an appendix" : undefined} />
+          <DownloadMenu formats={["docx", "pptx", "xlsx", "md", "html", ...(run.tier ? (["zip"] as const) : [])]} build={(lanes) => runDeliverable(run, lanes)} option={run.laneOrder.length ? "Include specialist notes as an appendix" : undefined} />
         )}
       </div>
       <div className="run-body single">
-        {(work.specialists > 0 || work.toolCalls > 0) && (
+        {(work.specialists > 0 || work.toolCalls > 0 || run.tier) && (
           <div className="work-strip">
             {run.state === "running" ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <span className="dot done" />}
             <span className="work-text">{workLine(work, run.state === "running")}</span>
+            {run.tier && (
+              <span className={`work-evidence ${openGates.length ? "bad" : ""}`} title={openGates.length ? openGates.map((g) => `${g.id} ${g.name}: ${g.detail}`).join("\n") : "All evidence gates passed"}>
+                {run.tier} · {run.sources.length} source{run.sources.length === 1 ? "" : "s"}
+                {gates.length ? ` · ${gates.length - openGates.length}/${gates.length} gates` : ""}
+              </span>
+            )}
           </div>
         )}
         {work.errors.length > 0 && (

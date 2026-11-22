@@ -44,7 +44,7 @@ export const LIGHT: Palette = {
   grid: "#d9dce6",
   band: ["#c9f4fb", "#e4e7f1", "#f4ead0", "#fdd9cb"],
   series: "#1a1e2e",
-  series2: "#d4af37",
+  series2: "#0097a7",
   negative: "#ff5722",
   pass: "#0097a7",
   fail: "#ff5722",

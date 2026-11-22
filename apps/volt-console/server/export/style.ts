@@ -28,7 +28,7 @@ export function styleFrom(p: TemplateProfile | null | undefined): ExportStyle {
   const pptTitle = p?.powerpoint?.textStyles.title;
   const pptBody = p?.powerpoint?.textStyles.body[0];
   const header = p?.excel?.sheets.find((s) => s.headerRow)?.headerRow;
-  const accent = hex(theme?.colors.accent1) ?? BRAND.gold;
+  const accent = hex(theme?.colors.accent1) ?? BRAND.cyan;
   const bodyFont = normal?.font ?? pptBody?.font ?? p?.excel?.defaultFont?.font ?? p?.word?.defaults.font ?? theme?.fonts.minor ?? "Calibri";
   return {
     brand: !p,

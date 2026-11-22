@@ -168,8 +168,8 @@ describe("export route", () => {
   });
 
   it("derives styles with VOLT defaults when no template is selected", () => {
-    // The VOLT brand board: Copper Gold accent, Deep Space Indigo headings and table headers.
-    expect(styleFrom(null)).toMatchObject({ brand: true, bodyFont: "Calibri", accent: "D4AF37", headingColor: "1A1E2E", headerFill: "1A1E2E" });
+    // The VOLT identity: Electric Cyber Blue accent on Deep Space Indigo headings and table headers (gold and orange are signals, not identity).
+    expect(styleFrom(null)).toMatchObject({ brand: true, bodyFont: "Calibri", accent: "00E5FF", headingColor: "1A1E2E", headerFill: "1A1E2E" });
   });
 
   it("is not branded when a client template is selected", () => {
@@ -257,9 +257,9 @@ describe("VOLT branding", () => {
     expect(logo && [logo.width, logo.height]).toEqual([895, 335]);
   });
 
-  it("puts the logo on the Word cover and the VOLT line in the footer", async () => {
+  it("puts the logo and the ink accent on the Word cover and the VOLT line in the footer", async () => {
     const files = unzip((await exportDocument(noImages("docx"), null)).data);
-    expect(media(files, "word/media/")).toBe(1);
+    expect(media(files, "word/media/")).toBe(2); // the logo and the small ink accent
     const footer = Object.keys(files).find((f) => /^word\/footer\d*\.xml$/.test(f));
     expect(footer && text(files, footer)).toContain("VOLT");
     expect(footer && text(files, footer)).toContain("Orchestrate");

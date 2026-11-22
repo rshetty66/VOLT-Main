@@ -1,3 +1,4 @@
+import type { SourceRecord, Tier } from "../shared/research";
 import { ORCHESTRATOR_LANE, type RunKind, type RunMode, type VoltEvent } from "../shared/events";
 
 export interface ActivityItem {
@@ -38,6 +39,9 @@ export interface Run {
   laneOrder: string[];
   phases: { name: string; agents: string[]; state: "running" | "done" }[];
   usage: { input: number; output: number; cacheRead: number };
+  /** The research engine: depth tier and the source register the agents cited from. */
+  tier?: Tier;
+  sources: SourceRecord[];
   state: "running" | "done" | "stopped";
   startedAt: number;
   finishedAt?: number;
@@ -54,6 +58,7 @@ export function newRun(prompt: string, title: string, kind: RunKind): Run {
     lanes: {},
     laneOrder: [],
     phases: [],
+    sources: [],
     usage: { input: 0, output: 0, cacheRead: 0 },
     state: "running",
     startedAt: Date.now(),
@@ -104,6 +109,10 @@ export function applyEvent(run: Run, e: VoltEvent): Run {
       else r.text += e.text;
       return r;
     }
+    case "research":
+      return { ...r, tier: e.tier };
+    case "source":
+      return r.sources.some((x) => x.key === e.record.key) ? r : { ...r, sources: [...r.sources, e.record] };
     case "text_reset": {
       const l = lane(e.lane);
       if (l) r.lanes[e.lane] = { ...l, text: "" };

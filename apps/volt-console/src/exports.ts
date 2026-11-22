@@ -3,6 +3,8 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ExportFormat, ExportImage, ExportRequest, ExportTable } from "../shared/export";
 import { exportFileName } from "../shared/export";
+import { strToU8, zipSync } from "fflate";
+import { evidenceGates, registryJsonl, sectionOf, sourceRegisterMarkdown, type SourceRecord, type Tier } from "../shared/research";
 import type { Run } from "./runState";
 import { chartFor } from "./charts/RunVisuals";
 import { chartableResults, type ChartableResult } from "./charts/results";
@@ -14,7 +16,7 @@ import { downloadBlob, downloadText, svgSize, svgToPng } from "./download";
 /** The template selected in the top bar; downloads follow its fonts and colours. */
 export const TemplateContext = createContext("");
 
-export type DownloadFormat = ExportFormat | "md" | "html";
+export type DownloadFormat = ExportFormat | "md" | "html" | "zip";
 
 export interface Deliverable {
   title: string;
@@ -23,6 +25,8 @@ export interface Deliverable {
   charts?: ChartableResult[];
   tables?: ExportTable[];
   templateId?: string;
+  /** What the research engine recorded for this run; it makes the research bundle. */
+  research?: { query: string; tier?: Tier; mode?: string; startedAt: string; sources: SourceRecord[]; log: string[] };
 }
 
 /** The ```mermaid blocks of a markdown text, in document order (the server numbers them the same way). */
@@ -39,10 +43,19 @@ export function runDeliverable(run: Run, includeLanes: boolean, templateId?: str
     // The cover is client-facing: the deliverable's own title (its first "#" heading), else the request; the date, and no run internals.
     title: (/^#\s+(.+)$/m.exec(run.text)?.[1].trim() ?? (run.kind === "workflow" && run.title ? `${run.title}: ${run.prompt}` : run.prompt)).slice(0, 120),
     subtitle: new Date(run.startedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
-    markdown: run.text + appendix,
+    // The source register is appended from the run's record, so every key in the text resolves in every format.
+    markdown: run.text + (run.sources.length > 1 ? sourceRegisterMarkdown(run.sources) : "") + appendix,
     charts,
     tables: chartTables(charts),
     templateId,
+    research: {
+      query: run.prompt,
+      tier: run.tier,
+      mode: run.mode,
+      startedAt: new Date(run.startedAt).toISOString(),
+      sources: run.sources,
+      log: [...run.activity, ...lanes.flatMap((l) => l.activity)].filter((a) => a.kind === "tool").map((a) => `${a.text}${a.detail ? `: ${a.detail}` : ""}`),
+    },
   };
 }
 
@@ -131,7 +144,7 @@ body{font:15px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#1
 h1,h2,h3{line-height:1.25;color:#1a1e2e}h1{font-size:28px}.sub{color:#5a6278;margin-top:-8px}
 table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}th,td{border:1px solid #d9dce6;padding:6px 9px;text-align:left;vertical-align:top}th{background:#1a1e2e;color:#fff}
 code{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f2f4f3;padding:1px 4px;border-radius:3px}pre{background:#f2f4f3;padding:12px;overflow:auto}pre code{background:none;padding:0}
-figure{margin:16px 0;overflow-x:auto}figure svg{max-width:100%;height:auto}blockquote{margin:12px 0;padding-left:12px;border-left:3px solid #d4af37;color:#3b4258}
+figure{margin:16px 0;overflow-x:auto}figure svg{max-width:100%;height:auto}blockquote{margin:12px 0;padding-left:12px;border-left:3px solid #00b8d4;color:#3b4258}
 </style></head><body>
 <h1>${esc(d.title)}</h1>${d.subtitle ? `<p class="sub">${esc(d.subtitle)}</p>` : ""}
 ${results}
@@ -140,12 +153,35 @@ ${body}
 `;
 }
 
-/** Download a deliverable as Word, PowerPoint, Excel, Markdown or HTML. */
+/**
+ * The research bundle: the report with its evidence beside it, so a reviewer can audit it from the files alone.
+ * query, the full report, the executive brief, contradictions, residue, the source registry, the gate results and the search log.
+ */
+export function researchBundle(d: Deliverable, asOf = new Date()): Uint8Array {
+  const r = d.research ?? { query: d.title, startedAt: asOf.toISOString(), sources: [], log: [] };
+  const tier: Tier = r.tier ?? "STANDARD";
+  const gates = evidenceGates(d.markdown, r.sources, tier);
+  const part = (re: RegExp, fallback: string) => sectionOf(d.markdown, re) ?? fallback;
+  const files: Record<string, string> = {
+    "query.md": `# Query\n\n${r.query}\n\nDepth tier: ${tier}\nMode: ${r.mode ?? "n/a"}\nRun started: ${r.startedAt}\n`,
+    "full-report.md": `# ${d.title}\n\n${d.markdown}\n`,
+    "executive-brief.md": `# Executive brief\n\n${part(/executive summary/, d.markdown.split(/\s+/).slice(0, 300).join(" "))}\n`,
+    "contradictions.md": `# Contradictions and tensions\n\n${part(/contradictions?|tensions?/, "The report has no contradictions section.")}\n`,
+    "residue.md": `# Residue\n\n${part(/residue/, "The report has no residue section.")}\n`,
+    "sources/registry.jsonl": registryJsonl(r.sources),
+    "analysis/gates.json": JSON.stringify({ tier, asOf: asOf.toISOString().slice(0, 10), passed: gates.filter((g) => g.pass).length, total: gates.length, gates }, null, 2) + "\n",
+    "analysis/search-log.md": `# Search log\n\nEvery tool the agents used, in order.\n\n${r.log.length ? r.log.map((l, i) => `${i + 1}. ${l}`).join("\n") : "No tool calls were recorded."}\n`,
+  };
+  return zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [`research/${k}`, strToU8(v)])));
+}
+
+/** Download a deliverable as Word, PowerPoint, Excel, Markdown, HTML or a research bundle. */
 export async function downloadDeliverable(format: DownloadFormat, d: Deliverable) {
   if (format === "md") {
     const head = [`# ${d.title}`, d.subtitle ? `\n_${d.subtitle}_` : "", ""].join("\n");
     return downloadText(exportFileName(d.title, "md"), `${head}\n${d.markdown}\n`, "text/markdown");
   }
+  if (format === "zip") return downloadBlob(exportFileName(d.title, "zip"), new Blob([researchBundle(d) as BlobPart], { type: "application/zip" }));
   if (format === "html") return downloadText(exportFileName(d.title, "html"), await htmlDocument(d), "text/html");
 
   const images: ExportImage[] = [];

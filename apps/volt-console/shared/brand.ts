@@ -7,8 +7,8 @@ export const BRAND = {
   obsidian: "0A0D14", // Cosmic Obsidian: page background
   indigo: "1A1E2E", // Deep Space Indigo: surfaces, headings, table headers
   cyan: "00E5FF", // Electric Cyber Blue: primary accent, "good"
-  gold: "D4AF37", // Copper Gold: highlight, "medium"
-  orange: "FF5722", // Rudra's Fire Orange: attention, "high"
+  gold: "D4AF37", // Copper Gold: the "medium" signal; never a rule or headline colour
+  orange: "FF5722", // Rudra's Fire Orange: the "high" signal only; the identity is cyan on indigo, not orange and amber
   /** The background of the logo image itself (the board photo renders Obsidian as this slate); covers use it so the logo has no visible box. */
   cover: "1E252C",
   tagline: "Vision · Orchestrate · Launch · Transform",

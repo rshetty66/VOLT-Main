@@ -4,7 +4,7 @@ import {
 import type { ExportImage, ExportRequest } from "../../shared/export.js";
 import { contentsOf, markdownBlocks, type Run } from "./blocks.js";
 import { TONE_STYLE, toneFor } from "../../shared/brand.js";
-import { BRAND, brandLogo } from "./brand.js";
+import { BRAND, brandAccent, brandLogo } from "./brand.js";
 import type { ExportStyle } from "./style.js";
 
 const HEADING = [HeadingLevel.HEADING_1, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3, HeadingLevel.HEADING_4, HeadingLevel.HEADING_5, HeadingLevel.HEADING_6];
@@ -45,6 +45,30 @@ function table(header: string[], rows: string[][], s: ExportStyle) {
   });
 }
 
+/** The cover's title and date; with VOLT branding, the small ink accent sits to their right. */
+function coverTitle(req: ExportRequest, accent: { png: Buffer; width: number; height: number } | null): (Paragraph | Table)[] {
+  const title = new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(req.title)] });
+  const date = req.subtitle ? [new Paragraph({ spacing: { after: 240 }, children: [new TextRun({ text: req.subtitle, color: "5B6862" })] })] : [];
+  if (!accent) return [title, ...date];
+  const none = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+  const borders = { top: none, bottom: none, left: none, right: none };
+  const w = 130; // pixels: small
+  return [
+    new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: { ...borders, insideHorizontal: none, insideVertical: none },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({ borders, width: { size: 78, type: WidthType.PERCENTAGE }, verticalAlign: "center", children: [title, ...date] }),
+            new TableCell({ borders, width: { size: 22, type: WidthType.PERCENTAGE }, verticalAlign: "center", children: [image({ ref: "accent", png: accent.png.toString("base64"), width: accent.width, height: accent.height }, w)] }),
+          ],
+        }),
+      ],
+    }),
+  ];
+}
+
 export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uint8Array> {
   const images = new Map((req.images ?? []).map((i) => [i.ref, i]));
   const maxImg = (s.page.widthIn - s.page.margins.left - s.page.margins.right) * PX_PER_IN;
@@ -52,8 +76,7 @@ export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uin
   const logo = s.brand ? brandLogo() : null;
   const body: (Paragraph | Table)[] = [
     ...(logo ? [image({ ref: "brand", png: logo.png.toString("base64"), width: logo.width, height: logo.height }, Math.min(maxImg, 520))] : []),
-    new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(req.title)] }),
-    ...(req.subtitle ? [new Paragraph({ spacing: { after: 240 }, children: [new TextRun({ text: req.subtitle, color: "5B6862" })] })] : []),
+    ...coverTitle(req, s.brand ? brandAccent() : null),
   ];
 
   const blocks = markdownBlocks(req.markdown);
@@ -136,7 +159,7 @@ export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uin
                   children: [
                     new Paragraph({
                       alignment: AlignmentType.CENTER,
-                      border: { top: { style: BorderStyle.SINGLE, size: 6, color: BRAND.gold, space: 6 } },
+                      border: { top: { style: BorderStyle.SINGLE, size: 6, color: BRAND.cyan, space: 6 } },
                       children: [
                         new TextRun({ text: `VOLT  ·  ${BRAND.tagline}  ·  Page `, size: 16, color: "5B6862" }),
                         new TextRun({ children: [PageNumber.CURRENT], size: 16, color: "5B6862" }),
