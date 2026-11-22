@@ -83,7 +83,7 @@ export interface CatalogHealth {
 }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
-const PLUGIN_DIR = process.env.VOLT_PLUGIN_DIR ?? path.resolve(here, "../../../plugins/volt");
+export const PLUGIN_DIR = process.env.VOLT_PLUGIN_DIR ?? path.resolve(here, "../../../plugins/volt");
 
 const readJson = <T>(dir: string, rel: string): T => JSON.parse(fs.readFileSync(path.join(dir, rel), "utf8")) as T;
 

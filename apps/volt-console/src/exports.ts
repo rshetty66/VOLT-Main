@@ -34,12 +34,11 @@ export function mermaidSources(markdown: string): string[] {
 export function runDeliverable(run: Run, includeLanes: boolean, templateId?: string): Deliverable {
   const lanes = run.laneOrder.map((id) => run.lanes[id]).filter((l) => l?.text.trim());
   const appendix = includeLanes && lanes.length ? ["", "## Appendix: specialist notes", "", ...lanes.flatMap((l) => [`### ${l.name} (${l.layer})`, "", l.text.trim(), ""])].join("\n") : "";
-  const mode = run.mode === "demo" ? "demo mode, simulated narrative" : run.model ? `live, ${run.model}` : "";
   const charts = chartableResults(run);
   return {
-    // Workflow runs carry the workflow's name; orchestrated and direct-agent runs are named by the request.
-    title: (run.kind === "workflow" && run.title ? `${run.title}: ${run.prompt}` : run.prompt).slice(0, 120),
-    subtitle: [`Request: ${run.prompt}`, `VOLT Console${mode ? `, ${mode}` : ""}`, new Date(run.startedAt).toISOString().slice(0, 10)].join(" | ").slice(0, 400),
+    // The cover is client-facing: the deliverable's own title (its first "#" heading), else the request; the date, and no run internals.
+    title: (/^#\s+(.+)$/m.exec(run.text)?.[1].trim() ?? (run.kind === "workflow" && run.title ? `${run.title}: ${run.prompt}` : run.prompt)).slice(0, 120),
+    subtitle: new Date(run.startedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
     markdown: run.text + appendix,
     charts,
     tables: chartTables(charts),

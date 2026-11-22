@@ -1,8 +1,8 @@
 import {
-  AlignmentType, BorderStyle, Document, HeadingLevel, ImageRun, Packer, Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, WidthType,
+  AlignmentType, BorderStyle, Document, HeadingLevel, ImageRun, PageBreak, Packer, Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, WidthType,
 } from "docx";
 import type { ExportImage, ExportRequest } from "../../shared/export.js";
-import { markdownBlocks, type Run } from "./blocks.js";
+import { contentsOf, markdownBlocks, type Run } from "./blocks.js";
 import type { ExportStyle } from "./style.js";
 
 const HEADING = [HeadingLevel.HEADING_1, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3, HeadingLevel.HEADING_4, HeadingLevel.HEADING_5, HeadingLevel.HEADING_6];
@@ -48,13 +48,20 @@ export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uin
     ...(req.subtitle ? [new Paragraph({ spacing: { after: 240 }, children: [new TextRun({ text: req.subtitle, color: "5B6862" })] })] : []),
   ];
 
+  const blocks = markdownBlocks(req.markdown);
   const charts = (req.images ?? []).filter((i) => i.ref.startsWith("chart-"));
+  const contents = contentsOf(blocks, charts.length ? ["Results"] : []);
+  if (contents.length) {
+    body.push(new Paragraph({ spacing: { before: 240, after: 160 }, children: [new TextRun({ text: "Contents", bold: true, size: 32, font: s.headingFont, color: s.headingColor })] }));
+    for (const line of contents) body.push(new Paragraph({ spacing: { after: 100 }, children: [new TextRun(line)] }));
+    body.push(new Paragraph({ children: [new PageBreak()] }));
+  }
   if (charts.length) {
     body.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("Results")] }));
     for (const c of charts) body.push(image(c, maxImg), ...(c.caption ? [caption(c.caption)] : []));
   }
 
-  for (const b of markdownBlocks(req.markdown)) {
+  for (const b of blocks) {
     switch (b.type) {
       case "heading":
         body.push(new Paragraph({ heading: HEADING[Math.min(5, b.depth - 1)], children: [new TextRun(b.text)] }));

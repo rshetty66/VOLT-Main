@@ -33,6 +33,16 @@ describe("live agent loop (mocked Messages API)", () => {
     expect(rudraText).toContain("Final answer from Rudra");
   });
 
+  it("sends the client deliverable standards and structure to the lead and the specialists", () => {
+    const system = (r: { body: { system: { text: string }[] } }) => r.body.system.map((x) => x.text).join("\n");
+    const lead = mock.requests.find((r) => r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;
+    const specialist = mock.requests.find((r) => !r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;
+    expect(system(lead)).toContain("The final answer is a client deliverable");
+    expect(system(lead)).toContain("Lead with the answer");
+    expect(system(lead)).not.toContain("attribute key points to the specialist");
+    expect(system(specialist)).toContain("Lead with the answer");
+  });
+
   it("sends the expected request shape", () => {
     const first = mock.requests[0];
     expect(first.headers["anthropic-beta"]).toContain("server-side-fallback-2026-07-01");

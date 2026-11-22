@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import express from "express";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
-import { markdownBlocks } from "../server/export/blocks";
+import { contentsOf, markdownBlocks } from "../server/export/blocks";
 import { exportDocument, styleFrom } from "../server/export";
 import { exportRouter } from "../server/export/route";
 import { extractTemplate } from "../server/templates";
@@ -197,5 +197,45 @@ describe("browser-side deliverable helpers", () => {
     expect(sheets.map((t) => t.name)).toEqual(["Benchmarks", "Value case"]);
     expect(sheets[0].rows[0].slice(0, 2)).toEqual(["Days to Close the Books", 12]);
     expect(sheets[1].rows[0]).toEqual([0, null, null, null, -3_000_000]);
+  });
+});
+
+describe("table of contents", () => {
+  const MD4 = `${MD}\n## Next steps\n\n- Agree the target calendar\n`;
+
+  it("numbers the section headings, keeps existing numbers, and is empty below three entries", () => {
+    expect(contentsOf(markdownBlocks("## A\n\nx\n\n## B\n\ny\n"))).toEqual([]);
+    expect(contentsOf(markdownBlocks("## Alpha\n\n## Beta\n\n## Gamma\n"))).toEqual(["1. Alpha", "2. Beta", "3. Gamma"]);
+    expect(contentsOf(markdownBlocks("## 1. Executive summary\n\n## 2. Findings\n\n## 3. Next steps\n"))).toEqual(["1. Executive summary", "2. Findings", "3. Next steps"]);
+    expect(contentsOf(markdownBlocks("# One\n\n# Two\n\n# Three\n"))).toEqual(["1. One", "2. Two", "3. Three"]);
+    expect(contentsOf(markdownBlocks("## Alpha\n\n## Beta\n"), ["Results"])).toEqual(["1. Results", "2. Alpha", "3. Beta"]);
+  });
+
+  it("puts a Contents page in the Word file, listing Results and the sections", async () => {
+    const xml = text(unzip((await exportDocument(req("docx"), null)).data), "word/document.xml");
+    expect(xml).toContain(">Contents<");
+    for (const line of ["1. Results", "2. Current state", "3. Target architecture"]) expect(xml).toContain(line);
+  });
+
+  it("puts a Contents slide in the PowerPoint file", async () => {
+    const files = unzip((await exportDocument(req("pptx"), null)).data);
+    const slides = Object.keys(files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n)).map((n) => text(files, n));
+    const contents = slides.find((x) => x.includes(">Contents<"));
+    expect(contents).toBeTruthy();
+    expect(contents).toContain("2. Current state");
+  });
+
+  it("makes Contents the first worksheet, pointing each section at its table sheet", async () => {
+    const files = unzip((await exportDocument(req("xlsx", { markdown: MD4, images: [] }), null)).data);
+    const names = [...text(files, "xl/workbook.xml").matchAll(/<sheet [^>]*name="([^"]+)"/g)].map((m) => m[1]);
+    expect(names[0]).toBe("Contents");
+    expect(names[1]).toBe("Summary");
+    const shared = text(files, "xl/sharedStrings.xml");
+    for (const line of ["1. Current state", "2. Target architecture", "3. Next steps"]) expect(shared).toContain(line);
+  });
+
+  it("adds no Contents to a short document", async () => {
+    const xml = text(unzip((await exportDocument(req("docx", { markdown: "## Only\n\ntext\n", images: [] }), null)).data), "word/document.xml");
+    expect(xml).not.toContain(">Contents<");
   });
 });

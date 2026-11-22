@@ -99,3 +99,16 @@ export function cellValue(s: string): { value: string | number; format?: string 
   if (cur) return { value: num(cur[1] + cur[3]), format: `"${cur[2]}"#,##0.00` };
   return { value: t };
 }
+
+/**
+ * The deliverable's table of contents: its "##" section headings in order, or "#" headings when it has none.
+ * Headings that already carry a number ("1. Executive summary") keep it; the others are numbered here.
+ * Empty below three entries: a contents list of one or two lines is noise.
+ */
+export function contentsOf(blocks: Block[], leading: string[] = []): string[] {
+  const h2 = blocks.filter((b): b is Extract<Block, { type: "heading" }> => b.type === "heading" && b.depth === 2);
+  const heads = (h2.length ? h2 : blocks.filter((b): b is Extract<Block, { type: "heading" }> => b.type === "heading" && b.depth === 1)).map((b) => b.text);
+  const all = [...leading, ...heads];
+  if (all.length < 3) return [];
+  return all.map((t, i) => (/^\d+[.)]\s/.test(t) ? t : `${i + 1}. ${t}`));
+}

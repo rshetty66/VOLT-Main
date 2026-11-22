@@ -16,6 +16,7 @@
 import crypto from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
+import { leadDeliverableGuide, specialistDeliverableGuide } from "./deliverable.js";
 import { ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 
@@ -88,9 +89,11 @@ You lead a bench of VOLT specialist agents. For any request that spans more than
 2. Delegate with consult_agent. Give each specialist a self-contained brief (client context, the precise question, the deliverable you need back). Put independent consults in the same turn so they run in parallel.
 3. Use find_skills then load_skill when a VOLT method or reference pack would sharpen the answer.
 4. Never do finance arithmetic in your head: benchmarks, maturity scores, NPV/IRR and value cases come from the apqc_benchmark, score_maturity, appraise_investment and build_value_case tools.
-5. Synthesise. The user reads your final answer, not the specialists' raw output: reconcile disagreements, keep what is decision-relevant, and attribute key points to the specialist that raised them.
+5. Synthesise. The user reads your final answer, not the specialists' raw output: reconcile disagreements, keep what is decision-relevant, and write it as the firm's own work (no references to the specialists).
 
 Write the final answer as an executive-grade consulting deliverable in Markdown: a one-paragraph answer first, then structured sections and tables. Where a picture clarifies an architecture, data flow or process, include at most one Mermaid diagram in a \`\`\`mermaid code block (flowchart or sequenceDiagram, short plain labels, no styling); the console draws it and carries it into downloads. State assumptions and data gaps plainly instead of inventing client facts. If a simple question needs no delegation, answer it directly.
+
+${leadDeliverableGuide()}
 
 When a request matches one of the VOLT workflows below, mention it by name so the user can launch it as a full multi-phase run.
 
@@ -108,7 +111,7 @@ function specialistSystem(catalog: Catalog, agent: AgentDef): string {
 ## Working inside VOLT
 You are the ${agent.name} agent (${agent.layer}). ${agent.description}
 You have been brought in on a workstream. Answer the brief with a focused, practitioner-grade deliverable in Markdown (headings, tables where useful), typically 400-900 words. You may add at most one short Mermaid diagram in a \`\`\`mermaid block when it clarifies a flow. Lead with the answer. Be explicit about assumptions, risks and the data you would need to firm up the view.
-Use tools for numbers (apqc_benchmark, score_maturity, appraise_investment, build_value_case) and the Skill Finder (find_skills, load_skill) for VOLT method packs.${shipped.length ? `\nYour registered VOLT skills: ${shipped.join(", ")}.` : ""}`;
+Use tools for numbers (apqc_benchmark, score_maturity, appraise_investment, build_value_case) and the Skill Finder (find_skills, load_skill) for VOLT method packs.${shipped.length ? `\nYour registered VOLT skills: ${shipped.join(", ")}.` : ""}${specialistDeliverableGuide() ? `\n\n${specialistDeliverableGuide()}` : ""}`;
 }
 
 // ── Streaming tool loop ──────────────────────────────────────────────────────
@@ -407,7 +410,7 @@ ${context}
 Specialist outputs, by phase:
 ${outputs.map((o) => `### ${o.phase} — ${o.agent.name}\n${o.text.slice(0, 8000)}`).join("\n\n")}
 
-Synthesise the final executive deliverable for the client: an executive summary, the integrated findings by phase, a recommendations table (recommendation, owner workstream, priority, value/risk), key risks and assumptions, and next steps. Resolve any conflicts between specialists explicitly. Use the analytics tools for any figures you add.`;
+Synthesise the final executive deliverable for the client: an executive summary, the integrated findings by phase, a recommendations table (recommendation, owner workstream, priority, value/risk), key risks and assumptions, and next steps. Number the sections. Write it for the client: do not name the specialists or describe how the work was done, and where they disagreed state the position taken and why. Use the analytics tools for any figures you add.`;
   session.messages.push({ role: "user", content: synthesisPrompt });
   emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Rudra is synthesising the workflow deliverable" });
   await runAgentLoop({

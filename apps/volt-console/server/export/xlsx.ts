@@ -1,6 +1,6 @@
 import ExcelJS from "exceljs";
 import type { ExportRequest } from "../../shared/export.js";
-import { cellValue, markdownBlocks, plain } from "./blocks.js";
+import { cellValue, contentsOf, markdownBlocks, plain } from "./blocks.js";
 import type { ExportStyle } from "./style.js";
 
 /** Sheet names: at most 31 characters, none of []:*?/\ and unique within the workbook. */
@@ -51,10 +51,13 @@ export async function writeXlsx(req: ExportRequest, s: ExportStyle): Promise<Uin
   wb.title = req.title;
   const name = sheetNamer();
 
+  const blocks = markdownBlocks(req.markdown);
+  const contents = contentsOf(blocks);
+  const contentsSheet = contents.length ? wb.addWorksheet(name("Contents")) : null;
   const summary = wb.addWorksheet(name("Summary"));
   summary.addRow([req.title]).font = { name: s.headingFont, size: 16, bold: true, color: { argb: `FF${s.headingColor}` } };
   if (req.subtitle) summary.addRow([req.subtitle]).font = { name: s.bodyFont, italic: true };
-  summary.addRow([`Generated ${new Date().toISOString().slice(0, 10)}`]).font = { name: s.bodyFont, color: { argb: "FF5B6862" } };
+  if (!req.subtitle) summary.addRow([`Generated ${new Date().toISOString().slice(0, 10)}`]).font = { name: s.bodyFont, color: { argb: "FF5B6862" } };
   summary.addRow([]);
   const head = summary.addRow(["Section", "Content"]);
   head.eachCell((c) => {
@@ -67,7 +70,7 @@ export async function writeXlsx(req: ExportRequest, s: ExportStyle): Promise<Uin
   let section = "Summary";
   let tableNo = 0;
   const tables: { name: string; header: string[]; rows: string[][] }[] = [];
-  for (const b of markdownBlocks(req.markdown)) {
+  for (const b of blocks) {
     if (b.type === "heading") section = b.text;
     else if (b.type === "paragraph" || b.type === "quote") summary.addRow([section, plain(b.runs)]);
     else if (b.type === "list") b.items.forEach((it) => summary.addRow([section, `- ${plain(it.runs)}`]));
@@ -76,8 +79,28 @@ export async function writeXlsx(req: ExportRequest, s: ExportStyle): Promise<Uin
   summary.getColumn(2).alignment = { wrapText: true, vertical: "top" };
   summary.eachRow((r) => r.eachCell((c) => (c.font = c.font ?? { name: s.bodyFont })));
 
-  for (const t of tables) addTable(wb, name(t.name), t.header, t.rows, s);
+  const sheetOf = new Map<string, string[]>();
+  for (const t of tables) {
+    const sheet = name(t.name);
+    addTable(wb, sheet, t.header, t.rows, s);
+    sheetOf.set(t.name, [...(sheetOf.get(t.name) ?? []), sheet]);
+  }
   for (const t of req.tables ?? []) addTable(wb, name(t.name), t.columns, t.rows, s);
+
+  if (contentsSheet) {
+    contentsSheet.addRow([req.title]).font = { name: s.headingFont, size: 16, bold: true, color: { argb: `FF${s.headingColor}` } };
+    contentsSheet.addRow([]);
+    const head = contentsSheet.addRow(["Section", "Worksheet"]);
+    head.eachCell((c) => {
+      c.font = { name: s.bodyFont, bold: true, color: { argb: `FF${s.headerInk}` } };
+      c.fill = { type: "pattern", pattern: "solid", fgColor: { argb: `FF${s.headerFill}` } };
+    });
+    // The numbered "##" headings, each with the worksheet that holds its table (if it has one).
+    const h2 = blocks.filter((b) => b.type === "heading" && b.depth === (blocks.some((x) => x.type === "heading" && x.depth === 2) ? 2 : 1)).map((b) => (b as { text: string }).text);
+    contents.forEach((line, i) => contentsSheet.addRow([line, (sheetOf.get(h2[i]) ?? []).join(", ")]));
+    contentsSheet.getColumn(1).width = 60;
+    contentsSheet.getColumn(2).width = 40;
+  }
 
   return new Uint8Array(await wb.xlsx.writeBuffer());
 }

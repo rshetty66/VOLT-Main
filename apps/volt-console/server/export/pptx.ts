@@ -1,6 +1,6 @@
 import PptxGenJS from "pptxgenjs";
 import type { ExportImage, ExportRequest } from "../../shared/export.js";
-import { markdownBlocks, plain, type Run } from "./blocks.js";
+import { contentsOf, markdownBlocks, plain, type Run } from "./blocks.js";
 import type { ExportStyle } from "./style.js";
 
 type Slide = ReturnType<PptxGenJS["addSlide"]>;
@@ -38,9 +38,20 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
   const first = pptx.addSlide();
   first.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 0.25, h: H, fill: { color: s.accent }, line: { color: s.accent } });
   first.addText(req.title, { x: 0.9, y: H / 2 - 1.3, w: W - 1.8, h: 1.4, fontFace: s.headingFont, fontSize: 36, bold: true, color: s.headingColor, valign: "bottom" });
-  first.addText([req.subtitle ?? "", `Generated ${new Date().toISOString().slice(0, 10)}`].filter(Boolean).join("\n"), {
+  first.addText(req.subtitle ?? `Generated ${new Date().toISOString().slice(0, 10)}`, {
     x: 0.9, y: H / 2 + 0.2, w: W - 1.8, h: 1, fontFace: s.bodyFont, fontSize: 16, color: "5B6862", valign: "top",
   });
+
+  const blocks = markdownBlocks(req.markdown);
+  const chartImages = (req.images ?? []).filter((i) => i.ref.startsWith("chart-"));
+  const contents = contentsOf(blocks, chartImages.length ? ["Results"] : []);
+  if (contents.length) {
+    const shown = contents.slice(0, 12);
+    const more = contents.length - shown.length;
+    titled("Contents").addText([...shown, ...(more > 0 ? [`+ ${more} more`] : [])].map((text) => ({ text, options: { breakLine: true } })), {
+      x: M, y: 1.4, w: W - 2 * M, h: H - 1.9, fontFace: s.bodyFont, fontSize: 20, color: s.ink, valign: "top", paraSpaceAfter: 10,
+    });
+  }
 
   for (const c of (req.images ?? []).filter((i) => i.ref.startsWith("chart-"))) picture(c.caption ? `Results: ${c.caption}` : "Results", c);
 
@@ -81,7 +92,7 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
     part = 0;
   };
 
-  for (const b of markdownBlocks(req.markdown)) {
+  for (const b of blocks) {
     switch (b.type) {
       case "heading":
         // H1-H3 each start a slide; deeper headings stay as bold lines on the current one.
