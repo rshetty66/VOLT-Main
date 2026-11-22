@@ -44,6 +44,7 @@ import { COPILOTKIT_PATH, copilotkitHandler } from "./copilotkit.js";
 import { MAX_SOURCE_BYTES, SourceError, extractFigures, findFilings, ingestDocument, verifyFigures } from "./sources.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
+import { runBudgetMs } from "./budget.js";
 import { startHeartbeat } from "./sse.js";
 import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requireToken, sameOriginWrites, securityConfig } from "./security.js";
 
@@ -313,6 +314,14 @@ app.post("/api/run", async (req, res) => {
   const controller = new AbortController();
   res.on("close", () => controller.abort());
   startHeartbeat(res);
+  // End the run cleanly before the host's limit, so the answer written so far is kept instead of lost.
+  const budget = runBudgetMs();
+  const limitTimer = budget
+    ? setTimeout(() => {
+        emit({ type: "error", lane: ORCHESTRATOR_LANE, message: `This run reached its ${Math.round(budget / 1000)}-second time limit, so it stopped. The answer so far is shown. Ask a narrower question, or split the work into parts.` });
+        controller.abort();
+      }, budget)
+    : undefined;
   const emit: Emit = (e: VoltEvent) => {
     if (!res.writableEnded) res.write(`data: ${JSON.stringify(e)}\n\n`);
   };
@@ -337,6 +346,7 @@ app.post("/api/run", async (req, res) => {
   } catch (err) {
     if (!controller.signal.aborted) emit({ type: "error", lane: ORCHESTRATOR_LANE, message: errorMessage(err) });
   } finally {
+    clearTimeout(limitTimer);
     session.busy = false;
   }
   emit({ type: "done", sessionId: session.id });
