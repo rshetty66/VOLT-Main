@@ -44,6 +44,8 @@ import { COPILOTKIT_PATH, copilotkitHandler } from "./copilotkit.js";
 import { MAX_SOURCE_BYTES, SourceError, extractFigures, findFilings, ingestDocument, verifyFigures } from "./sources.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
+import { AttachmentError, extractAttachment } from "./attachments.js";
+import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../shared/attachments.js";
 import { runBudgetMs } from "./budget.js";
 import { startHeartbeat } from "./sse.js";
 import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requireToken, sameOriginWrites, securityConfig } from "./security.js";
@@ -241,6 +243,25 @@ app.get("/api/workflows/:id/intake", (req, res) => {
 
 const templates = templateStore();
 
+// Reads an attached file to plain text. The text comes back to the browser and travels with the run request.
+app.post("/api/attachments/extract", express.raw({ type: () => true, limit: ATTACH_MAX_BYTES }), async (req, res) => {
+  const data = Buffer.isBuffer(req.body) ? new Uint8Array(req.body) : new Uint8Array(0);
+  if (data.length === 0) return void res.status(400).json({ error: "Send the file as the request body.", code: "empty" });
+  let name = req.get("x-file-name") ?? "attachment";
+  try {
+    name = decodeURIComponent(name);
+  } catch {
+    /* keep the raw header */
+  }
+  try {
+    res.json(await extractAttachment(name, data));
+  } catch (err) {
+    if (err instanceof AttachmentError) return void res.status(err.code === "unsupported_type" ? 415 : 422).json({ error: err.message, code: err.code });
+    console.error("Attachment extraction failed", err);
+    res.status(500).json({ error: "That file could not be read.", code: "unreadable" });
+  }
+});
+
 app.get("/api/templates", (_req, res) => {
   res.json(templates.list());
 });
@@ -297,6 +318,11 @@ const RunBody = z.object({
   agentId: z.string().optional(),
   demo: z.boolean().optional(),
   templateId: z.string().max(32).optional(),
+  attachments: z
+    .array(z.object({ name: z.string().max(200), text: z.string().max(ATTACH_MAX_CHARS_FILE + 200) }))
+    .max(ATTACH_MAX_FILES)
+    .refine((a) => a.reduce((n, f) => n + f.text.length, 0) <= ATTACH_MAX_CHARS_TOTAL, "The attached files are too long in total.")
+    .optional(),
 });
 
 app.post("/api/run", async (req, res) => {
@@ -334,6 +360,7 @@ app.post("/api/run", async (req, res) => {
       ? catalog.agentById.get(body.agentId)?.name ?? body.agentId
       : "Rudra orchestration";
   emit({ type: "run_start", runId: crypto.randomUUID(), sessionId: session.id, mode: runMode, model: runMode === "live" ? MODEL : "simulator", kind, title });
+  if (runMode === "demo" && body.attachments?.length) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Attached files are read in live mode only; this demo run ignores them" });
   if (body.template) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Formatting template "${body.template.name}" attached` });
   // Rudra commands ("/compare ...") apply to Rudra runs only, not to a single specialist or a workflow.
   try {

@@ -33,6 +33,17 @@ describe("live agent loop (mocked Messages API)", () => {
     expect(rudraText).toContain("Final answer from Rudra");
   });
 
+  it("gives the lead the attached files, with their source keys, and registers them as sources", async () => {
+    const before = mock.requests.length;
+    const events = await run({ prompt: "12 day close on SAP", attachments: [{ name: "trial-balance.csv", text: "account,amount\n4000,UNIQUE-ATTACH-777" }] });
+    const lead = mock.requests.slice(before).find((r) => r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;
+    const first = JSON.stringify(lead.body.messages[0].content);
+    expect(first).toContain("UNIQUE-ATTACH-777");
+    expect(first).toContain("[S02] trial-balance.csv");
+    const sources = events.filter((e) => e.type === "source").map((e) => (e as { record: { key: string; type: string } }).record);
+    expect(sources.find((r) => r.key === "S02")?.type).toBe("client data");
+  });
+
   it("sends a thin draft of a deliverable back once, and the screen replaces it", async () => {
     const events = await run({ prompt: "Build a plan to cut our month-end close from 12 days to 5 on SAP S/4HANA" });
     const types = events.map((e) => e.type);

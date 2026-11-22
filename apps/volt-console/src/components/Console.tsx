@@ -6,6 +6,8 @@ import { Markdown } from "./Markdown";
 import { RunVisuals } from "../charts/RunVisuals";
 import { DownloadMenu } from "./DownloadMenu";
 import { runDeliverable } from "../exports";
+import { extractAttachment } from "../api";
+import { ATTACH_EXTENSIONS, ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../../shared/attachments";
 
 const EXAMPLES = [
   "Our month-end close takes 12 days on SAP S/4HANA and DSO is 55. Build a plan to reach a 5-day close.",
@@ -27,6 +29,10 @@ interface Props {
 
 export function Console({ catalog, runs, target, setTarget, live, onStart, onStop, onOpenAgent }: Props) {
   const [prompt, setPrompt] = useState("");
+  const [files, setFiles] = useState<{ name: string; text: string; chars: number; truncated: boolean }[]>([]);
+  const [reading, setReading] = useState(0);
+  const [fileError, setFileError] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const running = runs.some((r) => r.state === "running");
   const targetAgent = catalog.agents.find((a) => a.id === target);
@@ -35,11 +41,42 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
     endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
   }, [runs.length]);
 
+  const attach = async (list: FileList | null) => {
+    if (!list?.length) return;
+    setFileError("");
+    for (const file of Array.from(list)) {
+      if (files.length + 1 > ATTACH_MAX_FILES) return void setFileError(`At most ${ATTACH_MAX_FILES} files per request.`);
+      if (file.size > ATTACH_MAX_BYTES) {
+        setFileError(`${file.name} is larger than 4 MB.`);
+        continue;
+      }
+      setReading((n) => n + 1);
+      try {
+        const got = await extractAttachment(file);
+        setFiles((fs) => {
+          const total = fs.reduce((n, f) => n + f.chars, 0) + got.chars;
+          if (total > ATTACH_MAX_CHARS_TOTAL) {
+            setFileError("The attached files are too long in total. Remove one or attach a shorter file.");
+            return fs;
+          }
+          return [...fs.filter((f) => f.name !== got.name), got];
+        });
+      } catch (e) {
+        setFileError(`${file.name}: ${e instanceof Error ? e.message : String(e)}`);
+      } finally {
+        setReading((n) => n - 1);
+      }
+    }
+    if (fileInput.current) fileInput.current.value = "";
+  };
+
   const submit = (text = prompt) => {
-    if (!text.trim()) return;
+    if (!text.trim() || reading > 0) return;
     const agentMode = target !== "rudra";
-    onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined }, agentMode ? targetAgent?.name ?? target : "Rudra orchestration", agentMode ? "agent" : "orchestrate");
+    onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined, attachments: files.length ? files.map(({ name, text }) => ({ name, text })) : undefined }, agentMode ? targetAgent?.name ?? target : "Rudra orchestration", agentMode ? "agent" : "orchestrate");
     setPrompt("");
+    setFiles([]);
+    setFileError("");
   };
 
   return (
@@ -103,13 +140,42 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
             }}
           />
+          {(files.length > 0 || reading > 0 || fileError) && (
+            <div className="row">
+              {files.map((f) => (
+                <span key={f.name} className="chip" title={f.truncated ? "Long file: only the first part is used" : undefined}>
+                  {f.name}
+                  {f.truncated ? " (partly)" : ""}
+                  <button className="btn ghost sm" aria-label={`Remove ${f.name}`} onClick={() => setFiles((fs) => fs.filter((x) => x.name !== f.name))}>
+                    x
+                  </button>
+                </span>
+              ))}
+              {reading > 0 && (
+                <span className="muted" style={{ fontSize: 12 }}>
+                  <span className="spinner" style={{ width: 10, height: 10 }} /> Reading...
+                </span>
+              )}
+              {fileError && (
+                <span className="upload-error" role="alert">
+                  {fileError}
+                </span>
+              )}
+            </div>
+          )}
           <div className="row" style={{ justifyContent: "space-between" }}>
             <span className="muted" style={{ fontSize: 12 }}>
               Ctrl/⌘ + Enter to send{runs.length > 0 ? " · follow-ups keep the conversation" : ""}
             </span>
-            <button className="btn primary" disabled={!prompt.trim() || running} onClick={() => submit()}>
-              {running ? "Working…" : "Run"}
-            </button>
+            <div className="row">
+              <input ref={fileInput} type="file" multiple hidden accept={ATTACH_EXTENSIONS.map((e) => `.${e}`).join(",")} onChange={(e) => void attach(e.target.files)} />
+              <button className="btn" disabled={running || files.length >= ATTACH_MAX_FILES} onClick={() => fileInput.current?.click()} title="Word, Excel, PowerPoint, CSV, text, Markdown or JSON, up to 4 MB each">
+                Attach files
+              </button>
+              <button className="btn primary" disabled={!prompt.trim() || running || reading > 0} onClick={() => submit()}>
+                {running ? "Working…" : "Run"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -137,7 +203,10 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
       <div className="run-head">
         <span className={`dot ${run.state === "running" ? "running" : "done"}`} />
         <span className="micro">{run.title}</span>
-        <div className="prompt">{run.prompt}</div>
+        <div className="prompt">
+          {run.prompt}
+          {run.attachments?.length ? <div className="muted" style={{ fontSize: 12, fontWeight: 400 }}>Attached: {run.attachments.join(", ")}</div> : null}
+        </div>
         <span className="usage">
           {elapsed}s{run.mode === "live" ? ` · ${run.usage.input.toLocaleString()} in / ${run.usage.output.toLocaleString()} out · ${run.usage.cacheRead.toLocaleString()} cached` : run.mode === "demo" ? " · demo" : ""}
         </span>

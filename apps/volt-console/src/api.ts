@@ -28,6 +28,14 @@ export class UnauthorizedError extends Error {
   }
 }
 
+/** Reads one attached file to text on the server. Throws the server's message when the file cannot be used. */
+export async function extractAttachment(file: File): Promise<{ name: string; text: string; chars: number; truncated: boolean }> {
+  const r = await fetch("/api/attachments/extract", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) }, body: file });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.error ?? (r.status === 413 ? "That file is too large (4 MB limit)." : `Could not read that file (${r.status})`));
+  return body;
+}
+
 export async function fetchCatalog(): Promise<CatalogResponse> {
   const r = await fetch("/api/catalog");
   if (r.status === 401) throw new UnauthorizedError();

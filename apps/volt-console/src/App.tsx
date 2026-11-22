@@ -60,7 +60,7 @@ export function App() {
   const start = useCallback(
     async (req: RunRequest, title: string, kind: RunKind) => {
       const sessionKey = req.workflowId ? `workflow:${crypto.randomUUID()}` : req.agentId && req.agentId !== "rudra" ? `agent:${req.agentId}` : "rudra";
-      const run = newRun(req.prompt, title, kind);
+      const run = { ...newRun(req.prompt, title, kind), attachments: req.attachments?.map((a) => a.name) };
       const controller = new AbortController();
       controllers.current.set(run.id, controller);
       setRuns((rs) => [...rs, run]);

@@ -13,6 +13,7 @@
  * Every agent is a manual streaming tool loop so the UI can show progress
  * updates, tool calls and text as they happen.
  */
+import { attachmentsBlock, registerAttachments } from "./attachments.js";
 import { lateForRewrite, runBudgetMs } from "./budget.js";
 import crypto from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
@@ -32,8 +33,9 @@ export interface RunInput extends RunRequest {
 
 /** The user's request, with the selected template's formatting guide attached. */
 export function withTemplate(req: RunInput, text = req.prompt): string {
-  if (!req.template) return text;
-  return `${text}
+  const files = attachmentsBlock(req.attachments);
+  if (!req.template) return `${text}${files}`;
+  return `${text}${files}
 
 ---
 Formatting template: "${req.template.name}" (template id ${req.template.id}). Any deliverable you write or specify must follow this formatting guide.
@@ -353,10 +355,12 @@ export function getSession(id?: string): Session {
   return s;
 }
 
-export async function runLive(catalog: Catalog, req: RunInput, session: Session, emit: Emit, signal: AbortSignal) {
-  const registry = new SourceRegistry(req.prompt);
+export async function runLive(catalog: Catalog, input: RunInput, session: Session, emit: Emit, signal: AbortSignal) {
+  const registry = new SourceRegistry(input.prompt);
+  // Each attached file is client data in the source register, so the answer can cite it.
+  const req: RunInput = { ...input, attachments: registerAttachments(registry, input.attachments) };
   emit({ type: "research", tier: registry.tier });
-  emit({ type: "source", record: registry.sources[0] });
+  for (const record of registry.sources) emit({ type: "source", record });
   if (req.workflowId) {
     const wf = catalog.workflowById.get(req.workflowId);
     if (!wf) throw new Error(`Unknown workflow '${req.workflowId}'`);
