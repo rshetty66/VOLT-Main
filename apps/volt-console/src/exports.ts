@@ -10,11 +10,10 @@ import { chartFor } from "./charts/RunVisuals";
 import { chartableResults, type ChartableResult } from "./charts/results";
 import { chartSvg } from "./charts/Visual";
 import { renderMermaid } from "./charts/mermaid";
-import { isArchitecture, isChart, isMermaid } from "./charts/mermaidBlock";
-import { archSvg } from "./charts/specArch";
+import { isChart, isMermaid } from "./charts/mermaidBlock";
 import { specSvg } from "./charts/specChart";
 import { LIGHT } from "./charts/palette";
-import { archBlocks, chartBlocks } from "../shared/viz";
+import { chartBlocks } from "../shared/viz";
 import { downloadBlob, downloadText, svgSize, svgToPng } from "./download";
 
 /** The template selected in the top bar; downloads follow its fonts and colours. */
@@ -104,8 +103,7 @@ async function pictures(d: Deliverable) {
   const charts = await Promise.all((d.charts ?? []).map((c) => chartSvg(chartFor(c).render)));
   const diagrams = await Promise.all(mermaidSources(d.markdown).map((code) => renderMermaid(code, "default").catch(() => "")));
   const specs = chartBlocks(d.markdown).map((spec) => (spec ? specSvg(spec, LIGHT) : ""));
-  const archs = archBlocks(d.markdown).map((spec) => (spec ? archSvg(spec, LIGHT) : ""));
-  return { charts, diagrams, specs, archs };
+  return { charts, diagrams, specs };
 }
 
 async function asImage(ref: string, svg: string, caption?: string): Promise<ExportImage | null> {
@@ -123,10 +121,9 @@ const CAPTION: Record<ChartableResult["kind"], (r: ChartableResult) => string> =
 /** A standalone HTML page with the charts and diagrams inline as SVG. */
 export async function htmlDocument(d: Deliverable): Promise<string> {
   const { renderToStaticMarkup } = await import("react-dom/server");
-  const { charts, diagrams, specs, archs } = await pictures(d);
+  const { charts, diagrams, specs } = await pictures(d);
   let n = 0;
   let c = 0;
-  let a = 0;
   const body = renderToStaticMarkup(
     createElement(ReactMarkdown, {
       remarkPlugins: [remarkGfm],
@@ -135,10 +132,10 @@ export async function htmlDocument(d: Deliverable): Promise<string> {
           const first = node?.children[0];
           const cls = first && first.type === "element" ? first.properties?.className : undefined;
           const name = Array.isArray(cls) ? cls.join(" ") : String(cls ?? "");
-          return isMermaid(name) || isChart(name) || isArchitecture(name) ? (children as ReactElement) : createElement("pre", null, children);
+          return isMermaid(name) || isChart(name) ? (children as ReactElement) : createElement("pre", null, children);
         },
         code: ({ className, children }) =>
-          isArchitecture(className) ? createElement("figure", { dangerouslySetInnerHTML: { __html: archs[a++] || "" } }) : isChart(className) ? createElement("figure", { dangerouslySetInnerHTML: { __html: specs[c++] || "" } }) : isMermaid(className) ? createElement("figure", { dangerouslySetInnerHTML: { __html: diagrams[n++] || "" } }) : createElement("code", { className }, children),
+          isChart(className) ? createElement("figure", { dangerouslySetInnerHTML: { __html: specs[c++] || "" } }) : isMermaid(className) ? createElement("figure", { dangerouslySetInnerHTML: { __html: diagrams[n++] || "" } }) : createElement("code", { className }, children),
       },
       children: d.markdown,
     }),
@@ -195,12 +192,11 @@ export async function downloadDeliverable(format: DownloadFormat, d: Deliverable
 
   const images: ExportImage[] = [];
   if (format !== "xlsx") {
-    const { charts, diagrams, specs, archs } = await pictures(d);
+    const { charts, diagrams, specs } = await pictures(d);
     const made = await Promise.all([
       ...charts.map((svg, i) => asImage(`chart-${i}`, svg, d.charts?.[i] ? CAPTION[d.charts[i].kind](d.charts[i]) : undefined)),
       ...diagrams.map((svg, i) => asImage(`diagram-${i}`, svg)),
       ...specs.map((svg, i) => asImage(`viz-${i}`, svg)),
-      ...archs.map((svg, i) => asImage(`arch-${i}`, svg)),
     ]);
     images.push(...made.filter((x): x is ExportImage => !!x));
   }

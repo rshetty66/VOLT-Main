@@ -14,7 +14,7 @@ const schema = z.object({
   images: z
     .array(
       z.object({
-        ref: z.string().regex(/^(chart|diagram|viz|arch)-\d{1,3}$/),
+        ref: z.string().regex(/^(chart|diagram|viz)-\d{1,3}$/),
         png: z.string().max(10 * MB).regex(/^[A-Za-z0-9+/=]+$/),
         width: z.number().positive().max(10000),
         height: z.number().positive().max(10000),

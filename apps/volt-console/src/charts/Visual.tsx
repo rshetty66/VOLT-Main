@@ -1,8 +1,7 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { DARK, LIGHT, type Palette } from "./palette";
 import { renderMermaid } from "./mermaid";
-import { parseArchSpec, parseChartSpec } from "../../shared/viz";
-import { archSvg } from "./specArch";
+import { parseChartSpec } from "../../shared/viz";
 import { specSvg } from "./specChart";
 import { datedName, downloadBlob, downloadText, svgToPng } from "../download";
 
@@ -101,34 +100,6 @@ export function SpecChart({ code }: { code: string }) {
     <figure className="visual spec-chart">
       <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: specSvg(spec, DARK) }} />
       <DownloadButtons name={spec.title || "chart"} svg={async () => specSvg(spec, LIGHT)} />
-    </figure>
-  );
-}
-
-/** An ```architecture block from agent output: an architecture option drawn as a 3D layered stack. */
-export function SpecArchitecture({ code }: { code: string }) {
-  const [spec, setSpec] = useState(() => parseArchSpec(code));
-  const [waited, setWaited] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setSpec(parseArchSpec(code));
-      setWaited(true);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [code]);
-  if (!spec)
-    return waited ? (
-      <figure className="visual">
-        <pre><code>{code}</code></pre>
-        <figcaption className="muted" style={{ fontSize: 11 }}>Architecture could not be drawn: the data is not valid.</figcaption>
-      </figure>
-    ) : (
-      <span className="muted"><span className="spinner" /> drawing architecture</span>
-    );
-  return (
-    <figure className="visual spec-arch">
-      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: archSvg(spec, DARK) }} />
-      <DownloadButtons name={spec.title || "architecture"} svg={async () => archSvg(spec, LIGHT)} />
     </figure>
   );
 }
