@@ -144,9 +144,40 @@ export function tocEntries(blocks: Block[], trailing: string[] = []): TocEntry[]
       n++;
       out.push({ level: 1, text: /^\d+[.)]\s/.test(h.text) ? h.text : `${n}. ${h.text}`, id: `toc_${++id}`, heading: h });
     } else if (h.depth === top + 1 && n > 0) {
-      out.push({ level: 2, text: h.text, id: `toc_${++id}`, heading: h });
+      out.push({ level: 2, text: shortTitle(h.text), id: `toc_${++id}`, heading: h });
     }
   }
   trailing.forEach((t) => out.push({ level: 1, text: t, id: `toc_${++id}` }));
   return out;
+}
+
+/** A sub-section's name for the Contents: an action title ("Root causes: process design explains most of the gap") is cut at its colon. */
+export function shortTitle(text: string): string {
+  const i = text.indexOf(": ");
+  const head = i >= 3 && i <= 60 ? text.slice(0, i) : text;
+  return head.length > 90 ? `${head.slice(0, 87).trimEnd()}...` : head;
+}
+
+/**
+ * How a table's width is shared out between its columns, as fractions that sum to 1. Every column is first given enough
+ * room for its longest word (so "Priority" or "Medium" is not split across lines), and the rest goes to the columns of
+ * long text, in proportion to how much text they hold. `totalTwips` is the table's width (6.5 inches by default).
+ */
+export function columnShares(header: string[], rows: string[][], totalTwips = 9360): number[] {
+  const n = header.length;
+  if (n === 0) return [];
+  const CHAR = 105; // twips per character at 9 pt
+  const PAD = 220; // cell margins
+  const longestWord = (i: number) => Math.max(...[header[i], ...rows.map((r) => r[i] ?? "")].flatMap((t) => t.split(/\s+/)).map((w) => w.length), 1);
+  let floor = header.map((_, i) => Math.min(0.25, (Math.min(longestWord(i), 18) * CHAR + PAD) / totalTwips));
+  const floors = floor.reduce((a, b) => a + b, 0);
+  if (floors > 0.95) floor = floor.map((f) => (f / floors) * 0.95);
+  const weight = header.map((h, i) => {
+    const lens = [h.length, ...rows.map((r) => (r[i] ?? "").length)];
+    const avg = lens.reduce((a, b) => a + b, 0) / lens.length;
+    return Math.min(45, Math.max(5, 0.6 * avg + 0.4 * Math.min(60, Math.max(...lens))));
+  });
+  const totalWeight = weight.reduce((a, b) => a + b, 0);
+  const spare = 1 - floor.reduce((a, b) => a + b, 0);
+  return floor.map((f, i) => f + (spare * weight[i]) / totalWeight);
 }

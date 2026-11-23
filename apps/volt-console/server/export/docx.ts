@@ -1,8 +1,8 @@
 import {
-  AlignmentType, BorderStyle, Document, Footer, HeadingLevel, ImageRun, PageBreak, PageNumber, Packer, Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, WidthType, Bookmark, InternalHyperlink, LeaderType, PageReference, TabStopType
+  AlignmentType, BorderStyle, Document, Footer, HeadingLevel, ImageRun, PageBreak, PageNumber, Packer, Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, WidthType, Bookmark, InternalHyperlink, LeaderType, PageReference, TabStopType, TableLayoutType
 } from "docx";
 import type { ExportImage, ExportRequest } from "../../shared/export.js";
-import { markdownBlocks, tocEntries, type Run } from "./blocks.js";
+import { columnShares, markdownBlocks, tocEntries, type Block, type Run } from "./blocks.js";
 import { TONE_STYLE, toneFor } from "../../shared/brand.js";
 import { BRAND } from "./brand.js";
 import type { ExportStyle } from "./style.js";
@@ -25,23 +25,28 @@ function image(img: ExportImage, maxWidthPx: number) {
   });
 }
 
-function table(header: string[], rows: string[][], s: ExportStyle) {
+function table(header: string[], rows: string[][], s: ExportStyle, widthTwips: number) {
+  const shares = columnShares(header, rows, widthTwips);
+  const widths = shares.map((x) => Math.round(x * widthTwips));
   const border = { style: BorderStyle.SINGLE, size: 4, color: "C9D1CD" };
   const borders = { top: border, bottom: border, left: border, right: border };
-  const cell = (t: string, head: boolean, column = "") => {
+  const cell = (t: string, head: boolean, column = "", index = 0) => {
     // Priority, risk and status words are colour coded with the brand palette (orange high, gold medium, cyan low).
     const tone = !head && s.brand ? toneFor(column, t) : null;
     const fill = head ? s.headerFill : tone ? TONE_STYLE[tone].fill : undefined;
     return new TableCell({
       borders,
+      width: { size: widths[index], type: WidthType.DXA },
       shading: fill ? { type: ShadingType.CLEAR, color: "auto", fill } : undefined,
       margins: { top: 60, bottom: 60, left: 100, right: 100 },
       children: [new Paragraph({ children: [new TextRun({ text: t, bold: head || !!tone, color: head ? s.headerInk : tone ? TONE_STYLE[tone].ink : undefined, size: (s.bodySizePt - 1) * 2 })] })],
     });
   };
   return new Table({
-    width: { size: 100, type: WidthType.PERCENTAGE },
-    rows: [new TableRow({ tableHeader: true, children: header.map((h) => cell(h, true)) }), ...rows.map((r) => new TableRow({ children: header.map((h, i) => cell(r[i] ?? "", false, h)) }))],
+    width: { size: widthTwips, type: WidthType.DXA },
+    columnWidths: widths,
+    layout: TableLayoutType.FIXED,
+    rows: [new TableRow({ tableHeader: true, children: header.map((h, i) => cell(h, true, "", i)) }), ...rows.map((r) => new TableRow({ children: header.map((h, i) => cell(r[i] ?? "", false, h, i)) }))],
   });
 }
 
@@ -76,20 +81,30 @@ function callout(children: (Paragraph | Table)[], accent: string): Table {
 
 const APPENDIX = "Appendix: Supporting analysis";
 
+/** The deliverable's own "#" title is the cover's title, so it is not printed a second time at the top of the body. */
+function withoutRepeatedTitle(blocks: Block[], title: string): Block[] {
+  const norm = (t: string) => t.replace(/\s+/g, " ").trim().toLowerCase();
+  const first = blocks[0];
+  const hasSections = blocks.some((b) => b.type === "heading" && b.depth === 2);
+  if (first && first.type === "heading" && first.depth === 1 && hasSections && norm(first.text).startsWith(norm(title))) return blocks.slice(1);
+  return blocks;
+}
+
 export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uint8Array> {
   const images = new Map((req.images ?? []).map((i) => [i.ref, i]));
   const maxImg = (s.page.widthIn - s.page.margins.left - s.page.margins.right) * PX_PER_IN;
   const caption = (t: string) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: t, italics: true, size: 18, color: "5B6862" })] });
   const body: (Paragraph | Table)[] = [...coverTitle(req)];
 
-  const blocks = markdownBlocks(req.markdown);
+  const contentTwips = Math.round((s.page.widthIn - s.page.margins.left - s.page.margins.right) * 1440);
+  const blocks = withoutRepeatedTitle(markdownBlocks(req.markdown), req.title);
   const charts = (req.images ?? []).filter((i) => i.ref.startsWith("chart-"));
   const toc = tocEntries(blocks, charts.length ? [APPENDIX] : []);
   const tocId = new Map(toc.filter((t) => t.heading).map((t) => [t.heading, t.id]));
   if (toc.length) {
     // A real table of contents: sections and sub-sections, each a link to its heading, with dotted leaders and the page
     // number Word fills in (the file asks Word to update its fields when it opens).
-    const width = Math.round((s.page.widthIn - s.page.margins.left - s.page.margins.right) * 1440);
+    const width = contentTwips;
     body.push(new Paragraph({ spacing: { before: 240, after: 160 }, children: [new TextRun({ text: "Contents", bold: true, size: 32, font: s.headingFont, color: s.headingColor })] }));
     for (const t of toc) {
       body.push(
@@ -105,7 +120,9 @@ export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uin
         }),
       );
     }
-    body.push(new Paragraph({ children: [new PageBreak()] }));
+    // The body starts on a new page. This is a break set on an empty paragraph, not a page-break character: when the Contents
+    // fills its page, a break character would sit on a page of its own and leave it blank.
+    body.push(new Paragraph({ pageBreakBefore: true, spacing: { before: 0, after: 0, line: 20 }, children: [new TextRun({ text: "", size: 2 })] }));
   }
   // The executive summary is collected here and written as one shaded callout.
   let summary: (Paragraph | Table)[] | null = null;
@@ -139,7 +156,7 @@ export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uin
         );
         break;
       case "table":
-        sink.push(table(b.header, b.rows, s), new Paragraph({ children: [] }));
+        sink.push(table(b.header, b.rows, s, contentTwips), new Paragraph({ children: [] }));
         break;
       case "code":
         sink.push(...b.text.split("\n").map((line) => new Paragraph({ shading: { type: ShadingType.CLEAR, color: "auto", fill: "F2F4F3" }, children: [new TextRun({ text: line || " ", font: "Consolas", size: 18 })] })));
