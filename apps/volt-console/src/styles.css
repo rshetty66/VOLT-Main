@@ -266,3 +266,7 @@ textarea.csv { min-height: 150px; font-family: ui-monospace, monospace; font-siz
 .section { border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
 .section summary { cursor: pointer; padding: 8px 12px; font-weight: 500; }
 .section-body { padding: 4px 14px 12px; border-top: 1px solid var(--line); }
+
+.nav .new-chat { justify-content: center; margin-bottom: 8px; font-weight: 600; }
+.nav .new-chat:hover { background: #ffffffd1; }
+@media (width<=760px) { .nav .new-chat { white-space: nowrap; margin: 0 4px 0 0; } }

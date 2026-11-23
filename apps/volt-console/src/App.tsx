@@ -87,6 +87,17 @@ export function App() {
     [forceDemo, activeTemplate],
   );
 
+  /** A new chat: the screen is cleared and the next question starts a fresh conversation. Earlier chats stay in History. */
+  const newChat = () => {
+    const working = runs.some((r) => r.state === "running");
+    if (working && !window.confirm("A run is still working. Stop it and start a new chat?")) return;
+    controllers.current.forEach((c) => c.abort());
+    sessions.current.clear();
+    setRuns([]);
+    setOpenAgent(null);
+    setView("console");
+  };
+
   const stop = (runId: string) => {
     controllers.current.get(runId)?.abort();
     setRuns((rs) => rs.map((r) => (r.id === runId ? { ...r, state: "stopped", finishedAt: Date.now() } : r)));
@@ -140,6 +151,9 @@ export function App() {
         </span>
       </header>
       <nav className="nav">
+        <button className="btn primary new-chat" onClick={newChat}>
+          + New chat
+        </button>
         {nav.map(([id, label, count], i) => (
           <div key={id} style={{ display: "contents" }}>
             {i === 1 && <div className="sep" />}
