@@ -16,6 +16,22 @@ const good = {
 };
 
 describe("architecture spec", () => {
+  it("accepts system objects with a status, defaults a plain string to kept, and rejects an unknown status as kept", () => {
+    const s = parseArchSpec(JSON.stringify({ layers: [{ name: "A", items: [{ name: "SAP ECC", status: "retire" }, "Oracle EBS", { name: "X", status: "bogus" }] }, { name: "B", items: [{ name: "OneStream", status: "new" }] }] }))!;
+    expect(s.layers[0].items.map((i) => i.status)).toEqual(["retire", "keep", "keep"]);
+    expect(s.layers[1].items[0]).toEqual({ name: "OneStream", status: "new" });
+  });
+
+  it("keeps flows between known systems (any case) and drops the ones that name a system that is not there, or loop back", () => {
+    const spec = {
+      layers: [{ name: "A", items: ["SAP ECC", "Oracle EBS"] }, { name: "B", items: ["OneStream"] }],
+      flows: [{ from: "sap ecc", to: "OneStream", label: "journals" }, { from: "Oracle EBS", to: "Nope" }, { from: "OneStream", to: "onestream" }, { from: "Oracle EBS", to: "OneStream" }],
+    };
+    const s = parseArchSpec(JSON.stringify(spec))!;
+    expect(s.flows.map((f) => `${f.from}>${f.to}`)).toEqual(["sap ecc>OneStream", "Oracle EBS>OneStream"]);
+    expect(parseArchSpec(JSON.stringify({ ...spec, flows: undefined }))!.flows).toEqual([]);
+  });
+
   it("accepts a valid option and keeps layers in order", () => {
     const s = parseArchSpec(JSON.stringify(good))!;
     expect(s.layers.map((l) => l.name)).toEqual(["Sources", "Integration", "Consolidation", "Reporting"]);
@@ -54,8 +70,32 @@ describe("architecture drawing", () => {
       expect(svg).toContain("Recommended");
       expect(svg).not.toContain("NaN");
       expect(svg).not.toContain("undefined");
-      // three polygons (top and two sides) per layer, plus one tile per item
+      // three polygons (top and two sides) per layer, plus one tile per system (no flows or statuses here, so no legend)
       expect((svg.match(/<polygon/g) ?? []).length).toBe(spec.layers.length * 3 + spec.layers.reduce((n, l) => n + l.items.length, 0));
+    }
+  });
+
+  it("numbers systems across the whole stack, colours them by status, and draws each flow with its arrowhead and a legend", () => {
+    const spec = parseArchSpec(
+      JSON.stringify({
+        title: "Option B",
+        layers: [
+          { name: "Sources", items: [{ name: "SAP ECC", status: "retire" }, "Oracle EBS"] },
+          { name: "Consolidation", items: [{ name: "OneStream", status: "new" }] },
+        ],
+        flows: [{ from: "SAP ECC", to: "OneStream", label: "journals" }, { from: "Oracle EBS", to: "OneStream" }],
+      }),
+    )!;
+    for (const p of [DARK, LIGHT]) {
+      const svg = archSvg(spec, p);
+      expect(svg).toContain("3 OneStream (new)");
+      expect(svg).toContain("1 SAP ECC (retire)");
+      expect(svg).toContain("1 SAP ECC -&gt; 3 OneStream: journals");
+      expect(svg).toContain("#ff5722"); // a retired tile
+      expect(svg).toContain("#00e5ff"); // a new tile
+      expect(svg).toContain("Data flow");
+      expect((svg.match(/<path d="M [^"]+" fill="none"/g) ?? []).length).toBe(4); // two flows, each a halo and a line
+      expect(svg).not.toContain("NaN");
     }
   });
 
