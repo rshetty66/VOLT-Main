@@ -3,6 +3,7 @@ import type { CatalogResponse, RunKind, RunRequest } from "../shared/events";
 import { fetchCatalog, listTemplates, streamRun, UnauthorizedError } from "./api";
 import { SignIn } from "./components/SignIn";
 import { History } from "./components/History";
+import { Usage } from "./components/Usage";
 import { loadHistory, mergeHistory, saveHistory } from "./history";
 import type { TemplateSummary } from "../shared/templates";
 import { applyEvent, newRun, type Run } from "./runState";
@@ -17,7 +18,7 @@ import { Templates } from "./components/Templates";
 import { Workbench } from "./components/workbench/Workbench";
 import { TemplateContext } from "./exports";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "health" | "history";
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "health" | "history" | "usage";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -118,6 +119,7 @@ export function App() {
     ["analytics", "Analytics", catalog.benchmarks.length],
     ["finance", "Finance Workbench", ""],
     ["history", "History", history.length || ""],
+    ["usage", "Token usage", ""],
     ["health", "Capability Health", catalog.health.missingSkills.length],
   ];
 
@@ -189,6 +191,15 @@ export function App() {
             onClear={() => {
               setHistory([]);
               setRuns((rs) => rs.filter((r) => r.state === "running"));
+            }}
+          />
+        )}
+        {view === "usage" && (
+          <Usage
+            history={history}
+            onOpenChat={(chatRuns) => {
+              setRuns((rs) => [...rs, ...chatRuns.filter((c) => !rs.some((r) => r.id === c.id))]);
+              setView("console");
             }}
           />
         )}

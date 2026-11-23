@@ -268,3 +268,29 @@ textarea.csv { min-height: 150px; font-family: ui-monospace, monospace; font-siz
 .nav .new-chat { justify-content: center; margin-bottom: 8px; font-weight: 600; }
 .nav .new-chat:hover { background: #ffffffd1; }
 @media (width<=760px) { .nav .new-chat { white-space: nowrap; margin: 0 4px 0 0; } }
+
+.usage-table { padding: 0; overflow: hidden; }
+.usage-head, .usage-row { display: grid; grid-template-columns: minmax(180px, 3fr) 48px 92px 92px 92px minmax(120px, 2fr); gap: 10px; align-items: center; padding: 10px 14px; }
+.usage-head { border-bottom: 1px solid var(--line); }
+.usage-chat { border-bottom: 1px solid var(--line); }
+.usage-chat:last-child { border-bottom: 0; }
+.usage-row { cursor: pointer; list-style: none; }
+.usage-row::-webkit-details-marker { display: none; }
+.usage-row:hover { background: rgba(255, 255, 255, 0.04); }
+.usage-title { display: flex; flex-direction: column; gap: 2px; min-width: 0; font-weight: 500; }
+.usage-title small { font-size: 11px; font-weight: 400; }
+.usage-bar { position: relative; height: 22px; background: rgba(255, 255, 255, 0.06); border-radius: 5px; overflow: hidden; }
+.usage-bar i { position: absolute; inset: 0 auto 0 0; background: var(--accent); opacity: 0.85; border-radius: 5px; }
+.usage-bar b { position: absolute; right: 8px; top: 0; font-size: 11px; line-height: 22px; color: var(--heading); text-shadow: 0 0 3px #000, 0 0 3px #000; }
+.usage-runs { padding: 4px 14px 12px; display: grid; gap: 6px; background: rgba(255, 255, 255, 0.02); }
+.usage-run { display: grid; grid-template-columns: minmax(180px, 3fr) 48px 92px 92px 92px minmax(120px, 2fr); gap: 10px; align-items: center; font-size: 12px; color: var(--body); padding: 0; }
+.usage-run .num { color: var(--heading); }
+.usage-runs .btn { justify-self: start; margin-top: 4px; }
+@media (width<=900px) {
+  .usage-head { display: none; }
+  .usage-row { grid-template-columns: 1fr 1fr; }
+  .usage-title, .usage-bar { grid-column: 1 / -1; }
+  .usage-run { grid-template-columns: 1fr 1fr 1fr 1fr; }
+  .usage-run span:first-child { grid-column: 1 / -1; }
+  .usage-run span:last-child { display: none; }
+}
