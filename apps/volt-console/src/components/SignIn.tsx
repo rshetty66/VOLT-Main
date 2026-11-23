@@ -20,7 +20,7 @@ export function SignIn({ onSignedIn }: { onSignedIn: () => void }) {
   return (
     <div className="signin">
       <form className="card signin-card" onSubmit={submit}>
-        <img className="signin-logo" src="/brand/volt-logo.png" alt="VOLT" />
+        <img className="signin-logo" src="/brand/volt-logo-black.png" alt="VOLT" />
         <h1 className="page-title">Sign in</h1>
         <p className="page-sub">Enter the access token for this VOLT Console.</p>
         <input className="input" type="password" name="token" autoComplete="current-password" autoFocus placeholder="Access token" value={token} onChange={(e) => setToken(e.target.value)} aria-label="Access token" />
