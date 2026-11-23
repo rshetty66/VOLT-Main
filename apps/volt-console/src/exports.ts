@@ -7,7 +7,7 @@ import { strToU8, zipSync } from "fflate";
 import { evidenceGates, registryJsonl, sectionOf, sourceRegisterMarkdown, type SourceRecord, type Tier } from "../shared/research";
 import type { Run } from "./runState";
 import { chartFor } from "./charts/RunVisuals";
-import { chartableResults, type ChartableResult } from "./charts/results";
+import { chartableResults, exportCharts, type ChartableResult } from "./charts/results";
 import { chartSvg } from "./charts/Visual";
 import { renderMermaid } from "./charts/mermaid";
 import { isArchitecture, isChart, isMermaid } from "./charts/mermaidBlock";
@@ -49,7 +49,8 @@ export function runDeliverable(run: Run, includeLanes: boolean, templateId?: str
     subtitle: new Date(run.startedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
     // The source register is appended from the run's record, so every key in the text resolves in every format.
     markdown: run.text + (run.sources.length > 1 ? sourceRegisterMarkdown(run.sources) : "") + appendix,
-    charts,
+    // The appendix gets each distinct chart once; the Excel sheets keep the data of every call.
+    charts: exportCharts(charts),
     tables: chartTables(charts),
     templateId,
     research: {
@@ -117,7 +118,11 @@ async function asImage(ref: string, svg: string, caption?: string): Promise<Expo
 const CAPTION: Record<ChartableResult["kind"], (r: ChartableResult) => string> = {
   benchmark: (r) => (r.kind === "benchmark" ? r.data.benchmark.metric : ""),
   maturity: () => "Finance maturity: current and target",
-  valueCase: () => "Value case: net benefit and cumulative cash",
+  valueCase: (r) => {
+    if (r.kind !== "valueCase") return "";
+    const m = Math.abs(r.data.npv) >= 1e6 ? `${+(r.data.npv / 1e6).toFixed(1)}M` : `${Math.round(r.data.npv).toLocaleString("en-US")}`;
+    return `Value case (NPV ${m}${r.data.paybackYears != null ? `, payback ${+r.data.paybackYears.toFixed(1)} years` : ""}): net benefit and cumulative cash`;
+  },
 };
 
 /** A standalone HTML page with the charts and diagrams inline as SVG. */
@@ -144,7 +149,7 @@ export async function htmlDocument(d: Deliverable): Promise<string> {
     }),
   );
   const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  const results = charts.length ? `<h2>Results</h2>${charts.map((svg) => `<figure>${svg}</figure>`).join("")}` : "";
+  const results = charts.length ? `<h2>Appendix: Supporting analysis</h2>${charts.map((svg) => `<figure>${svg}</figure>`).join("")}` : "";
   return `<!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(d.title)}</title>
@@ -156,8 +161,8 @@ code{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f2f4f3;paddin
 figure{margin:16px 0;overflow-x:auto}figure svg{max-width:100%;height:auto}blockquote{margin:12px 0;padding-left:12px;border-left:3px solid #00b8d4;color:#3b4258}
 </style></head><body>
 <h1>${esc(d.title)}</h1>${d.subtitle ? `<p class="sub">${esc(d.subtitle)}</p>` : ""}
-${results}
 ${body}
+${results}
 </body></html>
 `;
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { benchmarkLayout, checksLayout, linearScale, maturityLayout, niceTicks, valueCaseLayout } from "../src/charts/layout";
-import { chartableResults } from "../src/charts/results";
+import { chartableResults, exportCharts, type ChartableResult } from "../src/charts/results";
 import { isMermaid } from "../src/charts/mermaidBlock";
 import { compareToBenchmark, buildValueCase, scoreMaturity, type BenchmarkComparison } from "../server/analytics";
 import { newRun, applyEvent } from "../src/runState";
@@ -127,4 +127,22 @@ describe("download sizing", () => {
     expect(svgSize('<svg viewBox="-8 -8 500 300">')).toEqual({ width: 500, height: 300 });
     expect(datedName("Close / SAP: plan", "docx")).toMatch(/^volt-close-sap-plan-\d{4}-\d{2}-\d{2}\.docx$/);
   });
+});
+
+describe("charts for a download", () => {
+  const bench = (id: string, key: string): ChartableResult => ({ id, kind: "benchmark", data: { benchmark: { key, metric: key, top25: 4, median: 6, bottom25: 10, unit: "days", lowerIsBetter: true } } });
+  const maturity = (id: string): ChartableResult => ({ id, kind: "maturity", data: { overall: 2, overallLevel: "x", dimensions: [], priorityGaps: [] } });
+  const vc = (id: string, npv: number, payback: number | null): ChartableResult => ({ id, kind: "valueCase", data: { oneTimeInvestment: 1, steadyStateAnnualSaving: 1, npv, irrPct: null, paybackYears: payback, yearly: [] } });
+
+  it("keeps one chart per benchmark metric and one maturity chart, in order", () => {
+    const out = exportCharts([bench("1", "close"), bench("2", "cost"), bench("3", "close"), maturity("4"), bench("5", "cost"), maturity("6")]);
+    expect(out.map((r) => r.id)).toEqual(["1", "2", "4"]);
+  });
+
+  it("keeps up to three value cases that differ, and drops an identical repeat", () => {
+    const out = exportCharts([vc("a", 15_400_000, 1.78), vc("b", 15_400_000, 1.78), vc("c", 8_000_000, 2.4), vc("d", 1_700_000, 3.9), vc("e", -200_000, null)]);
+    expect(out.map((r) => r.id)).toEqual(["a", "c", "d"]);
+  });
+
+  it("returns nothing for no results", () => expect(exportCharts([])).toEqual([]));
 });

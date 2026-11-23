@@ -40,3 +40,33 @@ export function chartableResults(run: Run): ChartableResult[] {
   }
   return out;
 }
+
+const MAX_VALUE_CASES = 3;
+
+/**
+ * The charts worth putting in a download's appendix. An agent may call the same tool several times (the same benchmark
+ * from three workstreams, a value case for each scenario), and the console shows every call, but a document should not
+ * repeat itself: one chart per benchmark metric, one maturity chart, and up to three value cases that differ.
+ */
+export function exportCharts(results: ChartableResult[]): ChartableResult[] {
+  const seenMetric = new Set<string>();
+  const seenCase = new Set<string>();
+  let maturity = false;
+  return results.filter((r) => {
+    if (r.kind === "benchmark") {
+      const key = r.data.benchmark.key || r.data.benchmark.metric;
+      if (seenMetric.has(key)) return false;
+      seenMetric.add(key);
+      return true;
+    }
+    if (r.kind === "maturity") {
+      if (maturity) return false;
+      maturity = true;
+      return true;
+    }
+    const key = `${Math.round(r.data.npv)}|${r.data.paybackYears}`;
+    if (seenCase.has(key) || seenCase.size >= MAX_VALUE_CASES) return false;
+    seenCase.add(key);
+    return true;
+  });
+}

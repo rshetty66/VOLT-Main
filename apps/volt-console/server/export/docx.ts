@@ -1,10 +1,10 @@
 import {
-  AlignmentType, BorderStyle, Document, Footer, HeadingLevel, ImageRun, PageBreak, PageNumber, Packer, Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, WidthType,
+  AlignmentType, BorderStyle, Document, Footer, HeadingLevel, ImageRun, PageBreak, PageNumber, Packer, Paragraph, ShadingType, Table, TableCell, TableRow, TextRun, WidthType, Bookmark, InternalHyperlink, LeaderType, PageReference, TabStopType
 } from "docx";
 import type { ExportImage, ExportRequest } from "../../shared/export.js";
-import { contentsOf, markdownBlocks, type Run } from "./blocks.js";
+import { markdownBlocks, tocEntries, type Run } from "./blocks.js";
 import { TONE_STYLE, toneFor } from "../../shared/brand.js";
-import { BRAND, brandAccent, brandLogo } from "./brand.js";
+import { BRAND } from "./brand.js";
 import type { ExportStyle } from "./style.js";
 
 const HEADING = [HeadingLevel.HEADING_1, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3, HeadingLevel.HEADING_4, HeadingLevel.HEADING_5, HeadingLevel.HEADING_6];
@@ -45,28 +45,11 @@ function table(header: string[], rows: string[][], s: ExportStyle) {
   });
 }
 
-/** The cover's title and date; with VOLT branding, the small ink accent sits to their right. */
-function coverTitle(req: ExportRequest, accent: { png: Buffer; width: number; height: number } | null): (Paragraph | Table)[] {
+/** The cover: the title and the date. No logo or picture, so the first thing on the page is the document. */
+function coverTitle(req: ExportRequest): Paragraph[] {
   const title = new Paragraph({ heading: HeadingLevel.TITLE, children: [new TextRun(req.title)] });
   const date = req.subtitle ? [new Paragraph({ spacing: { after: 240 }, children: [new TextRun({ text: req.subtitle, color: "5B6862" })] })] : [];
-  if (!accent) return [title, ...date];
-  const none = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
-  const borders = { top: none, bottom: none, left: none, right: none };
-  const w = 130; // pixels: small
-  return [
-    new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      borders: { ...borders, insideHorizontal: none, insideVertical: none },
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({ borders, width: { size: 78, type: WidthType.PERCENTAGE }, verticalAlign: "center", children: [title, ...date] }),
-            new TableCell({ borders, width: { size: 22, type: WidthType.PERCENTAGE }, verticalAlign: "center", children: [image({ ref: "accent", png: accent.png.toString("base64"), width: accent.width, height: accent.height }, w)] }),
-          ],
-        }),
-      ],
-    }),
-  ];
+  return [title, ...date];
 }
 
 /** A one-cell table: light tint, thick accent bar on the left, no other borders. */
@@ -91,29 +74,39 @@ function callout(children: (Paragraph | Table)[], accent: string): Table {
   });
 }
 
+const APPENDIX = "Appendix: Supporting analysis";
+
 export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uint8Array> {
   const images = new Map((req.images ?? []).map((i) => [i.ref, i]));
   const maxImg = (s.page.widthIn - s.page.margins.left - s.page.margins.right) * PX_PER_IN;
   const caption = (t: string) => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 200 }, children: [new TextRun({ text: t, italics: true, size: 18, color: "5B6862" })] });
-  const logo = s.brand ? brandLogo() : null;
-  const body: (Paragraph | Table)[] = [
-    ...(logo ? [image({ ref: "brand", png: logo.png.toString("base64"), width: logo.width, height: logo.height }, Math.min(maxImg, 520))] : []),
-    ...coverTitle(req, s.brand ? brandAccent() : null),
-  ];
+  const body: (Paragraph | Table)[] = [...coverTitle(req)];
 
   const blocks = markdownBlocks(req.markdown);
   const charts = (req.images ?? []).filter((i) => i.ref.startsWith("chart-"));
-  const contents = contentsOf(blocks, charts.length ? ["Results"] : []);
-  if (contents.length) {
+  const toc = tocEntries(blocks, charts.length ? [APPENDIX] : []);
+  const tocId = new Map(toc.filter((t) => t.heading).map((t) => [t.heading, t.id]));
+  if (toc.length) {
+    // A real table of contents: sections and sub-sections, each a link to its heading, with dotted leaders and the page
+    // number Word fills in (the file asks Word to update its fields when it opens).
+    const width = Math.round((s.page.widthIn - s.page.margins.left - s.page.margins.right) * 1440);
     body.push(new Paragraph({ spacing: { before: 240, after: 160 }, children: [new TextRun({ text: "Contents", bold: true, size: 32, font: s.headingFont, color: s.headingColor })] }));
-    for (const line of contents) body.push(new Paragraph({ spacing: { after: 100 }, children: [new TextRun(line)] }));
+    for (const t of toc) {
+      body.push(
+        new Paragraph({
+          spacing: { after: t.level === 1 ? 90 : 40 },
+          indent: { left: t.level === 1 ? 0 : 360 },
+          tabStops: [{ type: TabStopType.RIGHT, position: width, leader: LeaderType.DOT }],
+          children: [
+            new InternalHyperlink({ anchor: t.id, children: [new TextRun({ text: t.text, bold: t.level === 1, size: t.level === 1 ? 22 : 20 })] }),
+            new TextRun({ text: "\t", size: 20 }),
+            new PageReference(t.id),
+          ],
+        }),
+      );
+    }
     body.push(new Paragraph({ children: [new PageBreak()] }));
   }
-  if (charts.length) {
-    body.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun("Results")] }));
-    for (const c of charts) body.push(image(c, maxImg), ...(c.caption ? [caption(c.caption)] : []));
-  }
-
   // The executive summary is collected here and written as one shaded callout.
   let summary: (Paragraph | Table)[] | null = null;
   let sink: (Paragraph | Table)[] = body;
@@ -126,7 +119,7 @@ export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uin
     switch (b.type) {
       case "heading":
         flushSummary();
-        body.push(new Paragraph({ heading: HEADING[Math.min(5, b.depth - 1)], children: [new TextRun(b.text)] }));
+        body.push(new Paragraph({ heading: HEADING[Math.min(5, b.depth - 1)], children: tocId.has(b) ? [new Bookmark({ id: tocId.get(b)!, children: [new TextRun(b.text)] })] : [new TextRun(b.text)] }));
         // The executive summary sits in a tinted callout with an accent bar, so it reads first.
         if (/executive summary/i.test(b.text) && b.depth <= 3) {
           summary = [];
@@ -166,9 +159,16 @@ export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uin
   }
   flushSummary();
 
+  // The charts built from the agents' analysis tools go last, as an appendix: the executive summary comes first.
+  if (charts.length) {
+    body.push(new Paragraph({ children: [new PageBreak()] }), new Paragraph({ heading: HeadingLevel.HEADING_1, children: toc.length ? [new Bookmark({ id: toc[toc.length - 1].id, children: [new TextRun(APPENDIX)] })] : [new TextRun(APPENDIX)] }));
+    for (const c of charts) body.push(image(c, maxImg), ...(c.caption ? [caption(c.caption)] : []));
+  }
+
   const tw = (inches: number) => Math.round(inches * 1440);
   const heading = (size: number) => ({ run: { font: s.headingFont, color: s.headingColor, bold: true, size: size * 2 }, paragraph: { spacing: { before: 240, after: 120 } } });
   const doc = new Document({
+    features: { updateFields: true },
     creator: "VOLT Console",
     title: req.title,
     styles: {

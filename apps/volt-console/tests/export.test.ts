@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import express from "express";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
-import { contentsOf, markdownBlocks } from "../server/export/blocks";
+import { contentsOf, markdownBlocks, tocEntries } from "../server/export/blocks";
 import { brandLogo } from "../server/export/brand";
 import { toneFor } from "../shared/brand";
 import { exportDocument, styleFrom } from "../server/export";
@@ -215,21 +215,55 @@ describe("table of contents", () => {
     expect(contentsOf(markdownBlocks("## Alpha\n\n## Beta\n\n## Gamma\n"))).toEqual(["1. Alpha", "2. Beta", "3. Gamma"]);
     expect(contentsOf(markdownBlocks("## 1. Executive summary\n\n## 2. Findings\n\n## 3. Next steps\n"))).toEqual(["1. Executive summary", "2. Findings", "3. Next steps"]);
     expect(contentsOf(markdownBlocks("# One\n\n# Two\n\n# Three\n"))).toEqual(["1. One", "2. Two", "3. Three"]);
-    expect(contentsOf(markdownBlocks("## Alpha\n\n## Beta\n"), ["Results"])).toEqual(["1. Results", "2. Alpha", "3. Beta"]);
+    expect(contentsOf(markdownBlocks("## Alpha\n\n## Beta\n"), ["Overview"])).toEqual(["1. Overview", "2. Alpha", "3. Beta"]);
   });
 
-  it("puts a Contents page in the Word file, listing Results and the sections", async () => {
-    const xml = text(unzip((await exportDocument(req("docx"), null)).data), "word/document.xml");
+  it("lists a trailing appendix after the numbered sections, unnumbered", () => {
+    expect(contentsOf(markdownBlocks("## Alpha\n\n## Beta\n\n## Gamma\n"), [], ["Appendix: Supporting analysis"])).toEqual(["1. Alpha", "2. Beta", "3. Gamma", "Appendix: Supporting analysis"]);
+  });
+
+  it("builds table of contents entries: sections numbered, sub-sections one level in, an appendix last, empty below three sections", () => {
+    const toc = tocEntries(markdownBlocks("## 1. Summary\n\n### Why\n\n## Findings\n\n### Baseline\n\n#### deeper\n\n## Next steps\n"), ["Appendix"]);
+    expect(toc.map((t) => [t.level, t.text])).toEqual([[1, "1. Summary"], [2, "Why"], [1, "2. Findings"], [2, "Baseline"], [1, "3. Next steps"], [1, "Appendix"]]);
+    expect(new Set(toc.map((t) => t.id)).size).toBe(toc.length);
+    expect(toc.slice(0, 5).every((t) => t.heading)).toBe(true);
+    expect(toc[5].heading).toBeUndefined();
+    expect(tocEntries(markdownBlocks("## A\n\n## B\n"), ["Appendix"])).toEqual([]);
+  });
+
+  it("puts a real table of contents in the Word file: linked lines, dotted leaders, page numbers, and Word updates them on open", async () => {
+    const files = unzip((await exportDocument(req("docx", { markdown: MD4 }), null)).data);
+    const xml = text(files, "word/document.xml");
     expect(xml).toContain(">Contents<");
-    for (const line of ["1. Results", "2. Current state", "3. Target architecture"]) expect(xml).toContain(line);
+    for (const line of ["1. Current state", "2. Target architecture", "3. Next steps", "Appendix: Supporting analysis"]) expect(xml).toContain(line);
+    // each line links to a bookmark on its heading and asks for that heading's page
+    const anchors = [...xml.matchAll(/<w:hyperlink[^>]*w:anchor="(toc_\d+)"/g)].map((m) => m[1]);
+    expect(anchors.length).toBeGreaterThanOrEqual(4);
+    for (const a of anchors) {
+      expect(xml).toContain(`w:name="${a}"`);
+      expect(xml).toContain(`PAGEREF ${a}`);
+    }
+    expect(xml).toContain('w:leader="dot"');
+    expect(text(files, "word/settings.xml")).toContain("w:updateFields");
   });
 
-  it("puts a Contents slide in the PowerPoint file", async () => {
-    const files = unzip((await exportDocument(req("pptx"), null)).data);
-    const slides = Object.keys(files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n)).map((n) => text(files, n));
+  it("puts the charts in an appendix after the last section, not before the first", async () => {
+    const xml = text(unzip((await exportDocument(req("docx", { markdown: MD4 }), null)).data), "word/document.xml");
+    const heading = xml.lastIndexOf("Appendix: Supporting analysis");
+    expect(heading).toBeGreaterThan(xml.lastIndexOf("Agree the target calendar"));
+    expect(xml).not.toContain(">Results<");
+  });
+
+  it("puts a Contents slide in the PowerPoint file, and the chart slides after the body", async () => {
+    const files = unzip((await exportDocument(req("pptx", { markdown: MD4 }), null)).data);
+    const names = Object.keys(files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n)).sort((x, y) => Number(x.match(/\d+/)![0]) - Number(y.match(/\d+/)![0]));
+    const slides = names.map((n) => text(files, n));
     const contents = slides.find((x) => x.includes(">Contents<"));
     expect(contents).toBeTruthy();
-    expect(contents).toContain("2. Current state");
+    expect(contents).toContain("2. Target architecture");
+    expect(contents).toContain("Appendix: Supporting analysis");
+    const last = slides[slides.length - 1];
+    expect(last).toContain("Appendix");
   });
 
   it("makes Contents the first worksheet, pointing each section at its table sheet", async () => {
@@ -257,17 +291,17 @@ describe("VOLT branding", () => {
     expect(logo && [logo.width, logo.height]).toEqual([895, 335]);
   });
 
-  it("puts the logo and the ink accent on the Word cover and the VOLT line in the footer", async () => {
+  it("has no logo or picture on the Word cover, and the VOLT line in the footer", async () => {
     const files = unzip((await exportDocument(noImages("docx"), null)).data);
-    expect(media(files, "word/media/")).toBe(2); // the logo and the small ink accent
+    expect(media(files, "word/media/")).toBe(0);
     const footer = Object.keys(files).find((f) => /^word\/footer\d*\.xml$/.test(f));
     expect(footer && text(files, footer)).toContain("VOLT");
     expect(footer && text(files, footer)).toContain("Orchestrate");
   });
 
-  it("brands the PowerPoint cover and content slides", async () => {
+  it("brands the PowerPoint cover (dark, no logo) and content slides", async () => {
     const files = unzip((await exportDocument(noImages("pptx"), null)).data);
-    expect(media(files, "ppt/media/")).toBeGreaterThanOrEqual(1);
+    expect(media(files, "ppt/media/")).toBe(0);
     expect(text(files, "ppt/slides/slide1.xml")).toContain("1E252C");
     expect(text(files, "ppt/slides/slide2.xml")).toContain("VOLT");
   });

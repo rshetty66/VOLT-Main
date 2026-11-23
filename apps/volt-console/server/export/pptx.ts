@@ -40,16 +40,13 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
     if (img.caption) slide.addText(img.caption, { x: M, y: H - 0.8, w: W - 2 * M, h: 0.4, fontFace: s.bodyFont, fontSize: 12, italic: true, color: "5B6862", align: "center" });
   };
 
-  // Title slide: VOLT's own cover (dark, with the logo) unless a client template is selected.
+  // Title slide: VOLT's own cover (dark, no logo) unless a client template is selected.
   const first = pptx.addSlide();
-  const logo = s.brand ? brandLogo() : null;
-  if (logo) {
+  if (s.brand) {
     first.background = { color: BRAND.cover };
-    const lw = Math.min(W - 2, 7.2), lh = (lw * logo.height) / logo.width;
-    first.addImage({ data: `image/png;base64,${logo.png.toString("base64")}`, x: (W - lw) / 2, y: 0.55, w: lw, h: lh });
-    first.addShape(pptx.ShapeType.line, { x: W / 2 - 1.5, y: 0.55 + lh + 0.25, w: 3, h: 0, line: { color: BRAND.cyan, width: 2 } });
-    first.addText(req.title, { x: 0.9, y: 0.55 + lh + 0.45, w: W - 1.8, h: 1.4, fontFace: s.headingFont, fontSize: 30, bold: true, color: "FFFFFF", align: "center", valign: "top" });
-    first.addText(req.subtitle ?? `Generated ${new Date().toISOString().slice(0, 10)}`, { x: 0.9, y: 0.55 + lh + 1.95, w: W - 1.8, h: 0.5, fontFace: s.bodyFont, fontSize: 16, color: BRAND.cyan, align: "center", valign: "top" });
+    first.addShape(pptx.ShapeType.line, { x: W / 2 - 1.5, y: H / 2 - 1.45, w: 3, h: 0, line: { color: BRAND.cyan, width: 2 } });
+    first.addText(req.title, { x: 0.9, y: H / 2 - 1.25, w: W - 1.8, h: 1.6, fontFace: s.headingFont, fontSize: 32, bold: true, color: "FFFFFF", align: "center", valign: "middle" });
+    first.addText(req.subtitle ?? `Generated ${new Date().toISOString().slice(0, 10)}`, { x: 0.9, y: H / 2 + 0.45, w: W - 1.8, h: 0.5, fontFace: s.bodyFont, fontSize: 16, color: BRAND.cyan, align: "center", valign: "top" });
   } else {
     first.addShape(pptx.ShapeType.rect, { x: 0, y: 0, w: 0.25, h: H, fill: { color: s.accent }, line: { color: s.accent } });
     first.addText(req.title, { x: 0.9, y: H / 2 - 1.3, w: W - 1.8, h: 1.4, fontFace: s.headingFont, fontSize: 36, bold: true, color: s.headingColor, valign: "bottom" });
@@ -60,7 +57,7 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
 
   const blocks = markdownBlocks(req.markdown);
   const chartImages = (req.images ?? []).filter((i) => i.ref.startsWith("chart-"));
-  const contents = contentsOf(blocks, chartImages.length ? ["Results"] : []);
+  const contents = contentsOf(blocks, [], chartImages.length ? ["Appendix: Supporting analysis"] : []);
   if (contents.length) {
     const shown = contents.slice(0, 12);
     const more = contents.length - shown.length;
@@ -68,8 +65,6 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
       x: M, y: 1.4, w: W - 2 * M, h: H - 1.9, fontFace: s.bodyFont, fontSize: 20, color: s.ink, valign: "top", paraSpaceAfter: 10,
     });
   }
-
-  for (const c of (req.images ?? []).filter((i) => i.ref.startsWith("chart-"))) picture(c.caption ? `Results: ${c.caption}` : "Results", c);
 
   // Body: text accumulates on the current section's slide until it is full or a table or picture interrupts it.
   let section = "Summary";
@@ -157,5 +152,7 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
     }
   }
   flush();
+  // The charts built from the agents' analysis tools follow the body, as an appendix.
+  for (const c of chartImages) picture(c.caption ? `Appendix: ${c.caption}` : "Appendix: Supporting analysis", c);
   return new Uint8Array((await pptx.write({ outputType: "nodebuffer" })) as Buffer);
 }

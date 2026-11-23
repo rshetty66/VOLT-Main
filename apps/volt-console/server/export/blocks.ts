@@ -107,12 +107,46 @@ export function cellValue(s: string): { value: string | number; format?: string 
 /**
  * The deliverable's table of contents: its "##" section headings in order, or "#" headings when it has none.
  * Headings that already carry a number ("1. Executive summary") keep it; the others are numbered here.
- * Empty below three entries: a contents list of one or two lines is noise.
+ * Trailing entries (an appendix) follow, unnumbered. Empty below three numbered entries: a contents list of one or two lines is noise.
  */
-export function contentsOf(blocks: Block[], leading: string[] = []): string[] {
+export function contentsOf(blocks: Block[], leading: string[] = [], trailing: string[] = []): string[] {
   const h2 = blocks.filter((b): b is Extract<Block, { type: "heading" }> => b.type === "heading" && b.depth === 2);
   const heads = (h2.length ? h2 : blocks.filter((b): b is Extract<Block, { type: "heading" }> => b.type === "heading" && b.depth === 1)).map((b) => b.text);
   const all = [...leading, ...heads];
   if (all.length < 3) return [];
-  return all.map((t, i) => (/^\d+[.)]\s/.test(t) ? t : `${i + 1}. ${t}`));
+  // Trailing entries (an appendix) are listed last and are not numbered.
+  return [...all.map((t, i) => (/^\d+[.)]\s/.test(t) ? t : `${i + 1}. ${t}`)), ...trailing];
+}
+
+export interface TocEntry {
+  level: 1 | 2;
+  text: string;
+  /** The bookmark the heading carries, so a Contents line can link to it and ask for its page. */
+  id: string;
+  /** The heading block this entry stands for; the appendix has none. */
+  heading?: Extract<Block, { type: "heading" }>;
+}
+
+/**
+ * The table of contents: the "##" sections (or "#" when there are none) and the headings one level below them, in order.
+ * Sections are numbered as in `contentsOf`. Empty below three sections. `trailing` entries (an appendix) come last, unnumbered.
+ */
+export function tocEntries(blocks: Block[], trailing: string[] = []): TocEntry[] {
+  const heads = blocks.filter((b): b is Extract<Block, { type: "heading" }> => b.type === "heading");
+  const top = heads.some((h) => h.depth === 2) ? 2 : 1;
+  const sections = heads.filter((h) => h.depth === top);
+  if (sections.length < 3) return [];
+  const out: TocEntry[] = [];
+  let n = 0;
+  let id = 0;
+  for (const h of heads) {
+    if (h.depth === top) {
+      n++;
+      out.push({ level: 1, text: /^\d+[.)]\s/.test(h.text) ? h.text : `${n}. ${h.text}`, id: `toc_${++id}`, heading: h });
+    } else if (h.depth === top + 1 && n > 0) {
+      out.push({ level: 2, text: h.text, id: `toc_${++id}`, heading: h });
+    }
+  }
+  trailing.forEach((t) => out.push({ level: 1, text: t, id: `toc_${++id}` }));
+  return out;
 }
