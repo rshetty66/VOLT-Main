@@ -55,4 +55,51 @@ export function chartBlocks(markdown: string): (ChartSpec | null)[] {
 }
 
 /** Fenced visuals (charts and Mermaid diagrams) in a text: how many pictures the deliverable carries. */
-export const countVisuals = (markdown: string): number => (markdown.match(/^```(chart|mermaid)\b/gm) ?? []).length;
+export const countVisuals = (markdown: string): number => (markdown.match(/^```(chart|mermaid|architecture)\b/gm) ?? []).length;
+
+// ── Architecture options, drawn as a 3D (isometric) layered stack ──────────────────────────────────────────
+
+/**
+ * An architecture option as data: a fenced ```architecture block holding JSON. Layers are listed from the foundation
+ * (sources) up to the consumption layer (reporting); each is drawn as a slab of the stack.
+ *
+ *   {"title":"Option A: ERP-centric","layers":[{"name":"Sources","items":["SAP ECC","Oracle EBS"]},
+ *    {"name":"Reporting","items":["Power BI"],"badge":"Recommended"}],"note":"Illustrative"}
+ */
+export interface ArchLayer {
+  name: string;
+  items: string[];
+  badge?: string;
+}
+
+export interface ArchSpec {
+  title: string;
+  layers: ArchLayer[];
+  note?: string;
+}
+
+export function parseArchSpec(json: string): ArchSpec | null {
+  let o: unknown;
+  try {
+    o = JSON.parse(json);
+  } catch {
+    return null;
+  }
+  if (!o || typeof o !== "object") return null;
+  const r = o as Record<string, unknown>;
+  if (!Array.isArray(r.layers) || r.layers.length < 2 || r.layers.length > 7) return null;
+  const layers: ArchLayer[] = [];
+  for (const l of r.layers) {
+    const x = (l ?? {}) as Record<string, unknown>;
+    const name = typeof x.name === "string" ? x.name.trim() : "";
+    const items = Array.isArray(x.items) ? x.items.map((i) => String(i).trim()).filter(Boolean) : [];
+    if (!name || items.length < 1 || items.length > 4) return null;
+    layers.push({ name: name.slice(0, 40), items: items.map((i) => i.slice(0, 36)), badge: typeof x.badge === "string" && x.badge.trim() ? x.badge.trim().slice(0, 16) : undefined });
+  }
+  return { title: String(r.title ?? "").slice(0, 120), layers, note: typeof r.note === "string" ? r.note.slice(0, 160) : undefined };
+}
+
+/** The ```architecture blocks of a markdown text in document order; null where a block is not a valid spec. */
+export function archBlocks(markdown: string): (ArchSpec | null)[] {
+  return [...markdown.matchAll(/^```architecture[^\n]*\n([\s\S]*?)^```/gm)].map((m) => parseArchSpec(m[1]));
+}
