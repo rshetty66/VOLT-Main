@@ -33,12 +33,13 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   const [reading, setReading] = useState(0);
   const [fileError, setFileError] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
-  const endRef = useRef<HTMLDivElement>(null);
   const running = runs.some((r) => r.state === "running");
   const targetAgent = catalog.agents.find((a) => a.id === target);
 
+  // A new run scrolls into view at its start, so the answer is read from the top.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const last = runs[runs.length - 1];
+    if (last) document.getElementById(`run-${last.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [runs.length]);
 
   const attach = async (list: FileList | null) => {
@@ -83,9 +84,6 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
     <div className="console">
       {runs.length === 0 && (
         <div className="stack">
-          <div className="hero">
-            <img className="hero-ink" src="/brand/ink-accent.png" alt="VOLT Agent Console" />
-          </div>
           {!live && (
             <div className="card body">
               Running in <b>demo mode</b>: routing, Skill Finder, benchmarks and workflow sequencing are real; agent prose is simulated.
@@ -105,8 +103,6 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
       {runs.map((run) => (
         <RunView key={run.id} run={run} onStop={() => onStop(run.id)} />
       ))}
-      <div ref={endRef} />
-
       <div className="composer">
         <div className="card">
           <div className="row">
@@ -199,7 +195,7 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
   }, [run.state]);
 
   return (
-    <section className="run">
+    <section className="run" id={`run-${run.id}`}>
       <div className="run-head">
         <span className={`dot ${run.state === "running" ? "running" : "done"}`} />
         <span className="micro">{run.title}</span>
