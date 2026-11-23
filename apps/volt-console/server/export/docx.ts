@@ -69,6 +69,28 @@ function coverTitle(req: ExportRequest, accent: { png: Buffer; width: number; he
   ];
 }
 
+/** A one-cell table: light tint, thick accent bar on the left, no other borders. */
+function callout(children: (Paragraph | Table)[], accent: string): Table {
+  const none = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+  return new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: { top: none, bottom: none, left: none, right: none, insideHorizontal: none, insideVertical: none },
+    rows: [
+      new TableRow({
+        children: [
+          new TableCell({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            shading: { type: ShadingType.CLEAR, color: "auto", fill: "E8FBFE" },
+            margins: { top: 140, bottom: 100, left: 220, right: 200 },
+            borders: { top: none, bottom: none, right: none, left: { style: BorderStyle.SINGLE, size: 36, color: accent } },
+            children: [...children, new Paragraph({ spacing: { after: 0 }, children: [] })],
+          }),
+        ],
+      }),
+    ],
+  });
+}
+
 export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uint8Array> {
   const images = new Map((req.images ?? []).map((i) => [i.ref, i]));
   const maxImg = (s.page.widthIn - s.page.margins.left - s.page.margins.right) * PX_PER_IN;
@@ -92,17 +114,31 @@ export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uin
     for (const c of charts) body.push(image(c, maxImg), ...(c.caption ? [caption(c.caption)] : []));
   }
 
+  // The executive summary is collected here and written as one shaded callout.
+  let summary: (Paragraph | Table)[] | null = null;
+  let sink: (Paragraph | Table)[] = body;
+  const flushSummary = () => {
+    if (summary && summary.length) body.push(callout(summary, s.accent), new Paragraph({ spacing: { after: 160 }, children: [] }));
+    summary = null;
+    sink = body;
+  };
   for (const b of blocks) {
     switch (b.type) {
       case "heading":
+        flushSummary();
         body.push(new Paragraph({ heading: HEADING[Math.min(5, b.depth - 1)], children: [new TextRun(b.text)] }));
+        // The executive summary sits in a tinted callout with an accent bar, so it reads first.
+        if (/executive summary/i.test(b.text) && b.depth <= 3) {
+          summary = [];
+          sink = summary;
+        }
         break;
       case "paragraph":
-        body.push(new Paragraph({ spacing: { after: 120 }, children: textRuns(b.runs, s) }));
+        sink.push(new Paragraph({ spacing: { after: 120 }, children: textRuns(b.runs, s) }));
         break;
       case "list":
         b.items.forEach((it, i) =>
-          body.push(
+          sink.push(
             b.ordered
               ? new Paragraph({ indent: { left: 360 + it.level * 360, hanging: 360 }, children: [new TextRun(`${i + 1}. `), ...textRuns(it.runs, s)] })
               : new Paragraph({ bullet: { level: Math.min(it.level, 8) }, children: textRuns(it.runs, s) }),
@@ -110,24 +146,25 @@ export async function writeDocx(req: ExportRequest, s: ExportStyle): Promise<Uin
         );
         break;
       case "table":
-        body.push(table(b.header, b.rows, s), new Paragraph({ children: [] }));
+        sink.push(table(b.header, b.rows, s), new Paragraph({ children: [] }));
         break;
       case "code":
-        body.push(...b.text.split("\n").map((line) => new Paragraph({ shading: { type: ShadingType.CLEAR, color: "auto", fill: "F2F4F3" }, children: [new TextRun({ text: line || " ", font: "Consolas", size: 18 })] })));
+        sink.push(...b.text.split("\n").map((line) => new Paragraph({ shading: { type: ShadingType.CLEAR, color: "auto", fill: "F2F4F3" }, children: [new TextRun({ text: line || " ", font: "Consolas", size: 18 })] })));
         break;
       case "quote":
-        body.push(new Paragraph({ indent: { left: 540 }, border: { left: { style: BorderStyle.SINGLE, size: 12, color: s.accent, space: 8 } }, children: textRuns(b.runs.map((r) => ({ ...r, italic: true })), s) }));
+        sink.push(new Paragraph({ indent: { left: 540 }, border: { left: { style: BorderStyle.SINGLE, size: 12, color: s.accent, space: 8 } }, children: textRuns(b.runs.map((r) => ({ ...r, italic: true })), s) }));
         break;
       case "image": {
         const img = images.get(b.ref);
-        body.push(img ? image(img, maxImg) : new Paragraph({ children: [new TextRun({ text: "[diagram not available]", italics: true })] }));
+        sink.push(img ? image(img, maxImg) : new Paragraph({ children: [new TextRun({ text: "[diagram not available]", italics: true })] }));
         break;
       }
       case "rule":
-        body.push(new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "C9D1CD", space: 1 } }, children: [] }));
+        sink.push(new Paragraph({ border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: "C9D1CD", space: 1 } }, children: [] }));
         break;
     }
   }
+  flushSummary();
 
   const tw = (inches: number) => Math.round(inches * 1440);
   const heading = (size: number) => ({ run: { font: s.headingFont, color: s.headingColor, bold: true, size: size * 2 }, paragraph: { spacing: { before: 240, after: 120 } } });

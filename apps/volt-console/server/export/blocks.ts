@@ -51,6 +51,7 @@ export function markdownBlocks(markdown: string): Block[] {
   const tree = unified().use(remarkParse).use(remarkGfm).parse(markdown);
   const out: Block[] = [];
   let diagrams = 0;
+  let vizCharts = 0;
   const visit = (node: RootContent) => {
     switch (node.type) {
       case "heading":
@@ -69,6 +70,7 @@ export function markdownBlocks(markdown: string): Block[] {
       }
       case "code":
         if ((node.lang ?? "").toLowerCase() === "mermaid") out.push({ type: "image", ref: `diagram-${diagrams++}` });
+        else if ((node.lang ?? "").toLowerCase() === "chart") out.push({ type: "image", ref: `viz-${vizCharts++}` });
         else out.push({ type: "code", lang: node.lang ?? "", text: node.value });
         break;
       case "blockquote":

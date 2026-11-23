@@ -86,9 +86,36 @@ ${filler(40)}
 ## 5. Next steps
 
 ${filler(20)}
+
+\`\`\`chart
+{"type":"bar","title":"Close days","labels":["Today","Target"],"series":[{"name":"Days","values":[12,5]}]}
+\`\`\`
+
+\`\`\`chart
+{"type":"donut","title":"Value by lever","labels":["Automation","Standardisation"],"series":[{"name":"M","values":[3,2]}]}
+\`\`\`
+
+\`\`\`mermaid
+flowchart LR
+  A --> B
+\`\`\`
+
+\`\`\`mermaid
+gantt
+  title Roadmap
+  section P1
+  Mobilise :2026-01-01, 30d
+\`\`\`
 `;
 
 describe("depth check", () => {
+  it("counts fenced charts and diagrams, and asks for four", () => {
+    expect(assessDepth(RICH).visuals).toBe(4);
+    const few = assessDepth("```mermaid\nflowchart LR\n A-->B\n```\n");
+    expect(few.visuals).toBe(1);
+    expect(few.gaps.join(" ")).toContain("at least four");
+  });
+
   it("passes a full deliverable", () => {
     const r = assessDepth(RICH);
     expect(r.gaps).toEqual([]);

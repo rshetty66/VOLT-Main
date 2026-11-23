@@ -1,17 +1,19 @@
 import ReactMarkdown, { type Components } from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { isMermaid } from "../charts/mermaidBlock";
-import { MermaidDiagram } from "../charts/Visual";
+import { isChart, isMermaid } from "../charts/mermaidBlock";
+import { MermaidDiagram, SpecChart } from "../charts/Visual";
 
 const components: Components = {
   // A ```mermaid block renders as a diagram instead of a code listing.
   pre({ node, children, ...props }) {
     const first = node?.children[0];
     const cls = first && first.type === "element" ? first.properties?.className : undefined;
-    if (isMermaid(Array.isArray(cls) ? cls.join(" ") : String(cls ?? ""))) return <>{children}</>;
+    const name = Array.isArray(cls) ? cls.join(" ") : String(cls ?? "");
+    if (isMermaid(name) || isChart(name)) return <>{children}</>;
     return <pre {...props}>{children}</pre>;
   },
   code({ className, children, ...props }) {
+    if (isChart(className)) return <SpecChart code={String(children).replace(/\n$/, "")} />;
     if (isMermaid(className)) return <MermaidDiagram code={String(children).replace(/\n$/, "")} />;
     return <code className={className} {...props}>{children}</code>;
   },

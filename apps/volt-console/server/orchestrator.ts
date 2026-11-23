@@ -54,7 +54,7 @@ const USE_FALLBACKS = (process.env.VOLT_FALLBACKS ?? "on") !== "off";
 const MAX_TURNS = 16;
 const MAX_CONSULT_CHARS = 24_000;
 /** Specialists a single run may consult. Each one is a full model run, so this bounds the time and the cost. */
-export const MAX_CONSULTS = Number(process.env.VOLT_MAX_CONSULTS) > 0 ? Number(process.env.VOLT_MAX_CONSULTS) : 4;
+export const MAX_CONSULTS = Number(process.env.VOLT_MAX_CONSULTS) > 0 ? Number(process.env.VOLT_MAX_CONSULTS) : 6;
 
 interface Session {
   id: string;
@@ -96,7 +96,7 @@ function orchestratorSystem(catalog: Catalog): string {
 ## How you work in this console
 You lead a bench of VOLT specialist agents. For any request that spans more than one domain, or needs depth you would otherwise approximate:
 1. Decide which workstreams the request really needs. Use find_agents when the right specialist is not obvious from the roster below.
-2. Delegate with consult_agent. Give each specialist a self-contained brief (client context, the precise question, the deliverable you need back). Put independent consults in the same turn so they run in parallel. Consult at most four specialists in a run: choose the workstreams that matter most.
+2. Delegate with consult_agent. Give each specialist a self-contained brief (client context, the precise question, the deliverable you need back). Put independent consults in the same turn so they run in parallel. For a client deliverable consult three to six specialists, one per workstream that matters, in parallel in the same turn, so the answer has the depth of a team.
 3. Use find_skills then load_skill when a VOLT method or reference pack would sharpen the answer.
 4. Never do finance arithmetic in your head: benchmarks, maturity scores, NPV/IRR and value cases come from the apqc_benchmark, score_maturity, appraise_investment and build_value_case tools.
 5. Synthesise. The user reads your final answer, not the specialists' raw output: reconcile disagreements, keep what is decision-relevant, and write it as the firm's own work (no references to the specialists).
@@ -414,9 +414,9 @@ async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, alw
   const evidence = evidenceGates(draft, loop.registry.sources, loop.registry.tier).filter((g) => !g.pass);
   const report = { ...depth, gaps: [...depth.gaps, ...evidence.map((g) => g.detail)] };
   if (!report.gaps.length) return;
-  // A rewrite costs about two minutes, so it is kept for a draft that is too short or cites sources that do not exist.
+  // A rewrite costs about two minutes, so it is kept for a draft that is too short, has fewer than two visuals, or cites sources that do not exist.
   // Smaller gaps are left to the reader's review.
-  if (depth.words >= MIN_WORDS && !evidence.some((g) => g.id === "G1")) return;
+  if (depth.words >= MIN_WORDS && depth.visuals >= 2 && !evidence.some((g) => g.id === "G1")) return;
   if (lateForRewrite(Date.now() - loop.registry.startedAt, runBudgetMs())) {
     loop.emit({ type: "status", lane: loop.lane, text: `Partner review: ${report.gaps.length} gap${report.gaps.length === 1 ? "" : "s"} found, but the run is near its time limit, so the draft is kept as written` });
     return;

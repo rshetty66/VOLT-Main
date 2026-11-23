@@ -3,6 +3,7 @@
  *   skills/client-deliverable-standards/SKILL.md      how to write it (answer first, quantified, sourced exhibits, voice)
  *   commands/run-client-deliverable.md, section 3     what it contains, in order (the table of contents)
  */
+import { countVisuals } from "../shared/viz.js";
 import fs from "node:fs";
 import path from "node:path";
 import { PLUGIN_DIR, loadSkillBody } from "./catalog.js";
@@ -36,8 +37,8 @@ export const DEPTH_STANDARD = `### Depth and differentiation standard
 
 This deliverable is read next to the work of other major consulting firms, and it should win the engagement. Write 3,500 to 6,000 words for an assessment, plan, design or business case (shorter only for a narrow question). Every section carries analysis, not description. Under the five sections above, use these \`###\` sub-sections:
 
-1. **Executive summary** (200 words or fewer, able to stand alone): the answer; the quantified prize as a range with its main driver; the recommended path and what it costs; the three decisions the client must take; and the one insight that changes how they should think about the problem.
-2. **Findings**: \`### Current-state baseline\` (the client's numbers against APQC benchmarks from apqc_benchmark, and the seven-dimension maturity from score_maturity; any figure the client did not give is stated as an assumption); \`### Root causes\` (a MECE issue tree, each cause quantified and ranked by its contribution to the gap); \`### What good looks like\` (leading practice, with its source).
+1. **Executive summary** (the first section, \`## 1. Executive summary\`; 200 words or fewer, able to stand alone; open with one headline sentence, then four bullets that each lead with a number): the answer; the quantified prize as a range with its main driver; the recommended path and what it costs; the three decisions the client must take; and the one insight that changes how they should think about the problem.
+2. **Findings**: \`### Current-state baseline\` (the client's numbers against APQC benchmarks from apqc_benchmark, and the seven-dimension maturity from score_maturity; any figure the client did not give is stated as an assumption); \`### Root causes\` (a MECE issue tree, each cause quantified and ranked by its contribution to the gap); \`### What good looks like\` (leading practice, with its source); \`### Worked business scenario\` (a realistic scenario for this client with illustrative data: a table of the inputs such as entities, volumes, FTEs, cost per transaction and cycle times, the calculation step by step, and the result against the target; every illustrative figure is tagged [ASSUMPTION] or [ESTIMATE], and a \`chart\` block shows it).
 3. **Recommendations**: a recommendations table (recommendation, what changes, owner, priority, value, timing, dependency); \`### Options considered\` (three real options scored against weighted criteria in a table, what each costs and forecloses, and the condition under which another option wins); \`### Target operating model\` or \`### Target architecture\` (design principles, process, roles, systems, data and controls, with one diagram); \`### Business case\` (each value lever with its arithmetic, investment and run cost, NPV, IRR and payback from build_value_case and appraise_investment, a low, base and high range, sensitivity on the two drivers that move the answer, and when the benefits land); \`### Roadmap\` (phases with durations, milestones, dependencies, critical path, resourcing and governance, no-regret moves first, and a Gantt chart).
 4. **Key risks and assumptions**: a risk register (risk, likelihood, impact, mitigation, owner); every assumption with how it will be validated; data gaps; and the regulatory and control implications for the client's sector and jurisdiction.
 5. **Next steps**: the decisions needed in the next 30 days, a 30-60-90 day plan with owners, and what is needed from the client.
@@ -50,7 +51,10 @@ How it wins the work:
 - Name the trade-offs and the conditions under which you would advise differently.
 - Never invent credentials, client names, case studies, statistics or quotes. A figure without a source is labelled [Estimate] with its basis, or [Verify]. Say what data you need rather than assuming it.
 
-Exhibits: at least five. Most are tables with an Exhibit title, a Source line and a read-out that says what it means. Use up to four Mermaid diagrams where a picture does the work: a flowchart (target architecture or process), a gantt (the roadmap), a quadrantChart (effort against impact), a pie (the split of one total). Plain short labels, no colours in the markup.
+Exhibits and visuals: at least five exhibits, and at least four visuals. Most exhibits are tables with an Exhibit title, a Source line and a read-out that says what it means. The visuals are:
+- At least two data charts, each a fenced \`\`\`chart block holding one JSON object: {"type":"bar|hbar|line|donut","title":"...","unit":"days","labels":["A","B"],"series":[{"name":"Today","values":[12,9]}],"source":"..."}. Two to twelve labels and one to three series (a donut takes one), every value a number, one \`values\` entry per label. Use them for the baseline against a benchmark or target, the value by lever, the cost and benefit by year, or a scenario compared. The numbers must be the ones in your tables.
+- At least two Mermaid diagrams where a picture does the work: a flowchart (target architecture or process), a gantt (the roadmap), a quadrantChart (effort against impact), a pie (the split of one total). Plain short labels, no colours in the markup.
+Put each visual next to the text it supports, with a one-line read-out under it.
 
 Colour coding: in the priority, risk and status columns of tables write exactly High, Medium or Low (or Red, Amber or Green). The downloaded files colour these from the VOLT palette.`;
 
@@ -89,7 +93,7 @@ export function leadDeliverableGuide(pluginDir = PLUGIN_DIR): string {
 /** What a specialist's notes follow: the same writing standards, since the notes can be handed to the client as an appendix. */
 export function specialistDeliverableGuide(pluginDir = PLUGIN_DIR): string {
   const standards = deliverableStandards(pluginDir);
-  return standards ? `## Writing standard\nCite the source key (such as [S03]) that every tool result returns, and never invent a source: tag an unsupported claim [INFERENCE] or [ASSUMPTION]. Your notes may go to the client as an appendix, so write them to the standard below. Go to the depth of a senior practitioner\'s client workpaper, not a summary. Diagrams: up to two Mermaid diagrams (flowchart, gantt, quadrantChart or pie); show other exhibits as tables.\n\n${standards}` : "";
+  return standards ? `## Writing standard\nCite the source key (such as [S03]) that every tool result returns, and never invent a source: tag an unsupported claim [INFERENCE] or [ASSUMPTION]. Your notes may go to the client as an appendix, so write them to the standard below. Go to the depth of a senior practitioner\'s client workpaper, not a summary. Include one worked example with illustrative data (a small table of inputs, the calculation, the result), each illustrative figure tagged [ASSUMPTION] or [ESTIMATE]. Visuals: up to two Mermaid diagrams (flowchart, gantt, quadrantChart or pie) and one data chart as a fenced \`\`\`chart block with JSON {"type":"bar|hbar|line|donut","title":"...","unit":"...","labels":[...],"series":[{"name":"...","values":[...]}]}; show other exhibits as tables.\n\n${standards}` : "";
 }
 
 // ── The depth check: a thin draft is sent back for one rewrite ────────────────────────────────────────────
@@ -98,6 +102,8 @@ export interface DepthReport {
   words: number;
   tables: number;
   exhibits: number;
+  /** Fenced visuals: data charts and Mermaid diagrams. */
+  visuals: number;
   /** What the draft lacks, in words the lead agent can act on. Empty when the draft meets the standard. */
   gaps: string[];
   ok: boolean;
@@ -120,14 +126,16 @@ export function assessDepth(markdown: string): DepthReport {
   const words = (prose.match(/\S+/g) ?? []).length;
   const tables = (markdown.match(/^\|[\s:-]+\|[\s|:-]*$/gm) ?? []).length;
   const exhibits = (markdown.match(/\*\*Exhibit\s+\d+/gi) ?? []).length;
+  const visuals = countVisuals(markdown);
   const gaps: string[] = [];
   if (words < MIN_WORDS) gaps.push(`it is about ${words} words; a client deliverable of this kind needs 3,500 to 6,000, with real analysis in each section`);
   for (const [label, re] of SECTION_CHECKS) if (!re.test(markdown)) gaps.push(`it is missing ${label}`);
   if (tables < 3) gaps.push(`it has ${tables} table${tables === 1 ? "" : "s"}; it needs at least three (recommendations, options scored against criteria, a risk register) and five exhibits in all`);
   if (exhibits < 3) gaps.push("its exhibits are not labelled `**Exhibit N: title**` with a Source line and a read-out");
+  if (visuals < 4) gaps.push(`it has ${visuals} visual${visuals === 1 ? "" : "s"}; it needs at least four: two data charts in \`\`\`chart blocks (JSON) and two Mermaid diagrams`);
   if (!/\bSource:/i.test(markdown)) gaps.push("no exhibit carries a Source line");
   if (/\b(specialists?|sub-?agents?|consult_agent|find_agents)\b/i.test(prose)) gaps.push("it refers to specialists, agents or tools, which the client must not see");
-  return { words, tables, exhibits, gaps, ok: gaps.length === 0 };
+  return { words, tables, exhibits, visuals, gaps, ok: gaps.length === 0 };
 }
 
 /** Whether a request calls for a full client deliverable rather than a short answer or a command. */
