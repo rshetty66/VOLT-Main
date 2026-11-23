@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import express from "express";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { strFromU8, unzipSync } from "fflate";
-import { contentsOf, markdownBlocks, tocEntries } from "../server/export/blocks";
+import { columnShares, contentsOf, markdownBlocks, shortTitle, tocEntries } from "../server/export/blocks";
 import { brandLogo } from "../server/export/brand";
 import { toneFor } from "../shared/brand";
 import { exportDocument, styleFrom } from "../server/export";
@@ -278,6 +278,53 @@ describe("table of contents", () => {
   it("adds no Contents to a short document", async () => {
     const xml = text(unzip((await exportDocument(req("docx", { markdown: "## Only\n\ntext\n", images: [] }), null)).data), "word/document.xml");
     expect(xml).not.toContain(">Contents<");
+  });
+});
+
+describe("report polish", () => {
+  const body = (f: (md: string) => string = (x) => x) => f("## 1. Summary\n\n### Root causes: process design explains the largest share of the gap\n\ntext\n\n## 2. Findings\n\n| Rec | Owner | Priority |\n|---|---|---|\n| Re-sequence the close calendar so the allocation and funds transfer pricing runs finish before period end | CFO | High |\n\n## 3. Next steps\n\ntext\n");
+
+  it("cuts a sub-section's action title at its colon for the Contents, and leaves short or colon-less titles alone", () => {
+    expect(shortTitle("Root causes: process design explains the largest share of excess close days")).toBe("Root causes");
+    expect(shortTitle("Business case")).toBe("Business case");
+    expect(shortTitle("A: long")).toBe("A: long"); // colon too early to be a title
+    expect(shortTitle("x".repeat(120)).length).toBeLessThanOrEqual(90);
+    const toc = tocEntries(markdownBlocks(body()));
+    expect(toc.find((t) => t.level === 2)?.text).toBe("Root causes");
+  });
+
+  it("gives long-text columns more of a table's width, keeps every column wide enough for its longest word, and sums to 1", () => {
+    const shares = columnShares(["Recommendation", "Owner", "Priority"], [["Re-sequence the close calendar so the allocation and funds transfer pricing runs finish before period end", "CFO", "High"]]);
+    expect(shares[0]).toBeGreaterThan(shares[1] * 2);
+    // "Priority" (8 characters at 9 pt) needs about 8 * 105 + 220 twips of a 9,360 twip table
+    expect(shares[2]).toBeGreaterThanOrEqual((8 * 105 + 220) / 9360 - 1e-9);
+    expect(shares[1]).toBeGreaterThanOrEqual((5 * 105 + 220) / 9360 - 1e-9);
+    expect(shares.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 9);
+    expect(columnShares([], [])).toEqual([]);
+    const many = columnShares(Array.from({ length: 12 }, (_, i) => `column${i}`), []);
+    expect(many.reduce((a, b) => a + b, 0)).toBeCloseTo(1, 9);
+    expect(Math.min(...many)).toBeGreaterThan(0);
+  });
+
+  it("writes the Word table with fixed, proportional column widths", async () => {
+    const xml = text(unzip((await exportDocument(req("docx", { markdown: body(), images: [] }), null)).data), "word/document.xml");
+    expect(xml).toContain('<w:tblLayout w:type="fixed"');
+    const widths = [...xml.matchAll(/<w:gridCol w:w="(\d+)"/g)].map((m) => Number(m[1]));
+    expect(widths).toHaveLength(3);
+    expect(widths[0]).toBeGreaterThan(widths[1] * 2);
+  });
+
+  it("prints the deliverable's own title once (on the cover), not again at the top of the body", async () => {
+    const md = `# Five-day close plan\n\n${body()}`;
+    const xml = text(unzip((await exportDocument(req("docx", { markdown: md, images: [] }), null)).data), "word/document.xml");
+    const inBody = xml.split("Five-day close plan").length - 1;
+    expect(inBody).toBe(1); // the cover only
+  });
+
+  it("starts the body on a new page with a page-break-before paragraph, not a page-break character", async () => {
+    const xml = text(unzip((await exportDocument(req("docx", { markdown: body(), images: [] }), null)).data), "word/document.xml");
+    expect(xml).toContain("<w:pageBreakBefore");
+    expect(xml).not.toContain('<w:br w:type="page"');
   });
 });
 
