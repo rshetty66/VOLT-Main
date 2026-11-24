@@ -4,8 +4,9 @@ The deterministic accounting engine behind VOLT's accounting-policy and ledger w
 reads, maps and explains; this service does every calculation and keeps the records. See `docs/` for the approved
 design: `intent.md`, `spec.md`, `ratio-catalogue.md` and the Phase 2 to 5 specs.
 
-Status: Phase 6 steps 1 to 3 are built (ingestion, ontology loader, posting service). The HTTP API, mapping agent,
-allocation engine and the console tools come next.
+Status: Phase 6 steps 1 to 3 are built (ingestion, ontology loader, posting service), plus the engine side of step 4
+(mapping, policy gaps, review queue). The HTTP API, the console tools that let Claude call these, and the allocation
+engine come next. The system prompts Claude will use are in `prompts/`.
 
 ## Run the tests
 
@@ -13,7 +14,7 @@ allocation engine and the console tools come next.
 cd apps/volt-ledger
 python3 -m venv .venv && . .venv/bin/activate
 pip install pytest hypothesis
-python -m pytest                                          # 49 tests, a few seconds
+python -m pytest                                          # 60 tests, a few seconds
 VOLT_PROPERTY_EXAMPLES=10000 python -m pytest tests/property   # the full property run, about 6 minutes
 ```
 
@@ -79,6 +80,18 @@ except PostingError as e: print(e)"
 # expected: unbalanced: debits 100 != credits 99 (minor units)
 ```
 
+### Step 4a: mapping, policy gaps and review (`volt_ledger/mapping.py`)
+
+The tools Claude will call to map accounts. `map_line_item_to_element` records a proposed mapping from a client
+account to a canonical concept, with a confidence and a rationale, and links it to the trial-balance rows it came
+from. A later mapping supersedes an earlier one; both stay in history. `flag_policy_gap` records an account that
+needs a policy decision; standard references are stored as unverified. Mappings below 0.90 confidence, all
+mappings in a first client run, and every gap go to the review queue. The engagement lead must approve an item
+before the client can see it or sign it off, and only a signed-in person can record a decision.
+
+`coverage` proves every account is either mapped or has a gap. In the tests a scripted stand-in plays the model,
+mapping all 54 synthetic accounts and flagging all 8 seeded gap types; the live Claude run comes with step 4b.
+
 ## Tests
 
 | File | What it proves |
@@ -87,4 +100,5 @@ except PostingError as e: print(e)"
 | `tests/unit/test_ingest.py` | Every row of the synthetic TB is stored; bad rows are rejected with reasons; re-ingesting is a no-op |
 | `tests/unit/test_ontology.py` | Presentation and calculation queries; one canonical node per XBRL name |
 | `tests/unit/test_posting.py` | Validation, reversals, period locks, idempotency, append-only tables |
+| `tests/unit/test_mapping.py` | Coverage of every account, all 8 gap types, traceability to TB rows, review routing, two-stage approval |
 | `tests/property/test_properties.py` | P1 to P4 and P7 to P10 from `docs/phase3-engine.md`, on random data |

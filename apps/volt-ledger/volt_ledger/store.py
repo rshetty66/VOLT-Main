@@ -48,6 +48,15 @@ CREATE TABLE IF NOT EXISTS journal_line (
   CHECK ((debit_minor > 0) <> (credit_minor > 0)),
   PRIMARY KEY (journal_id, line_no)
 );
+CREATE TABLE IF NOT EXISTS review_item (
+  item_id TEXT PRIMARY KEY, kind TEXT NOT NULL, ref_id TEXT NOT NULL, reason TEXT NOT NULL, evidence_id TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS review_decision (
+  seq INTEGER PRIMARY KEY AUTOINCREMENT, item_id TEXT NOT NULL REFERENCES review_item(item_id),
+  stage TEXT NOT NULL CHECK (stage IN ('engagement_lead','client')),
+  decision TEXT NOT NULL CHECK (decision IN ('approve','reject','amend')),
+  by_user TEXT NOT NULL, note TEXT NOT NULL, evidence_id TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS period_lock_event (
   seq INTEGER PRIMARY KEY AUTOINCREMENT, period TEXT NOT NULL, action TEXT NOT NULL CHECK (action IN ('lock','unlock')),
   actor TEXT NOT NULL, reason TEXT NOT NULL, evidence_id TEXT NOT NULL
@@ -56,7 +65,7 @@ CREATE TABLE IF NOT EXISTS period_lock_event (
 
 APPEND_ONLY_TABLES = (
     "evidence", "element", "association", "source_document", "tb_row",
-    "journal_entry", "journal_line", "period_lock_event",
+    "journal_entry", "journal_line", "period_lock_event", "review_item", "review_decision",
 )
 
 

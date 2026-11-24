@@ -15,6 +15,7 @@ from tests.conftest import COLUMNS, SYNTHETIC_TB, fresh_store
 from volt_ledger.balances import account_balances
 from volt_ledger.evidence import verify_chain
 from volt_ledger.ingest import ColumnMap, ingest_trial_balance
+from volt_ledger.mapping import map_line_item_to_element, record_review_decision
 from volt_ledger.money import MINOR_UNITS, format_amount, from_wire, parse_amount, to_wire
 from volt_ledger.posting import JournalIn, LineIn, PostingError, lock_period, post_journal_entry, reverse_journal_entry
 from volt_ledger.store import APPEND_ONLY_TABLES
@@ -119,6 +120,9 @@ def test_p8_append_only(table, sql):
     post_journal_entry(s, JournalIn("k", "2026-09", "adjustment", "x",
                                     [LineIn(ACCOUNTS[0], debit=5), LineIn(ACCOUNTS[1], credit=5)]), "prop")
     lock_period(s, "2026-10", "prop", "x")
+    m = map_line_item_to_element(s, ACCOUNTS[0], "canon:CashAndCentralBankBalances", "0.9", "x", "model")
+    record_review_decision(s, m.review_item_id, "engagement_lead", "approve", "user:prop")
+    assert s.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] > 0   # triggers fire only on existing rows
     with pytest.raises(sqlite3.DatabaseError, match="append-only"):
         s.conn.execute(sql.format(t=table))
 
