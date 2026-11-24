@@ -179,8 +179,8 @@ export function rateLimit(perMinute: number, now: () => number = Date.now): Requ
   };
 }
 
-/** The cost-bearing routes: model runs, live filing search and extraction, the CopilotKit agent. */
-export const COSTLY = [/^\/api\/run$/, /^\/api\/finance-architecture\/sources\/(find|extract)$/, /^\/api\/copilotkit(\/|$)/];
+/** The cost-bearing routes: model runs, live filing search and extraction. */
+export const COSTLY = [/^\/api\/run$/, /^\/api\/finance-architecture\/sources\/(find|extract)$/];
 export function limitCostly(perMinute: number): RequestHandler {
   const limiter = rateLimit(perMinute);
   return (req, res, next) => (req.method !== "GET" && COSTLY.some((re) => re.test(req.path)) ? limiter(req, res, next) : next());
