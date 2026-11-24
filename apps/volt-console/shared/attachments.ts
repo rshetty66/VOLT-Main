@@ -12,4 +12,4 @@ export const ATTACH_MAX_BYTES = 4 * 1024 * 1024;
 export const ATTACH_MAX_CHARS_FILE = 40_000;
 export const ATTACH_MAX_CHARS_TOTAL = 100_000;
 
-export const ATTACH_EXTENSIONS = ["txt", "md", "csv", "tsv", "json", "xlsx", "docx", "pptx"] as const;
+export const ATTACH_EXTENSIONS = ["txt", "md", "csv", "tsv", "json", "xlsx", "docx", "pptx", "pdf", "jpg", "jpeg", "png"] as const;

@@ -38,7 +38,7 @@ describe("reading attachments", () => {
   });
 
   it("refuses PDF and other types with a plain reason, empty files, and corrupt Office files", async () => {
-    await expect(extractAttachment("scan.pdf", bytes("%PDF"))).rejects.toThrow(/not supported/);
+    await expect(extractAttachment("movie.mp4", bytes("x"))).rejects.toThrow(/not supported/);
     await expect(extractAttachment("a.exe", bytes("x"))).rejects.toBeInstanceOf(AttachmentError);
     await expect(extractAttachment("e.txt", bytes("  \n "))).rejects.toMatchObject({ code: "empty" });
     await expect(extractAttachment("bad.docx", bytes("not a zip"))).rejects.toMatchObject({ code: "unreadable" });

@@ -3,6 +3,7 @@ import type { CatalogResponse, RunKind, RunRequest } from "../shared/events";
 import { fetchCatalog, listTemplates, streamRun, UnauthorizedError } from "./api";
 import { SignIn } from "./components/SignIn";
 import { History } from "./components/History";
+import { Uploads } from "./components/Uploads";
 import { Usage } from "./components/Usage";
 import { loadHistory, mergeHistory, saveHistory } from "./history";
 import type { TemplateSummary } from "../shared/templates";
@@ -18,7 +19,7 @@ import { Templates } from "./components/Templates";
 import { Workbench } from "./components/workbench/Workbench";
 import { TemplateContext } from "./exports";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "health" | "history" | "usage";
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "health" | "history" | "usage" | "uploads";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -119,6 +120,7 @@ export function App() {
     ["analytics", "Analytics", catalog.benchmarks.length],
     ["finance", "Finance Workbench", ""],
     ["history", "History", history.length || ""],
+    ["uploads", "Uploads", ""],
     ["usage", "Token usage", ""],
     ["health", "Capability Health", catalog.health.missingSkills.length],
   ];
@@ -194,6 +196,7 @@ export function App() {
             }}
           />
         )}
+        {view === "uploads" && <Uploads />}
         {view === "usage" && (
           <Usage
             history={history}
