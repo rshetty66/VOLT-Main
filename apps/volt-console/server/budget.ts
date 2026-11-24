@@ -3,11 +3,12 @@
  * answer. With a budget the server ends the run cleanly just before that, so what was written so far is kept, and it
  * skips the optional rewrite when too little time is left for it.
  *
- *   VOLT_RUN_BUDGET_SECONDS   seconds a run may take; 0 turns it off. Default: 270 on Vercel, off elsewhere.
+ *   VOLT_RUN_BUDGET_SECONDS   seconds a run may take; 0 turns it off. Default: 270 on Vercel, 900 elsewhere
+ *                             (a run with no limit can stay "running" for as long as the model keeps working).
  */
 export function runBudgetMs(env: NodeJS.ProcessEnv = process.env): number {
   const set = env.VOLT_RUN_BUDGET_SECONDS;
-  const seconds = set !== undefined && set !== "" ? Number(set) : env.VERCEL ? 270 : 0;
+  const seconds = set !== undefined && set !== "" ? Number(set) : env.VERCEL ? 270 : 900;
   return Number.isFinite(seconds) && seconds > 0 ? seconds * 1000 : 0;
 }
 

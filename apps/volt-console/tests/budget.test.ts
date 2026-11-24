@@ -5,14 +5,15 @@ import { SourceRegistry } from "../server/research.js";
 const env = (e: Record<string, string>) => e as NodeJS.ProcessEnv;
 
 describe("run time budget", () => {
-  it("is 270 seconds on Vercel and off elsewhere", () => {
+  it("is 270 seconds on Vercel and 15 minutes elsewhere", () => {
     expect(runBudgetMs(env({ VERCEL: "1" }))).toBe(270_000);
-    expect(runBudgetMs(env({}))).toBe(0);
+    expect(runBudgetMs(env({}))).toBe(900_000);
   });
   it("can be set, and turned off with 0 even on Vercel", () => {
     expect(runBudgetMs(env({ VOLT_RUN_BUDGET_SECONDS: "120" }))).toBe(120_000);
     expect(runBudgetMs(env({ VERCEL: "1", VOLT_RUN_BUDGET_SECONDS: "0" }))).toBe(0);
     expect(runBudgetMs(env({ VOLT_RUN_BUDGET_SECONDS: "abc" }))).toBe(0);
+    expect(runBudgetMs(env({ VOLT_RUN_BUDGET_SECONDS: "0" }))).toBe(0);
   });
   it("skips the rewrite only when over half the budget is spent", () => {
     expect(lateForRewrite(100_000, 270_000)).toBe(false);

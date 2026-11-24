@@ -4,7 +4,8 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ExcelJS from "exceljs";
 import { loadCatalog } from "../server/catalog";
 import { exportDocument } from "../server/export";
-import { runLocalTool, schemas, toolDefs, ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS } from "../server/tools";
+import { runLocalTool, schemas, toolDefs, CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS } from "../server/tools";
+import { madeFile } from "../server/orchestrator";
 import { csvText, safeFormula, type FileSpec } from "../shared/files";
 import { FileCards, runFiles } from "../src/components/FileCards";
 import { applyEvent as reduce, newRun } from "../src/runState";
@@ -16,6 +17,18 @@ describe("create_file tool", () => {
     expect(ORCHESTRATOR_TOOLS).toContain("create_file");
     expect(SPECIALIST_TOOLS).toContain("create_file");
     expect(toolDefs(["create_file"])[0].input_schema.type).toBe("object");
+  });
+
+  it("is not offered to specialists Rudra consults, so one run makes one file", () => {
+    expect(CONSULTED_TOOLS).not.toContain("create_file");
+  });
+
+  it("knows when the lead already made a file this turn, so the partner rewrite is skipped", () => {
+    const call = { role: "assistant" as const, content: [{ type: "tool_use" as const, id: "t1", name: "create_file", input: {} }] };
+    const result = { role: "user" as const, content: [{ type: "tool_result" as const, tool_use_id: "t1", content: "ok" }] };
+    expect(madeFile([{ role: "user", content: "Build a value case in Excel" }, call, result, { role: "assistant", content: [{ type: "text", text: "Done" }] }])).toBe(true);
+    expect(madeFile([{ role: "user", content: "Build it" }, { role: "assistant", content: [{ type: "text", text: "Answer" }] }])).toBe(false);
+    expect(madeFile([call, result, { role: "user", content: "Next question" }])).toBe(false);
   });
 
   it("returns the file spec for the console and a short reply for the model", () => {
