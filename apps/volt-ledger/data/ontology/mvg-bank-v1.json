@@ -1,0 +1,855 @@
+{
+ "version": "mvg-bank-v1",
+ "note": "Minimum viable graph for one bank (phase2-ontology.md). Calculation weights apply to signed, debit-positive balances, so every weight is +1. XBRL names are UNVERIFIED until checked against the taxonomy packages.",
+ "concepts": [
+  {
+   "id": "canon:CashAndCentralBankBalances",
+   "label": "Cash and balances with central banks",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:CashAndBankBalancesAtCentralBanks",
+    "us-gaap": "us-gaap:CashAndDueFromBanks"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 10
+  },
+  {
+   "id": "canon:DueFromBanks",
+   "label": "Loans and advances to banks",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:LoansAndAdvancesToBanks",
+    "us-gaap": "us-gaap:InterestBearingDepositsInBanks"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 20
+  },
+  {
+   "id": "canon:InvestmentSecuritiesFVOCI",
+   "label": "Investment securities at FVOCI",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:FinancialAssetsMeasuredAtFairValueThroughOtherComprehensiveIncome",
+    "us-gaap": "us-gaap:AvailableForSaleSecuritiesDebtSecurities"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 30
+  },
+  {
+   "id": "canon:InvestmentSecuritiesAmortisedCost",
+   "label": "Investment securities at amortised cost",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:FinancialAssetsAtAmortisedCost",
+    "us-gaap": "us-gaap:HeldToMaturitySecurities"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 40
+  },
+  {
+   "id": "canon:TradingAssets",
+   "label": "Trading assets",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:FinancialAssetsHeldForTrading",
+    "us-gaap": "us-gaap:TradingSecurities"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 50
+  },
+  {
+   "id": "canon:DerivativeAssets",
+   "label": "Derivative assets",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:DerivativeFinancialAssets",
+    "us-gaap": "us-gaap:DerivativeAssets"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 60
+  },
+  {
+   "id": "canon:LoansNet",
+   "label": "Loans and advances to customers, net",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:LoansAndAdvancesToCustomers",
+    "us-gaap": "us-gaap:FinancingReceivableExcludingAccruedInterestAfterAllowanceForCreditLoss"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 70
+  },
+  {
+   "id": "canon:LoansGross",
+   "label": "Loans and advances to customers, gross",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": "us-gaap:FinancingReceivableExcludingAccruedInterestBeforeAllowanceForCreditLoss"
+   },
+   "calc_parent": "canon:LoansNet",
+   "statement": "BS",
+   "order": 80
+  },
+  {
+   "id": "canon:CreditLossAllowance",
+   "label": "Allowance for expected credit losses",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:LossAllowance",
+    "us-gaap": "us-gaap:FinancingReceivableAllowanceForCreditLossExcludingAccruedInterest"
+   },
+   "calc_parent": "canon:LoansNet",
+   "statement": "BS",
+   "order": 90
+  },
+  {
+   "id": "canon:PropertyAndEquipment",
+   "label": "Property and equipment",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:PropertyPlantAndEquipment",
+    "us-gaap": "us-gaap:PropertyPlantAndEquipmentNet"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 100
+  },
+  {
+   "id": "canon:RightOfUseAssets",
+   "label": "Right-of-use assets",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:RightofuseAssets",
+    "us-gaap": "us-gaap:OperatingLeaseRightOfUseAsset"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 110
+  },
+  {
+   "id": "canon:Goodwill",
+   "label": "Goodwill",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:Goodwill",
+    "us-gaap": "us-gaap:Goodwill"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 120
+  },
+  {
+   "id": "canon:IntangibleAssets",
+   "label": "Intangible assets other than goodwill",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:IntangibleAssetsOtherThanGoodwill",
+    "us-gaap": "us-gaap:IntangibleAssetsNetExcludingGoodwill"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 130
+  },
+  {
+   "id": "canon:DeferredTaxAssets",
+   "label": "Deferred tax assets",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:DeferredTaxAssets",
+    "us-gaap": "us-gaap:DeferredIncomeTaxAssetsNet"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 140
+  },
+  {
+   "id": "canon:OtherAssets",
+   "label": "Other assets",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:OtherAssets",
+    "us-gaap": "us-gaap:OtherAssets"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 150
+  },
+  {
+   "id": "canon:TotalAssets",
+   "label": "Total assets",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:Assets",
+    "us-gaap": "us-gaap:Assets"
+   },
+   "calc_parent": null,
+   "statement": "BS",
+   "order": 160
+  },
+  {
+   "id": "canon:DueToBanks",
+   "label": "Deposits from banks",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:DepositsFromBanks",
+    "us-gaap": "us-gaap:DepositsFromBanks"
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 170
+  },
+  {
+   "id": "canon:CustomerDeposits",
+   "label": "Deposits from customers",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:DepositsFromCustomers",
+    "us-gaap": "us-gaap:Deposits"
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 180
+  },
+  {
+   "id": "canon:CurrentAccountDeposits",
+   "label": "Current account deposits",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": "us-gaap:DemandDepositAccounts"
+   },
+   "calc_parent": "canon:CustomerDeposits",
+   "statement": "BS",
+   "order": 190
+  },
+  {
+   "id": "canon:SavingsDeposits",
+   "label": "Savings deposits",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": "us-gaap:SavingsDeposits"
+   },
+   "calc_parent": "canon:CustomerDeposits",
+   "statement": "BS",
+   "order": 200
+  },
+  {
+   "id": "canon:TermDeposits",
+   "label": "Term deposits",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": "us-gaap:TimeDeposits"
+   },
+   "calc_parent": "canon:CustomerDeposits",
+   "statement": "BS",
+   "order": 210
+  },
+  {
+   "id": "canon:DebtSecuritiesIssued",
+   "label": "Debt securities issued",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:DebtSecuritiesIssued",
+    "us-gaap": "us-gaap:LongTermDebt"
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 220
+  },
+  {
+   "id": "canon:SubordinatedDebt",
+   "label": "Subordinated liabilities",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:SubordinatedLiabilities",
+    "us-gaap": "us-gaap:SubordinatedDebt"
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 230
+  },
+  {
+   "id": "canon:DerivativeLiabilities",
+   "label": "Derivative liabilities",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:DerivativeFinancialLiabilities",
+    "us-gaap": "us-gaap:DerivativeLiabilities"
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 240
+  },
+  {
+   "id": "canon:LeaseLiabilities",
+   "label": "Lease liabilities",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:LeaseLiabilities",
+    "us-gaap": "us-gaap:OperatingLeaseLiability"
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 250
+  },
+  {
+   "id": "canon:CurrentTaxLiabilities",
+   "label": "Current tax liabilities",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:CurrentTaxLiabilities",
+    "us-gaap": "us-gaap:AccruedIncomeTaxesCurrent"
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 260
+  },
+  {
+   "id": "canon:Provisions",
+   "label": "Provisions",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:Provisions",
+    "us-gaap": null
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 270
+  },
+  {
+   "id": "canon:OtherLiabilities",
+   "label": "Other liabilities",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:OtherLiabilities",
+    "us-gaap": "us-gaap:OtherLiabilities"
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 280
+  },
+  {
+   "id": "canon:TotalLiabilities",
+   "label": "Total liabilities",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:Liabilities",
+    "us-gaap": "us-gaap:Liabilities"
+   },
+   "calc_parent": "canon:TotalLiabilitiesAndEquity",
+   "statement": "BS",
+   "order": 290
+  },
+  {
+   "id": "canon:ShareCapital",
+   "label": "Share capital",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:IssuedCapital",
+    "us-gaap": "us-gaap:CommonStockValue"
+   },
+   "calc_parent": "canon:TotalEquity",
+   "statement": "BS",
+   "order": 300
+  },
+  {
+   "id": "canon:RetainedEarnings",
+   "label": "Retained earnings",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:RetainedEarnings",
+    "us-gaap": "us-gaap:RetainedEarningsAccumulatedDeficit"
+   },
+   "calc_parent": "canon:TotalEquity",
+   "statement": "BS",
+   "order": 310
+  },
+  {
+   "id": "canon:OtherComprehensiveIncomeReserve",
+   "label": "Other reserves (FVOCI)",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:OtherReserves",
+    "us-gaap": "us-gaap:AccumulatedOtherComprehensiveIncomeLossNetOfTax"
+   },
+   "calc_parent": "canon:TotalEquity",
+   "statement": "BS",
+   "order": 320
+  },
+  {
+   "id": "canon:NonControllingInterests",
+   "label": "Non-controlling interests",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:NoncontrollingInterests",
+    "us-gaap": "us-gaap:MinorityInterest"
+   },
+   "calc_parent": "canon:TotalEquity",
+   "statement": "BS",
+   "order": 330
+  },
+  {
+   "id": "canon:TotalEquity",
+   "label": "Total equity",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:Equity",
+    "us-gaap": "us-gaap:StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"
+   },
+   "calc_parent": "canon:TotalLiabilitiesAndEquity",
+   "statement": "BS",
+   "order": 340
+  },
+  {
+   "id": "canon:TotalLiabilitiesAndEquity",
+   "label": "Total liabilities and equity",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:EquityAndLiabilities",
+    "us-gaap": "us-gaap:LiabilitiesAndStockholdersEquity"
+   },
+   "calc_parent": null,
+   "statement": "BS",
+   "order": 350
+  },
+  {
+   "id": "canon:InterestIncome",
+   "label": "Interest income",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:InterestRevenueCalculatedUsingEffectiveInterestMethod",
+    "us-gaap": "us-gaap:InterestAndDividendIncomeOperating"
+   },
+   "calc_parent": "canon:NetInterestIncome",
+   "statement": "IS",
+   "order": 10
+  },
+  {
+   "id": "canon:InterestExpense",
+   "label": "Interest expense",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:InterestExpense",
+    "us-gaap": "us-gaap:InterestExpense"
+   },
+   "calc_parent": "canon:NetInterestIncome",
+   "statement": "IS",
+   "order": 20
+  },
+  {
+   "id": "canon:NetInterestIncome",
+   "label": "Net interest income",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:RevenueFromInterest",
+    "us-gaap": "us-gaap:InterestIncomeExpenseNet"
+   },
+   "calc_parent": "canon:TotalOperatingIncome",
+   "statement": "IS",
+   "order": 30
+  },
+  {
+   "id": "canon:FeeAndCommissionIncome",
+   "label": "Fee and commission income",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:FeeAndCommissionIncome",
+    "us-gaap": "us-gaap:FeesAndCommissions"
+   },
+   "calc_parent": "canon:NetFeeIncome",
+   "statement": "IS",
+   "order": 40
+  },
+  {
+   "id": "canon:FeeAndCommissionExpense",
+   "label": "Fee and commission expense",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:FeeAndCommissionExpense",
+    "us-gaap": "us-gaap:FeesAndCommissionsExpense"
+   },
+   "calc_parent": "canon:NetFeeIncome",
+   "statement": "IS",
+   "order": 50
+  },
+  {
+   "id": "canon:NetFeeIncome",
+   "label": "Net fee and commission income",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:FeeAndCommissionIncomeExpense",
+    "us-gaap": null
+   },
+   "calc_parent": "canon:NonInterestIncome",
+   "statement": "IS",
+   "order": 60
+  },
+  {
+   "id": "canon:TradingIncome",
+   "label": "Net trading income",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:GainsLossesOnFinancialAssetsAtFairValueThroughProfitOrLoss",
+    "us-gaap": "us-gaap:TradingGainsLosses"
+   },
+   "calc_parent": "canon:NonInterestIncome",
+   "statement": "IS",
+   "order": 70
+  },
+  {
+   "id": "canon:OtherOperatingIncome",
+   "label": "Other operating income",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:OtherOperatingIncomeExpense",
+    "us-gaap": "us-gaap:NoninterestIncomeOther"
+   },
+   "calc_parent": "canon:NonInterestIncome",
+   "statement": "IS",
+   "order": 80
+  },
+  {
+   "id": "canon:NonInterestIncome",
+   "label": "Non-interest income",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": "us-gaap:NoninterestIncome"
+   },
+   "calc_parent": "canon:TotalOperatingIncome",
+   "statement": "IS",
+   "order": 90
+  },
+  {
+   "id": "canon:TotalOperatingIncome",
+   "label": "Total operating income",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": "us-gaap:Revenues"
+   },
+   "calc_parent": "canon:PreProvisionOperatingProfit",
+   "statement": "IS",
+   "order": 100
+  },
+  {
+   "id": "canon:StaffCosts",
+   "label": "Staff costs",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:EmployeeBenefitsExpense",
+    "us-gaap": "us-gaap:LaborAndRelatedExpense"
+   },
+   "calc_parent": "canon:OperatingExpenses",
+   "statement": "IS",
+   "order": 110
+  },
+  {
+   "id": "canon:ITCosts",
+   "label": "Technology costs",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": "us-gaap:InformationTechnologyAndDataProcessing"
+   },
+   "calc_parent": "canon:OperatingExpenses",
+   "statement": "IS",
+   "order": 120
+  },
+  {
+   "id": "canon:PremisesCosts",
+   "label": "Premises costs",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": "us-gaap:OccupancyNet"
+   },
+   "calc_parent": "canon:OperatingExpenses",
+   "statement": "IS",
+   "order": 130
+  },
+  {
+   "id": "canon:DepreciationAndAmortisation",
+   "label": "Depreciation and amortisation",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:DepreciationAndAmortisationExpense",
+    "us-gaap": "us-gaap:DepreciationDepletionAndAmortization"
+   },
+   "calc_parent": "canon:OperatingExpenses",
+   "statement": "IS",
+   "order": 140
+  },
+  {
+   "id": "canon:OtherOperatingExpenses",
+   "label": "Other operating expenses",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:OtherOperatingExpense",
+    "us-gaap": "us-gaap:OtherNoninterestExpense"
+   },
+   "calc_parent": "canon:OperatingExpenses",
+   "statement": "IS",
+   "order": 150
+  },
+  {
+   "id": "canon:OperatingExpenses",
+   "label": "Operating expenses",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": "us-gaap:NoninterestExpense"
+   },
+   "calc_parent": "canon:PreProvisionOperatingProfit",
+   "statement": "IS",
+   "order": 160
+  },
+  {
+   "id": "canon:PreProvisionOperatingProfit",
+   "label": "Pre-provision operating profit",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": null
+   },
+   "calc_parent": "canon:ProfitBeforeTax",
+   "statement": "IS",
+   "order": 170
+  },
+  {
+   "id": "canon:CreditLossExpense",
+   "label": "Expected credit loss expense",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:ImpairmentLossImpairmentGainAndReversalOfImpairmentLossDeterminedInAccordanceWithIFRS9",
+    "us-gaap": "us-gaap:ProvisionForLoanLeaseAndOtherLosses"
+   },
+   "calc_parent": "canon:ProfitBeforeTax",
+   "statement": "IS",
+   "order": 180
+  },
+  {
+   "id": "canon:ProfitBeforeTax",
+   "label": "Profit before tax",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:ProfitLossBeforeTax",
+    "us-gaap": "us-gaap:IncomeLossFromContinuingOperationsBeforeIncomeTaxesExtraordinaryItemsNoncontrollingInterest"
+   },
+   "calc_parent": "canon:ProfitAfterTax",
+   "statement": "IS",
+   "order": 190
+  },
+  {
+   "id": "canon:IncomeTaxExpense",
+   "label": "Income tax expense",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:IncomeTaxExpenseContinuingOperations",
+    "us-gaap": "us-gaap:IncomeTaxExpenseBenefit"
+   },
+   "calc_parent": "canon:ProfitAfterTax",
+   "statement": "IS",
+   "order": 200
+  },
+  {
+   "id": "canon:ProfitAfterTax",
+   "label": "Profit for the period",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:ProfitLoss",
+    "us-gaap": "us-gaap:ProfitLoss"
+   },
+   "calc_parent": null,
+   "statement": "IS",
+   "order": 210
+  },
+  {
+   "id": "canon:ProfitAttributableToShareholders",
+   "label": "Profit attributable to owners of the parent",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:ProfitLossAttributableToOwnersOfParent",
+    "us-gaap": "us-gaap:NetIncomeLoss"
+   },
+   "calc_parent": null,
+   "statement": "IS",
+   "order": 220
+  },
+  {
+   "id": "canon:WriteOffs",
+   "label": "Loans written off",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": null
+   },
+   "calc_parent": null,
+   "statement": null,
+   "order": null
+  },
+  {
+   "id": "canon:Recoveries",
+   "label": "Recoveries of loans written off",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": null
+   },
+   "calc_parent": null,
+   "statement": null,
+   "order": null
+  },
+  {
+   "id": "canon:DividendsDeclared",
+   "label": "Dividends declared",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": null
+   },
+   "calc_parent": null,
+   "statement": null,
+   "order": null
+  },
+  {
+   "id": "canon:InterestEarningAssets",
+   "label": "Interest-earning assets",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": null
+   },
+   "calc_parent": null,
+   "statement": null,
+   "order": null
+  },
+  {
+   "id": "canon:InterestBearingLiabilities",
+   "label": "Interest-bearing liabilities",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": null
+   },
+   "calc_parent": null,
+   "statement": null,
+   "order": null
+  }
+ ],
+ "dimensions": {
+  "BusinessLine": [
+   "Retail",
+   "Commercial",
+   "Wealth",
+   "Treasury",
+   "CorporateCentre",
+   "Unassigned"
+  ],
+  "CreditStage": [
+   "Stage1",
+   "Stage2",
+   "Stage3",
+   "POCI"
+  ],
+  "Product": [
+   "Mortgages",
+   "Cards",
+   "PersonalLoans",
+   "CommercialLoans",
+   "CurrentAccounts",
+   "Savings",
+   "TermDeposits"
+  ],
+  "CostCentre": [
+   "OPS01",
+   "IT01",
+   "FIN01",
+   "HR01",
+   "BR01",
+   "CORP01"
+  ]
+ },
+ "statements": {
+  "ifrs": {
+   "BS": "stmt:IFRS:BS",
+   "IS": "stmt:IFRS:IS"
+  },
+  "us-gaap": {
+   "BS": "stmt:USGAAP:BS",
+   "IS": "stmt:USGAAP:IS"
+  }
+ }
+}
