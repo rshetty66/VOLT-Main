@@ -15,6 +15,8 @@
  *   GET  /api/ledger/review        VOLT Ledger review queue (people only; never a model tool)
  *   POST /api/ledger/review        record an engagement-lead or client decision
  *   POST /api/ledger/driver        enter a driver value (FTEs, transaction counts, RWA) for allocation
+ *   GET  /api/ledger/coa           chart-of-accounts designs and their review state
+ *   GET  /api/ledger/coa/export    CSV download of a design: ?design_id=coa:0001&what=chart|hierarchy|mapping|decisions
  *
  * In production it also serves the built React app from dist/.
  */
@@ -43,7 +45,7 @@ import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH
 import { runBudgetMs } from "./budget.js";
 import { startHeartbeat } from "./sse.js";
 import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requestUser, requireToken, sameOriginWrites, securityConfig } from "./security.js";
-import { ledgerEnabled, ledgerPeople } from "./ledger.js";
+import { ledgerCoaExport, ledgerEnabled, ledgerPeople } from "./ledger.js";
 
 const catalog = loadCatalog();
 const security = securityConfig();
@@ -256,6 +258,24 @@ app.post("/api/ledger/driver", async (req, res) => {
   if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
   const r = await ledgerPeople("POST", "driver_value", reviewer(req), { ...parsed.data, kind: "driver", unit: parsed.data.unit || parsed.data.key.toUpperCase() });
   res.status(r.status).json(r.json);
+});
+
+app.get("/api/ledger/coa", async (req, res) => {
+  if (!ledgerEnabled()) return void res.json({ enabled: false, designs: [] });
+  const r = await ledgerPeople("GET", "coa_designs", reviewer(req));
+  res.status(r.status).json(r.status === 200 ? { enabled: true, designs: (r.json as { data?: unknown }).data ?? [] } : r.json);
+});
+
+const CoaExport = z.object({ design_id: z.string().regex(/^coa:[0-9]{4}$/), what: z.enum(["chart", "hierarchy", "mapping", "decisions"]) });
+
+app.get("/api/ledger/coa/export", async (req, res) => {
+  const parsed = CoaExport.safeParse(req.query);
+  if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
+  const r = await ledgerCoaExport(parsed.data.design_id, parsed.data.what, reviewer(req));
+  if (r.status !== 200) return void res.status(r.status).json({ error: r.text });
+  res.setHeader("content-type", "text/csv; charset=utf-8");
+  res.setHeader("content-disposition", `attachment; filename="${parsed.data.design_id.replace(":", "-")}-${parsed.data.what}.csv"`);
+  res.send(r.text);
 });
 
 app.get("/api/templates", (_req, res) => {

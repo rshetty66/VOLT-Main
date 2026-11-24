@@ -130,6 +130,11 @@ def test_p8_append_only(table, sql):
     s.conn.execute("INSERT INTO peer_document (doc_id, peer_id, period, doc_type, url, source_tier, retrieved_utc, sha256, "
                    "pages, bytes, path, evidence_id) VALUES ('P00001','td','FY2026-Q3','press_release','https://www.td.com/x.pdf',"
                    "'primary','2026-11-24T00:00:00Z','00',1,1,'/x.pdf','E000001')")
+    s.conn.execute("INSERT INTO coa_design (design_id, version, definition, proposed_by, review_item_id, evidence_id) "
+                   "VALUES ('coa:0001', 1, '{}', 'model', 'R000001', 'E000001')")
+    s.conn.execute("INSERT INTO coa_mapping (mapping_id, design_id, design_version, doc_id, definition, proposed_by, "
+                   "review_item_id, evidence_id) VALUES ('coa:0001@1:M001', 'coa:0001', 1, 'D0001', '[]', 'model', "
+                   "'R000001', 'E000001')")
     assert s.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] > 0   # triggers fire only on existing rows
     with pytest.raises(sqlite3.DatabaseError, match="append-only"):
         s.conn.execute(sql.format(t=table))

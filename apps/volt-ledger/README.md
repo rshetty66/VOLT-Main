@@ -1,5 +1,10 @@
 # VOLT Ledger Brain
 
+**Primary output: chart-of-accounts design** (refocused 24 Nov 2026). The brain diagnoses a client's current chart
+from its trial balance, proposes a target chart (segments, natural account ranges, hierarchy, multi-GAAP roll-ups),
+maps old accounts to new with a tie-out, and logs every design decision for review. Statements, ratios, allocation
+and peer results are supporting inputs. See "Chart-of-accounts design" below.
+
 The deterministic accounting engine behind VOLT's accounting-policy and ledger work. Claude in the VOLT Console
 reads, maps and explains; this service does every calculation and keeps the records. See `docs/` for the approved
 design: `intent.md`, `spec.md`, `ratio-catalogue.md` and the Phase 2 to 5 specs.
@@ -7,6 +12,30 @@ design: `intent.md`, `spec.md`, `ratio-catalogue.md` and the Phase 2 to 5 specs.
 Status: Phase 6 steps 1 to 3 are built (ingestion, ontology loader, posting service), plus the engine side of step 4
 (mapping, policy gaps, review queue). The HTTP API, the console tools that let Claude call these, and the allocation
 engine come next. The system prompts Claude will use are in `prompts/`.
+
+## Chart-of-accounts design (`volt_ledger/coa.py`)
+
+The checks from `apps/volt-coa` (`shared/coa.ts`) are ported here so every verdict is tested code with evidence.
+
+| Step | Tool | What code decides |
+|---|---|---|
+| Diagnose | `diagnose_coa` | Findings from the ingested, mapped trial balance: catch-alls, dimensions built into codes or names, near-duplicates, wrong-sign balances, unmapped accounts, dimensions filled inconsistently, income and expense with no business line, open policy gaps, statement lines and metrics the chart cannot produce |
+| Draft | `check_coa_design` | A dry run: structure checks and coverage, nothing stored |
+| Propose | `propose_coa_design` | Stored only if every check passes; the design and each decision go to the review queue; a new version supersedes |
+| Map | `propose_coa_mapping` | Every trial-balance row placed exactly once; balances recut under the new chart; tie-out by total, class and concept, with every reclassified concept listed |
+| Status and export | `coa_status`, `/v1/people/coa_export` | Review state; CSV of the chart, hierarchy, mapping and decision log |
+
+Design checks: `S_NATURAL_SEGMENT`, `S_UNIQUE_SEGMENTS`, `S_SOURCE_DIMENSION`, `C_UNIQUE_CODES`, `C_CODE_LENGTH`,
+`C_CLASS`, `C_TYPE_RANGE`, `C_PARENT_EXISTS`, `C_NO_CYCLES`, `C_PARENT_TYPE`, `C_NAMING`, `C_POSTING_CONCEPT`,
+`C_CONCEPT_CLASS`, `C_NO_SEGMENT_IN_NAME`, `D_DECISIONS_COMPLETE`. Mapping checks: `M_UNKNOWN_SOURCE`,
+`M_ROW_COVERAGE`, `M_ROW_UNIQUE`, `M_TARGET_EXISTS`, `M_POSTING_TARGET`, `M_RETIRE_ZERO`, `M_SEGMENT_NAMES`.
+
+Every posting account carries a canonical concept, so its IFRS and US GAAP line and XBRL tags follow from the
+ontology. Profit attribution lines (owners, non-controlling interests) are computed at consolidation, not posted.
+The golden target chart for the synthetic bank is `tests/golden/synbank_target_coa.json`.
+
+Not in v1: ERP load formats (Oracle, SAP, Workday), local statutory taxonomies beyond IFRS and US GAAP, and
+PDF statement ingestion as a diagnosis input.
 
 ## Run the tests
 

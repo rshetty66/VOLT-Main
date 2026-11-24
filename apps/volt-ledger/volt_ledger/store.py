@@ -73,6 +73,15 @@ CREATE TABLE IF NOT EXISTS peer_document (
   sha256 TEXT NOT NULL, pages INTEGER NOT NULL, bytes INTEGER NOT NULL, path TEXT NOT NULL, evidence_id TEXT NOT NULL,
   UNIQUE (url, sha256)
 );
+CREATE TABLE IF NOT EXISTS coa_design (
+  seq INTEGER PRIMARY KEY AUTOINCREMENT, design_id TEXT NOT NULL, version INTEGER NOT NULL, definition TEXT NOT NULL,
+  proposed_by TEXT NOT NULL, review_item_id TEXT NOT NULL, evidence_id TEXT NOT NULL, UNIQUE (design_id, version)
+);
+CREATE TABLE IF NOT EXISTS coa_mapping (
+  seq INTEGER PRIMARY KEY AUTOINCREMENT, mapping_id TEXT UNIQUE NOT NULL, design_id TEXT NOT NULL,
+  design_version INTEGER NOT NULL, doc_id TEXT NOT NULL, definition TEXT NOT NULL, proposed_by TEXT NOT NULL,
+  review_item_id TEXT NOT NULL, evidence_id TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS period_lock_event (
   seq INTEGER PRIMARY KEY AUTOINCREMENT, period TEXT NOT NULL, action TEXT NOT NULL CHECK (action IN ('lock','unlock')),
   actor TEXT NOT NULL, reason TEXT NOT NULL, evidence_id TEXT NOT NULL
@@ -82,7 +91,7 @@ CREATE TABLE IF NOT EXISTS period_lock_event (
 APPEND_ONLY_TABLES = (
     "evidence", "element", "association", "source_document", "tb_row",
     "journal_entry", "journal_line", "period_lock_event", "review_item", "review_decision",
-    "driver_value", "allocation_rule", "peer_document",
+    "driver_value", "allocation_rule", "peer_document", "coa_design", "coa_mapping",
 )
 
 
