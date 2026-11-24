@@ -54,6 +54,7 @@ import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLi
 const catalog = loadCatalog();
 const security = securityConfig();
 assertSafeToListen(security);
+if (security.authMode === "username") console.warn("[security] VOLT_AUTH_MODE=username: sign-in needs only a name, with no secret. Anyone who can reach this URL can use the Claude API key.");
 const app = express();
 app.disable("x-powered-by");
 // Behind a reverse proxy (Render, Fly, nginx) set VOLT_TRUST_PROXY=1 so req.ip and req.secure come from X-Forwarded-*;

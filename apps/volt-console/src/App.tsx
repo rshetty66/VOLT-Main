@@ -25,6 +25,7 @@ export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [loadError, setLoadError] = useState("");
   const [needsSignIn, setNeedsSignIn] = useState(false);
+  const [authMode, setAuthMode] = useState<"token" | "username">("token");
   const [view, setView] = useState<View>("console");
   const [runs, setRuns] = useState<Run[]>([]);
   const [history, setHistory] = useState<Run[]>(() => loadHistory());
@@ -39,7 +40,7 @@ export function App() {
   const load = useCallback(() => {
     setLoadError("");
     setNeedsSignIn(false);
-    fetchCatalog().then(setCatalog, (e) => (e instanceof UnauthorizedError ? setNeedsSignIn(true) : setLoadError(String(e))));
+    fetchCatalog().then(setCatalog, (e) => (e instanceof UnauthorizedError ? (setAuthMode(e.auth), setNeedsSignIn(true)) : setLoadError(String(e))));
     listTemplates().then(setTemplates, () => setTemplates([]));
   }, []);
   useEffect(load, [load]);
@@ -105,7 +106,7 @@ export function App() {
     setRuns((rs) => rs.map((r) => (r.id === runId ? { ...r, state: "stopped", finishedAt: Date.now() } : r)));
   };
 
-  if (needsSignIn) return <SignIn onSignedIn={load} />;
+  if (needsSignIn) return <SignIn mode={authMode} onSignedIn={load} />;
   if (loadError) return <div className="empty">Could not load the VOLT catalog: {loadError}</div>;
   if (!catalog) return <div className="empty"><span className="spinner" /> Loading VOLT capabilities…</div>;
 

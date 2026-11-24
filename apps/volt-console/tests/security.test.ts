@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Request, Response } from "express";
-import { SESSION_MS, assertSafeToListen, loginPostHandler, rateLimit, requestToken, requireToken, sameOriginWrites, securityConfig, tokenMatches } from "../server/security.js";
+import { SESSION_MS, USER_COOKIE, assertSafeToListen, requestUser, validUsername, loginPostHandler, rateLimit, requestToken, requireToken, sameOriginWrites, securityConfig, tokenMatches } from "../server/security.js";
 import { getSession } from "../server/orchestrator.js";
 
 const cfg = (env: Record<string, string> = {}) => securityConfig({ ...env } as NodeJS.ProcessEnv);
@@ -108,5 +108,53 @@ describe("sign-in form", () => {
       expect(out.status).toBe(401);
       expect(out.cookie).toBeUndefined();
     }
+  });
+});
+
+describe("username-only sign-in (opt-in)", () => {
+  const u = cfg({ VOLT_AUTH_MODE: "username", VOLT_HOST: "0.0.0.0" });
+  const run = (c: ReturnType<typeof cfg>, path: string, cookie?: string, auth?: string) => {
+    const out = { status: 0, nexted: false, json: undefined as any };
+    const res = { status(n: number) { out.status = n; return this; }, json(b: unknown) { out.json = b; return this; } } as unknown as Response;
+    requireToken(c)({ path, headers: { cookie, authorization: auth } } as unknown as Request, res, () => { out.nexted = true; });
+    return out;
+  };
+  const login = (c: ReturnType<typeof cfg>, body: unknown) => {
+    const out = { status: 200, cookie: undefined as unknown[] | undefined };
+    const res = { status(n: number) { out.status = n; return this; }, json() { return this; }, cookie(...a: unknown[]) { out.cookie = a; return this; } } as unknown as Response;
+    loginPostHandler(c)({ body, secure: true, get: () => undefined } as unknown as Request, res, () => {});
+    return out;
+  };
+
+  it("is off by default and needs the explicit mode to allow a public bind without a token", () => {
+    expect(cfg().authMode).toBe("token");
+    expect(() => assertSafeToListen(cfg({ VOLT_HOST: "0.0.0.0" }))).toThrow(/VOLT_ACCESS_TOKEN/);
+    expect(() => assertSafeToListen(u)).not.toThrow();
+  });
+  it("accepts a plain name and sets an HttpOnly cookie, and rejects empty or odd names", () => {
+    const ok = login(u, { username: "  Priya S  " });
+    expect(ok.status).toBe(200);
+    expect(ok.cookie?.[0]).toBe(USER_COOKIE);
+    expect(ok.cookie?.[1]).toBe("Priya S");
+    expect((ok.cookie?.[2] as { httpOnly: boolean }).httpOnly).toBe(true);
+    for (const body of [{ username: "" }, { username: "<script>" }, { username: "x".repeat(41) }, {}, undefined]) expect(login(u, body).status).toBe(401);
+  });
+  it("lets only listed names in when VOLT_ALLOWED_USERS is set", () => {
+    const a = cfg({ VOLT_AUTH_MODE: "username", VOLT_ALLOWED_USERS: "Asha, Ravi" });
+    expect(validUsername(a, "asha")).toBe(true);
+    expect(validUsername(a, "Mallory")).toBe(false);
+    expect(login(a, { username: "Mallory" }).status).toBe(401);
+  });
+  it("guards /api with the cookie, but keeps health and login open", () => {
+    expect(run(u, "/api/catalog")).toMatchObject({ status: 401, json: { auth: "username" } });
+    expect(run(u, "/api/catalog", `${USER_COOKIE}=Priya%20S`).nexted).toBe(true);
+    expect(run(u, "/api/healthz").nexted).toBe(true);
+    expect(requestUser(u, { headers: { cookie: `${USER_COOKIE}=Priya%20S` } } as never)).toBe("Priya S");
+    expect(requestUser(cfg(), { headers: { cookie: `${USER_COOKIE}=Priya` } } as never)).toBeUndefined();
+  });
+  it("still honours the Bearer token when one is also configured", () => {
+    const both = cfg({ VOLT_AUTH_MODE: "username", VOLT_ACCESS_TOKEN: "t".repeat(20) });
+    expect(run(both, "/api/catalog", undefined, `Bearer ${"t".repeat(20)}`).nexted).toBe(true);
+    expect(run(both, "/api/catalog").status).toBe(401);
   });
 });
