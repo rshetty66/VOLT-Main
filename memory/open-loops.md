@@ -8,3 +8,4 @@ Add new items with the date. Mark finished items done with the date; never silen
 - [ ] 2026-11-24: Rakesh to set `VOLT_AUTH_MODE=username` in Render.
 - [ ] 2026-11-24: FSDF is not yet run on a real Oracle database.
 - [ ] 2026-11-24: Draft PR for this memory-first agent system awaits Rakesh's review and merge OK.
+- [ ] 2026-11-24: PR A (executive charts, animation, GIF, native PowerPoint charts) is a draft; PR B (VOLT makes files) and PR C (VOLT HTML template with interactive process flows) follow.

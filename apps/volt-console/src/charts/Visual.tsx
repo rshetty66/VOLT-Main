@@ -1,10 +1,11 @@
-import { useEffect, useState, type ReactElement } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from "react";
 import { DARK, LIGHT, type Palette } from "./palette";
 import { renderMermaid } from "./mermaid";
 import { parseArchSpec, parseChartSpec } from "../../shared/viz";
 import { archSvg } from "./specArch";
 import { specSvg } from "./specChart";
 import { datedName, downloadBlob, downloadText, svgToPng } from "../download";
+import { chartGif } from "./gif";
 
 /** Light-palette SVG markup for a chart, used by every download. */
 export async function chartSvg(render: (p: Palette) => ReactElement): Promise<string> {
@@ -12,11 +13,12 @@ export async function chartSvg(render: (p: Palette) => ReactElement): Promise<st
   return renderToStaticMarkup(render(LIGHT));
 }
 
-export function DownloadButtons({ name, svg }: { name: string; svg: () => Promise<string> }) {
+export function DownloadButtons({ name, svg, gif }: { name: string; svg: () => Promise<string>; gif?: () => Promise<Blob> }) {
   const [busy, setBusy] = useState(false);
-  const run = async (kind: "svg" | "png") => {
+  const run = async (kind: "svg" | "png" | "gif") => {
     setBusy(true);
     try {
+      if (kind === "gif" && gif) return downloadBlob(datedName(name, "gif"), await gif());
       const markup = await svg();
       if (kind === "svg") downloadText(datedName(name, "svg"), markup, "image/svg+xml");
       else downloadBlob(datedName(name, "png"), await svgToPng(markup, 2));
@@ -28,6 +30,7 @@ export function DownloadButtons({ name, svg }: { name: string; svg: () => Promis
     <div className="visual-actions">
       <button className="btn ghost sm" disabled={busy} onClick={() => run("svg")} aria-label={`Download ${name} as SVG`}>SVG</button>
       <button className="btn ghost sm" disabled={busy} onClick={() => run("png")} aria-label={`Download ${name} as PNG`}>PNG</button>
+      {gif && <button className="btn ghost sm" disabled={busy} onClick={() => run("gif")} aria-label={`Download ${name} as an animated GIF`} title="Animated, for slides and email">GIF</button>}
     </div>
   );
 }
@@ -76,10 +79,43 @@ export function MermaidDiagram({ code }: { code: string }) {
   );
 }
 
+/** Length of a chart's entrance: one authored moment, within Impeccable's 500 to 800 ms for a focal entrance. */
+const ENTRANCE_MS = 800;
+
+/**
+ * Plays a chart's entrance once, the first time it is drawn: returns the progress (0 to 1) to draw at. The chart is
+ * fully drawn by default and on any interruption, so it never stays hidden; with reduced motion it only fades (CSS).
+ */
+function useEntrance(key: string | null): number {
+  const [t, setT] = useState(1);
+  const played = useRef(false);
+  useLayoutEffect(() => {
+    if (!key || played.current) return;
+    played.current = true;
+    if (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const start = performance.now();
+    let raf = 0;
+    const step = (now: number) => {
+      const x = Math.min(1, (now - start) / ENTRANCE_MS);
+      setT(x);
+      if (x < 1) raf = requestAnimationFrame(step);
+    };
+    setT(0);
+    raf = requestAnimationFrame(step);
+    return () => {
+      cancelAnimationFrame(raf);
+      played.current = false;
+      setT(1);
+    };
+  }, [key]);
+  return t;
+}
+
 /** A ```chart block from agent output: a data chart drawn from its JSON. Shows the source until the JSON is complete. */
 export function SpecChart({ code }: { code: string }) {
   const [spec, setSpec] = useState(() => parseChartSpec(code));
   const [waited, setWaited] = useState(false);
+  const t = useEntrance(spec ? spec.title + spec.type : null);
   useEffect(() => {
     // Agent output streams in: wait for the block to stop changing before judging it.
     const t = setTimeout(() => {
@@ -99,8 +135,8 @@ export function SpecChart({ code }: { code: string }) {
     );
   return (
     <figure className="visual spec-chart">
-      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: specSvg(spec, DARK) }} />
-      <DownloadButtons name={spec.title || "chart"} svg={async () => specSvg(spec, LIGHT)} />
+      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: specSvg(spec, DARK, { t }) }} />
+      <DownloadButtons name={spec.title || "chart"} svg={async () => specSvg(spec, LIGHT)} gif={() => chartGif((f) => specSvg(spec, LIGHT, { t: f }))} />
     </figure>
   );
 }
