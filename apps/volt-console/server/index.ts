@@ -45,6 +45,7 @@ import { MAX_SOURCE_BYTES, SourceError, extractFigures, findFilings, ingestDocum
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
 import { AttachmentError, extractAttachment } from "./attachments.js";
+import { listUploads, originalPath, readUpload, removeUpload, saveUpload } from "./uploads.js";
 import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../shared/attachments.js";
 import { runBudgetMs } from "./budget.js";
 import { startHeartbeat } from "./sse.js";
@@ -260,6 +261,51 @@ app.post("/api/attachments/extract", express.raw({ type: () => true, limit: ATTA
     console.error("Attachment extraction failed", err);
     res.status(500).json({ error: "That file could not be read.", code: "unreadable" });
   }
+});
+
+// ── Uploads library ──────────────────────────────────────────────────────────
+// Every attached file is kept (original + extracted text) so any later chat can use it again as a source.
+
+app.post("/api/uploads", express.raw({ type: () => true, limit: ATTACH_MAX_BYTES }), async (req, res) => {
+  const data = Buffer.isBuffer(req.body) ? new Uint8Array(req.body) : new Uint8Array(0);
+  if (data.length === 0) return void res.status(400).json({ error: "Send the file as the request body.", code: "empty" });
+  let name = req.get("x-file-name") ?? "attachment";
+  try {
+    name = decodeURIComponent(name);
+  } catch {
+    /* keep the raw header */
+  }
+  try {
+    const extracted = await extractAttachment(name, data);
+    const meta = saveUpload(extracted, data);
+    res.json({ ...extracted, id: meta.id });
+  } catch (err) {
+    if (err instanceof AttachmentError) return void res.status(err.code === "unsupported_type" ? 415 : 422).json({ error: err.message, code: err.code });
+    console.error("Upload failed", err);
+    res.status(500).json({ error: "That file could not be read.", code: "unreadable" });
+  }
+});
+
+app.get("/api/uploads", (_req, res) => {
+  res.json(listUploads());
+});
+
+app.get("/api/uploads/:id", (req, res) => {
+  const got = readUpload(req.params.id);
+  if (!got) return void res.status(404).json({ error: "unknown upload" });
+  res.json({ ...got.meta, name: got.meta.name, text: got.text });
+});
+
+app.get("/api/uploads/:id/file", (req, res) => {
+  const file = originalPath(req.params.id);
+  const meta = listUploads().find((m) => m.id === req.params.id);
+  if (!file || !meta) return void res.status(404).json({ error: "unknown upload" });
+  res.download(file, meta.name);
+});
+
+app.delete("/api/uploads/:id", (req, res) => {
+  if (!removeUpload(req.params.id)) return void res.status(404).json({ error: "unknown upload" });
+  res.status(204).end();
 });
 
 app.get("/api/templates", (_req, res) => {

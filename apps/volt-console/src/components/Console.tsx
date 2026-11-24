@@ -6,7 +6,7 @@ import { Markdown } from "./Markdown";
 import { RunVisuals } from "../charts/RunVisuals";
 import { DownloadMenu } from "./DownloadMenu";
 import { runDeliverable } from "../exports";
-import { extractAttachment } from "../api";
+import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
 import { ATTACH_EXTENSIONS, ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../../shared/attachments";
 
 const EXAMPLES = [
@@ -33,6 +33,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   const [reading, setReading] = useState(0);
   const [fileError, setFileError] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
+  const [library, setLibrary] = useState<UploadMeta[] | null>(null);
   const running = runs.some((r) => r.state === "running");
   const targetAgent = catalog.agents.find((a) => a.id === target);
 
@@ -41,6 +42,28 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
     const last = runs[runs.length - 1];
     if (last) document.getElementById(`run-${last.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [runs.length]);
+
+  const addFile = (got: { name: string; text: string; chars: number; truncated: boolean }) =>
+    setFiles((fs) => {
+      const total = fs.filter((f) => f.name !== got.name).reduce((n, f) => n + f.chars, 0) + got.chars;
+      if (total > ATTACH_MAX_CHARS_TOTAL) {
+        setFileError("The attached files are too long in total. Remove one or attach a shorter file.");
+        return fs;
+      }
+      return [...fs.filter((f) => f.name !== got.name), got];
+    });
+
+  const openLibrary = () => (library ? setLibrary(null) : void listUploads().then(setLibrary));
+  const useUpload = async (u: UploadMeta) => {
+    setFileError("");
+    if (files.length >= ATTACH_MAX_FILES && !files.some((f) => f.name === u.name)) return void setFileError(`At most ${ATTACH_MAX_FILES} files per request.`);
+    try {
+      addFile(await getUpload(u.id));
+      setLibrary(null);
+    } catch (e) {
+      setFileError(e instanceof Error ? e.message : String(e));
+    }
+  };
 
   const attach = async (list: FileList | null) => {
     if (!list?.length) return;
@@ -53,15 +76,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
       }
       setReading((n) => n + 1);
       try {
-        const got = await extractAttachment(file);
-        setFiles((fs) => {
-          const total = fs.reduce((n, f) => n + f.chars, 0) + got.chars;
-          if (total > ATTACH_MAX_CHARS_TOTAL) {
-            setFileError("The attached files are too long in total. Remove one or attach a shorter file.");
-            return fs;
-          }
-          return [...fs.filter((f) => f.name !== got.name), got];
-        });
+        addFile(await uploadAttachment(file));
       } catch (e) {
         setFileError(`${file.name}: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
@@ -159,13 +174,29 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               )}
             </div>
           )}
+          {library && (
+            <div className="stack" style={{ gap: 4 }}>
+              {library.length === 0 ? (
+                <span className="muted" style={{ fontSize: 12 }}>The uploads library is empty. Attach a file first.</span>
+              ) : (
+                library.map((u) => (
+                  <button key={u.id} className="btn ghost sm" style={{ justifyContent: "flex-start", textAlign: "left" }} onClick={() => void useUpload(u)}>
+                    {u.name} · {u.chars.toLocaleString()} chars
+                  </button>
+                ))
+              )}
+            </div>
+          )}
           <div className="row" style={{ justifyContent: "space-between" }}>
             <span className="muted" style={{ fontSize: 12 }}>
               Ctrl/⌘ + Enter to send{runs.length > 0 ? " · follow-ups keep the conversation" : ""}
             </span>
             <div className="row">
               <input ref={fileInput} type="file" multiple hidden accept={ATTACH_EXTENSIONS.map((e) => `.${e}`).join(",")} onChange={(e) => void attach(e.target.files)} />
-              <button className="btn" disabled={running || files.length >= ATTACH_MAX_FILES} onClick={() => fileInput.current?.click()} title="Word, Excel, PowerPoint, CSV, text, Markdown or JSON, up to 4 MB each">
+              <button className="btn" disabled={running} onClick={openLibrary} title="Reuse a file you uploaded in any chat">
+                From uploads
+              </button>
+              <button className="btn" disabled={running || files.length >= ATTACH_MAX_FILES} onClick={() => fileInput.current?.click()} title="PDF, JPEG, PNG, Word, Excel, PowerPoint, CSV, text, Markdown or JSON, up to 4 MB each. Kept in Uploads for other chats.">
                 Attach files
               </button>
               <button className="btn primary" disabled={!prompt.trim() || running || reading > 0} onClick={() => submit()}>
