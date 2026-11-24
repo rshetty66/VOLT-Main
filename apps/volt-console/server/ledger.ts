@@ -181,6 +181,8 @@ const routes: Record<LedgerToolName, string> = {
   ledger_peer_metrics: "/v1/tools/peer_metrics",
 };
 
+const PEER_FILINGS: ReadonlySet<LedgerToolName> = new Set(["ledger_fetch_peer_documents", "ledger_peer_metrics"]);
+
 /** Tools whose results are evidence the model may cite (lookups are not). */
 const CITABLE: ReadonlySet<LedgerToolName> = new Set([
   "ledger_map_line_item", "ledger_flag_policy_gap", "ledger_propose_journal", "ledger_reverse_journal", "ledger_coverage",
@@ -300,7 +302,8 @@ export async function runLedgerTool(name: LedgerToolName, input: unknown, regist
       title: `VOLT Ledger ${name.replace("ledger_", "").replace(/_/g, " ")} (evidence ${envelope.evidence_id ?? "n/a"})`,
       publisher: "VOLT Ledger",
       date: new Date().toISOString().slice(0, 7),
-      type: "calculation",
+      // Peer figures are read from issuers' own filings: a different kind of evidence from the ledger's calculations.
+      type: PEER_FILINGS.has(name) ? "public filing" : "calculation",
       authority: 8,
     });
     const map = resultData.get(registry) ?? new Map<string, string>();

@@ -35,9 +35,12 @@ from .store import Store
 PEERS_FILE = Path(__file__).resolve().parent.parent / "data" / "peers" / "peers.json"
 MAX_CONCURRENT = 8
 MAX_PER_DOMAIN = 2
-TIMEOUT_S = 60
+TIMEOUT_S = 30
+CONNECT_TIMEOUT_S = 10
 RETRIES = 2
-USER_AGENT = "VOLT-Ledger/0.1 (peer results research; contact: {mailbox})"
+RETRY_STATUS = {403, 408, 425, 429, 500, 502, 503, 504}
+USER_AGENT = "Mozilla/5.0 (compatible; VOLT-Ledger/0.1; peer results research; +mailto:{mailbox})"
+HEADERS = {"Accept": "application/pdf,application/octet-stream;q=0.9,*/*;q=0.8", "Accept-Language": "en-CA,en;q=0.9"}
 _PERIOD = re.compile(r"FY(\d{4})(?:-(Q[1-4]|H[12]))?")
 
 
@@ -213,28 +216,32 @@ def _store_file(store: Store, registry: Registry, item: dict, data: bytes, url: 
     return {**row, "created": True}
 
 
-async def _download(client, url: str, sems: dict, overall: asyncio.Semaphore) -> bytes:
+async def _download(client, url: str, sems: dict, overall: asyncio.Semaphore) -> tuple[bytes, str]:
+    """(content, final url). Network errors, timeouts and the status codes servers use for transient refusals
+    (403 from bot screens, 408, 429, 5xx) are retried with backoff; other errors fail at once."""
     import httpx
     host = urlparse(url).hostname or ""
     sem = sems.setdefault(host, asyncio.Semaphore(MAX_PER_DOMAIN))
-    last: Exception | None = None
+    last = ""
     for attempt in range(RETRIES + 1):
         async with overall, sem:
             try:
-                r = await client.get(url, timeout=TIMEOUT_S, follow_redirects=True)
-            except httpx.TransportError as e:   # network errors only are retried
-                last = e
+                r = await client.get(url, timeout=httpx.Timeout(TIMEOUT_S, connect=CONNECT_TIMEOUT_S), follow_redirects=True)
+            except httpx.TransportError as e:
+                last = f"network error: {type(e).__name__}"
             else:
-                if r.status_code != 200:
-                    raise PeerError("http_error", f"HTTP {r.status_code} (not retried; use the next route in spec section 2)")
-                final = str(r.url)
-                if urlparse(final).hostname != host:
-                    raise PeerError("redirected_off_domain", f"redirected to {urlparse(final).hostname}")
-                if not r.content.startswith(b"%PDF"):
-                    raise PeerError("not_pdf", "the response is not a PDF (an HTML page or a bot challenge)")
-                return r.content
-        await asyncio.sleep(2 ** attempt)
-    raise PeerError("network", f"network error after {RETRIES + 1} tries: {last}")
+                if r.status_code == 200:
+                    if not r.content.startswith(b"%PDF"):
+                        raise PeerError("not_pdf", "the response is not a PDF (an HTML page or a bot challenge)")
+                    return r.content, str(r.url)
+                if r.status_code not in RETRY_STATUS:
+                    raise PeerError("http_error", f"HTTP {r.status_code}")
+                last = f"HTTP {r.status_code}"
+        if attempt < RETRIES:
+            await asyncio.sleep(2 ** attempt)
+    raise PeerError("http_error" if last.startswith("HTTP") else "network",
+                    f"{last} after {RETRIES + 1} tries; if the issuer blocks scripted downloads, download the PDF in a "
+                    "browser and attach it in the chat (ledger_add_peer_upload)")
 
 
 def fetch_peer_documents(store: Store, registry: Registry, items: list[dict], files_dir: str | Path | None = None,
@@ -277,11 +284,12 @@ def fetch_peer_documents(store: Store, registry: Registry, items: list[dict], fi
         import httpx
         overall = asyncio.Semaphore(MAX_CONCURRENT)
         sems: dict = {}
-        headers = {"User-Agent": USER_AGENT.format(mailbox=mailbox)}
+        headers = {"User-Agent": USER_AGENT.format(mailbox=mailbox), **HEADERS}
         async with (client_factory() if client_factory else httpx.AsyncClient(headers=headers)) as client:
             async def one(job, url, tier):
                 try:
-                    data = await _download(client, url, sems, overall)
+                    data, final = await _download(client, url, sems, overall)
+                    _check_final_host(registry, registry.peers[job["peer_id"]], url, final, data)
                     retrieved = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
                     row = _store_file(store, registry, job, data, url, tier, files, retrieved)
                     return {**job, "status": "stored", "created": row["created"], **_public(row)}
@@ -292,6 +300,18 @@ def fetch_peer_documents(store: Store, registry: Registry, items: list[dict], fi
     if jobs:
         results.extend(asyncio.run(run()))
     return results
+
+
+def _check_final_host(registry: Registry, peer: dict, url: str, final: str, data: bytes) -> None:
+    """A redirect may end on the peer's registered domains (including its document CDNs), or anywhere when the file
+    is byte-identical to the one recorded in the corpus manifest for this URL. Anything else is refused."""
+    if urlparse(final).hostname == urlparse(url).hostname or allowed(registry, peer, final):
+        return
+    known = {d["url"]: d.get("sha256") for d in peer["known_documents"]}
+    if known.get(url) and hashlib.sha256(data).hexdigest() == known[url]:
+        return
+    raise PeerError("redirected_off_domain", f"redirected to {urlparse(final).hostname}, which is not registered for "
+                    f"{peer['peer_id']}; add it to cdn_domains in the registry if the issuer links to it")
 
 
 def _public(row: dict) -> dict:
@@ -363,18 +383,32 @@ def _values(rest: str) -> dict[tuple[bool, bool], list[Decimal | None]]:
     return out
 
 
-def _target_column(text: str, period: str, end: date) -> int | None:
-    """Index of the requested quarter in the page's first column header (P6)."""
+def _target_column(text: str, period: str, end: date) -> tuple[int, str] | None:
+    """Index and printed label of the requested quarter in the page's first column header (P6). Where the header
+    prints years (on the same line or the next), the column must match the period-end year too, so a prior-year
+    column with the same month or quarter is never taken."""
     q = (_PERIOD.fullmatch(period).group(2) or "")
-    for line in text.split("\n")[:40]:
-        quarters = re.findall(r"\bQ\s?([1-4])(?:\s?/\s?\d{2})?\b", line)
+    lines = text.split("\n")[:40]
+    for i, line in enumerate(lines):
+        nxt = lines[i + 1] if i + 1 < len(lines) else ""
+        quarters = re.findall(r"\bQ\s?([1-4])(?:\s?/\s?(\d{2})|\s+(\d{4}))?\b", line)
         if len(quarters) >= 3 and q.startswith("Q"):
-            return quarters.index(q[1]) if q[1] in quarters else None
-        months = re.findall(r"\b(JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER)\s+\d{1,2}\b",
+            years = [(y2 and 2000 + int(y2)) or (y4 and int(y4)) or None for _, y2, y4 in quarters]
+            fiscal = int(_PERIOD.fullmatch(period).group(1))
+            for k, (qq, _, _) in enumerate(quarters):
+                if qq == q[1] and years[k] in (None, fiscal, fiscal % 100 + 2000):
+                    return k, f"Q{qq}" + (f" {years[k]}" if years[k] else "")
+            return None
+        months = re.findall(r"\b(JANUARY|FEBRUARY|MARCH|APRIL|MAY|JUNE|JULY|AUGUST|SEPTEMBER|OCTOBER|NOVEMBER|DECEMBER)\s+(\d{1,2})\b",
                             line.upper())
         if len(months) >= 3:
             want = calendar.month_name[end.month].upper()
-            return months.index(want) if want in months else None
+            years = re.findall(r"\b(20\d{2})\b", line[line.upper().rfind(months[-1][0]):]) or re.findall(r"\b(20\d{2})\b", nxt)
+            paired = len(years) >= len(months)
+            for k, (m, d) in enumerate(months):
+                if m == want and (not paired or int(years[k]) == end.year):
+                    return k, f"{m.title()} {d}" + (f", {years[k]}" if paired else "")
+            return None
     return None
 
 
@@ -400,17 +434,18 @@ def read_pack(path: str | Path, period: str, end: date, max_pages: int = 30) -> 
                         rows[key].append((line, _values(line[m.end():])))
             if not (rows["nii"] and rows["non_interest_income"] and rows["total_operating_income"]):
                 continue
-            col = _target_column(text, period, end)
-            if col is None:
+            found_col = _target_column(text, period, end)
+            if found_col is None:
                 tried.append({"page": pno, "reason": "requested period not found in the column header"})
                 continue
+            col, col_label = found_col
             tied = _tie(rows, col)
             if not tied:
                 tried.append({"page": pno, "reason": "rows found but they do not tie"})
                 continue
             hit, reading = tied
             scale = _scale(text)
-            figures = {k: {"value": v, "row": r, "page": pno, "column": col} for k, (r, v) in hit.items()}
+            figures = {k: {"value": v, "row": r, "page": pno, "column": col, "column_label": col_label} for k, (r, v) in hit.items()}
             revenue = abs(hit["total_operating_income"][1])
             # Rows outside the tie are read the same way, or with a leading footnote or line number dropped, and kept
             # only if plausible: expenses below revenue; a reported efficiency ratio within 5 points of expenses / revenue.
@@ -431,7 +466,7 @@ def read_pack(path: str | Path, period: str, end: date, max_pages: int = 30) -> 
                         if found is not None:
                             break
                     if found is not None:
-                        figures[key] = {"value": found, "row": line, "page": pno, "column": col}
+                        figures[key] = {"value": found, "row": line, "page": pno, "column": col, "column_label": col_label}
                         break
             return {"status": "ok", "page": pno, "column": col, "scale_minor": scale, "figures": figures, "tried": tried}
     return {"status": "not_verified", "tried": tried[:10]}
@@ -499,14 +534,14 @@ def peer_metrics(store: Store, doc_ids: list[str], metric_ids: list[str] | None 
                 minor = int(f[m]["value"] * scale)
                 metrics[m] = {"status": "ok", "basis": "reported", "label": label, "unit": unit, "value_minor": str(minor),
                               "currency": "CAD", "display": _money_display(minor), "printed": f"{f[m]['value']:,}",
-                              "evidence": {k: f[m][k] for k in ("page", "row", "column")},
+                              "evidence": {k: f[m][k] for k in ("page", "row", "column", "column_label")},
                               "check": "tied" if m != "non_interest_expense" else "row found on the tied page"}
             elif m == "efficiency_ratio":
                 entry: dict = {"label": label, "unit": unit}
                 if "efficiency_ratio" in f:
                     entry["reported"] = {"value": str(f[m]["value"]), "display": f"{f[m]['value']}%",
                                          "definition": "the issuer's own definition, as printed",
-                                         "evidence": {k: f[m][k] for k in ("page", "row", "column")}}
+                                         "evidence": {k: f[m][k] for k in ("page", "row", "column", "column_label")}}
                 if "non_interest_expense" in f:
                     pct = (Decimal(f["non_interest_expense"]["value"]) / Decimal(f["total_operating_income"]["value"]) * 100)
                     pct = pct.quantize(Decimal("0.1"), ROUND_HALF_EVEN)

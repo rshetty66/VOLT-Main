@@ -692,6 +692,19 @@
    "order": 180
   },
   {
+   "id": "canon:ShareOfProfitOfAssociates",
+   "label": "Share of profit of associates and joint ventures (equity method)",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:ShareOfProfitLossOfAssociatesAndJointVenturesAccountedForUsingEquityMethod",
+    "us-gaap": "us-gaap:IncomeLossFromEquityMethodInvestments"
+   },
+   "calc_parent": "canon:ProfitBeforeTax",
+   "statement": "IS",
+   "order": 185
+  },
+  {
    "id": "canon:ProfitBeforeTax",
    "label": "Profit before tax",
    "balance_type": "credit",
@@ -742,6 +755,19 @@
    "calc_parent": null,
    "statement": "IS",
    "order": 220
+  },
+  {
+   "id": "canon:ProfitAttributableToNonControllingInterests",
+   "label": "Profit attributable to non-controlling interests",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:ProfitLossAttributableToNoncontrollingInterests",
+    "us-gaap": "us-gaap:NetIncomeLossAttributableToNoncontrollingInterest"
+   },
+   "calc_parent": null,
+   "statement": "IS",
+   "order": 230
   },
   {
    "id": "canon:WriteOffs",
