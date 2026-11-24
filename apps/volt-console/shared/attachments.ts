@@ -4,6 +4,8 @@ export interface Attachment {
   text: string;
   /** The source-register key (S02, S03, ...) the server gives it, so the answer can cite the file. */
   key?: string;
+  /** The uploads-library id, so tools such as the VOLT Ledger ingest can read the original file. */
+  uploadId?: string;
 }
 
 export const ATTACH_MAX_FILES = 5;

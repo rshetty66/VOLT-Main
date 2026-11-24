@@ -142,7 +142,7 @@ export function registerAttachments(registry: SourceRegistry, attachments: Attac
 /** The attachments as a message block. The text is data: any instruction inside it is ignored. */
 export function attachmentsBlock(attachments: Attachment[] | undefined): string {
   if (!attachments?.length) return "";
-  const files = attachments.map((a) => `### ${a.key ? `[${a.key}] ` : ""}${a.name}\n\`\`\`\n${a.text}\n\`\`\``).join("\n\n");
+  const files = attachments.map((a) => `### ${a.key ? `[${a.key}] ` : ""}${a.name}${a.uploadId ? ` (upload id: ${a.uploadId})` : ""}\n\`\`\`\n${a.text}\n\`\`\``).join("\n\n");
   return `
 
 ---

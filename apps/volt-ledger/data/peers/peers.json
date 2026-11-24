@@ -1,0 +1,1108 @@
+{
+ "version": "peers-v1",
+ "built_from": "corpus/manifest.csv (24 Nov 2026)",
+ "groups": {
+  "big6": [
+   "rbc",
+   "td",
+   "bmo",
+   "bns",
+   "cibc",
+   "nbc"
+  ],
+  "canadian_midsize": [
+   "eqb",
+   "lb",
+   "atb"
+  ],
+  "canadian_banks": [
+   "rbc",
+   "td",
+   "bmo",
+   "bns",
+   "cibc",
+   "nbc",
+   "eqb",
+   "lb"
+  ],
+  "cooperatives_and_credit_unions": [
+   "desjardins",
+   "vancity",
+   "servus",
+   "meridian",
+   "coast_capital"
+  ],
+  "insurers": [
+   "manulife",
+   "sunlife",
+   "gwo",
+   "ia",
+   "intact"
+  ],
+  "maple_pensions": [
+   "cppib",
+   "otpp",
+   "omers"
+  ],
+  "asset_managers": [
+   "sprott"
+  ]
+ },
+ "secondary_domains": [
+  "www.newswire.ca",
+  "www.prnewswire.com",
+  "www.sec.gov"
+ ],
+ "peers": [
+  {
+   "peer_id": "rbc",
+   "name": "Royal Bank of Canada",
+   "segment": "big6",
+   "gaap": "ifrs",
+   "fiscal_year_end": "10-31",
+   "cadence": "quarterly",
+   "release_lag_days": 35,
+   "ir_domains": [
+    "www.rbc.com"
+   ],
+   "templates": {
+    "press_release": "https://www.rbc.com/investor-relations/_assets-custom/pdf/{fy}q{q}release.pdf",
+    "supplementary_financial_info": "https://www.rbc.com/investor-relations/_assets-custom/pdf/{yy}q{q}supp.pdf",
+    "report_to_shareholders": "https://www.rbc.com/investor-relations/_assets-custom/pdf/{fy}q{q}_report.pdf"
+   },
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "press_release",
+     "url": "https://www.rbc.com/investor-relations/_assets-custom/pdf/2026q3release.pdf",
+     "sha256": "8afc1dc4438a221d582914efc43469d6ca50a3e0ca49bd70e2cd0e7b0c3e2475",
+     "source_tier": "primary",
+     "pages": 6,
+     "corpus_path": "docs/big6/rbc_2026q3_release.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "supplementary_financial_info",
+     "url": "https://www.rbc.com/investor-relations/_assets-custom/pdf/26q3supp.pdf",
+     "sha256": "32c83eadf9d906da3461739f49424e357e45bb1b8d674df755f26f730ee0c47e",
+     "source_tier": "primary",
+     "pages": 40,
+     "corpus_path": "docs/big6/rbc_2026q3_supp.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "report_to_shareholders",
+     "url": "https://www.rbc.com/investor-relations/_assets-custom/pdf/2026q3_report.pdf",
+     "sha256": "d387f87965722d0a6f39f0823be68d933413c6bc944662fb83ea329283ebdb8a",
+     "source_tier": "primary",
+     "pages": 76,
+     "corpus_path": "docs/big6/rbc_2026q3_report.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "td",
+   "name": "TD Bank Group",
+   "segment": "big6",
+   "gaap": "ifrs",
+   "fiscal_year_end": "10-31",
+   "cadence": "quarterly",
+   "release_lag_days": 35,
+   "ir_domains": [
+    "www.td.com"
+   ],
+   "templates": {
+    "press_release": "https://www.td.com/content/dam/tdcom/canada/about-td/pdf/quarterly-results/{fy}/q{q}/{fy}-q{q}-earnings-newsrelease-en.pdf",
+    "supplementary_financial_info": "https://www.td.com/content/dam/tdcom/canada/about-td/pdf/quarterly-results/{fy}/q{q}/{fy}-q{q}-financial-supppack-en.pdf",
+    "report_to_shareholders": "https://www.td.com/content/dam/tdcom/canada/about-td/pdf/quarterly-results/{fy}/q{q}/{fy}-q{q}-report-shareholders-en.pdf"
+   },
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "press_release",
+     "url": "https://www.td.com/content/dam/tdcom/canada/about-td/pdf/quarterly-results/2026/q3/2026-q3-earnings-newsrelease-en.pdf",
+     "sha256": "11f70cbeca0ce9ac663586385e587948b9142c1c53f73821d3d21d73896fe3df",
+     "source_tier": "primary",
+     "pages": 18,
+     "corpus_path": "docs/big6/td_2026q3_release.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "supplementary_financial_info",
+     "url": "https://www.td.com/content/dam/tdcom/canada/about-td/pdf/quarterly-results/2026/q3/2026-q3-financial-supppack-en.pdf",
+     "sha256": "51e1f59114d341bcfceec225c922b14f8c9044daf6defeab31fba2db5451dcc7",
+     "source_tier": "primary",
+     "pages": 41,
+     "corpus_path": "docs/big6/td_2026q3_supp.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "report_to_shareholders",
+     "url": "https://www.td.com/content/dam/tdcom/canada/about-td/pdf/quarterly-results/2026/q3/2026-q3-report-shareholders-en.pdf",
+     "sha256": "6df473f21b580a745119c5deee17b6c41a681c7b37967eac6dd65f6fe473b9c9",
+     "source_tier": "primary",
+     "pages": 81,
+     "corpus_path": "docs/big6/td_2026q3_report.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "bmo",
+   "name": "BMO Financial Group",
+   "segment": "big6",
+   "gaap": "ifrs",
+   "fiscal_year_end": "10-31",
+   "cadence": "quarterly",
+   "release_lag_days": 35,
+   "ir_domains": [
+    "www.bmo.com"
+   ],
+   "templates": {
+    "press_release": "https://www.bmo.com/ir/qtrinfo/1/{fy}-q{q}/Q{q}{yy}_EarningsRelease.pdf",
+    "supplementary_financial_info": "https://www.bmo.com/ir/qtrinfo/1/{fy}-q{q}/SuppQ{q}{yy}.pdf",
+    "report_to_shareholders": "https://www.bmo.com/ir/qtrinfo/1/{fy}-q{q}/Q{q}{yy}_ReportToShareholders.pdf"
+   },
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "press_release",
+     "url": "https://www.bmo.com/ir/qtrinfo/1/2026-q3/Q326_EarningsRelease.pdf",
+     "sha256": "1de5fa91886c14ab0309fca9916e90ed5485a0e5a36f799f6ce01d4bdc8c457e",
+     "source_tier": "primary",
+     "pages": 7,
+     "corpus_path": "docs/big6/bmo_2026q3_release.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "supplementary_financial_info",
+     "url": "https://www.bmo.com/ir/qtrinfo/1/2026-q3/SuppQ326.pdf",
+     "sha256": "dc7ceabdfa32c57d51db16cb1dce5a66ee746596d7e7f2dcbfa0f742e6f97ebb",
+     "source_tier": "primary",
+     "pages": 51,
+     "corpus_path": "docs/big6/bmo_2026q3_supp.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "report_to_shareholders",
+     "url": "https://www.bmo.com/ir/qtrinfo/1/2026-q3/Q326_ReportToShareholders.pdf",
+     "sha256": "20f1c6270305ab4ac7cb01f1e77d67188eb4b132549ba2b4bb49d8970f1bf82a",
+     "source_tier": "primary",
+     "pages": 69,
+     "corpus_path": "docs/big6/bmo_2026q3_report.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "bns",
+   "name": "Scotiabank",
+   "segment": "big6",
+   "gaap": "ifrs",
+   "fiscal_year_end": "10-31",
+   "cadence": "quarterly",
+   "release_lag_days": 35,
+   "ir_domains": [
+    "www.scotiabank.com"
+   ],
+   "templates": {
+    "press_release": "https://www.scotiabank.com/content/dam/scotiabank/corporate/quarterly-reports/{fy}/q{q}/Q{q}{yy}_Quarterly_Press_Release-EN.pdf",
+    "supplementary_financial_info": "https://www.scotiabank.com/content/dam/scotiabank/corporate/quarterly-reports/{fy}/q{q}/Q{q}{yy}_Supplementary_Financial_Information-EN.pdf",
+    "report_to_shareholders": "https://www.scotiabank.com/content/dam/scotiabank/corporate/quarterly-reports/{fy}/q{q}/Q{q}{yy}_Shareholders_Report-EN.pdf"
+   },
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "press_release",
+     "url": "https://www.scotiabank.com/content/dam/scotiabank/corporate/quarterly-reports/2026/q3/Q326_Quarterly_Press_Release-EN.pdf",
+     "sha256": "0575865a6ec8ea7d2d14694352e8e7be595b0ad40f23b67e2d7d559a6a3c1a76",
+     "source_tier": "primary",
+     "pages": 14,
+     "corpus_path": "docs/big6/bns_2026q3_release.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "supplementary_financial_info",
+     "url": "https://www.scotiabank.com/content/dam/scotiabank/corporate/quarterly-reports/2026/q3/Q326_Supplementary_Financial_Information-EN.pdf",
+     "sha256": "1c6bb48d44e209cf84e3d54f1a5ad4da4b54373c135eafd7439205123a4fcdd4",
+     "source_tier": "primary",
+     "pages": 43,
+     "corpus_path": "docs/big6/bns_2026q3_supp.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "report_to_shareholders",
+     "url": "https://www.scotiabank.com/content/dam/scotiabank/corporate/quarterly-reports/2026/q3/Q326_Shareholders_Report-EN.pdf",
+     "sha256": "0a2264a12812ca03c4cd9db61d39bffe1d2f356c530c31231a94ae71287ba536",
+     "source_tier": "primary",
+     "pages": 92,
+     "corpus_path": "docs/big6/bns_2026q3_report.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "cibc",
+   "name": "CIBC",
+   "segment": "big6",
+   "gaap": "ifrs",
+   "fiscal_year_end": "10-31",
+   "cadence": "quarterly",
+   "release_lag_days": 35,
+   "ir_domains": [
+    "www.cibc.com"
+   ],
+   "templates": {
+    "press_release": "https://www.cibc.com/content/dam/cibc-public-assets/about-cibc/investor-relations/pdfs/quarterly-results/{fy}/q{q}{yy}newsrelease-en.pdf",
+    "supplementary_financial_info": "https://www.cibc.com/content/dam/cibc-public-assets/about-cibc/investor-relations/pdfs/quarterly-results/{fy}/q{q}{yy}financials-en.pdf",
+    "report_to_shareholders": "https://www.cibc.com/content/dam/cibc-public-assets/about-cibc/investor-relations/pdfs/quarterly-results/{fy}/q{q}{yy}report-en.pdf"
+   },
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "press_release",
+     "url": "https://www.cibc.com/content/dam/cibc-public-assets/about-cibc/investor-relations/pdfs/quarterly-results/2026/q326newsrelease-en.pdf",
+     "sha256": "173cb15ea84f02268ca7cd92ac1f630cdf2584f831e5b0bd6ad00999293462a8",
+     "source_tier": "primary",
+     "pages": 10,
+     "corpus_path": "docs/big6/cibc_2026q3_release.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "supplementary_financial_info",
+     "url": "https://www.cibc.com/content/dam/cibc-public-assets/about-cibc/investor-relations/pdfs/quarterly-results/2026/q326financials-en.pdf",
+     "sha256": "dd460aecc2a7c629dd25282090e0adec7761492ec0164c27688362e6767352ac",
+     "source_tier": "primary",
+     "pages": 38,
+     "corpus_path": "docs/big6/cibc_2026q3_supp.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "supplementary_financial_info_restated",
+     "url": "https://www.cibc.com/content/dam/cibc-public-assets/about-cibc/investor-relations/pdfs/quarterly-results/2026/q326financials-restated-en.pdf",
+     "sha256": "a9f6f9a3efbf284698f745d1952495a7e57faaaba5ae9ecc228fee1304e58a01",
+     "source_tier": "primary",
+     "pages": 12,
+     "corpus_path": "docs/big6/cibc_2026q3_supp_restated.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "report_to_shareholders",
+     "url": "https://www.cibc.com/content/dam/cibc-public-assets/about-cibc/investor-relations/pdfs/quarterly-results/2026/q326report-en.pdf",
+     "sha256": "59f1c2793f1038581a9ab2f33bea022e0fc4233a2bafeb19f9e28beed597f594",
+     "source_tier": "primary",
+     "pages": 79,
+     "corpus_path": "docs/big6/cibc_2026q3_report.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "nbc",
+   "name": "National Bank of Canada",
+   "segment": "big6",
+   "gaap": "ifrs",
+   "fiscal_year_end": "10-31",
+   "cadence": "quarterly",
+   "release_lag_days": 35,
+   "ir_domains": [
+    "www.nbc.ca"
+   ],
+   "templates": {
+    "press_release": "https://www.nbc.ca/content/dam/bnc/a-propos-de-nous/relations-investisseurs/resultats-trimestriels/{fy}/comm-q{q}-{fy}.pdf",
+    "supplementary_financial_info": "https://www.nbc.ca/content/dam/bnc/a-propos-de-nous/relations-investisseurs/resultats-trimestriels/{fy}/suppack-q{q}-{fy}.pdf",
+    "report_to_shareholders": "https://www.nbc.ca/content/dam/bnc/a-propos-de-nous/relations-investisseurs/resultats-trimestriels/{fy}/report-shareholder-q{q}-{fy}.pdf"
+   },
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "press_release",
+     "url": "https://www.nbc.ca/content/dam/bnc/a-propos-de-nous/relations-investisseurs/resultats-trimestriels/2026/comm-q3-2026.pdf",
+     "sha256": "b985b34020989e521e7aa2886d447a65c4202cf53139e09c61d994c54b645c41",
+     "source_tier": "primary",
+     "pages": 9,
+     "corpus_path": "docs/big6/nbc_2026q3_release.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "supplementary_financial_info_recast",
+     "url": "https://www.nbc.ca/content/dam/bnc/a-propos-de-nous/relations-investisseurs/resultats-trimestriels/2026/suppack-q3-2026-revised.pdf",
+     "sha256": "75aa16c09eb7a42b7b3c9a6c3f23c44fec1c5f2049c0c44925f97bd5e66e72c9",
+     "source_tier": "primary",
+     "pages": 34,
+     "corpus_path": "docs/big6/nbc_2026q3_supp.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "report_to_shareholders",
+     "url": "https://www.nbc.ca/content/dam/bnc/a-propos-de-nous/relations-investisseurs/resultats-trimestriels/2026/report-shareholder-q3-2026.pdf",
+     "sha256": "4720c58c86005e1670e0ea64b21ce099ee8bf489e9f429ac0abc78d9954d2f3b",
+     "source_tier": "primary",
+     "pages": 84,
+     "corpus_path": "docs/big6/nbc_2026q3_report.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "eqb",
+   "name": "EQB Inc.",
+   "segment": "midsize",
+   "gaap": "ifrs",
+   "fiscal_year_end": "10-31",
+   "cadence": "quarterly",
+   "release_lag_days": 35,
+   "ir_domains": [
+    "eqb.investorroom.com"
+   ],
+   "templates": {
+    "press_release": "https://eqb.investorroom.com/download/EQB+Earnings+Release+-+Q{q}+{fy}+SEDAR.pdf",
+    "report_to_shareholders": "https://eqb.investorroom.com/download/EQB+Report+to+Shareholders+Q{q}+{fy}+SEDAR.pdf"
+   },
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "press_release",
+     "url": "https://eqb.investorroom.com/download/EQB+Earnings+Release+-+Q3+2026+SEDAR.pdf",
+     "sha256": "20c46d879b739c310eb48767e4a89de284bd213507b0155d996f2b8b02c6f38e",
+     "source_tier": "primary",
+     "pages": 18,
+     "corpus_path": "docs/midsize/eqb_2026q3_release.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "supplementary_financial_info",
+     "url": "https://eqb.investorroom.com/image/EQB+Supplemental+Financial+Information+Q3+2026+FINAL.pdf",
+     "sha256": "afb8275b318c12aa732e8b102a5e74bb7d81cbd82253dcc0f3a6b753a2710423",
+     "source_tier": "primary",
+     "pages": 27,
+     "corpus_path": "docs/midsize/eqb_2026q3_supp.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "report_to_shareholders",
+     "url": "https://eqb.investorroom.com/download/EQB+Report+to+Shareholders+Q3+2026+SEDAR.pdf",
+     "sha256": "c956e57863e3535410ae3b525f3dd7d77874c1531dbed6267dce0764b2945c8a",
+     "source_tier": "primary",
+     "pages": 102,
+     "corpus_path": "docs/midsize/eqb_2026q3_report.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "lb",
+   "name": "Laurentian Bank of Canada",
+   "segment": "midsize",
+   "gaap": "ifrs",
+   "fiscal_year_end": "10-31",
+   "cadence": "quarterly",
+   "release_lag_days": 35,
+   "ir_domains": [
+    "assets.ctfassets.net",
+    "news.laurentianbank.ca"
+   ],
+   "templates": {},
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "press_release",
+     "url": "https://news.laurentianbank.ca/2026-08-28-Laurentian-Bank-of-Canada-reports-third-quarter-2026-results?asPDF=1",
+     "sha256": "caae4d16fd25fc220e1ac5d6defd2308ffcf5860ead01c212bfe471cb979cf0b",
+     "source_tier": "primary",
+     "pages": 10,
+     "corpus_path": "docs/midsize/lb_2026q3_release.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "supplementary_financial_info",
+     "url": "https://assets.ctfassets.net/b5xlbty9p8dy/6A2S12WKduuXPEvR2yOfmB/8e846972dfe1ae27576a8a8f8b2e4f6b/supplementary-financial-information.pdf",
+     "sha256": "9441ae4bde2e10347ee155445170442a498b7b4bdc85bfc8c8aa9b74fc9f8024",
+     "source_tier": "primary",
+     "pages": 20,
+     "corpus_path": "docs/midsize/lb_2026q3_supp.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "report_to_shareholders",
+     "url": "https://assets.ctfassets.net/b5xlbty9p8dy/25veGFLDosaNg0h4o6XOtM/db6bed1de643a194ff0b311554d4458a/report-to-shareholders.pdf",
+     "sha256": "259715c0541bb326c85ca5c06935a71d0b335a2a1efa540207138d41e16497ef",
+     "source_tier": "primary",
+     "pages": 52,
+     "corpus_path": "docs/midsize/lb_2026q3_report.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "atb",
+   "name": "ATB Financial",
+   "segment": "midsize",
+   "gaap": "ifrs",
+   "fiscal_year_end": "03-31",
+   "cadence": "quarterly",
+   "release_lag_days": 60,
+   "ir_domains": [
+    "www.atb.com"
+   ],
+   "templates": {
+    "quarterly_report": "https://www.atb.com/siteassets/pdf/company/our-business/quarterly-reports/atb-financial-fy{yy}-q{q}-results.pdf"
+   },
+   "known_documents": [
+    {
+     "period": "FY2027-Q1",
+     "period_end": "2026-06-30",
+     "doc_type": "quarterly_report",
+     "url": "https://www.atb.com/siteassets/pdf/company/our-business/quarterly-reports/atb-financial-fy27-q1-results.pdf",
+     "sha256": "273f42dc062b4066d84c03329d41094d17b1f30ef599615f22781bb6ccbcbe73",
+     "source_tier": "primary",
+     "pages": 41,
+     "corpus_path": "docs/midsize/atb_fy27q1_report.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026",
+     "period_end": "2026-03-31",
+     "doc_type": "annual_report",
+     "url": "https://www.atb.com/siteassets/pdf/ar/atb-annual-report-2026.pdf",
+     "sha256": "68648cc0fc058b296b6835a5cb8b83431b4af1bc596cb20452e665690d2fbb46",
+     "source_tier": "primary",
+     "pages": 182,
+     "corpus_path": "docs/midsize/atb_fy26_annual.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "sprott",
+   "name": "Sprott Inc.",
+   "segment": "asset_manager",
+   "gaap": "ifrs",
+   "fiscal_year_end": "12-31",
+   "cadence": "quarterly",
+   "release_lag_days": 45,
+   "ir_domains": [
+    "sprott.com"
+   ],
+   "templates": {},
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "mdna_and_financial_statements",
+     "url": "https://sprott.com/media/cral0gb1/sii-q3-2026-report.pdf",
+     "sha256": "1f715eec0293f4692d9a49e1fcca9aa7e8c841836a0123aab242394fe28d8825",
+     "source_tier": "primary",
+     "pages": 47,
+     "corpus_path": "docs/midsize_asset_manager/sprott_2026q3_report.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "press_release",
+     "url": "https://sprott.com/investor-relations/press-releases/sprott-announces-third-quarter-2026-results-1/",
+     "sha256": "67b22aa91f06546f98b85002cb2b623a51a5cdcd24a16575a0b7b4ef7610818b",
+     "source_tier": "primary",
+     "pages": null,
+     "corpus_path": "docs/midsize_asset_manager/sprott_2026q3_release.html",
+     "file_type": "html"
+    }
+   ]
+  },
+  {
+   "peer_id": "otpp",
+   "name": "Ontario Teachers' Pension Plan",
+   "segment": "pension",
+   "gaap": "ifrs",
+   "fiscal_year_end": "12-31",
+   "cadence": "semiannual",
+   "release_lag_days": 70,
+   "ir_domains": [
+    "www.otpp.com"
+   ],
+   "templates": {},
+   "known_documents": [
+    {
+     "period": "FY2026-H1",
+     "period_end": "2026-06-30",
+     "doc_type": "interim_report",
+     "url": "https://www.otpp.com/content/dam/otpp/documents/2026-mid-year/2026-interim-report.pdf",
+     "sha256": "b1bb687aeef9fadca8648bb0d18a0a154e4c0df560be0c939dc2590a0703a087",
+     "source_tier": "primary",
+     "pages": 26,
+     "corpus_path": "docs/pension/otpp_2026h1_interim.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "omers",
+   "name": "OMERS",
+   "segment": "pension",
+   "gaap": "ifrs",
+   "fiscal_year_end": "12-31",
+   "cadence": "semiannual",
+   "release_lag_days": 70,
+   "ir_domains": [
+    "assets.ctfassets.net"
+   ],
+   "templates": {},
+   "known_documents": [
+    {
+     "period": "FY2026-H1",
+     "period_end": "2026-06-30",
+     "doc_type": "interim_financial_statements",
+     "url": "https://assets.ctfassets.net/iifcbkds7nke/PEOHchCNZpjeLcxxp8hlx/911cf76462bc563e5a994ae55da30a8a/2026_Q2_AC_Interim_Consolidated_Financial_Statements__Final_FS_Milestone_August_9__0106_pm_.pdf",
+     "sha256": "6e21af9cd1f4859b1ac04eaddfb9a29f68b6c893dc21e7ecd5f466af80dea39e",
+     "source_tier": "primary",
+     "pages": 21,
+     "corpus_path": "docs/pension/omers_2026h1_fs.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-H1",
+     "period_end": "2026-06-30",
+     "doc_type": "investment_update",
+     "url": "https://assets.ctfassets.net/iifcbkds7nke/48d5gxNe7dq3tJjQw3IIBn/fa12a7b1143455f050b9b5b693d4b07d/2026_Mid-year_Investment_Update-ua.pdf",
+     "sha256": "766cf3e92186353e6be1fc069dd023d592c8492de54c663f11a6bfcf1e2803f1",
+     "source_tier": "primary",
+     "pages": 8,
+     "corpus_path": "docs/pension/omers_2026h1_update.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "cppib",
+   "name": "CPP Investments",
+   "segment": "pension",
+   "gaap": "ifrs",
+   "fiscal_year_end": "03-31",
+   "cadence": "quarterly",
+   "release_lag_days": 50,
+   "ir_domains": [
+    "www.cppinvestments.com"
+   ],
+   "templates": {},
+   "known_documents": []
+  },
+  {
+   "peer_id": "desjardins",
+   "name": "Desjardins Group",
+   "segment": "cooperative",
+   "gaap": "ifrs",
+   "fiscal_year_end": "12-31",
+   "cadence": "quarterly",
+   "release_lag_days": 45,
+   "ir_domains": [
+    "www.desjardins.com"
+   ],
+   "templates": {},
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "quarterly_report",
+     "url": "https://www.desjardins.com/content/dam/pdf/en/about-us/investor-relations/financial-reports/2026/mcd-quarterly-report-q3-2026.pdf",
+     "sha256": "fe08d95c3627f99a3ca25667734818c2b454aa0da58e2c0dda19cbbb67dcf796",
+     "source_tier": "primary",
+     "pages": 91,
+     "corpus_path": "docs/cooperative/desj_2026q3_report.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "press_release",
+     "url": "https://www.desjardins.com/content/dam/pdf/en/news/MD_Comm_Presse_AN_2026_T3.pdf",
+     "sha256": "0360648c6aea6705f0a81c2f9bce3bcb96523c71ab6fd7138d71fb9b7addf6a1",
+     "source_tier": "primary",
+     "pages": 8,
+     "corpus_path": "docs/cooperative/desj_2026q3_release.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "manulife",
+   "name": "Manulife",
+   "segment": "insurer",
+   "gaap": "ifrs",
+   "fiscal_year_end": "12-31",
+   "cadence": "quarterly",
+   "release_lag_days": 45,
+   "ir_domains": [
+    "www.manulife.com"
+   ],
+   "templates": {
+    "report_to_shareholders": "https://www.manulife.com/content/dam/manulife-com/ca/financial-documents/investors/MFC_SR_{fy}_Q{q}_EN.pdf",
+    "supplementary_financial_info": "https://www.manulife.com/content/dam/manulife-com/ca/financial-documents/investors/MFC_SIP_{fy}_Q{q}_EN.pdf",
+    "interim_financial_statements": "https://www.manulife.com/content/dam/manulife-com/ca/financial-documents/investors/MFC_FS_{fy}_Q{q}_EN.pdf"
+   },
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "press_release",
+     "url": "https://www.prnewswire.com/news-releases/manulife-reports-third-quarter-2026-results-302929840.html",
+     "sha256": "090b5e823f59b97da7ade54d87baa0e130ee86ad8e77de1b1ae361af80402589",
+     "source_tier": "secondary",
+     "pages": null,
+     "corpus_path": "docs/insurer/mfc_2026q3_release.html",
+     "file_type": "html"
+    }
+   ]
+  },
+  {
+   "peer_id": "sunlife",
+   "name": "Sun Life",
+   "segment": "insurer",
+   "gaap": "ifrs",
+   "fiscal_year_end": "12-31",
+   "cadence": "quarterly",
+   "release_lag_days": 45,
+   "ir_domains": [
+    "www.sunlife.com"
+   ],
+   "templates": {
+    "press_release": "https://www.sunlife.com/content/dam/sunlife/regional/global-marketing/documents/com/pa-e-q{q}{yy}-earnings.pdf",
+    "supplementary_financial_info": "https://www.sunlife.com/content/dam/sunlife/regional/global-marketing/documents/com/pa-e-q{q}{yy}-finsupp.pdf",
+    "report_to_shareholders": "https://www.sunlife.com/content/dam/sunlife/regional/global-marketing/documents/com/pa-e-q{q}{yy}-shrpt.pdf"
+   },
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "press_release",
+     "url": "https://www.sunlife.com/content/dam/sunlife/regional/global-marketing/documents/com/pa-e-q326-earnings.pdf",
+     "sha256": "3454944778a2a1c25f47a3d0b8bf860e5ad432e5e22bdb2768b75f66f96d2ed6",
+     "source_tier": "primary",
+     "pages": 10,
+     "corpus_path": "docs/insurer/slf_2026q3_release.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "supplementary_financial_info",
+     "url": "https://www.sunlife.com/content/dam/sunlife/regional/global-marketing/documents/com/pa-e-q326-finsupp.pdf",
+     "sha256": "0a89c2175fcbf0e0c8527c072616e0ef16602038d67405a2c83c0c389efa3446",
+     "source_tier": "primary",
+     "pages": 85,
+     "corpus_path": "docs/insurer/slf_2026q3_supp.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "report_to_shareholders",
+     "url": "https://www.sunlife.com/content/dam/sunlife/regional/global-marketing/documents/com/pa-e-q326-shrpt.pdf",
+     "sha256": "d456ed6bc770bce8a01698ceda88f1a7c11a20e876047024f6885227e821090e",
+     "source_tier": "primary",
+     "pages": 83,
+     "corpus_path": "docs/insurer/slf_2026q3_report.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "gwo",
+   "name": "Great-West Lifeco",
+   "segment": "insurer",
+   "gaap": "ifrs",
+   "fiscal_year_end": "12-31",
+   "cadence": "quarterly",
+   "release_lag_days": 45,
+   "ir_domains": [
+    "www.canadalife.com",
+    "www.greatwestlifeco.com"
+   ],
+   "templates": {
+    "report_to_shareholders": "https://www.canadalife.com/content/dam/lifeco/documents/investor-relations/reports/{fy}/q{q}/lifeco-q{q}-{fy}-quarterly-report-to-shareholders-en.pdf",
+    "supplementary_financial_info": "https://www.canadalife.com/content/dam/lifeco/documents/investor-relations/reports/{fy}/q{q}/lifeco-q{q}-{fy}-supplement.pdf"
+   },
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "press_release",
+     "url": "https://www.greatwestlifeco.com/news-and-events/news/2026/lifeco-q3-2026-earnings-release.html",
+     "sha256": "851b26e662d1ce851ad133fac6164448b3341b00c22cc0131cabcde62ee31519",
+     "source_tier": "primary",
+     "pages": null,
+     "corpus_path": "docs/insurer/gwo_2026q3_release.html",
+     "file_type": "html"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "report_to_shareholders",
+     "url": "https://www.canadalife.com/content/dam/lifeco/documents/investor-relations/reports/2026/q3/lifeco-q3-2026-quarterly-report-to-shareholders-en.pdf",
+     "sha256": "a06d644f3c0dfbcece658d3059327e4d17c9d4ccd2e4b4c326081b8301af6f1d",
+     "source_tier": "primary",
+     "pages": 74,
+     "corpus_path": "docs/insurer/gwo_2026q3_report.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "investor_presentation",
+     "url": "https://www.canadalife.com/content/dam/lifeco/documents/investor-relations/reports/2026/q3/lifeco-q3-2026-earnings-call-slides.pdf",
+     "sha256": "a9a1d5a472a5cc4dfbd168d9312dd6c34ca794ac343b8a30b8d91d0204417b75",
+     "source_tier": "primary",
+     "pages": 29,
+     "corpus_path": "docs/insurer/gwo_2026q3_slides.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "press_release",
+     "url": "https://www.canadalife.com/content/dam/lifeco/documents/news/2026/en/lifeco-q3-2026-earnings-release.pdf",
+     "sha256": "c08c73c9eb2ac32732443ea98974d4fbf14630b543e0c5b9c6ec67a57675bc98",
+     "source_tier": "primary",
+     "pages": 12,
+     "corpus_path": "docs/insurer/gwo_2026q3_release_pdf.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "supplementary_financial_info",
+     "url": "https://www.canadalife.com/content/dam/lifeco/documents/investor-relations/reports/2026/q3/lifeco-q3-2026-supplement.pdf",
+     "sha256": "f3eca2b3e23928e47f762d67c29c32d87a9d4116f036c85f571187341d760a12",
+     "source_tier": "primary",
+     "pages": 60,
+     "corpus_path": "docs/insurer/gwo_2026q3_supp.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "ia",
+   "name": "iA Financial Group",
+   "segment": "insurer",
+   "gaap": "ifrs",
+   "fiscal_year_end": "12-31",
+   "cadence": "quarterly",
+   "release_lag_days": 45,
+   "ir_domains": [
+    "ia.ca"
+   ],
+   "templates": {},
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "press_release",
+     "url": "https://ia.ca/-/media/files/ia/investisseurs/rapportsfinanciers/trimestriel/2026/t3/q3-2026-news-release-acc-2.pdf",
+     "sha256": "28cd7e3a66e3a8374350e52fec2ed085374d496ddad20469b80c1f05b2877b12",
+     "source_tier": "primary",
+     "pages": 13,
+     "corpus_path": "docs/insurer/iag_2026q3_release.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "supplementary_financial_info",
+     "url": "https://ia.ca/-/media/files/ia/investisseurs/rapportsfinanciers/trimestriel/2026/t3/q3-2026-sip-pdf-acc.pdf",
+     "sha256": "e7be4d0f6fd9c4b6c5c7f3158677e7fb215e3ab53dc5767090a7aab9bee6b478",
+     "source_tier": "primary",
+     "pages": 52,
+     "corpus_path": "docs/insurer/iag_2026q3_supp.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "report_to_shareholders",
+     "url": "https://ia.ca/-/media/files/ia/investisseurs/rapportsfinanciers/trimestriel/2026/t3/q3-2026-shareholders-report-acc.pdf",
+     "sha256": "7db3dec6279253fbd4b0eed303c4dcffe1745f8640d217d2c8000df764af74ac",
+     "source_tier": "primary",
+     "pages": 68,
+     "corpus_path": "docs/insurer/iag_2026q3_report.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "intact",
+   "name": "Intact Financial",
+   "segment": "insurer",
+   "gaap": "ifrs",
+   "fiscal_year_end": "12-31",
+   "cadence": "quarterly",
+   "release_lag_days": 45,
+   "ir_domains": [
+    "newsroom.intactfc.com",
+    "www.intactfc.com"
+   ],
+   "templates": {
+    "mdna": "https://www.intactfc.com/presentations/Q{q}-{fy}-MDA.pdf",
+    "interim_financial_statements": "https://www.intactfc.com/presentations/Q{q}_{fy}_Financial-Statements.pdf",
+    "supplementary_financial_info": "https://www.intactfc.com/presentations/Q{q}-{fy}-Stats-Supplement.pdf"
+   },
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "press_release",
+     "url": "https://newsroom.intactfc.com/2026-11-03-Intact-Financial-Corporation-reports-Q3-2026-results",
+     "sha256": "1a2bf27af72a337c6ebf4e99ccd14bf6dd652e63eeaf98bd447902e6306aa4ee",
+     "source_tier": "primary",
+     "pages": null,
+     "corpus_path": "docs/insurer/ifc_2026q3_release.html",
+     "file_type": "html"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "mdna",
+     "url": "https://www.intactfc.com/presentations/Q3-2026-MDA.pdf",
+     "sha256": "55cba059ab045a5e0a7e8d39064a93dead74175300070569ffb945485999ae34",
+     "source_tier": "primary",
+     "pages": 55,
+     "corpus_path": "docs/insurer/ifc_2026q3_mdna.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "press_release",
+     "url": "https://www.intactfc.com/presentations/Q3-2026-Press-Release.pdf",
+     "sha256": "f95446c6773ec0f8d04914b70e0a49fc6faa8bd86545da1bde27c60ff3da8190",
+     "source_tier": "primary",
+     "pages": 11,
+     "corpus_path": "docs/insurer/ifc_2026q3_release_pdf.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "interim_financial_statements",
+     "url": "https://www.intactfc.com/presentations/Q3_2026_Financial-Statements.pdf",
+     "sha256": "ad950b8bc0c6b0e192ca8a34c726bde3882d6d4e0cbe0d13ce6283084c60929e",
+     "source_tier": "primary",
+     "pages": 34,
+     "corpus_path": "docs/insurer/ifc_2026q3_fs.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "supplementary_financial_info",
+     "url": "https://www.intactfc.com/presentations/Q3-2026-Stats-Supplement.pdf",
+     "sha256": "c54df3f22159348a1bbc6f5b7f45223da37be8eec99f3128a0099f3c4323262e",
+     "source_tier": "primary",
+     "pages": 25,
+     "corpus_path": "docs/insurer/ifc_2026q3_supp.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-09-30",
+     "doc_type": "supplementary_financial_info_xlsx",
+     "url": "https://www.intactfc.com/presentations/Q3-2026-Stats-Supplement.xlsx",
+     "sha256": "b502f40e4f1980293774291251747755ae73ee27064908e56509065cf64a384a",
+     "source_tier": "primary",
+     "pages": null,
+     "corpus_path": "docs/insurer/ifc_2026q3_supp_xlsx.xlsx",
+     "file_type": "xlsx"
+    }
+   ]
+  },
+  {
+   "peer_id": "vancity",
+   "name": "Vancity",
+   "segment": "credit_union",
+   "gaap": "ifrs",
+   "fiscal_year_end": "12-31",
+   "cadence": "annual",
+   "release_lag_days": 100,
+   "ir_domains": [
+    "annualreport.vancity.com"
+   ],
+   "templates": {},
+   "known_documents": [
+    {
+     "period": "FY2025",
+     "period_end": "2025-12-31",
+     "doc_type": "annual_financial_statements",
+     "url": "https://annualreport.vancity.com/_doc/Vancity-2025-Consolidated-Financial-Statements.pdf",
+     "sha256": "b0caf059d96ae3fb04865e4784c1a9938fb4061c4314a557c8379dd75bbb3c69",
+     "source_tier": "primary",
+     "pages": 77,
+     "corpus_path": "docs/credit_union/vancity_2025_fs.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2025",
+     "period_end": "2025-12-31",
+     "doc_type": "annual_report",
+     "url": "https://annualreport.vancity.com/_doc/Vancity-2025-Annual-Report.pdf",
+     "sha256": "78788598474a9ba551f1ec31822896aeac37b7847d4236aa7f94bc35c1514bbc",
+     "source_tier": "primary",
+     "pages": 51,
+     "corpus_path": "docs/credit_union/vancity_2025_annual.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "servus",
+   "name": "Servus Credit Union",
+   "segment": "credit_union",
+   "gaap": "ifrs",
+   "fiscal_year_end": "10-31",
+   "cadence": "quarterly",
+   "release_lag_days": 45,
+   "ir_domains": [
+    "servus.ca"
+   ],
+   "templates": {},
+   "known_documents": [
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "press_release",
+     "url": "https://servus.ca/newsroom/2026/record-third-quarter-results-drive-value-for-servus-credit-union-members",
+     "sha256": "3c4b2a87d14dbfe1189fbbc7a5ee4098d000e08a10f631ec77faa6053f266521",
+     "source_tier": "primary",
+     "pages": null,
+     "corpus_path": "docs/credit_union/servus_fy26q3_release.html",
+     "file_type": "html"
+    },
+    {
+     "period": "FY2026-Q2",
+     "period_end": "2026-04-30",
+     "doc_type": "interim_financial_statements",
+     "url": "https://servus.ca/media/2dwfnokt/cons_financialstatements_2604.pdf",
+     "sha256": "bc27b389bcaaf6fc1816b9a4b440b47f92639ec450207d10c76c3f5cc13bb342",
+     "source_tier": "primary",
+     "pages": 22,
+     "corpus_path": "docs/credit_union/servus_fy26q2_fs.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2026-Q3",
+     "period_end": "2026-07-31",
+     "doc_type": "interim_financial_statements",
+     "url": "https://servus.ca/media/kh4bxlen/cons_financialstatements_2607.pdf",
+     "sha256": "46fe5536ebf2db75f252f790e891676806770835dd884c111b661e177cc3c1de",
+     "source_tier": "primary",
+     "pages": 22,
+     "corpus_path": "docs/credit_union/servus_fy26q3_fs.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2025",
+     "period_end": "2025-10-31",
+     "doc_type": "annual_financial_statements",
+     "url": "https://servus.ca/media/jakbelds/cons_financialstatements_final-signed_2510.pdf",
+     "sha256": "83cd54a0ff3444ca61b85ea20c181a6ceba42fe78496ad7aaa4c0b86081ca754",
+     "source_tier": "primary",
+     "pages": 75,
+     "corpus_path": "docs/credit_union/servus_fy25_fs.pdf",
+     "file_type": "pdf"
+    },
+    {
+     "period": "FY2025",
+     "period_end": "2025-10-31",
+     "doc_type": "mdna",
+     "url": "https://servus.ca/media/hcsp05py/2025_11-mda-report_web.pdf",
+     "sha256": "11541f6423b4e68008f3b0431b37de068ca694ab9c7d5ba9aea7b84c344e34f9",
+     "source_tier": "primary",
+     "pages": 30,
+     "corpus_path": "docs/credit_union/servus_fy25_mdna.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "meridian",
+   "name": "Meridian Credit Union",
+   "segment": "credit_union",
+   "gaap": "ifrs",
+   "fiscal_year_end": "12-31",
+   "cadence": "annual",
+   "release_lag_days": 100,
+   "ir_domains": [
+    "www.meridiancu.ca"
+   ],
+   "templates": {},
+   "known_documents": [
+    {
+     "period": "FY2025",
+     "period_end": "2025-12-31",
+     "doc_type": "mdna",
+     "url": "https://www.meridiancu.ca/getcontentasset/8ea4fa4b-2c40-4146-8091-3372ff7a0e89/dfc3d011-8f63-43f6-9ed8-4b444333a1d0/2025-management-s-discussion-and-analysis-(pdf,-390-kb).pdf?language=en-US",
+     "sha256": "307cdecefd2defdddc56a76d5bd1db61de4bf36a5d221b157c82098b7a0832f7",
+     "source_tier": "primary",
+     "pages": 39,
+     "corpus_path": "docs/credit_union/meridian_2025_mdna.pdf",
+     "file_type": "pdf"
+    }
+   ]
+  },
+  {
+   "peer_id": "coast_capital",
+   "name": "Coast Capital",
+   "segment": "credit_union",
+   "gaap": "ifrs",
+   "fiscal_year_end": "12-31",
+   "cadence": "annual",
+   "release_lag_days": 100,
+   "ir_domains": [
+    "www.coastcapitalsavings.com"
+   ],
+   "templates": {},
+   "known_documents": []
+  }
+ ]
+}
