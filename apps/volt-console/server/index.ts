@@ -10,6 +10,7 @@
  *   GET  /api/templates/:id        formatting profile and guide
  *   GET  /api/templates/:id/original   the uploaded file
  *   DELETE /api/templates/:id
+ *   POST /api/export               build a Word, PowerPoint or Excel download from a deliverable
  *   GET  /api/finance-architecture/demo       synthetic golden case + lifecycle reference
  *   POST /api/finance-architecture/validate   run the skill's offline journal / mapping validator
  *   POST /api/finance-architecture/sources/find      Claude web_search for an issuer's published statements (live only)
@@ -37,14 +38,28 @@ import { MODEL, errorMessage, getSession, intakeFor, runLive, type Emit, type Ru
 import { runDemo } from "./demo.js";
 import { commandPrompt, commandStatus, loadRudraCommands, matchCommand } from "./commands.js";
 import { TemplateError, templateStore } from "./templates.js";
+import { exportRouter } from "./export/route.js";
 import { demoDocuments, multiBasisAllowance, runValidator } from "./financeArchitecture.js";
 import { COPILOTKIT_PATH, copilotkitHandler } from "./copilotkit.js";
 import { MAX_SOURCE_BYTES, SourceError, extractFigures, findFilings, ingestDocument, verifyFigures } from "./sources.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
+import { AttachmentError, extractAttachment } from "./attachments.js";
+import { listUploads, originalPath, readUpload, removeUpload, saveUpload } from "./uploads.js";
+import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../shared/attachments.js";
+import { runBudgetMs } from "./budget.js";
+import { startHeartbeat } from "./sse.js";
+import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requireToken, sameOriginWrites, securityConfig } from "./security.js";
 
 const catalog = loadCatalog();
+const security = securityConfig();
+assertSafeToListen(security);
+if (security.authMode === "username") console.warn("[security] VOLT_AUTH_MODE=username: sign-in needs only a name, with no secret. Anyone who can reach this URL can use the Claude API key.");
 const app = express();
+app.disable("x-powered-by");
+// Behind a reverse proxy (Render, Fly, nginx) set VOLT_TRUST_PROXY=1 so req.ip and req.secure come from X-Forwarded-*;
+// without it every visitor shares the proxy's address and one rate-limit budget.
+if (process.env.VOLT_TRUST_PROXY) app.set("trust proxy", Number(process.env.VOLT_TRUST_PROXY) || 1);
 
 /** Live when any Claude credential source is configured; VOLT_MODE overrides. */
 function detectMode(): RunMode {
@@ -52,12 +67,29 @@ function detectMode(): RunMode {
   if (forced === "live" || forced === "demo") return forced;
   const env = ["ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN", "ANTHROPIC_PROFILE", "ANTHROPIC_FEDERATION_RULE_ID"];
   if (env.some((k) => process.env[k])) return "live";
-  return fs.existsSync(path.join(os.homedir(), ".config", "anthropic")) ? "live" : "demo";
+  // A credentials directory counts only when it holds something; an empty or stale folder stays in demo.
+  const dir = path.join(os.homedir(), ".config", "anthropic");
+  try {
+    return fs.readdirSync(dir).length > 0 ? "live" : "demo";
+  } catch {
+    return "demo";
+  }
 }
 const mode = detectMode();
 
+// Access control comes first, ahead of every parser and route (including CopilotKit).
+app.use(requireToken(security));
+app.use(sameOriginWrites(security));
+app.use(limitCostly(security.rateLimitPerMinute));
+// Sign-in attempts are rate limited per client; the form posts here, the URL form still works.
+const loginLimit = rateLimit(10);
+app.get("/api/login", loginLimit, loginHandler(security));
+app.post("/api/login", loginLimit, express.json({ limit: "2kb" }), loginPostHandler(security));
+
 // CopilotKit reads its own request bodies, so it is mounted before the JSON parser. Live mode only.
 if (mode === "live") app.use(copilotkitHandler());
+// Downloads (Word, PowerPoint, Excel) carry images, so they get their own body limit ahead of the 1 MB JSON parser.
+app.use("/api/export", exportRouter((id) => templateStore().get(id)));
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/api/healthz", (_req, res) => {
@@ -213,6 +245,70 @@ app.get("/api/workflows/:id/intake", (req, res) => {
 
 const templates = templateStore();
 
+// Reads an attached file to plain text. The text comes back to the browser and travels with the run request.
+app.post("/api/attachments/extract", express.raw({ type: () => true, limit: ATTACH_MAX_BYTES }), async (req, res) => {
+  const data = Buffer.isBuffer(req.body) ? new Uint8Array(req.body) : new Uint8Array(0);
+  if (data.length === 0) return void res.status(400).json({ error: "Send the file as the request body.", code: "empty" });
+  let name = req.get("x-file-name") ?? "attachment";
+  try {
+    name = decodeURIComponent(name);
+  } catch {
+    /* keep the raw header */
+  }
+  try {
+    res.json(await extractAttachment(name, data));
+  } catch (err) {
+    if (err instanceof AttachmentError) return void res.status(err.code === "unsupported_type" ? 415 : 422).json({ error: err.message, code: err.code });
+    console.error("Attachment extraction failed", err);
+    res.status(500).json({ error: "That file could not be read.", code: "unreadable" });
+  }
+});
+
+// ── Uploads library ──────────────────────────────────────────────────────────
+// Every attached file is kept (original + extracted text) so any later chat can use it again as a source.
+
+app.post("/api/uploads", express.raw({ type: () => true, limit: ATTACH_MAX_BYTES }), async (req, res) => {
+  const data = Buffer.isBuffer(req.body) ? new Uint8Array(req.body) : new Uint8Array(0);
+  if (data.length === 0) return void res.status(400).json({ error: "Send the file as the request body.", code: "empty" });
+  let name = req.get("x-file-name") ?? "attachment";
+  try {
+    name = decodeURIComponent(name);
+  } catch {
+    /* keep the raw header */
+  }
+  try {
+    const extracted = await extractAttachment(name, data);
+    const meta = saveUpload(extracted, data);
+    res.json({ ...extracted, id: meta.id });
+  } catch (err) {
+    if (err instanceof AttachmentError) return void res.status(err.code === "unsupported_type" ? 415 : 422).json({ error: err.message, code: err.code });
+    console.error("Upload failed", err);
+    res.status(500).json({ error: "That file could not be read.", code: "unreadable" });
+  }
+});
+
+app.get("/api/uploads", (_req, res) => {
+  res.json(listUploads());
+});
+
+app.get("/api/uploads/:id", (req, res) => {
+  const got = readUpload(req.params.id);
+  if (!got) return void res.status(404).json({ error: "unknown upload" });
+  res.json({ ...got.meta, name: got.meta.name, text: got.text });
+});
+
+app.get("/api/uploads/:id/file", (req, res) => {
+  const file = originalPath(req.params.id);
+  const meta = listUploads().find((m) => m.id === req.params.id);
+  if (!file || !meta) return void res.status(404).json({ error: "unknown upload" });
+  res.download(file, meta.name);
+});
+
+app.delete("/api/uploads/:id", (req, res) => {
+  if (!removeUpload(req.params.id)) return void res.status(404).json({ error: "unknown upload" });
+  res.status(204).end();
+});
+
 app.get("/api/templates", (_req, res) => {
   res.json(templates.list());
 });
@@ -269,6 +365,11 @@ const RunBody = z.object({
   agentId: z.string().optional(),
   demo: z.boolean().optional(),
   templateId: z.string().max(32).optional(),
+  attachments: z
+    .array(z.object({ name: z.string().max(200), text: z.string().max(ATTACH_MAX_CHARS_FILE + 200) }))
+    .max(ATTACH_MAX_FILES)
+    .refine((a) => a.reduce((n, f) => n + f.text.length, 0) <= ATTACH_MAX_CHARS_TOTAL, "The attached files are too long in total.")
+    .optional(),
 });
 
 app.post("/api/run", async (req, res) => {
@@ -278,15 +379,27 @@ app.post("/api/run", async (req, res) => {
   if (parsed.data.templateId && !template) return void res.status(400).json({ error: "unknown template" });
   const body: RunInput = { ...parsed.data, template: template ? { id: template.id, name: template.name, guide: template.guide } : undefined };
 
-  res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive" });
+  const session = getSession(body.sessionId);
+  if (session.busy) return void res.status(409).json({ error: "A run is already in progress for this conversation. Wait for it to finish or stop it first.", code: "session_busy" });
+  session.busy = true;
+
+  res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-cache", Connection: "keep-alive", "X-Accel-Buffering": "no" });
   const controller = new AbortController();
   res.on("close", () => controller.abort());
+  startHeartbeat(res);
+  // End the run cleanly before the host's limit, so the answer written so far is kept instead of lost.
+  const budget = runBudgetMs();
+  const limitTimer = budget
+    ? setTimeout(() => {
+        emit({ type: "error", lane: ORCHESTRATOR_LANE, message: `This run reached its ${Math.round(budget / 1000)}-second time limit, so it stopped. The answer so far is shown. Ask a narrower question, or split the work into parts.` });
+        controller.abort();
+      }, budget)
+    : undefined;
   const emit: Emit = (e: VoltEvent) => {
     if (!res.writableEnded) res.write(`data: ${JSON.stringify(e)}\n\n`);
   };
 
   const runMode: RunMode = body.demo || mode === "demo" ? "demo" : "live";
-  const session = getSession(body.sessionId);
   const kind = body.workflowId ? "workflow" : body.agentId && body.agentId !== "rudra" ? "agent" : "orchestrate";
   const title = body.workflowId
     ? catalog.workflowById.get(body.workflowId)?.name ?? body.workflowId
@@ -294,17 +407,21 @@ app.post("/api/run", async (req, res) => {
       ? catalog.agentById.get(body.agentId)?.name ?? body.agentId
       : "Rudra orchestration";
   emit({ type: "run_start", runId: crypto.randomUUID(), sessionId: session.id, mode: runMode, model: runMode === "live" ? MODEL : "simulator", kind, title });
+  if (runMode === "demo" && body.attachments?.length) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Attached files are read in live mode only; this demo run ignores them" });
   if (body.template) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Formatting template "${body.template.name}" attached` });
   // Rudra commands ("/compare ...") apply to Rudra runs only, not to a single specialist or a workflow.
-  const commands = kind === "orchestrate" ? loadRudraCommands() : [];
-  const command = kind === "orchestrate" ? matchCommand(body.prompt, commands) : null;
-  if (command) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: commandStatus(command) });
-
   try {
+    const commands = kind === "orchestrate" ? loadRudraCommands() : [];
+    const command = kind === "orchestrate" ? matchCommand(body.prompt, commands) : null;
+    if (command) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: commandStatus(command) });
+
     if (runMode === "demo") await runDemo(catalog, body, emit, controller.signal);
     else await runLive(catalog, command ? { ...body, prompt: commandPrompt(body.prompt, command, commands) } : body, session, emit, controller.signal);
   } catch (err) {
     if (!controller.signal.aborted) emit({ type: "error", lane: ORCHESTRATOR_LANE, message: errorMessage(err) });
+  } finally {
+    clearTimeout(limitTimer);
+    session.busy = false;
   }
   emit({ type: "done", sessionId: session.id });
   res.end();
@@ -313,7 +430,7 @@ app.post("/api/run", async (req, res) => {
 // JSON errors for the API (for example an upload over the size limit), instead of Express's HTML page.
 app.use("/api", (err: { status?: number; type?: string; message?: string }, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
   const status = err.type === "entity.too.large" ? 413 : err.status && err.status < 500 ? err.status : 500;
-  const error = status === 413 ? `Templates must be ${MAX_TEMPLATE_BYTES / 1024 / 1024} MB or smaller.` : status === 500 ? "Server error" : err.message;
+  const error = status === 413 ? "That upload or request is larger than this endpoint allows." : status === 500 ? "Server error" : err.message;
   if (status === 500) console.error(err);
   res.status(status).json({ error, code: status === 413 ? "too_large" : undefined });
 });
@@ -324,8 +441,11 @@ if (process.env.NODE_ENV === "production") {
   app.get(/^(?!\/api\/).*/, (_req, res) => res.sendFile(path.join(dist, "index.html")));
 }
 
+// On Vercel the app runs as a serverless function (api/index.ts) and Vercel owns the socket, so nothing listens here.
+export default app;
+
 const port = Number(process.env.PORT ?? 8787);
-app.listen(port, () => {
-  console.log(`VOLT Agentic Console API on http://localhost:${port} (${mode} mode, model ${MODEL})`);
+if (!process.env.VERCEL) app.listen(port, security.host, () => {
+  console.log(`VOLT Agentic Console API on http://${security.host}:${port} (${mode} mode, model ${MODEL}${security.token ? ", access token required" : ""})`);
   console.log(`Catalog: ${catalog.agents.length} agents, ${catalog.workflows.length} workflows, ${catalog.skills.length} skills from ${catalog.source.name}@${catalog.source.commit?.slice(0, 7) ?? "?"}`);
 });

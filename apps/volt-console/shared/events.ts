@@ -7,7 +7,11 @@ export type VoltEvent =
   | { type: "phase_start"; index: number; name: string; agents: string[] }
   | { type: "phase_end"; index: number; name: string }
   | { type: "status"; lane: string; text: string }
+  | { type: "research"; tier: import("./research.js").Tier }
+  | { type: "source"; record: import("./research.js").SourceRecord }
   | { type: "text_delta"; lane: string; text: string }
+  /** The lead agent's draft is being replaced by a rewrite (the partner review): clear what was streamed so far. */
+  | { type: "text_reset"; lane: string }
   | { type: "tool_call"; lane: string; callId: string; name: string; input: unknown }
   | { type: "tool_result"; lane: string; callId: string; name: string; summary: string; data?: unknown; isError?: boolean }
   | { type: "agent_start"; lane: string; parentLane: string; agentId: string; name: string; layer: string; icon: string; brief: string }
@@ -35,6 +39,8 @@ export interface RunRequest {
   demo?: boolean;
   /** Uploaded template whose formatting guide the agents apply (see shared/templates.ts). */
   templateId?: string;
+  /** Files the user attached, already read to text by POST /api/attachments/extract. */
+  attachments?: { name: string; text: string }[];
 }
 
 export interface CatalogAgent {

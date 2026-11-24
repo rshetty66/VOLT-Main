@@ -1,0 +1,32 @@
+# Render blueprint for the VOLT Console. In Render: New > Blueprint > pick this repository.
+# Then open the service > Environment and enter ANTHROPIC_API_KEY. VOLT_ACCESS_TOKEN is generated for you:
+# read it there, then open https://<service>.onrender.com and type it into the Sign in screen (once per browser).
+# Render has no 300-second function limit, so long runs finish; the run time budget is off unless you set
+# VOLT_RUN_BUDGET_SECONDS.
+services:
+  - type: web
+    name: volt-console
+    runtime: docker
+    dockerfilePath: ./apps/volt-console/Dockerfile
+    dockerContext: .
+    plan: starter
+    healthCheckPath: /api/healthz
+    disk:
+      name: volt-data
+      mountPath: /app/apps/volt-console/data
+      sizeGB: 1
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: VOLT_ACCESS_TOKEN
+        generateValue: true
+      - key: VOLT_MODE
+        value: live
+      - key: VOLT_FALLBACKS
+        value: "off"
+      - key: BUILDER_EXECUTION_ENABLED
+        value: "false"
+      - key: VOLT_HOST
+        value: 0.0.0.0
+      - key: VOLT_TRUST_PROXY
+        value: "1"

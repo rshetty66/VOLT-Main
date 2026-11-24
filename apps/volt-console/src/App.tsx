@@ -1,6 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../shared/events";
-import { fetchCatalog, listTemplates, streamRun } from "./api";
+import { fetchCatalog, listTemplates, streamRun, UnauthorizedError } from "./api";
+import { SignIn } from "./components/SignIn";
+import { History } from "./components/History";
+import { Uploads } from "./components/Uploads";
+import { Usage } from "./components/Usage";
+import { loadHistory, mergeHistory, saveHistory } from "./history";
 import type { TemplateSummary } from "../shared/templates";
 import { applyEvent, newRun, type Run } from "./runState";
 import { Console } from "./components/Console";
@@ -12,14 +17,18 @@ import { Analytics } from "./components/Analytics";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
 import { Workbench } from "./components/workbench/Workbench";
+import { TemplateContext } from "./exports";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "health";
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "health" | "history" | "usage" | "uploads";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [loadError, setLoadError] = useState("");
+  const [needsSignIn, setNeedsSignIn] = useState(false);
+  const [authMode, setAuthMode] = useState<"token" | "username">("token");
   const [view, setView] = useState<View>("console");
   const [runs, setRuns] = useState<Run[]>([]);
+  const [history, setHistory] = useState<Run[]>(() => loadHistory());
   const [target, setTarget] = useState<string>("rudra");
   const [forceDemo, setForceDemo] = useState(false);
   const [openAgent, setOpenAgent] = useState<string | null>(null);
@@ -28,10 +37,22 @@ export function App() {
   const sessions = useRef(new Map<string, string>());
   const controllers = useRef(new Map<string, AbortController>());
 
-  useEffect(() => {
-    fetchCatalog().then(setCatalog, (e) => setLoadError(String(e)));
+  const load = useCallback(() => {
+    setLoadError("");
+    setNeedsSignIn(false);
+    fetchCatalog().then(setCatalog, (e) => (e instanceof UnauthorizedError ? (setAuthMode(e.auth), setNeedsSignIn(true)) : setLoadError(String(e))));
     listTemplates().then(setTemplates, () => setTemplates([]));
   }, []);
+  useEffect(load, [load]);
+
+  // Finished runs are saved in this browser so a reload does not lose the conversation.
+  useEffect(() => {
+    setHistory((h) => {
+      const next = mergeHistory(h, runs);
+      return next.length === h.length && next.every((r, i) => r === h[i]) ? h : next;
+    });
+  }, [runs]);
+  useEffect(() => saveHistory(history), [history]);
 
   const refreshTemplates = useCallback(async () => {
     const list = await listTemplates();
@@ -42,7 +63,7 @@ export function App() {
   const start = useCallback(
     async (req: RunRequest, title: string, kind: RunKind) => {
       const sessionKey = req.workflowId ? `workflow:${crypto.randomUUID()}` : req.agentId && req.agentId !== "rudra" ? `agent:${req.agentId}` : "rudra";
-      const run = newRun(req.prompt, title, kind);
+      const run = { ...newRun(req.prompt, title, kind), attachments: req.attachments?.map((a) => a.name) };
       const controller = new AbortController();
       controllers.current.set(run.id, controller);
       setRuns((rs) => [...rs, run]);
@@ -69,11 +90,23 @@ export function App() {
     [forceDemo, activeTemplate],
   );
 
+  /** A new chat: the screen is cleared and the next question starts a fresh conversation. Earlier chats stay in History. */
+  const newChat = () => {
+    const working = runs.some((r) => r.state === "running");
+    if (working && !window.confirm("A run is still working. Stop it and start a new chat?")) return;
+    controllers.current.forEach((c) => c.abort());
+    sessions.current.clear();
+    setRuns([]);
+    setOpenAgent(null);
+    setView("console");
+  };
+
   const stop = (runId: string) => {
     controllers.current.get(runId)?.abort();
     setRuns((rs) => rs.map((r) => (r.id === runId ? { ...r, state: "stopped", finishedAt: Date.now() } : r)));
   };
 
+  if (needsSignIn) return <SignIn mode={authMode} onSignedIn={load} />;
   if (loadError) return <div className="empty">Could not load the VOLT catalog: {loadError}</div>;
   if (!catalog) return <div className="empty"><span className="spinner" /> Loading VOLT capabilities…</div>;
 
@@ -87,6 +120,9 @@ export function App() {
     ["templates", "Templates", templates.length || ""],
     ["analytics", "Analytics", catalog.benchmarks.length],
     ["finance", "Finance Workbench", ""],
+    ["history", "History", history.length || ""],
+    ["uploads", "Uploads", ""],
+    ["usage", "Token usage", ""],
     ["health", "Capability Health", catalog.health.missingSkills.length],
   ];
 
@@ -94,7 +130,7 @@ export function App() {
     <div className="app">
       <header className="topbar">
         <div className="brand">
-          <b>VOLT</b>
+          <img className="brand-mark" src="/brand/volt-mark.png" alt="VOLT" />
           <span>Agentic Console · Vision, Orchestrate, Launch, Transform</span>
         </div>
         <span className={`badge ${live ? "live" : ""}`}>{live ? "Live" : "Demo"}</span>
@@ -120,6 +156,9 @@ export function App() {
         </span>
       </header>
       <nav className="nav">
+        <button className="btn primary new-chat" onClick={newChat}>
+          + New chat
+        </button>
         {nav.map(([id, label, count], i) => (
           <div key={id} style={{ display: "contents" }}>
             {i === 1 && <div className="sep" />}
@@ -129,6 +168,7 @@ export function App() {
           </div>
         ))}
       </nav>
+      <TemplateContext.Provider value={activeTemplate}>
       <main className="main">
         {view === "console" && (
           <Console catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} />
@@ -140,8 +180,36 @@ export function App() {
         {view === "templates" && <Templates templates={templates} refresh={refreshTemplates} activeTemplate={activeTemplate} setActiveTemplate={setActiveTemplate} />}
         {view === "analytics" && <Analytics catalog={catalog} />}
         {view === "finance" && <Workbench live={live} />}
+        {view === "history" && (
+          <History
+            history={history}
+            onOpen={(run) => {
+              setRuns((rs) => (rs.some((r) => r.id === run.id) ? rs : [...rs, run]));
+              setView("console");
+            }}
+            onDelete={(id) => {
+              setHistory((h) => h.filter((r) => r.id !== id));
+              setRuns((rs) => rs.filter((r) => r.id !== id));
+            }}
+            onClear={() => {
+              setHistory([]);
+              setRuns((rs) => rs.filter((r) => r.state === "running"));
+            }}
+          />
+        )}
+        {view === "uploads" && <Uploads />}
+        {view === "usage" && (
+          <Usage
+            history={history}
+            onOpenChat={(chatRuns) => {
+              setRuns((rs) => [...rs, ...chatRuns.filter((c) => !rs.some((r) => r.id === c.id))]);
+              setView("console");
+            }}
+          />
+        )}
         {view === "health" && <Health catalog={catalog} onOpenAgent={setOpenAgent} />}
       </main>
+      </TemplateContext.Provider>
       {openAgent && (
         <AgentDrawer
           catalog={catalog}

@@ -1,3 +1,4 @@
+import type { SourceRecord, Tier } from "../shared/research";
 import { ORCHESTRATOR_LANE, type RunKind, type RunMode, type VoltEvent } from "../shared/events";
 
 export interface ActivityItem {
@@ -27,6 +28,8 @@ export interface Lane {
 export interface Run {
   id: string;
   prompt: string;
+  /** Names of the files attached to the request. */
+  attachments?: string[];
   title: string;
   kind: RunKind;
   mode?: RunMode;
@@ -38,6 +41,9 @@ export interface Run {
   laneOrder: string[];
   phases: { name: string; agents: string[]; state: "running" | "done" }[];
   usage: { input: number; output: number; cacheRead: number };
+  /** The research engine: depth tier and the source register the agents cited from. */
+  tier?: Tier;
+  sources: SourceRecord[];
   state: "running" | "done" | "stopped";
   startedAt: number;
   finishedAt?: number;
@@ -54,6 +60,7 @@ export function newRun(prompt: string, title: string, kind: RunKind): Run {
     lanes: {},
     laneOrder: [],
     phases: [],
+    sources: [],
     usage: { input: 0, output: 0, cacheRead: 0 },
     state: "running",
     startedAt: Date.now(),
@@ -104,6 +111,16 @@ export function applyEvent(run: Run, e: VoltEvent): Run {
       else r.text += e.text;
       return r;
     }
+    case "research":
+      return { ...r, tier: e.tier };
+    case "source":
+      return r.sources.some((x) => x.key === e.record.key) ? r : { ...r, sources: [...r.sources, e.record] };
+    case "text_reset": {
+      const l = lane(e.lane);
+      if (l) r.lanes[e.lane] = { ...l, text: "" };
+      else r.text = "";
+      return r;
+    }
     case "status":
       pushActivity(e.lane, { id: crypto.randomUUID(), kind: "status", text: e.text });
       return r;
@@ -132,4 +149,29 @@ function summariseInput(input: unknown): string {
   const o = input as Record<string, unknown>;
   const v = o.query ?? o.agent_id ?? o.skill_id ?? o.metric ?? "";
   return String(v).slice(0, 120);
+}
+
+export interface WorkSummary {
+  specialists: number;
+  finished: number;
+  failed: number;
+  /** Names of the specialists still working, in start order. */
+  working: string[];
+  toolCalls: number;
+  /** Error messages from the orchestrator and every specialist: these stay visible even when the work is collapsed. */
+  errors: string[];
+}
+
+/** The one-line story of a run: who was consulted, how many tools ran, and anything that went wrong. */
+export function summariseWork(run: Run): WorkSummary {
+  const lanes = run.laneOrder.map((id) => run.lanes[id]).filter(Boolean);
+  const items = [...run.activity, ...lanes.flatMap((l) => l.activity)];
+  return {
+    specialists: lanes.length,
+    finished: lanes.filter((l) => l.state !== "running").length,
+    failed: lanes.filter((l) => l.state === "failed").length,
+    working: lanes.filter((l) => l.state === "running").map((l) => l.name),
+    toolCalls: items.filter((a) => a.kind === "tool").length,
+    errors: items.filter((a) => a.isError).map((a) => a.text),
+  };
 }

@@ -21,10 +21,71 @@ export async function deleteTemplate(id: string): Promise<void> {
   if (!r.ok && r.status !== 404) throw new Error(`Delete failed (${r.status})`);
 }
 
+/** Thrown when the server wants the access token; the app answers with the sign-in screen. */
+export class UnauthorizedError extends Error {
+  constructor(public auth: "token" | "username" = "token") {
+    super("Access token required");
+  }
+}
+
+/** Reads one attached file to text on the server. Throws the server's message when the file cannot be used. */
+export async function extractAttachment(file: File): Promise<{ name: string; text: string; chars: number; truncated: boolean }> {
+  const r = await fetch("/api/attachments/extract", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) }, body: file });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.error ?? (r.status === 413 ? "That file is too large (4 MB limit)." : `Could not read that file (${r.status})`));
+  return body;
+}
+
+export interface UploadMeta { id: string; name: string; ext: string; bytes: number; chars: number; truncated: boolean; createdAt: number; uses: number }
+
+/** Reads an attached file and keeps it in the uploads library; returns its text and library id. */
+export async function uploadAttachment(file: File): Promise<{ id: string; name: string; text: string; chars: number; truncated: boolean }> {
+  const r = await fetch("/api/uploads", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) }, body: file });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.error ?? (r.status === 413 ? "That file is too large (4 MB limit)." : `Could not read that file (${r.status})`));
+  return body;
+}
+export async function listUploads(): Promise<UploadMeta[]> {
+  const r = await fetch("/api/uploads");
+  return r.ok ? r.json() : [];
+}
+export async function getUpload(id: string): Promise<UploadMeta & { text: string }> {
+  const r = await fetch(`/api/uploads/${id}`);
+  if (!r.ok) throw new Error("That upload is no longer in the library.");
+  return r.json();
+}
+export async function deleteUpload(id: string): Promise<void> {
+  await fetch(`/api/uploads/${id}`, { method: "DELETE" });
+}
+
 export async function fetchCatalog(): Promise<CatalogResponse> {
   const r = await fetch("/api/catalog");
+  if (r.status === 401) throw new UnauthorizedError((await r.json().catch(() => ({}))).auth === "username" ? "username" : "token");
   if (!r.ok) throw new Error(`Catalog failed: ${r.status}`);
   return r.json();
+}
+
+/** Signs in with the access token. Resolves to an empty string on success, or the message to show. */
+export async function signInUser(username: string): Promise<string> {
+  try {
+    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ username }) });
+    if (r.ok) return "";
+    const body = await r.json().catch(() => ({}));
+    return r.status === 429 ? "Too many attempts. Wait a minute and try again." : body.error ?? `Sign-in failed (${r.status})`;
+  } catch {
+    return "Could not reach the server.";
+  }
+}
+
+export async function signIn(token: string): Promise<string> {
+  try {
+    const r = await fetch("/api/login", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token }) });
+    if (r.ok) return "";
+    const body = await r.json().catch(() => ({}));
+    return r.status === 429 ? "Too many attempts. Wait a minute and try again." : body.error ?? `Sign-in failed (${r.status})`;
+  } catch {
+    return "Could not reach the server.";
+  }
 }
 
 export async function getJSON<T>(url: string): Promise<T> {
@@ -50,7 +111,11 @@ export async function* streamRun(req: RunRequest, signal: AbortSignal): AsyncGen
   const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
   let buf = "";
   while (true) {
-    const { value, done } = await reader.read();
+    // A dropped connection surfaces as the browser's bare "TypeError: Load failed"; say what happened instead.
+    const { value, done } = await reader.read().catch((e) => {
+      if (signal.aborted) throw e;
+      throw new Error("The connection dropped before the answer finished. Run it again.");
+    });
     if (done) break;
     buf += value;
     let i: number;

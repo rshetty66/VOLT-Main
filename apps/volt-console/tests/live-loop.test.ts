@@ -33,6 +33,75 @@ describe("live agent loop (mocked Messages API)", () => {
     expect(rudraText).toContain("Final answer from Rudra");
   });
 
+  it("gives the lead the attached files, with their source keys, and registers them as sources", async () => {
+    const before = mock.requests.length;
+    const events = await run({ prompt: "12 day close on SAP", attachments: [{ name: "trial-balance.csv", text: "account,amount\n4000,UNIQUE-ATTACH-777" }] });
+    const lead = mock.requests.slice(before).find((r) => r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;
+    const first = JSON.stringify(lead.body.messages[0].content);
+    expect(first).toContain("UNIQUE-ATTACH-777");
+    expect(first).toContain("[S02] trial-balance.csv");
+    const sources = events.filter((e) => e.type === "source").map((e) => (e as { record: { key: string; type: string } }).record);
+    expect(sources.find((r) => r.key === "S02")?.type).toBe("client data");
+  });
+
+  it("sends a thin draft of a deliverable back once, and the screen replaces it", async () => {
+    const events = await run({ prompt: "Build a plan to cut our month-end close from 12 days to 5 on SAP S/4HANA" });
+    const types = events.map((e) => e.type);
+    expect(types).toContain("text_reset");
+    expect(events.some((e) => e.type === "status" && e.text.startsWith("Partner review"))).toBe(true);
+    const reset = types.indexOf("text_reset");
+    const text = (from: number, to: number) => events.slice(from, to).filter((e) => e.type === "text_delta" && e.lane === "rudra").map((e) => (e as { text: string }).text).join("");
+    expect(text(0, reset)).toContain("Final answer from Rudra");
+    expect(text(reset, events.length)).toContain("REVISED DELIVERABLE");
+    expect(types.filter((t) => t === "text_reset")).toHaveLength(1);
+  });
+
+  it("records tool results in the source register and sends each key back to the model", async () => {
+    const events = await run({ prompt: "12 day close on SAP" });
+    const sources = events.filter((e) => e.type === "source").map((e) => (e as { record: { key: string; title: string; type: string } }).record);
+    expect(sources[0]).toMatchObject({ key: "S01", type: "client input" });
+    expect(sources.find((x) => x.key === "S02")).toMatchObject({ title: "APQC benchmark: days_to_close", type: "benchmark table" });
+    expect(events.find((e) => e.type === "research")).toMatchObject({ tier: "STANDARD" });
+    // the lead's second request carries the benchmark result with its key
+    const withResult = mock.requests.filter((r) => JSON.stringify(r.body.messages).includes("Source key: S02"));
+    expect(withResult.length).toBeGreaterThan(0);
+    expect(JSON.stringify(withResult[0].body.messages)).toContain("Cite this result as [S02]");
+  });
+
+  it("sends the failed evidence gates back in the partner review", async () => {
+    await run({ prompt: "Build a plan to cut our month-end close from 12 days to 5 on SAP S/4HANA" });
+    const review = mock.requests.find((r) => typeof r.body.messages.at(-1)?.content === "string" && String(r.body.messages.at(-1).content).startsWith("Partner review"));
+    expect(review).toBeTruthy();
+    const text = String(review!.body.messages.at(-1).content);
+    expect(text).toContain("Contradictions and tensions");
+    expect(text).toContain("Residue");
+    expect(text).toContain("Scope and method");
+  });
+
+  it("gives the lead the evidence rules and the specialists the short form", () => {
+    const system = (r: { body: { system: { text: string }[] } }) => r.body.system.map((x) => x.text).join("\n");
+    const lead = mock.requests.find((r) => r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;
+    const specialist = mock.requests.find((r) => !r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;
+    expect(system(lead)).toContain("Cite by source key");
+    expect(system(lead)).toContain("## 6. Evidence and method");
+    expect(system(specialist)).toContain("Cite the source key");
+  });
+
+  it("leaves a short question alone", async () => {
+    const events = await run({ prompt: "What is DSO?" });
+    expect(events.map((e) => e.type)).not.toContain("text_reset");
+  });
+
+  it("sends the client deliverable standards and structure to the lead and the specialists", () => {
+    const system = (r: { body: { system: { text: string }[] } }) => r.body.system.map((x) => x.text).join("\n");
+    const lead = mock.requests.find((r) => r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;
+    const specialist = mock.requests.find((r) => !r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;
+    expect(system(lead)).toContain("The final answer is a client deliverable");
+    expect(system(lead)).toContain("Lead with the answer");
+    expect(system(lead)).not.toContain("attribute key points to the specialist");
+    expect(system(specialist)).toContain("Lead with the answer");
+  });
+
   it("sends the expected request shape", () => {
     const first = mock.requests[0];
     expect(first.headers["anthropic-beta"]).toContain("server-side-fallback-2026-07-01");

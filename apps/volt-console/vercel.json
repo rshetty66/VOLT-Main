@@ -1,0 +1,4 @@
+{
+  "installCommand": "npm ci --ignore-scripts",
+  "buildCommand": "node scripts/vercel-build.mjs"
+}

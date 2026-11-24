@@ -98,6 +98,15 @@ async function benchmarkBlock(lane: string, prompt: string, emit: Emit, signal: 
     : "";
 }
 
+/** Mermaid flowchart of how a demo request was routed; labels are quoted so names with punctuation stay valid. */
+export function routingDiagram(panel: { name: string }[], workflows: { name: string }[] = []): string {
+  const q = (t: string) => `"${t.replace(/"/g, "'").replace(/[\[\]{}<>]/g, " ")}"`;
+  const lines = ["flowchart LR", `  req[${q("Client request")}] --> rudra[${q("Rudra: route and plan")}]`];
+  panel.forEach((a, i) => lines.push(`  rudra --> a${i}[${q(a.name)}]`, `  a${i} --> synth[${q("Synthesis: one deliverable")}]`));
+  workflows.forEach((w, i) => lines.push(`  synth -.-> w${i}[${q(`Workflow: ${w.name}`)}]`));
+  return "```mermaid\n" + lines.join("\n") + "\n```";
+}
+
 export async function runDemo(catalog: Catalog, req: RunRequest, emit: Emit, signal: AbortSignal) {
   const L = ORCHESTRATOR_LANE;
 
@@ -197,6 +206,9 @@ I routed this across the VOLT registry and convened a panel of ${panel.length} s
 | Specialist | Layer | Why they are on the panel |
 |---|---|---|
 ${panel.map((a) => `| ${a.icon} ${a.name} | ${a.layer} | ${a.description} |`).join("\n")}
+
+### How this request was routed
+${routingDiagram(panel, workflows.map(({ w }) => w))}
 ${bench}
 ### Skill Finder
 ${skills.length ? skills.map((s) => `- \`${s.skill_id}\` — ${catalog.skillById.get(s.skill_id)?.description.slice(0, 160) ?? ""}`).join("\n") : "- No strong skill matches."}

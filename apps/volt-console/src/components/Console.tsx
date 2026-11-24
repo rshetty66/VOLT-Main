@@ -1,7 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
-import type { ActivityItem, Lane, Run } from "../runState";
+import { evidenceGates } from "../../shared/research";
+import { summariseWork, type Run } from "../runState";
 import { Markdown } from "./Markdown";
+import { RunVisuals } from "../charts/RunVisuals";
+import { DownloadMenu } from "./DownloadMenu";
+import { runDeliverable } from "../exports";
+import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
+import { ATTACH_EXTENSIONS, ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../../shared/attachments";
 
 const EXAMPLES = [
   "Our month-end close takes 12 days on SAP S/4HANA and DSO is 55. Build a plan to reach a 5-day close.",
@@ -23,34 +29,76 @@ interface Props {
 
 export function Console({ catalog, runs, target, setTarget, live, onStart, onStop, onOpenAgent }: Props) {
   const [prompt, setPrompt] = useState("");
-  const endRef = useRef<HTMLDivElement>(null);
+  const [files, setFiles] = useState<{ name: string; text: string; chars: number; truncated: boolean }[]>([]);
+  const [reading, setReading] = useState(0);
+  const [fileError, setFileError] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
+  const [library, setLibrary] = useState<UploadMeta[] | null>(null);
   const running = runs.some((r) => r.state === "running");
   const targetAgent = catalog.agents.find((a) => a.id === target);
 
+  // A new run scrolls into view at its start, so the answer is read from the top.
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    const last = runs[runs.length - 1];
+    if (last) document.getElementById(`run-${last.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [runs.length]);
 
+  const addFile = (got: { name: string; text: string; chars: number; truncated: boolean }) =>
+    setFiles((fs) => {
+      const total = fs.filter((f) => f.name !== got.name).reduce((n, f) => n + f.chars, 0) + got.chars;
+      if (total > ATTACH_MAX_CHARS_TOTAL) {
+        setFileError("The attached files are too long in total. Remove one or attach a shorter file.");
+        return fs;
+      }
+      return [...fs.filter((f) => f.name !== got.name), got];
+    });
+
+  const openLibrary = () => (library ? setLibrary(null) : void listUploads().then(setLibrary));
+  const useUpload = async (u: UploadMeta) => {
+    setFileError("");
+    if (files.length >= ATTACH_MAX_FILES && !files.some((f) => f.name === u.name)) return void setFileError(`At most ${ATTACH_MAX_FILES} files per request.`);
+    try {
+      addFile(await getUpload(u.id));
+      setLibrary(null);
+    } catch (e) {
+      setFileError(e instanceof Error ? e.message : String(e));
+    }
+  };
+
+  const attach = async (list: FileList | null) => {
+    if (!list?.length) return;
+    setFileError("");
+    for (const file of Array.from(list)) {
+      if (files.length + 1 > ATTACH_MAX_FILES) return void setFileError(`At most ${ATTACH_MAX_FILES} files per request.`);
+      if (file.size > ATTACH_MAX_BYTES) {
+        setFileError(`${file.name} is larger than 4 MB.`);
+        continue;
+      }
+      setReading((n) => n + 1);
+      try {
+        addFile(await uploadAttachment(file));
+      } catch (e) {
+        setFileError(`${file.name}: ${e instanceof Error ? e.message : String(e)}`);
+      } finally {
+        setReading((n) => n - 1);
+      }
+    }
+    if (fileInput.current) fileInput.current.value = "";
+  };
+
   const submit = (text = prompt) => {
-    if (!text.trim()) return;
+    if (!text.trim() || reading > 0) return;
     const agentMode = target !== "rudra";
-    onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined }, agentMode ? targetAgent?.name ?? target : "Rudra orchestration", agentMode ? "agent" : "orchestrate");
+    onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined, attachments: files.length ? files.map(({ name, text }) => ({ name, text })) : undefined }, agentMode ? targetAgent?.name ?? target : "Rudra orchestration", agentMode ? "agent" : "orchestrate");
     setPrompt("");
+    setFiles([]);
+    setFileError("");
   };
 
   return (
     <div className="console">
       {runs.length === 0 && (
         <div className="stack">
-          <div>
-            <h1 className="page-title">Agent Console</h1>
-            <p className="page-sub">
-              Ask Rudra, VOLT's master orchestrator. It routes your request across {catalog.agents.length} specialist agents, delegates
-              workstreams to them in parallel, pulls VOLT skill packs through the Skill Finder, runs APQC benchmarks and value-case
-              maths as tools, and synthesises one executive deliverable. Pick an agent to talk to it directly, or launch a full
-              multi-phase run from Workflows.
-            </p>
-          </div>
           {!live && (
             <div className="card body">
               Running in <b>demo mode</b>: routing, Skill Finder, benchmarks and workflow sequencing are real; agent prose is simulated.
@@ -68,10 +116,8 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
       )}
 
       {runs.map((run) => (
-        <RunView key={run.id} run={run} catalog={catalog} onStop={() => onStop(run.id)} onOpenAgent={onOpenAgent} />
+        <RunView key={run.id} run={run} onStop={() => onStop(run.id)} />
       ))}
-      <div ref={endRef} />
-
       <div className="composer">
         <div className="card">
           <div className="row">
@@ -105,13 +151,58 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
             }}
           />
+          {(files.length > 0 || reading > 0 || fileError) && (
+            <div className="row">
+              {files.map((f) => (
+                <span key={f.name} className="chip" title={f.truncated ? "Long file: only the first part is used" : undefined}>
+                  {f.name}
+                  {f.truncated ? " (partly)" : ""}
+                  <button className="btn ghost sm" aria-label={`Remove ${f.name}`} onClick={() => setFiles((fs) => fs.filter((x) => x.name !== f.name))}>
+                    x
+                  </button>
+                </span>
+              ))}
+              {reading > 0 && (
+                <span className="muted" style={{ fontSize: 12 }}>
+                  <span className="spinner" style={{ width: 10, height: 10 }} /> Reading...
+                </span>
+              )}
+              {fileError && (
+                <span className="upload-error" role="alert">
+                  {fileError}
+                </span>
+              )}
+            </div>
+          )}
+          {library && (
+            <div className="stack" style={{ gap: 4 }}>
+              {library.length === 0 ? (
+                <span className="muted" style={{ fontSize: 12 }}>The uploads library is empty. Attach a file first.</span>
+              ) : (
+                library.map((u) => (
+                  <button key={u.id} className="btn ghost sm" style={{ justifyContent: "flex-start", textAlign: "left" }} onClick={() => void useUpload(u)}>
+                    {u.name} · {u.chars.toLocaleString()} chars
+                  </button>
+                ))
+              )}
+            </div>
+          )}
           <div className="row" style={{ justifyContent: "space-between" }}>
             <span className="muted" style={{ fontSize: 12 }}>
               Ctrl/⌘ + Enter to send{runs.length > 0 ? " · follow-ups keep the conversation" : ""}
             </span>
-            <button className="btn primary" disabled={!prompt.trim() || running} onClick={() => submit()}>
-              {running ? "Working…" : "Run"}
-            </button>
+            <div className="row">
+              <input ref={fileInput} type="file" multiple hidden accept={ATTACH_EXTENSIONS.map((e) => `.${e}`).join(",")} onChange={(e) => void attach(e.target.files)} />
+              <button className="btn" disabled={running} onClick={openLibrary} title="Reuse a file you uploaded in any chat">
+                From uploads
+              </button>
+              <button className="btn" disabled={running || files.length >= ATTACH_MAX_FILES} onClick={() => fileInput.current?.click()} title="PDF, JPEG, PNG, Word, Excel, PowerPoint, CSV, text, Markdown or JSON, up to 4 MB each. Kept in Uploads for other chats.">
+                Attach files
+              </button>
+              <button className="btn primary" disabled={!prompt.trim() || running || reading > 0} onClick={() => submit()}>
+                {running ? "Working…" : "Run"}
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -119,8 +210,13 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   );
 }
 
-function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: CatalogResponse; onStop: () => void; onOpenAgent: (id: string) => void }) {
-  const lanes = run.laneOrder.map((id) => run.lanes[id]);
+function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
+  const work = summariseWork(run);
+  // The research engine's gates, run on the finished answer against the run's source register.
+  const gates = run.state !== "running" && run.tier && run.text.trim() ? evidenceGates(run.text, run.sources, run.tier) : [];
+  const openGates = gates.filter((g) => !g.pass);
+  // Each specialist's finished workstream, readable while the lead is still writing the summary.
+  const readySections = run.laneOrder.map((id) => run.lanes[id]).filter((l) => l && l.state === "done" && l.text.trim());
   const elapsed = Math.round(((run.finishedAt ?? Date.now()) - run.startedAt) / 1000);
   const [, tick] = useState(0);
   useEffect(() => {
@@ -130,11 +226,14 @@ function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: Cat
   }, [run.state]);
 
   return (
-    <section className="run">
+    <section className="run" id={`run-${run.id}`}>
       <div className="run-head">
         <span className={`dot ${run.state === "running" ? "running" : "done"}`} />
         <span className="micro">{run.title}</span>
-        <div className="prompt">{run.prompt}</div>
+        <div className="prompt">
+          {run.prompt}
+          {run.attachments?.length ? <div className="muted" style={{ fontSize: 12, fontWeight: 400 }}>Attached: {run.attachments.join(", ")}</div> : null}
+        </div>
         <span className="usage">
           {elapsed}s{run.mode === "live" ? ` · ${run.usage.input.toLocaleString()} in / ${run.usage.output.toLocaleString()} out · ${run.usage.cacheRead.toLocaleString()} cached` : run.mode === "demo" ? " · demo" : ""}
         </span>
@@ -144,89 +243,75 @@ function RunView({ run, catalog, onStop, onOpenAgent }: { run: Run; catalog: Cat
           </button>
         )}
         {run.state === "stopped" && <span className="badge">stopped</span>}
+        {run.state !== "running" && run.text.trim() && (
+          <DownloadMenu formats={["docx", "pptx", "xlsx", "md", "html", ...(run.tier ? (["zip"] as const) : [])]} build={(lanes) => runDeliverable(run, lanes)} option={run.laneOrder.length ? "Include specialist notes as an appendix" : undefined} />
+        )}
       </div>
-      <div className="run-body">
+      <div className="run-body single">
+        {(work.specialists > 0 || work.toolCalls > 0 || run.tier) && (
+          <div className="work-strip">
+            {run.state === "running" ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <span className="dot done" />}
+            <span className="work-text">{workLine(work, run.state === "running")}</span>
+            {run.tier && (
+              <span className={`work-evidence ${openGates.length ? "bad" : ""}`} title={openGates.length ? openGates.map((g) => `${g.id} ${g.name}: ${g.detail}`).join("\n") : "All evidence gates passed"}>
+                {run.tier} · {run.sources.length} source{run.sources.length === 1 ? "" : "s"}
+                {gates.length ? ` · ${gates.length - openGates.length}/${gates.length} gates` : ""}
+              </span>
+            )}
+          </div>
+        )}
+        {work.errors.length > 0 && (
+          <div className="run-errors" role="alert">
+            {work.errors.map((m, i) => (
+              <div key={i}>{m}</div>
+            ))}
+          </div>
+        )}
         {run.phases.length > 0 && (
           <div className="phases">
             {run.phases.map((p, i) => (
               <div key={i} className={`phase ${p?.state ?? ""}`}>
                 {i + 1}. {p?.name}
-                <span className="muted"> · {p?.agents.length} agents</span>
               </div>
             ))}
           </div>
         )}
-        {lanes.length > 0 && (
-          <div className="lanes">
-            {lanes.map((l) => (
-              <LaneCard key={l.id} lane={l} catalog={catalog} onOpenAgent={onOpenAgent} />
+        {readySections.length > 0 && (
+          <div className="sections">
+            <div className="micro">
+              Sections ready to review ({readySections.length}){run.state === "running" ? " · the summary is still being written" : ""}
+            </div>
+            {readySections.map((l) => (
+              <details key={l.id} className="section">
+                <summary>{l.name}</summary>
+                <div className="section-body">
+                  <Markdown text={l.text} />
+                </div>
+              </details>
             ))}
           </div>
         )}
         <div className="answer">
           {run.text ? <Markdown text={run.text} /> : run.state === "running" ? <p className="muted"><span className="spinner" /> Rudra is working…</p> : null}
         </div>
-        <aside>
-          <div className="micro" style={{ marginBottom: 8 }}>
-            Activity
-          </div>
-          <Activity items={run.activity} />
-        </aside>
       </div>
     </section>
   );
 }
 
-function LaneCard({ lane, onOpenAgent }: { lane: Lane; catalog: CatalogResponse; onOpenAgent: (id: string) => void }) {
-  const [expanded, setExpanded] = useState(false);
-  return (
-    <div className={`lane ${expanded ? "expanded" : ""}`}>
-      <div className="lane-head" onClick={() => setExpanded((x) => !x)}>
-        <span className={`dot ${lane.state}`} />
-        <span>{lane.icon}</span>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div className="name">{lane.name}</div>
-          <div className="muted" style={{ fontSize: 11 }}>
-            {lane.layer}
-          </div>
-        </div>
-        <button
-          className="btn ghost sm"
-          onClick={(e) => {
-            e.stopPropagation();
-            onOpenAgent(lane.agentId);
-          }}
-        >
-          ⓘ
-        </button>
-      </div>
-      <div className="lane-body">
-        {lane.activity.length > 0 && (
-          <div style={{ marginBottom: 8 }}>
-            <Activity items={lane.activity} />
-          </div>
-        )}
-        {lane.text ? <Markdown text={lane.text} /> : lane.state === "running" ? <span className="muted"><span className="spinner" /> thinking…</span> : null}
-      </div>
-    </div>
-  );
-}
-
-const ICON: Record<ActivityItem["kind"], string> = { status: "·", tool: "ƒ", error: "!", fallback: "~", phase: "▸" };
-
-function Activity({ items }: { items: ActivityItem[] }) {
-  if (items.length === 0) return <div className="muted" style={{ fontSize: 12 }}>—</div>;
-  return (
-    <div className="activity">
-      {items.map((a) => (
-        <div key={a.id} className={`act ${a.isError ? "error" : ""}`}>
-          <span className="ico">{a.pending ? <span className="spinner" style={{ width: 10, height: 10 }} /> : ICON[a.kind]}</span>
-          <div>
-            {a.kind === "tool" ? <b>{a.text}</b> : <span>{a.text}</span>}
-            {a.detail && <div className="detail">{a.detail}</div>}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
+/** "Consulting 3 of 6 specialists: Oracle GL, SAP FI" while running; "Consulted 6 specialists · 4 tool calls" when done. */
+function workLine(w: ReturnType<typeof summariseWork>, running: boolean): string {
+  const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
+  const parts: string[] = [];
+  if (w.specialists > 0) {
+    if (running) {
+      const names = w.working.slice(0, 2).join(", ") + (w.working.length > 2 ? ` +${w.working.length - 2}` : "");
+      parts.push(w.working.length > 0 ? `Consulting ${w.finished} of ${plural(w.specialists, "specialist")} done: ${names}` : `Consulted ${plural(w.specialists, "specialist")}, writing up`);
+    } else {
+      parts.push(`Consulted ${plural(w.specialists, "specialist")}`);
+    }
+  }
+  if (w.toolCalls > 0) parts.push(plural(w.toolCalls, "tool call"));
+  if (w.failed > 0) parts.push(`${w.failed} failed`);
+  return parts.join(" · ") || "Working";
 }

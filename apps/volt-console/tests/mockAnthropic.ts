@@ -48,6 +48,8 @@ export async function startMockAnthropic(): Promise<{ url: string; requests: Cap
     const last = b.messages.at(-1);
     const hasResults = Array.isArray(last.content) && last.content.some((c: any) => c.type === "tool_result");
     n++;
+    if (isRudra && typeof last.content === "string" && last.content.startsWith("Partner review"))
+      return sse(res, msg(`m${n}`, [{ type: "text", text: "## Revised\nREVISED DELIVERABLE" }], "end_turn"));
     if (isRudra && !hasResults)
       return sse(res, msg(`m${n}`, [
         { type: "thinking", thinking: "Routing to FI/CO and ARCS leads in parallel" },

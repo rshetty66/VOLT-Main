@@ -13,9 +13,14 @@
  * Every agent is a manual streaming tool loop so the UI can show progress
  * updates, tool calls and text as they happen.
  */
+import { attachmentsBlock, registerAttachments } from "./attachments.js";
+import { lateForRewrite, runBudgetMs } from "./budget.js";
 import crypto from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
+import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, wantsDeliverable } from "./deliverable.js";
+import { SourceRegistry, sourceForTool, sourcesFromWebSearch } from "./research.js";
+import { evidenceGates } from "../shared/research.js";
 import { ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 
@@ -28,8 +33,9 @@ export interface RunInput extends RunRequest {
 
 /** The user's request, with the selected template's formatting guide attached. */
 export function withTemplate(req: RunInput, text = req.prompt): string {
-  if (!req.template) return text;
-  return `${text}
+  const files = attachmentsBlock(req.attachments);
+  if (!req.template) return `${text}${files}`;
+  return `${text}${files}
 
 ---
 Formatting template: "${req.template.name}" (template id ${req.template.id}). Any deliverable you write or specify must follow this formatting guide.
@@ -39,19 +45,29 @@ ${req.template.guide}`;
 type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 
 export const MODEL = process.env.VOLT_MODEL ?? "claude-opus-5-5";
-const ORCHESTRATOR_EFFORT = (process.env.VOLT_ORCHESTRATOR_EFFORT ?? "high") as Effort;
+const ORCHESTRATOR_EFFORT = (process.env.VOLT_ORCHESTRATOR_EFFORT ?? "medium") as Effort;
 const SPECIALIST_EFFORT = (process.env.VOLT_SPECIALIST_EFFORT ?? "medium") as Effort;
+/** Claude's own web_search, opt-in: sources then come from real pages. Off by default until it has had a live test. */
+const WEB_RESEARCH = (process.env.VOLT_WEB_RESEARCH ?? "off") === "on";
+const WEB_SEARCH_TOOL = { type: "web_search_20260209", name: "web_search", max_uses: 8 } as unknown as Anthropic.Beta.BetaTool;
 const USE_FALLBACKS = (process.env.VOLT_FALLBACKS ?? "on") !== "off";
 const MAX_TURNS = 16;
-const MAX_CONSULT_CHARS = 14_000;
+const MAX_CONSULT_CHARS = 24_000;
+/** Specialists a single run may consult. Each one is a full model run, so this bounds the time and the cost. */
+export const MAX_CONSULTS = Number(process.env.VOLT_MAX_CONSULTS) > 0 ? Number(process.env.VOLT_MAX_CONSULTS) : 6;
 
 interface Session {
   id: string;
   /** Conversation with the lead agent (Rudra, or the directly-addressed agent). */
   messages: Anthropic.Beta.BetaMessageParam[];
   agentId?: string;
+  /** True while a run is using this conversation; a second run on it is refused (see /api/run). */
+  busy?: boolean;
+  lastUsed: number;
 }
 
+const SESSION_TTL_MS = 6 * 60 * 60 * 1000;
+const MAX_SESSIONS = 500;
 const sessions = new Map<string, Session>();
 
 let client: Anthropic | null = null;
@@ -80,12 +96,14 @@ function orchestratorSystem(catalog: Catalog): string {
 ## How you work in this console
 You lead a bench of VOLT specialist agents. For any request that spans more than one domain, or needs depth you would otherwise approximate:
 1. Decide which workstreams the request really needs. Use find_agents when the right specialist is not obvious from the roster below.
-2. Delegate with consult_agent. Give each specialist a self-contained brief (client context, the precise question, the deliverable you need back). Put independent consults in the same turn so they run in parallel.
+2. Delegate with consult_agent. Give each specialist a self-contained brief (client context, the precise question, the deliverable you need back). Put independent consults in the same turn so they run in parallel. For a client deliverable consult three to six specialists, one per workstream that matters, in parallel in the same turn, so the answer has the depth of a team.
 3. Use find_skills then load_skill when a VOLT method or reference pack would sharpen the answer.
 4. Never do finance arithmetic in your head: benchmarks, maturity scores, NPV/IRR and value cases come from the apqc_benchmark, score_maturity, appraise_investment and build_value_case tools.
-5. Synthesise. The user reads your final answer, not the specialists' raw output: reconcile disagreements, keep what is decision-relevant, and attribute key points to the specialist that raised them.
+5. Synthesise. The user reads your final answer, not the specialists' raw output: reconcile disagreements, keep what is decision-relevant, and write it as the firm's own work (no references to the specialists).
 
-Write the final answer as an executive-grade consulting deliverable in Markdown: a one-paragraph answer first, then structured sections and tables. State assumptions and data gaps plainly instead of inventing client facts. If a simple question needs no delegation, answer it directly.
+Write the final answer as an executive-grade consulting deliverable in Markdown: a one-paragraph answer first, then structured sections and tables. Where a picture clarifies an architecture, process, roadmap or prioritisation, include Mermaid diagrams (up to four) in \`\`\`mermaid code blocks (flowchart, gantt, quadrantChart or pie; short plain labels, no styling); the console draws them and carries them into downloads. State assumptions and data gaps plainly instead of inventing client facts. If a simple question needs no delegation, answer it directly.
+
+${leadDeliverableGuide()}
 
 When a request matches one of the VOLT workflows below, mention it by name so the user can launch it as a full multi-phase run.
 
@@ -102,8 +120,8 @@ function specialistSystem(catalog: Catalog, agent: AgentDef): string {
 
 ## Working inside VOLT
 You are the ${agent.name} agent (${agent.layer}). ${agent.description}
-You have been brought in on a workstream. Answer the brief with a focused, practitioner-grade deliverable in Markdown (headings, tables where useful), typically 400-900 words. Lead with the answer. Be explicit about assumptions, risks and the data you would need to firm up the view.
-Use tools for numbers (apqc_benchmark, score_maturity, appraise_investment, build_value_case) and the Skill Finder (find_skills, load_skill) for VOLT method packs.${shipped.length ? `\nYour registered VOLT skills: ${shipped.join(", ")}.` : ""}`;
+You have been brought in on a workstream. Answer the brief with a practitioner-grade deliverable in Markdown, typically 700 to 1,000 words, at the depth of a senior practitioner's client workpaper: quantified findings with the arithmetic, options with their trade-offs, risks with mitigations, assumptions and data gaps, and at least two exhibits (tables with a Source line). You may add up to two short Mermaid diagrams (flowchart, gantt, quadrantChart or pie) in \`\`\`mermaid blocks when they clarify a flow or a plan. Lead with the answer. Be explicit about assumptions, risks and the data you would need to firm up the view.
+Use tools for numbers (apqc_benchmark, score_maturity, appraise_investment, build_value_case) and the Skill Finder (find_skills, load_skill) for VOLT method packs.${shipped.length ? `\nYour registered VOLT skills: ${shipped.join(", ")}.` : ""}${specialistDeliverableGuide() ? `\n\n${specialistDeliverableGuide()}` : ""}`;
 }
 
 // ── Streaming tool loop ──────────────────────────────────────────────────────
@@ -117,6 +135,8 @@ interface LoopOptions {
   effort: Effort;
   emit: Emit;
   signal: AbortSignal;
+  /** The run's source register: tool results are recorded in it and cited by key. */
+  registry: SourceRegistry;
 }
 
 /**
@@ -137,7 +157,7 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
         max_tokens: 64000,
         system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
         messages,
-        tools: toolDefs(opts.tools),
+        tools: [...toolDefs(opts.tools), ...(WEB_RESEARCH ? [WEB_SEARCH_TOOL] : [])],
         thinking: { type: "adaptive", display: "updates" },
         output_config: { effort: opts.effort },
         betas,
@@ -187,6 +207,16 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
       return finalText;
     }
 
+    if (WEB_RESEARCH) {
+      for (const b of message.content as { type: string; content?: unknown }[]) {
+        if (b.type !== "web_search_tool_result") continue;
+        for (const src of sourcesFromWebSearch(b.content)) {
+          const { record, isNew } = opts.registry.add(src);
+          if (isNew) emit({ type: "source", record });
+        }
+      }
+    }
+
     const content = echoableContent(message.content);
     messages.push({ role: "assistant", content });
     finalText = content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text").map((b) => b.text).join("");
@@ -201,7 +231,7 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
     }
 
     // Execute every tool call of this turn concurrently; reply with all results in one message.
-    const results = await Promise.all(toolUses.map((tu) => executeTool(catalog, lane, tu, emit, signal)));
+    const results = await Promise.all(toolUses.map((tu) => executeTool(catalog, lane, tu, emit, signal, opts.registry)));
     messages.push({ role: "user", content: results });
   }
   emit({ type: "error", lane, message: `Stopped after ${MAX_TURNS} turns.` });
@@ -227,6 +257,7 @@ async function executeTool(
   tu: Anthropic.Beta.BetaToolUseBlock,
   emit: Emit,
   signal: AbortSignal,
+  registry: SourceRegistry,
 ): Promise<Anthropic.Beta.BetaToolResultBlockParam> {
   const name = tu.name as ToolName;
   emit({ type: "tool_call", lane, callId: tu.id, name, input: tu.input });
@@ -245,8 +276,10 @@ async function executeTool(
     const { agent_id, brief } = parsed.data as { agent_id: string; brief: string };
     const agent = catalog.agentById.get(agent_id);
     if (!agent) return fail(`Unknown agent '${agent_id}'. Use find_agents to look it up.`);
+    if (registry.consults >= MAX_CONSULTS) return fail(`Consult limit reached (${MAX_CONSULTS} specialists per run). Do not consult more: write the answer from the work you already have.`);
+    registry.consults++;
     try {
-      const text = await runSpecialist(catalog, agent, brief, tu.id, lane, emit, signal);
+      const text = await runSpecialist(catalog, agent, brief, tu.id, lane, emit, signal, registry);
       emit({ type: "tool_result", lane, callId: tu.id, name, summary: `${agent.name} delivered ${text.length.toLocaleString()} chars` });
       return { type: "tool_result", tool_use_id: tu.id, content: `## ${agent.name} (${agent.layer})\n\n${text.slice(0, MAX_CONSULT_CHARS)}` };
     } catch (err) {
@@ -258,7 +291,13 @@ async function executeTool(
   const r = runLocalTool(catalog, name, parsed.data);
   if (!r.ok) return fail(r.error);
   emit({ type: "tool_result", lane, callId: tu.id, name, summary: r.summary, data: name === "load_skill" || name === "get_template" ? undefined : r.data });
-  return { type: "tool_result", tool_use_id: tu.id, content: typeof r.data === "string" ? r.data : JSON.stringify(r.data) };
+  const body = typeof r.data === "string" ? r.data : JSON.stringify(r.data);
+  // Evidence is cited by key: record the result and tell the model its key.
+  const src = sourceForTool(name, parsed.data);
+  if (!src) return { type: "tool_result", tool_use_id: tu.id, content: body };
+  const { record, isNew } = registry.add(src);
+  if (isNew) emit({ type: "source", record });
+  return { type: "tool_result", tool_use_id: tu.id, content: `${body}\n\n[Source key: ${record.key}] Cite this result as [${record.key}].` };
 }
 
 async function runSpecialist(
@@ -269,6 +308,7 @@ async function runSpecialist(
   parentLane: string,
   emit: Emit,
   signal: AbortSignal,
+  registry: SourceRegistry,
 ): Promise<string> {
   emit({ type: "agent_start", lane, parentLane, agentId: agent.id, name: agent.name, layer: agent.layer, icon: agent.icon, brief });
   try {
@@ -281,6 +321,7 @@ async function runSpecialist(
       effort: SPECIALIST_EFFORT,
       emit,
       signal,
+      registry,
     });
     emit({ type: "agent_end", lane, agentId: agent.id, ok: true });
     return text;
@@ -292,19 +333,38 @@ async function runSpecialist(
 
 // ── Run kinds ────────────────────────────────────────────────────────────────
 
+/**
+ * Returns the conversation for a server-issued id. Ids are never chosen by the client: an unknown or missing
+ * id starts a new session with a fresh random id. Idle sessions expire and the store is capped.
+ */
 export function getSession(id?: string): Session {
+  const now = Date.now();
+  for (const [key, s] of sessions) if (!s.busy && now - s.lastUsed > SESSION_TTL_MS) sessions.delete(key);
   const existing = id ? sessions.get(id) : undefined;
-  if (existing) return existing;
-  const s: Session = { id: id ?? crypto.randomUUID(), messages: [] };
+  if (existing) {
+    existing.lastUsed = now;
+    return existing;
+  }
+  while (sessions.size >= MAX_SESSIONS) {
+    const oldest = [...sessions.values()].find((s) => !s.busy);
+    if (!oldest) break;
+    sessions.delete(oldest.id);
+  }
+  const s: Session = { id: crypto.randomUUID(), messages: [], lastUsed: now };
   sessions.set(s.id, s);
   return s;
 }
 
-export async function runLive(catalog: Catalog, req: RunInput, session: Session, emit: Emit, signal: AbortSignal) {
+export async function runLive(catalog: Catalog, input: RunInput, session: Session, emit: Emit, signal: AbortSignal) {
+  const registry = new SourceRegistry(input.prompt);
+  // Each attached file is client data in the source register, so the answer can cite it.
+  const req: RunInput = { ...input, attachments: registerAttachments(registry, input.attachments) };
+  emit({ type: "research", tier: registry.tier });
+  for (const record of registry.sources) emit({ type: "source", record });
   if (req.workflowId) {
     const wf = catalog.workflowById.get(req.workflowId);
     if (!wf) throw new Error(`Unknown workflow '${req.workflowId}'`);
-    await runWorkflow(catalog, wf, req, session, emit, signal);
+    await runWorkflow(catalog, wf, req, session, emit, signal, registry);
     return;
   }
 
@@ -323,13 +383,14 @@ export async function runLive(catalog: Catalog, req: RunInput, session: Session,
       effort: SPECIALIST_EFFORT,
       emit,
       signal,
+      registry,
     });
     emit({ type: "agent_end", lane: ORCHESTRATOR_LANE, agentId: agent.id, ok: true });
     return;
   }
 
-  session.messages.push({ role: "user", content: withTemplate(req) });
-  await runAgentLoop({
+  session.messages.push({ role: "user", content: `${withTemplate(req)}${registry.tier === "QUICK" ? "" : `\n\nResearch depth: ${registry.tier}. State it in Scope and method.`}` });
+  const lead: LoopOptions = {
     catalog,
     lane: ORCHESTRATOR_LANE,
     system: orchestratorSystem(catalog),
@@ -338,7 +399,32 @@ export async function runLive(catalog: Catalog, req: RunInput, session: Session,
     effort: ORCHESTRATOR_EFFORT,
     emit,
     signal,
-  });
+    registry,
+  };
+  await reviewDraft(lead, await runAgentLoop(lead), req.prompt);
+}
+
+/**
+ * The partner-review pass: when the lead agent's draft of a client deliverable falls short of the depth standard,
+ * it is sent back once with the specific gaps, and the screen replaces the draft with the rewrite.
+ */
+async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, always = false) {
+  if (loop.signal.aborted || !draft.trim() || (!always && !wantsDeliverable(prompt))) return;
+  const depth = assessDepth(draft);
+  const evidence = evidenceGates(draft, loop.registry.sources, loop.registry.tier).filter((g) => !g.pass);
+  const report = { ...depth, gaps: [...depth.gaps, ...evidence.map((g) => g.detail)] };
+  if (!report.gaps.length) return;
+  // A rewrite costs about two minutes, so it is kept for a draft that is too short, has fewer than two visuals, or cites sources that do not exist.
+  // Smaller gaps are left to the reader's review.
+  if (depth.words >= MIN_WORDS && depth.visuals >= 2 && !evidence.some((g) => g.id === "G1")) return;
+  if (lateForRewrite(Date.now() - loop.registry.startedAt, runBudgetMs())) {
+    loop.emit({ type: "status", lane: loop.lane, text: `Partner review: ${report.gaps.length} gap${report.gaps.length === 1 ? "" : "s"} found, but the run is near its time limit, so the draft is kept as written` });
+    return;
+  }
+  loop.emit({ type: "status", lane: loop.lane, text: `Partner review: strengthening the draft (${report.gaps.length} gap${report.gaps.length === 1 ? "" : "s"})` });
+  loop.emit({ type: "text_reset", lane: loop.lane });
+  loop.messages.push({ role: "user", content: strengthenPrompt(report) });
+  await runAgentLoop(loop);
 }
 
 export function intakeFor(catalog: Catalog, workflowId: string) {
@@ -352,7 +438,7 @@ function intakeText(catalog: Catalog, wf: WorkflowDef, answers: Record<string, s
   return lines.length ? `\n\nEngagement intake:\n${lines.join("\n")}` : "";
 }
 
-async function runWorkflow(catalog: Catalog, wf: WorkflowDef, req: RunInput, session: Session, emit: Emit, signal: AbortSignal) {
+async function runWorkflow(catalog: Catalog, wf: WorkflowDef, req: RunInput, session: Session, emit: Emit, signal: AbortSignal, registry: SourceRegistry) {
   const context = withTemplate(req, `${req.prompt}${intakeText(catalog, wf, req.intake)}`);
   const outputs: { phase: string; agent: AgentDef; text: string }[] = [];
 
@@ -372,7 +458,7 @@ Client request:
 ${context}${prior}
 
 Deliver your ${phase.name} contribution from the ${agent.name} perspective. Build on earlier phases rather than repeating them.`;
-        const text = await runSpecialist(catalog, agent, brief, `${wf.id}:${index}:${agentId}`, ORCHESTRATOR_LANE, emit, signal);
+        const text = await runSpecialist(catalog, agent, brief, `${wf.id}:${index}:${agentId}`, ORCHESTRATOR_LANE, emit, signal, registry);
         outputs.push({ phase: phase.name, agent, text });
       }),
     );
@@ -386,12 +472,12 @@ Deliver your ${phase.name} contribution from the ${agent.name} perspective. Buil
 ${context}
 
 Specialist outputs, by phase:
-${outputs.map((o) => `### ${o.phase} — ${o.agent.name}\n${o.text.slice(0, 8000)}`).join("\n\n")}
+${outputs.map((o) => `### ${o.phase} — ${o.agent.name}\n${o.text.slice(0, 16000)}`).join("\n\n")}
 
-Synthesise the final executive deliverable for the client: an executive summary, the integrated findings by phase, a recommendations table (recommendation, owner workstream, priority, value/risk), key risks and assumptions, and next steps. Resolve any conflicts between specialists explicitly. Use the analytics tools for any figures you add.`;
+Synthesise the final executive deliverable for the client: an executive summary, the integrated findings by phase, a recommendations table (recommendation, owner workstream, priority, value/risk), key risks and assumptions, and next steps. Number the sections, follow the depth and differentiation standard, and follow the evidence rules (source keys, confidence labels, and the Evidence and method section). Research depth: ${registry.tier}. Write it for the client: do not name the specialists or describe how the work was done, and where they disagreed state the position taken and why. Use the analytics tools for any figures you add.`;
   session.messages.push({ role: "user", content: synthesisPrompt });
   emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Rudra is synthesising the workflow deliverable" });
-  await runAgentLoop({
+  const synthesis: LoopOptions = {
     catalog,
     lane: ORCHESTRATOR_LANE,
     system: orchestratorSystem(catalog),
@@ -400,7 +486,9 @@ Synthesise the final executive deliverable for the client: an executive summary,
     effort: ORCHESTRATOR_EFFORT,
     emit,
     signal,
-  });
+    registry,
+  };
+  await reviewDraft(synthesis, await runAgentLoop(synthesis), req.prompt, true);
 }
 
 export function errorMessage(err: unknown): string {

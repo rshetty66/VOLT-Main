@@ -63,6 +63,17 @@ const allowedSymbolCodePoints = new Set([
   0x2122,
 ]);
 
+// Apps whose UI intentionally uses emoji as icons (Gyan: service lines, platform configs, builder views). Emoji and the
+// emoji variation selector U+FE0F are allowed under these paths only; every other dangerous invisible still fails.
+const emojiAllowedPaths = [
+  path.normalize('apps/gyan/'),
+];
+
+function isEmojiAllowedPath(relativePath) {
+  const normalized = path.normalize(relativePath);
+  return emojiAllowedPaths.some(prefix => normalized.startsWith(prefix));
+}
+
 const targetedReplacements = [
   [new RegExp(`${String.fromCodePoint(0x26A0)}(?:\\uFE0F)?`, 'gu'), 'WARNING:'],
   [new RegExp(`${String.fromCodePoint(0x23ED)}(?:\\uFE0F)?`, 'gu'), 'SKIPPED:'],
@@ -243,9 +254,10 @@ for (const filePath of listFiles(repoRoot)) {
     }
   }
 
+  const emojiAllowed = isEmojiAllowedPath(relativePath);
   const fileViolations = [
-    ...collectDangerousInvisibleMatches(text),
-    ...collectMatches(text, emojiRe, 'emoji'),
+    ...collectDangerousInvisibleMatches(text).filter(v => !(emojiAllowed && v.codePoint === 'U+FE0F')),
+    ...(emojiAllowed ? [] : collectMatches(text, emojiRe, 'emoji')),
   ];
 
   for (const violation of fileViolations) {

@@ -1,5 +1,7 @@
 import { useState } from "react";
 import type { Report } from "../../workbench/logic";
+import { ChecksChart } from "../../charts/Charts";
+import { ChartFrame } from "../../charts/Visual";
 
 export const money = (s: string) => Number(s).toLocaleString("en-CA", { minimumFractionDigits: 0, maximumFractionDigits: 2 });
 
@@ -26,6 +28,11 @@ export function ReportView({ title, report, compact = false }: { title: string; 
           {ran.filter((c) => c.status === "PASS").length} of {ran.length} checks passed; {notRun.length} outside scope (NOT_RUN).
         </div>
       ) : (
+        <>
+        <ChartFrame
+          name={`checks-${title}`}
+          render={(p) => <ChecksChart title={title} counts={{ pass: ran.filter((c) => c.status === "PASS").length, fail: ran.filter((c) => c.status !== "PASS").length, notRun: notRun.length }} p={p} />}
+        />
         <div className="table-wrap">
           <table className="table">
             <tbody>
@@ -46,6 +53,7 @@ export function ReportView({ title, report, compact = false }: { title: string; 
             </tbody>
           </table>
         </div>
+        </>
       )}
     </div>
   );

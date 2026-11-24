@@ -60,6 +60,18 @@ and never ships in demo mode.
 - `web_fetch` (used to fetch a filing by URL) is refused by the API from network-restricted sandboxes; run the console on a normal
   host for that step. Web search and uploaded documents work everywhere.
 
+## Research engine (URES v1)
+
+Every deliverable is built to be audited, not just read. A run is classified Quick, Standard, Deep or Exhaustive from the request's wording, and the answer must stand on evidence the console can check.
+
+- **Source register.** Each tool result the agents can rely on (an APQC benchmark, a calculation, a VOLT skill pack) is recorded with a key (`S01`, `S02`, ...) and returned to the model with that key. `S01` is always the client's own request. The model may cite only those keys; anything unsupported must be tagged `[INFERENCE]` or `[ASSUMPTION]`. The register is appended to every download from the record, not written by the model.
+- **Confidence.** Findings carry `(Confidence: HIGH|MEDIUM|LOW, as of YYYY-MM)` from `0.40 evidence + 0.25 source quality + 0.20 recency + 0.15 agreement` (`shared/research.ts`).
+- **Gates, checked by code** on every draft: G1 citation (no keys outside the register, few uncited figures), G2 source diversity, G3 contradictions, G4 confidence and residue, G5 method and gaps, G6 deliverable. A failed draft goes back once with the gate messages. The run header shows `tier, sources, gates passed`.
+- **Output.** A sixth section, `## 6. Evidence and method` (scope and method, evidence map, contradictions, gaps, residue), and a **Research bundle (.zip)** download: query, full report, executive brief, contradictions, residue, `sources/registry.jsonl`, gate results and the search log.
+- **Web sources** are opt-in: set `VOLT_WEB_RESEARCH=on` to let the agents use Claude's web search; the pages they find join the register. It is off by default until it has had a live test.
+
+Not built: BUILD mode (generating a skill package), parallel retrieval by axis, the four adversarial critics, and per-domain source ladders. The gates and one review pass stand in for the critics.
+
 ## Templates
 
 Accepted: `.docx`, `.dotx`, `.xlsx`, `.xltx`, `.pptx`, `.potx`, up to 25 MB. Macro-enabled files are refused.
@@ -77,6 +89,21 @@ the `list_templates` and `get_template` tools. Uploads are untrusted: the packag
 (no ZIP64 or encrypted parts, 20 MB per part, 64 MB in total), XML with a DOCTYPE is refused, entities are not expanded,
 and macros and media are never read. The sample templates used by the tests are rebuilt with
 `python3 tests/fixtures/make-templates.py`.
+
+## Access control
+
+The API listens on `127.0.0.1` by default. To expose it (a Codespaces Public port, a shared host), set a token first:
+
+| Variable | Effect |
+|---|---|
+| `VOLT_HOST` | Bind address. Anything other than loopback needs `VOLT_ACCESS_TOKEN`, or the server refuses to start. |
+| `VOLT_ACCESS_TOKEN` | At least 16 characters. Every `/api` route except `/api/healthz` then needs `Authorization: Bearer <token>`, or the cookie that `GET /api/login?token=<token>` sets (open that URL once in the browser). |
+| `VOLT_AUTH_MODE` | Default `token`. `username` switches the sign-in screen to a username with NO secret and lets a public bind start without a token. Anyone who can reach the URL can then use the Claude API key, so use it only where the host already restricts access. If `VOLT_ACCESS_TOKEN` is also set it still works as a Bearer token. |
+| `VOLT_ALLOWED_USERS` | Optional, with `VOLT_AUTH_MODE=username`: comma-separated names allowed to sign in (case-insensitive). A guessable list, not a password. |
+| `VOLT_ALLOWED_ORIGINS` | Comma-separated extra origins allowed to make write requests. Same-origin is always allowed. |
+| `VOLT_RATE_LIMIT` | Requests per minute per client on the routes that spend Claude tokens (default 30). |
+
+Conversation ids are issued by the server, expire after 6 hours idle, and only one run can use a conversation at a time.
 
 ## Test
 
