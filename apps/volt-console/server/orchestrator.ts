@@ -23,7 +23,7 @@ import { SourceRegistry, WEB_RESEARCH_GUIDE, registerWebBlock, sourceForTool, we
 import { evidenceGates } from "../shared/research.js";
 import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
 import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerToolDefs, runLedgerTool } from "./ledger.js";
-import { ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
+import { CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 
 export type Emit = (e: VoltEvent) => void;
@@ -372,7 +372,7 @@ async function runSpecialist(
       lane,
       system: specialistSystem(catalog, agent),
       messages: [{ role: "user", content: brief }],
-      tools: SPECIALIST_TOOLS,
+      tools: CONSULTED_TOOLS,
       effort: SPECIALIST_EFFORT,
       emit,
       signal,
@@ -480,6 +480,9 @@ async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, alw
     ? { ...depth, gaps: [...depth.gaps, ...evidence.map((g) => g.detail), ...(ledgerGap ? [ledgerGap] : [])] }
     : { ...depth, gaps: [ledgerGap as string] };
   if (!report.gaps.length) return;
+  // A file the user asked for is already built from this draft; a rewrite would replace the chat answer but not the file,
+  // and costs minutes more.
+  if (!ledgerGap && madeFile(loop.messages)) return;
   // A rewrite costs about two minutes, so it is kept for a draft that is too short, has fewer than two visuals, cites sources that do not exist,
   // or misquotes a ledger figure. Smaller gaps are left to the reader's review.
   if (!ledgerGap && depth.words >= MIN_WORDS && depth.visuals >= 2 && !evidence.some((g) => g.id === "G1")) return;
@@ -494,6 +497,16 @@ async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, alw
     content: deliverable ? strengthenPrompt(report) : `Ledger check: ${ledgerGap}. Rewrite your answer in full with those figures corrected, and return only the corrected answer.`,
   });
   await runAgentLoop(loop);
+}
+
+/** True when the lead agent called create_file in this conversation turn (since the last user message with text). */
+export function madeFile(messages: Anthropic.Beta.BetaMessageParam[]): boolean {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    if (m.role === "user" && (typeof m.content === "string" || m.content.some((b) => b.type === "text"))) return false;
+    if (m.role === "assistant" && Array.isArray(m.content) && m.content.some((b) => b.type === "tool_use" && b.name === "create_file")) return true;
+  }
+  return false;
 }
 
 export function intakeFor(catalog: Catalog, workflowId: string) {

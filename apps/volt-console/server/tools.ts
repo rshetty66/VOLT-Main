@@ -142,7 +142,9 @@ export const ORCHESTRATOR_TOOLS: ToolName[] = [
   "create_file",
 ];
 
+/** A specialist talking to the user directly can make files; one consulted by Rudra cannot (Rudra makes the one file). */
 export const SPECIALIST_TOOLS: ToolName[] = ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template", "create_file"];
+export const CONSULTED_TOOLS: ToolName[] = SPECIALIST_TOOLS.filter((t) => t !== "create_file");
 
 /** `reply`, when set, is what the model reads back instead of the data (a made file is not echoed to it). */
 export type LocalResult = { ok: true; data: unknown; summary: string; reply?: string } | { ok: false; error: string };
