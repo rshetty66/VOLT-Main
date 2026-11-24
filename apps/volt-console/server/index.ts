@@ -12,6 +12,9 @@
  *   DELETE /api/templates/:id
  *   POST /api/export               build a Word, PowerPoint or Excel download from a deliverable
  *   GET  /api/healthz
+ *   GET  /api/ledger/review        VOLT Ledger review queue (people only; never a model tool)
+ *   POST /api/ledger/review        record an engagement-lead or client decision
+ *   POST /api/ledger/driver        enter a driver value (FTEs, transaction counts, RWA) for allocation
  *
  * In production it also serves the built React app from dist/.
  */
@@ -39,7 +42,8 @@ import { listUploads, originalPath, readUpload, removeUpload, saveUpload } from 
 import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../shared/attachments.js";
 import { runBudgetMs } from "./budget.js";
 import { startHeartbeat } from "./sse.js";
-import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requireToken, sameOriginWrites, securityConfig } from "./security.js";
+import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requestUser, requireToken, sameOriginWrites, securityConfig } from "./security.js";
+import { ledgerEnabled, ledgerPeople } from "./ledger.js";
 
 const catalog = loadCatalog();
 const security = securityConfig();
@@ -214,6 +218,46 @@ app.delete("/api/uploads/:id", (req, res) => {
   res.status(204).end();
 });
 
+// ── VOLT Ledger review (people only) ─────────────────────────────────────────
+// Decisions and driver values are made by people here, never by the model. In username mode the signed-in name is
+// recorded; with the shared access token the reviewer is VOLT_REVIEWER_NAME (one reviewer for now, A25).
+const reviewer = (req: express.Request) => requestUser(security, req) ?? process.env.VOLT_REVIEWER_NAME?.trim() ?? "engagement-lead";
+const LedgerDecision = z.object({
+  item_id: z.string().regex(/^R[0-9]{6}$/),
+  stage: z.enum(["engagement_lead", "client"]),
+  decision: z.enum(["approve", "reject", "amend"]),
+  note: z.string().max(2000).default(""),
+});
+const LedgerDriver = z.object({
+  key: z.enum(["fte", "transaction_count", "rwa"]),
+  period: z.string().regex(/^[0-9]{4}-(0[1-9]|1[0-2])$/),
+  dimensions: z.record(z.string().max(40), z.string().max(60)),
+  value: z.string().regex(/^[0-9]+(\.[0-9]+)?$/),
+  unit: z.string().max(20).default(""),
+  note: z.string().max(500).default(""),
+});
+
+app.get("/api/ledger/review", async (req, res) => {
+  if (!ledgerEnabled()) return void res.json({ enabled: false, items: [] });
+  const r = await ledgerPeople("GET", "review_items", reviewer(req));
+  const body = r.json as { data?: unknown };
+  res.status(r.status === 200 ? 200 : r.status).json(r.status === 200 ? { enabled: true, reviewer: reviewer(req), items: body.data ?? [] } : r.json);
+});
+
+app.post("/api/ledger/review", async (req, res) => {
+  const parsed = LedgerDecision.safeParse(req.body);
+  if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
+  const r = await ledgerPeople("POST", "review_decision", reviewer(req), parsed.data);
+  res.status(r.status).json(r.json);
+});
+
+app.post("/api/ledger/driver", async (req, res) => {
+  const parsed = LedgerDriver.safeParse(req.body);
+  if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
+  const r = await ledgerPeople("POST", "driver_value", reviewer(req), { ...parsed.data, kind: "driver", unit: parsed.data.unit || parsed.data.key.toUpperCase() });
+  res.status(r.status).json(r.json);
+});
+
 app.get("/api/templates", (_req, res) => {
   res.json(templates.list());
 });
@@ -271,7 +315,7 @@ const RunBody = z.object({
   demo: z.boolean().optional(),
   templateId: z.string().max(32).optional(),
   attachments: z
-    .array(z.object({ name: z.string().max(200), text: z.string().max(ATTACH_MAX_CHARS_FILE + 200) }))
+    .array(z.object({ name: z.string().max(200), text: z.string().max(ATTACH_MAX_CHARS_FILE + 200), uploadId: z.string().regex(/^[0-9a-f-]{36}$/).optional() }))
     .max(ATTACH_MAX_FILES)
     .refine((a) => a.reduce((n, f) => n + f.text.length, 0) <= ATTACH_MAX_CHARS_TOTAL, "The attached files are too long in total.")
     .optional(),

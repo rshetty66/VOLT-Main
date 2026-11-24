@@ -127,5 +127,8 @@ def test_statement_ratio_allocation_and_gate_over_http(client):
     out = client.post("/v1/tools/run_allocation", headers=H, json=run).json()
     assert out["status"] == "ok" and out["display"]["share Retail"] == "85,800,000.00 USD"
     assert out["data"]["shares"] == {"Retail": "8580000000", "Commercial": "3217500000", "Wealth": "2502500000"}
+    gate = client.post("/v1/tools/check_output", headers=H, json={
+        "text": "Retail received 85,800,000.00 USD of the 143,000,000.00 USD pool.", "evidence_ids": [out["evidence_id"]]}).json()
+    assert gate["data"]["pass"] is True
     items = client.get("/v1/people/review_items", headers=H).json()["data"]
     assert any(i["kind"] == "allocation_rule" and i["engagement_lead"]["decision"] == "approve" for i in items)

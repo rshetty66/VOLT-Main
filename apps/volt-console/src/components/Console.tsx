@@ -29,7 +29,7 @@ interface Props {
 
 export function Console({ catalog, runs, target, setTarget, live, onStart, onStop, onOpenAgent }: Props) {
   const [prompt, setPrompt] = useState("");
-  const [files, setFiles] = useState<{ name: string; text: string; chars: number; truncated: boolean }[]>([]);
+  const [files, setFiles] = useState<{ name: string; text: string; chars: number; truncated: boolean; id?: string }[]>([]);
   const [reading, setReading] = useState(0);
   const [fileError, setFileError] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
@@ -43,7 +43,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
     if (last) document.getElementById(`run-${last.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [runs.length]);
 
-  const addFile = (got: { name: string; text: string; chars: number; truncated: boolean }) =>
+  const addFile = (got: { name: string; text: string; chars: number; truncated: boolean; id?: string }) =>
     setFiles((fs) => {
       const total = fs.filter((f) => f.name !== got.name).reduce((n, f) => n + f.chars, 0) + got.chars;
       if (total > ATTACH_MAX_CHARS_TOTAL) {
@@ -89,7 +89,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   const submit = (text = prompt) => {
     if (!text.trim() || reading > 0) return;
     const agentMode = target !== "rudra";
-    onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined, attachments: files.length ? files.map(({ name, text }) => ({ name, text })) : undefined }, agentMode ? targetAgent?.name ?? target : "Rudra orchestration", agentMode ? "agent" : "orchestrate");
+    onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined, attachments: files.length ? files.map(({ name, text, id }) => ({ name, text, uploadId: id })) : undefined }, agentMode ? targetAgent?.name ?? target : "Rudra orchestration", agentMode ? "agent" : "orchestrate");
     setPrompt("");
     setFiles([]);
     setFileError("");

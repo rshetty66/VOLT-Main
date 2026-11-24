@@ -1,6 +1,10 @@
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { isLedgerTool, ledgerBaseUrl, ledgerEnabled, ledgerToolDefs, runLedgerTool } from "../server/ledger";
+import { checkLedgerFigures, isLedgerTool, ledgerBaseUrl, ledgerEnabled, ledgerPeople, ledgerToolDefs, runLedgerTool } from "../server/ledger";
 import { SourceRegistry } from "../server/research";
+import { saveUpload } from "../server/uploads";
 
 const ok = (data: unknown, display: Record<string, string> = {}, evidence_id: string | null = "E000042") =>
   new Response(JSON.stringify({ status: "ok", evidence_id, data, display, warnings: [] }), { status: 200 });
@@ -33,10 +37,13 @@ describe("VOLT Ledger tools", () => {
     expect(ledgerBaseUrl()).toBe("http://volt-ledger:8790");
   });
 
-  it("offers the six model tools and never a review decision", () => {
+  it("offers the model tools and never a review decision or a driver value", () => {
     const names = ledgerToolDefs().map((t) => t.name);
     expect(names).toEqual(["ledger_get_ontology_context", "ledger_map_line_item", "ledger_flag_policy_gap",
-      "ledger_propose_journal", "ledger_reverse_journal", "ledger_coverage"]);
+      "ledger_propose_journal", "ledger_reverse_journal", "ledger_coverage", "ledger_ingest_upload", "ledger_list_accounts",
+      "ledger_get_balances", "ledger_build_statement", "ledger_list_metrics", "ledger_compute_ratio",
+      "ledger_propose_allocation_rule", "ledger_run_allocation"]);
+    expect(names.some((n) => /driver_value|check_output/.test(n))).toBe(false);
     expect(names.some((n) => /review|decision/.test(n))).toBe(false);
     expect(isLedgerTool("ledger_coverage")).toBe(true);
     expect(isLedgerTool("record_review_decision")).toBe(false);
@@ -120,5 +127,51 @@ describe("VOLT Ledger tools", () => {
     fetchMock.mockRejectedValueOnce(new Error("ECONNREFUSED"));
     const r = await runLedgerTool("ledger_coverage", { doc_id: "D0001" }, new SourceRegistry("x"));
     expect(r).toEqual({ ok: false, error: expect.stringContaining("unreachable") });
+  });
+
+  it("ingests an uploaded trial balance, detecting dimension columns from the header", async () => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), "volt-ledger-"));
+    vi.stubEnv("VOLT_DATA_DIR", dir);
+    try {
+      const csv = "account_code,account_name,debit,credit,business_line,cost_centre\n1000,Cash,100.00,,Treasury,\n";
+      const meta = saveUpload({ name: "Q3 TB (final).csv", text: csv, chars: csv.length, truncated: false }, new TextEncoder().encode(csv));
+      fetchMock.mockResolvedValueOnce(ok({ doc_id: "D0001" }, { stored: "1" }));
+      const r = await runLedgerTool("ledger_ingest_upload", { upload_id: meta.id, client: "SYNBANK", period: "2026-09" }, new SourceRegistry("x"));
+      expect(r.ok).toBe(true);
+      const [url, init] = fetchMock.mock.calls[0];
+      expect(url).toBe("http://ledger.test/v1/ingest/trial_balance");
+      const sent = JSON.parse(init.body);
+      expect(sent.filename).toBe("Q3 TB _final_.csv");
+      expect(sent.dimensions).toEqual({ BusinessLine: "business_line", CostCentre: "cost_centre" });
+      expect(Buffer.from(sent.content_base64, "base64").toString()).toBe(csv);
+      expect(sent.currency).toBe("USD");
+      const missing = await runLedgerTool("ledger_ingest_upload", { upload_id: "00000000-0000-0000-0000-000000000000", client: "SYNBANK", period: "2026-09" }, new SourceRegistry("x"));
+      expect(missing.ok).toBe(false);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  });
+
+  it("checks only sentences that cite a ledger result, against that result's evidence", async () => {
+    const registry = new SourceRegistry("x");
+    fetchMock.mockResolvedValueOnce(ok({ value: "31000000000" }, { value: "310,000,000.00 USD" }, "E000077"));
+    const r = await runLedgerTool("ledger_compute_ratio", { metric_id: "nii", period: "2026-09" }, registry);
+    const key = r.ok ? r.newSource!.key : "";
+    fetchMock.mockResolvedValueOnce(new Response(JSON.stringify({ status: "ok", evidence_id: null, data: { unsupported: ["311,000,000.00"] }, display: {}, warnings: [] })));
+    const draft = `Market growth was 4.5% [S01].\n\nNII was 311,000,000.00 USD [${key}]. Costs rose.`;
+    const out = await checkLedgerFigures(draft, registry);
+    expect(out).toEqual({ unsupported: ["311,000,000.00"], sentences: 1 });
+    const sent = JSON.parse(fetchMock.mock.calls[1][1].body);
+    expect(sent).toEqual({ text: `NII was 311,000,000.00 USD [${key}].`, evidence_ids: ["E000077"] });
+    expect(await checkLedgerFigures("No ledger figures here [S01].", registry)).toBeNull();
+  });
+
+  it("sends the signed-in person to people-only routes", async () => {
+    fetchMock.mockResolvedValueOnce(ok({ recorded: true }));
+    const r = await ledgerPeople("POST", "review_decision", "lead", { item_id: "R000001", stage: "engagement_lead", decision: "approve" });
+    expect(r.status).toBe(200);
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toBe("http://ledger.test/v1/people/review_decision");
+    expect(init.headers["x-volt-user"]).toBe("lead");
   });
 });

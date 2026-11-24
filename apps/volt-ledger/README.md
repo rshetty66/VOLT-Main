@@ -105,6 +105,34 @@ VOLT_LEDGER_TOKEN=local-secret VOLT_LEDGER_DB=/tmp/ledger.db python -m volt_ledg
 curl -s localhost:8790/healthz                                                          # {"ok":true}
 ```
 
+### Step 4c: the console tools (`apps/volt-console/server/ledger.ts`)
+
+The lead agent in the VOLT chat gets `ledger_*` tools when `VOLT_LEDGER_HOSTPORT` (or `VOLT_LEDGER_URL`) and
+`VOLT_LEDGER_TOKEN` are set; `render.yaml` sets both for the `volt-ledger` private service. Every result the model can
+cite becomes a source key, and a journal amount is accepted only if it appears in an earlier ledger result.
+
+### Step 5: driver-based allocation (`volt_ledger/drivers.py`, `volt_ledger/allocation.py`)
+
+This is driver-based allocation logic. A person enters driver values (FTEs, transaction counts or RWA) in the
+console's Ledger review screen; the model proposes a rule (pool accounts, pool filter, driver, targets); the
+engagement lead approves it; only then does `run_allocation` split each pool balance by largest remainder and propose
+one `allocation` journal. Golden case: the IT01 pool of 143,000,000.00 by FTE 120 / 45 / 35 gives Retail
+85,800,000.00, Commercial 32,175,000.00 and Wealth 25,025,000.00, to the cent.
+
+### Step 6: statements, ratios and the output gate (`volt_ledger/reporting.py`)
+
+`build_statement` rolls the mapped trial balance up the calculation arcs into an IFRS or US GAAP balance sheet or
+income statement, lists unmapped accounts as excluded and policy-gap accounts as flagged, and checks that the
+balance-sheet difference is fully explained by the excluded accounts. `compute_ratio` evaluates the 14 v1 metrics in
+`data/metrics/metrics-v1.json` with a small evaluator (no `eval`). `check_output` is the gate: every figure in a
+sentence that cites a ledger result must appear in that result's evidence; the console runs it on every draft and
+sends a misquoted figure back for correction. In the console, people approve items and enter drivers on the
+**Ledger review** screen.
+
+Thin slice in the chat: attach `data/synthetic/tb_2026-09.csv` and ask "Load this trial balance for SYNBANK,
+September 2026, map it to IFRS statements with policy gaps, and propose an IT cost allocation to the business lines by
+FTE." Approve the rule and enter FTEs on Ledger review, then ask it to run the allocation and explain the result.
+
 ## Tests
 
 | File | What it proves |
@@ -115,4 +143,6 @@ curl -s localhost:8790/healthz                                                  
 | `tests/unit/test_posting.py` | Validation, reversals, period locks, idempotency, append-only tables |
 | `tests/unit/test_mapping.py` | Coverage of every account, all 8 gap types, traceability to TB rows, review routing, two-stage approval |
 | `tests/api/test_api.py` | Token required, integer-string amounts, refusals in the envelope, person-only review routes |
-| `tests/property/test_properties.py` | P1 to P4 and P7 to P10 from `docs/phase3-engine.md`, on random data |
+| `tests/unit/test_allocation.py` | Golden IT allocation and 100.00 three-way split; approval, missing drivers, replay, bad rules |
+| `tests/unit/test_reporting.py` | Golden income statement, balance-sheet tie, NII, efficiency and loan-to-deposit; the safe evaluator; the gate |
+| `tests/property/test_properties.py` | P1 to P10 from `docs/phase3-engine.md`, on random data |

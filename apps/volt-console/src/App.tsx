@@ -4,6 +4,7 @@ import { fetchCatalog, listTemplates, streamRun, UnauthorizedError } from "./api
 import { SignIn } from "./components/SignIn";
 import { History } from "./components/History";
 import { Uploads } from "./components/Uploads";
+import { LedgerReview } from "./components/LedgerReview";
 import { Usage } from "./components/Usage";
 import { loadHistory, mergeHistory, saveHistory } from "./history";
 import type { TemplateSummary } from "../shared/templates";
@@ -18,7 +19,7 @@ import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
 import { TemplateContext } from "./exports";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads";
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads" | "ledger";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -120,6 +121,7 @@ export function App() {
     ["analytics", "Analytics", catalog.benchmarks.length],
     ["history", "History", history.length || ""],
     ["uploads", "Uploads", ""],
+    ["ledger", "Ledger review", ""],
     ["usage", "Token usage", ""],
     ["health", "Capability Health", catalog.health.missingSkills.length],
   ];
@@ -195,6 +197,7 @@ export function App() {
           />
         )}
         {view === "uploads" && <Uploads />}
+        {view === "ledger" && <LedgerReview />}
         {view === "usage" && (
           <Usage
             history={history}

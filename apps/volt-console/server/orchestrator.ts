@@ -21,7 +21,7 @@ import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
 import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, wantsDeliverable } from "./deliverable.js";
 import { SourceRegistry, sourceForTool, sourcesFromWebSearch } from "./research.js";
 import { evidenceGates } from "../shared/research.js";
-import { isLedgerTool, ledgerToolDefs, runLedgerTool } from "./ledger.js";
+import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerToolDefs, runLedgerTool } from "./ledger.js";
 import { ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 
@@ -105,7 +105,7 @@ You lead a bench of VOLT specialist agents. For any request that spans more than
 Write the final answer as an executive-grade consulting deliverable in Markdown: a one-paragraph answer first, then structured sections and tables. Where a picture clarifies an architecture, process, roadmap or prioritisation, include Mermaid diagrams (up to four) in \`\`\`mermaid code blocks (flowchart, gantt, quadrantChart or pie; short plain labels, no styling); the console draws them and carries them into downloads. State assumptions and data gaps plainly instead of inventing client facts. If a simple question needs no delegation, answer it directly.
 
 ${leadDeliverableGuide()}
-
+${ledgerEnabled() ? `\n${LEDGER_GUIDE}\n` : ""}
 When a request matches one of the VOLT workflows below, mention it by name so the user can launch it as a full multi-phase run.
 
 ## VOLT workflows
@@ -423,21 +423,34 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
  * it is sent back once with the specific gaps, and the screen replaces the draft with the rewrite.
  */
 async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, always = false) {
-  if (loop.signal.aborted || !draft.trim() || (!always && !wantsDeliverable(prompt))) return;
+  if (loop.signal.aborted || !draft.trim()) return;
+  // G7: a figure in a sentence that cites a VOLT Ledger result must appear in that result's evidence.
+  const ledger = loop.ledger ? await checkLedgerFigures(draft, loop.registry, loop.signal) : null;
+  const ledgerGap = ledger?.unsupported.length
+    ? `${ledger.unsupported.length} figure${ledger.unsupported.length === 1 ? "" : "s"} in sentences citing VOLT Ledger results do not appear in those results (${ledger.unsupported.slice(0, 8).join(", ")}). Quote ledger figures exactly as the display values, or call the ledger tool that computes them; never calculate or round them yourself`
+    : null;
+  if (ledger) loop.emit({ type: "status", lane: loop.lane, text: ledgerGap ? `Ledger check: ${ledger.unsupported.length} unsupported figure${ledger.unsupported.length === 1 ? "" : "s"} sent back for correction` : `Ledger check: every figure in ${ledger.sentences} ledger-cited sentence${ledger.sentences === 1 ? "" : "s"} traces to its evidence` });
+  const deliverable = always || wantsDeliverable(prompt);
+  if (!deliverable && !ledgerGap) return;
   const depth = assessDepth(draft);
-  const evidence = evidenceGates(draft, loop.registry.sources, loop.registry.tier).filter((g) => !g.pass);
-  const report = { ...depth, gaps: [...depth.gaps, ...evidence.map((g) => g.detail)] };
+  const evidence = deliverable ? evidenceGates(draft, loop.registry.sources, loop.registry.tier).filter((g) => !g.pass) : [];
+  const report = deliverable
+    ? { ...depth, gaps: [...depth.gaps, ...evidence.map((g) => g.detail), ...(ledgerGap ? [ledgerGap] : [])] }
+    : { ...depth, gaps: [ledgerGap as string] };
   if (!report.gaps.length) return;
-  // A rewrite costs about two minutes, so it is kept for a draft that is too short, has fewer than two visuals, or cites sources that do not exist.
-  // Smaller gaps are left to the reader's review.
-  if (depth.words >= MIN_WORDS && depth.visuals >= 2 && !evidence.some((g) => g.id === "G1")) return;
+  // A rewrite costs about two minutes, so it is kept for a draft that is too short, has fewer than two visuals, cites sources that do not exist,
+  // or misquotes a ledger figure. Smaller gaps are left to the reader's review.
+  if (!ledgerGap && depth.words >= MIN_WORDS && depth.visuals >= 2 && !evidence.some((g) => g.id === "G1")) return;
   if (lateForRewrite(Date.now() - loop.registry.startedAt, runBudgetMs())) {
     loop.emit({ type: "status", lane: loop.lane, text: `Partner review: ${report.gaps.length} gap${report.gaps.length === 1 ? "" : "s"} found, but the run is near its time limit, so the draft is kept as written` });
     return;
   }
   loop.emit({ type: "status", lane: loop.lane, text: `Partner review: strengthening the draft (${report.gaps.length} gap${report.gaps.length === 1 ? "" : "s"})` });
   loop.emit({ type: "text_reset", lane: loop.lane });
-  loop.messages.push({ role: "user", content: strengthenPrompt(report) });
+  loop.messages.push({
+    role: "user",
+    content: deliverable ? strengthenPrompt(report) : `Ledger check: ${ledgerGap}. Rewrite your answer in full with those figures corrected, and return only the corrected answer.`,
+  });
   await runAgentLoop(loop);
 }
 

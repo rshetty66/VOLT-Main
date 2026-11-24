@@ -269,8 +269,11 @@ def create_app(db_path: str | None = None) -> FastAPI:
             return refused(e.code, str(e))
         total = sum(l.debit for l in lines)
         cur = lines[0].currency
-        return ok(out.evidence_id, {"journal_id": out.journal_id, "created": out.created, "total": to_wire(total)},
-                  {"total": f"{format_amount(total, cur)} {cur}"})
+        data = {"journal_id": out.journal_id, "created": out.created, "total": to_wire(total), "journal_evidence_id": out.evidence_id}
+        display = {"total": f"{format_amount(total, cur)} {cur}"}
+        with locked() as s:
+            ev = recorded(s, "propose_journal", {"idempotency_key": body.idempotency_key, "period": body.period}, data, display)
+        return ok(ev, data, display)
 
 
     @app.post("/v1/tools/reverse_journal", dependencies=[Depends(auth)])
@@ -396,7 +399,10 @@ def create_app(db_path: str | None = None) -> FastAPI:
                 "drivers": r.drivers, "shares": {t: to_wire(abs(v)) for t, v in r.shares.items()}}
         display = {"pool": money(r.pool, r.currency)} | {f"share {t}": money(v, r.currency) for t, v in r.shares.items()}
         display |= {f"driver {t}": d["value"] for t, d in r.drivers.items()}
-        return ok(r.evidence_id, data, display, ["this is a proposed allocation journal, not posted to the client's GL"])
+        data["journal_evidence_id"] = r.evidence_id
+        with locked() as s:
+            ev = recorded(s, "run_allocation", body.model_dump(), data, display)
+        return ok(ev, data, display, ["this is a proposed allocation journal, not posted to the client's GL"])
 
     @app.post("/v1/tools/check_output", dependencies=[Depends(auth)])
     def gate(body: CheckBody) -> dict:
