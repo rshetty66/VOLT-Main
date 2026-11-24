@@ -389,3 +389,18 @@ describe("colour coding", () => {
     expect(client).not.toContain('w:fill="FF5722"');
   });
 });
+
+describe("native PowerPoint charts", () => {
+  const chart = (o: object) => "```chart\n" + JSON.stringify(o) + "\n```\n";
+  it("writes a plain bar chart as an editable chart and keeps a call-out chart as a picture", async () => {
+    const bar = { type: "bar", title: "Close days", labels: ["EMEA", "APAC"], series: [{ name: "Today", values: [12, 9] }] };
+    const markdown = "## Baseline\n\n" + chart(bar) + "\n## Bridge\n\n" + chart({ ...bar, highlight: "EMEA" });
+    const files = unzip((await exportDocument({ format: "pptx", title: "Charts", markdown, images: [{ ref: "viz-1", png: PNG, width: 720, height: 400 }] }, null)).data);
+    const charts = Object.keys(files).filter((n) => /^ppt\/charts\/chart\d+\.xml$/.test(n));
+    expect(charts).toHaveLength(1);
+    expect(text(files, charts[0])).toContain("EMEA");
+    const pngs = (f: Record<string, Uint8Array>) => Object.keys(f).filter((n) => n.startsWith("ppt/media/")).length;
+    const plain = unzip((await exportDocument({ format: "pptx", title: "Charts", markdown: "## Baseline\n\n" + chart(bar), images: [] }, null)).data);
+    expect(pngs(files)).toBe(pngs(plain) + 1);
+  });
+});
