@@ -386,7 +386,7 @@ app.post("/api/run", async (req, res) => {
     ? catalog.workflowById.get(body.workflowId)?.name ?? body.workflowId
     : body.agentId
       ? catalog.agentById.get(body.agentId)?.name ?? body.agentId
-      : "Rudra orchestration";
+      : "All specialists";
   emit({ type: "run_start", runId: crypto.randomUUID(), sessionId: session.id, mode: runMode, model: runMode === "live" ? MODEL : "simulator", kind, title });
   if (runMode === "demo" && body.attachments?.length) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Attached files are read in live mode only; this demo run ignores them" });
   if (body.template) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Formatting template "${body.template.name}" attached` });

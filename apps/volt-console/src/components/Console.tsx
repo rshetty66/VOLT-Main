@@ -33,6 +33,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   const [reading, setReading] = useState(0);
   const [fileError, setFileError] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
+  const promptBox = useRef<HTMLTextAreaElement>(null);
   const [library, setLibrary] = useState<UploadMeta[] | null>(null);
   const running = runs.some((r) => r.state === "running");
   const targetAgent = catalog.agents.find((a) => a.id === target);
@@ -40,7 +41,8 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   // A new run scrolls into view at its start, so the answer is read from the top.
   useEffect(() => {
     const last = runs[runs.length - 1];
-    if (last) document.getElementById(`run-${last.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    const still = typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (last) document.getElementById(`run-${last.id}`)?.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "start" });
   }, [runs.length]);
 
   const addFile = (got: { name: string; text: string; chars: number; truncated: boolean; id?: string }) =>
@@ -89,7 +91,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   const submit = (text = prompt) => {
     if (!text.trim() || reading > 0) return;
     const agentMode = target !== "rudra";
-    onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined, attachments: files.length ? files.map(({ name, text, id }) => ({ name, text, uploadId: id })) : undefined }, agentMode ? targetAgent?.name ?? target : "Rudra orchestration", agentMode ? "agent" : "orchestrate");
+    onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined, attachments: files.length ? files.map(({ name, text, id }) => ({ name, text, uploadId: id })) : undefined }, agentMode ? targetAgent?.name ?? target : "All specialists", agentMode ? "agent" : "orchestrate");
     setPrompt("");
     setFiles([]);
     setFileError("");
@@ -99,15 +101,26 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
     <div className="console">
       {runs.length === 0 && (
         <div className="stack">
+          <p className="body intro">
+            Describe a client situation in your own words. VOLT puts the right finance specialists on it and returns a written answer with
+            charts and benchmarks, ready to download as Word, PowerPoint or Excel.
+          </p>
           {!live && (
             <div className="card body">
-              Running in <b>demo mode</b>: routing, Skill Finder, benchmarks and workflow sequencing are real; agent prose is simulated.
-              Set <code>ANTHROPIC_API_KEY</code> on the server for live multi-agent reasoning.
+              <b>Demo mode.</b> Routing, benchmarks and workflow steps are real; the written analysis is simulated.
             </div>
           )}
           <div className="examples">
             {EXAMPLES.map((e) => (
-              <button key={e} className="btn ghost card" onClick={() => submit(e)}>
+              <button
+                key={e}
+                className="btn ghost card"
+                title="Put this example in the message box to edit it"
+                onClick={() => {
+                  setPrompt(e);
+                  promptBox.current?.focus();
+                }}
+              >
                 {e}
               </button>
             ))}
@@ -123,7 +136,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
           <div className="row">
             <span className="micro">Talk to</span>
             <select className="select" style={{ width: "auto", maxWidth: "100%" }} value={target} onChange={(e) => setTarget(e.target.value)}>
-              <option value="rudra">Rudra — orchestrate the whole bench</option>
+              <option value="rudra">All specialists (Rudra leads)</option>
               {[...new Set(catalog.agents.map((a) => a.layer))].map((layer) => (
                 <optgroup key={layer} label={layer}>
                   {catalog.agents
@@ -143,8 +156,10 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
             )}
           </div>
           <textarea
+            ref={promptBox}
             className="textarea"
-            placeholder={target === "rudra" ? "Describe the client situation and what you need… or start with a command such as /compare (type /help for all)" : `Ask ${targetAgent?.name ?? target}…`}
+            aria-label="Message"
+            placeholder={target === "rudra" ? "Describe the client situation and what you need, in your own words" : `Ask ${targetAgent?.name ?? target}`}
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => {
@@ -157,13 +172,15 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
                 <span key={f.name} className="chip" title={f.truncated ? "Long file: only the first part is used" : undefined}>
                   {f.name}
                   {f.truncated ? " (partly)" : ""}
-                  <button className="btn ghost sm" aria-label={`Remove ${f.name}`} onClick={() => setFiles((fs) => fs.filter((x) => x.name !== f.name))}>
-                    x
+                  <button className="btn ghost sm icon" aria-label={`Remove ${f.name}`} onClick={() => setFiles((fs) => fs.filter((x) => x.name !== f.name))}>
+                    <svg viewBox="0 0 12 12" width="12" height="12" aria-hidden="true">
+                      <path d="M3 3l6 6M9 3l-6 6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+                    </svg>
                   </button>
                 </span>
               ))}
               {reading > 0 && (
-                <span className="muted" style={{ fontSize: 12 }}>
+                <span className="muted" style={{ fontSize: 12 }} role="status">
                   <span className="spinner" style={{ width: 10, height: 10 }} /> Reading...
                 </span>
               )}
@@ -235,7 +252,7 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
           {run.attachments?.length ? <div className="muted" style={{ fontSize: 12, fontWeight: 400 }}>Attached: {run.attachments.join(", ")}</div> : null}
         </div>
         <span className="usage">
-          {elapsed}s{run.mode === "live" ? ` · ${run.usage.input.toLocaleString()} in / ${run.usage.output.toLocaleString()} out · ${run.usage.cacheRead.toLocaleString()} cached` : run.mode === "demo" ? " · demo" : ""}
+          {elapsed}s{run.mode === "demo" ? " · demo" : ""}
         </span>
         {run.state === "running" && (
           <button className="btn sm" onClick={onStop}>
@@ -249,7 +266,7 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
       </div>
       <div className="run-body single">
         {(work.specialists > 0 || work.toolCalls > 0 || run.tier) && (
-          <div className="work-strip">
+          <div className="work-strip" role="status">
             {run.state === "running" ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <span className="dot done" />}
             <span className="work-text">{workLine(work, run.state === "running")}</span>
             {run.tier && (
@@ -291,6 +308,7 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
             ))}
           </div>
         )}
+        <RunVisuals run={run} />
         <div className="answer">
           {run.text ? <Markdown text={run.text} /> : run.state === "running" ? <p className="muted"><span className="spinner" /> Rudra is working…</p> : null}
         </div>
