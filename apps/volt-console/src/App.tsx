@@ -16,10 +16,9 @@ import { Services } from "./components/Services";
 import { Analytics } from "./components/Analytics";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
-import { Workbench } from "./components/workbench/Workbench";
 import { TemplateContext } from "./exports";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "finance" | "health" | "history" | "usage" | "uploads";
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -119,7 +118,6 @@ export function App() {
     ["services", "Services", catalog.services.length],
     ["templates", "Templates", templates.length || ""],
     ["analytics", "Analytics", catalog.benchmarks.length],
-    ["finance", "Finance Workbench", ""],
     ["history", "History", history.length || ""],
     ["uploads", "Uploads", ""],
     ["usage", "Token usage", ""],
@@ -179,7 +177,6 @@ export function App() {
         {view === "services" && <Services catalog={catalog} onOpenAgent={setOpenAgent} onLaunch={start} />}
         {view === "templates" && <Templates templates={templates} refresh={refreshTemplates} activeTemplate={activeTemplate} setActiveTemplate={setActiveTemplate} />}
         {view === "analytics" && <Analytics catalog={catalog} />}
-        {view === "finance" && <Workbench live={live} />}
         {view === "history" && (
           <History
             history={history}

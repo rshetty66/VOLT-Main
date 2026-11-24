@@ -11,12 +11,6 @@
  *   GET  /api/templates/:id/original   the uploaded file
  *   DELETE /api/templates/:id
  *   POST /api/export               build a Word, PowerPoint or Excel download from a deliverable
- *   GET  /api/finance-architecture/demo       synthetic golden case + lifecycle reference
- *   POST /api/finance-architecture/validate   run the skill's offline journal / mapping validator
- *   POST /api/finance-architecture/sources/find      Claude web_search for an issuer's published statements (live only)
- *   POST /api/finance-architecture/sources/extract   figures + page quotes from a URL or uploaded source, verified (live only)
- *   POST /api/finance-architecture/sources/upload    store a PDF / text / CSV document (raw body, X-File-Name header)
- *   POST /api/finance-architecture/sources/verify    re-check figures against a stored source, 0 tokens
  *   GET  /api/healthz
  *
  * In production it also serves the built React app from dist/.
@@ -38,8 +32,6 @@ import { runDemo } from "./demo.js";
 import { commandPrompt, commandStatus, loadRudraCommands, matchCommand } from "./commands.js";
 import { TemplateError, templateStore } from "./templates.js";
 import { exportRouter } from "./export/route.js";
-import { demoDocuments, multiBasisAllowance, runValidator } from "./financeArchitecture.js";
-import { MAX_SOURCE_BYTES, SourceError, extractFigures, findFilings, ingestDocument, verifyFigures } from "./sources.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
 import { AttachmentError, extractAttachment } from "./attachments.js";
@@ -140,89 +132,6 @@ app.post("/api/tools/:name", (req, res) => {
   if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
   const r = runLocalTool(catalog, name as Exclude<ToolName, "consult_agent">, parsed.data);
   res.status(r.ok ? 200 : 400).json(r);
-});
-
-// ── Finance Architecture demo (design-finance-architecture skill) ───────────────
-
-app.get("/api/finance-architecture/demo", (_req, res) => {
-  res.json({ ...demoDocuments(), allowance: multiBasisAllowance({ preAllowance: "498000", ifrsAllowance: "2000", ceclAllowance: "10000" }) });
-});
-
-const validateBody = z.object({ kind: z.enum(["journal", "mapping"]), document: z.unknown() });
-app.post("/api/finance-architecture/validate", async (req, res) => {
-  const parsed = validateBody.safeParse(req.body);
-  if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
-  try {
-    res.json(await runValidator(parsed.data.kind, parsed.data.document));
-  } catch (err) {
-    res.status(500).json({ error: errorMessage(err) });
-  }
-});
-
-// Real-data sources: public filings and uploaded documents.
-const sourceStatus = (err: unknown) =>
-  err instanceof SourceError ? ({ not_found: 404, unsupported_type: 415, too_large: 413, no_document: 422, no_figures: 422, unreadable: 422 } as const)[err.code] : 500;
-const sourceError = (res: express.Response, err: unknown) => {
-  const status = sourceStatus(err);
-  res.status(status).json({ error: status === 500 ? errorMessage(err) : (err as Error).message, code: err instanceof SourceError ? err.code : "server_error" });
-};
-const needsLive = (res: express.Response) => {
-  if (mode === "live") return false;
-  res.status(503).json({ error: "Live retrieval needs a Claude API key in apps/volt-console/.env. You can still upload a document and enter figures with their page and quote.", code: "demo_mode" });
-  return true;
-};
-const findBody = z.object({ issuer: z.string().min(2).max(200), period: z.string().min(2).max(100) });
-app.post("/api/finance-architecture/sources/find", async (req, res) => {
-  const parsed = findBody.safeParse(req.body);
-  if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
-  if (needsLive(res)) return;
-  try {
-    res.json(await findFilings(parsed.data.issuer, parsed.data.period));
-  } catch (err) {
-    sourceError(res, err);
-  }
-});
-const extractBody = z.object({ url: z.string().url().max(2000).optional(), sourceId: z.string().regex(/^[a-f0-9]{64}$/).optional() }).refine((b) => !!b.url !== !!b.sourceId, "Give either url or sourceId");
-app.post("/api/finance-architecture/sources/extract", async (req, res) => {
-  const parsed = extractBody.safeParse(req.body);
-  if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
-  if (needsLive(res)) return;
-  try {
-    res.json(await extractFigures(parsed.data));
-  } catch (err) {
-    sourceError(res, err);
-  }
-});
-app.post("/api/finance-architecture/sources/upload", express.raw({ type: () => true, limit: MAX_SOURCE_BYTES }), async (req, res) => {
-  const data = Buffer.isBuffer(req.body) ? req.body : Buffer.alloc(0);
-  if (!data.length) return void res.status(400).json({ error: "Send the document as the request body." });
-  let name = req.get("x-file-name") ?? "document";
-  try {
-    name = decodeURIComponent(name);
-  } catch {
-    /* keep the raw header */
-  }
-  const type = req.get("content-type") ?? "application/octet-stream";
-  const mediaType = /\.pdf$/i.test(name) ? "application/pdf" : /\.csv$/i.test(name) ? "text/csv" : /\.txt$/i.test(name) ? "text/plain" : type;
-  try {
-    res.status(201).json(await ingestDocument(data, mediaType, { title: name.slice(0, 200), evidenceClass: "CLIENT_DOCUMENT" }));
-  } catch (err) {
-    sourceError(res, err);
-  }
-});
-const figureSchema = z.object({
-  id: z.string(), label: z.string(), value: z.string(), scale: z.enum(["units", "thousands", "millions", "billions"]), currency: z.string(),
-  period: z.string(), page: z.number().int(), quote: z.string(), evidence_class: z.enum(["CLIENT_DOCUMENT", "PUBLIC_FILING", "ILLUSTRATIVE_EXAMPLE"]),
-});
-const verifyBody = z.object({ sourceId: z.string().regex(/^[a-f0-9]{64}$/), figures: z.array(figureSchema).min(1).max(100) });
-app.post("/api/finance-architecture/sources/verify", async (req, res) => {
-  const parsed = verifyBody.safeParse(req.body);
-  if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
-  try {
-    res.json(await verifyFigures(parsed.data.sourceId, parsed.data.figures));
-  } catch (err) {
-    sourceError(res, err);
-  }
 });
 
 app.get("/api/skills/:id", (req, res) => {
