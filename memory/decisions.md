@@ -10,3 +10,4 @@ Append only: date, decision, one-line reason.
 - 2026-11-24: The chat works from plain-word goals, not trigger words. Reason: Rakesh's instruction.
 - 2026-11-24: Memory-first agent system adopted (planner, worker, verifier; repo `memory/`). Agent procedures go in
   `.claude/skills/`, not root `skills/`. Reason: root `skills/` is ECC's validated library and must stay unchanged.
+- 2026-11-24: Impeccable (pbakaus/impeccable, Apache-2.0) installed as `.claude/skills/impeccable` (SKILL.md and reference only, no launcher or hook) and used as the front-end design standard for VOLT visuals. Reason: Rakesh asked for it.
