@@ -1,7 +1,7 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { TemplateContext, downloadDeliverable, type Deliverable, type DownloadFormat } from "../exports";
 
-const LABEL: Record<DownloadFormat, string> = { docx: "Word (.docx)", pptx: "PowerPoint (.pptx)", xlsx: "Excel (.xlsx)", md: "Markdown (.md)", html: "Web page (.html)", zip: "Research bundle (.zip)" };
+const LABEL: Record<DownloadFormat, string> = { docx: "Word (.docx)", pptx: "PowerPoint (.pptx)", xlsx: "Excel (.xlsx)", md: "Markdown (.md)", html: "Web page (.html)", zip: "Research bundle (.zip)", csv: "CSV data (.csv)", pdf: "PDF (print)" };
 
 /**
  * "Download" button with a format menu. `build` assembles the deliverable when a format is chosen, so the

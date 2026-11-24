@@ -4,6 +4,7 @@ import { contentsOf, markdownBlocks, plain, type Run } from "./blocks.js";
 import { TONE_STYLE, toneFor } from "../../shared/brand.js";
 import { BRAND, brandLogo } from "./brand.js";
 import type { ExportStyle } from "./style.js";
+import { chartBlocks, type ChartSpec } from "../../shared/viz.js";
 
 type Slide = ReturnType<PptxGenJS["addSlide"]>;
 type TextProps = PptxGenJS.TextProps;
@@ -38,6 +39,32 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
     const w = img.width * k, h = img.height * k;
     slide.addImage({ data: `image/png;base64,${img.png}`, x: (W - w) / 2, y: 1.4 + (boxH - h) / 2, w, h });
     if (img.caption) slide.addText(img.caption, { x: M, y: H - 0.8, w: W - 2 * M, h: 0.4, fontFace: s.bodyFont, fontSize: 12, italic: true, color: "5B6862", align: "center" });
+  };
+
+  // A chart block whose type PowerPoint draws natively becomes an editable chart; the rest stay pictures, and so does a
+  // chart with a target line or a call-out, which a native chart cannot carry.
+  const specs = chartBlocks(req.markdown);
+  const NATIVE: Partial<Record<ChartSpec["type"], PptxGenJS.CHART_NAME>> = { bar: "bar", hbar: "bar", stacked: "bar", line: "line", donut: "doughnut" };
+  const colours = ["1A1E2E", "0097A7", "D4AF37", "FF5722", "5C6BC0", "8A90A5"];
+  const native = (spec: ChartSpec | null | undefined): spec is ChartSpec => !!spec && !!NATIVE[spec.type] && !spec.target && spec.highlight === undefined;
+  const nativeChart = (title: string, spec: ChartSpec) => {
+    const kind = NATIVE[spec.type]!;
+    const slide = titled(title);
+    const data = spec.series.slice(0, spec.type === "donut" ? 1 : undefined).map((x) => ({ name: x.name, labels: spec.labels, values: x.values }));
+    const foot = spec.source ? 0.45 : 0;
+    slide.addChart(kind, data, {
+      x: M, y: 1.3, w: W - 2 * M, h: H - 1.75 - foot,
+      showTitle: true, title: spec.title + (spec.unit ? ` (${spec.unit})` : ""), titleFontFace: s.headingFont, titleFontSize: 16, titleColor: s.headingColor,
+      chartColors: s.brand ? colours : [s.accent, ...colours.slice(1)],
+      showLegend: spec.series.length > 1 || spec.type === "donut", legendPos: "b", legendFontFace: s.bodyFont, legendFontSize: 11,
+      showValue: spec.type !== "donut", showPercent: spec.type === "donut", dataLabelFontSize: 10, dataLabelColor: s.ink,
+      catAxisLabelFontFace: s.bodyFont, catAxisLabelFontSize: 11, valAxisLabelFontFace: s.bodyFont, valAxisLabelFontSize: 10,
+      valGridLine: { color: "D9DCE6", size: 0.5 }, catGridLine: { style: "none" },
+      ...(spec.type === "hbar" ? { barDir: "bar" } : spec.type === "stacked" ? { barDir: "col", barGrouping: "stacked" } : { barDir: "col" }),
+      ...(spec.type === "donut" ? { holeSize: 60 } : {}),
+      ...(spec.type === "line" ? { lineSize: 3, lineDataSymbolSize: 7 } : { barGapWidthPct: 60 }),
+    });
+    if (spec.source) slide.addText(`Source: ${spec.source}`, { x: M, y: H - 0.85, w: W - 2 * M, h: 0.35, fontFace: s.bodyFont, fontSize: 11, color: "5B6862" });
   };
 
   // Title slide: VOLT's own cover (dark, no logo) unless a client template is selected.
@@ -141,10 +168,12 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
       }
       case "image": {
         const img = images.get(b.ref);
-        if (img) {
-          flush();
-          picture(part++ ? `${section} (cont.)` : section, img);
-        }
+        const spec = b.ref.startsWith("viz-") ? specs[Number(b.ref.slice(4))] : null;
+        if (!native(spec) && !img) break;
+        flush();
+        const title = part++ ? `${section} (cont.)` : section;
+        if (native(spec)) nativeChart(title, spec);
+        else if (img) picture(title, img);
         break;
       }
       case "rule":

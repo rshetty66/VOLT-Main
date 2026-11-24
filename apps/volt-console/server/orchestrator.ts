@@ -319,7 +319,7 @@ async function executeTool(
   const r = runLocalTool(catalog, name, parsed.data);
   if (!r.ok) return fail(r.error);
   emit({ type: "tool_result", lane, callId: tu.id, name, summary: r.summary, data: name === "load_skill" || name === "get_template" ? undefined : r.data });
-  const body = typeof r.data === "string" ? r.data : JSON.stringify(r.data);
+  const body = r.reply ?? (typeof r.data === "string" ? r.data : JSON.stringify(r.data));
   // Evidence is cited by key: record the result and tell the model its key.
   const src = sourceForTool(name, parsed.data);
   if (!src) return { type: "tool_result", tool_use_id: tu.id, content: body };

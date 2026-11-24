@@ -15,6 +15,14 @@ export interface Palette {
   pass: string;
   fail: string;
   notRun: string;
+  /** Rises in a waterfall or a KPI that moved the right way. */
+  positive: string;
+  /** Text for falls and misses: the negative colour, adjusted to pass 4.5:1 on the background. */
+  negInk: string;
+  /** A KPI tile's background. */
+  tile: string;
+  /** Categorical colours for stacked bars, donut slices and extra series. */
+  cats: string[];
   font: string;
 }
 
@@ -33,6 +41,10 @@ export const DARK: Palette = {
   pass: "#00e5ff",
   fail: "#ff5722",
   notRun: "#6c7694",
+  positive: "#2fd49a",
+  negInk: "#ff8a65",
+  tile: "#22283b",
+  cats: ["#00e5ff", "#d4af37", "#ff5722", "#8c9eff", "#2fd49a", "#a9b1c7"],
   font,
 };
 
@@ -49,5 +61,9 @@ export const LIGHT: Palette = {
   pass: "#0097a7",
   fail: "#ff5722",
   notRun: "#8a90a5",
+  positive: "#13895f",
+  negInk: "#c2410c",
+  tile: "#f5f6fa",
+  cats: ["#1a1e2e", "#0097a7", "#a8841c", "#e64a19", "#5c6bc0", "#6b7280"],
   font,
 };
