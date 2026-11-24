@@ -1,5 +1,8 @@
 # VOLT Ledger Brain: Phase 4 language-model layer spec
 
+> Superseded on 24 Nov 2026 by [`cfo-finance-brain-plan.md`](cfo-finance-brain-plan.md). Kept as history: the engine
+> rules it defines still apply where the code cites it.
+
 Status: draft for approval. Date: 24 Nov 2026. Builds on `spec.md` section 5 (LLM boundary), `phase2-ontology.md`
 and `phase3-engine.md`.
 

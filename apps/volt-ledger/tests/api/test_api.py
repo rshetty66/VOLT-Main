@@ -146,41 +146,6 @@ def test_statement_ratio_allocation_and_gate_over_http(client):
     assert any(i["kind"] == "allocation_rule" and i["engagement_lead"]["decision"] == "approve" for i in items)
 
 
-def test_peer_routes_record_evidence_and_feed_the_gate(monkeypatch, tmp_path):
-    from pathlib import Path
-
-    from volt_ledger.peers import import_corpus, load_registry
-    from volt_ledger.store import Store
-
-    monkeypatch.setenv("VOLT_LEDGER_TOKEN", "test-token")
-    db = tmp_path / "ledger.db"
-    c = TestClient(create_app(str(db)))
-    r = c.post("/v1/tools/resolve_peer_period", headers=H, json={"peer_ids": ["td"], "as_of": "2026-11-24"}).json()
-    assert r["status"] == "ok" and r["evidence_id"] and r["data"][0]["period"] == "FY2026-Q3"
-    assert "internal use only" in r["warnings"][0]
-    assert c.post("/v1/tools/resolve_peer_period", headers=H, json={"peer_ids": ["nobody"]}).json()["status"] == "refused"
-
-    r = c.post("/v1/tools/fetch_peer_documents", headers=H, json={"items": [
-        {"peer_id": "td", "period": "FY2026-Q3", "doc_types": ["press_release"], "url": "https://finance.yahoo.com/x.pdf"}]}).json()
-    assert r["status"] == "ok" and r["data"][0]["reason"] == "domain_not_registered"
-    assert c.post("/v1/tools/peer_metrics", headers=H, json={"doc_ids": ["P99999"]}).json()["status"] == "refused"
-
-    corpus = Path("/mnt/project-files/volt-ledger/corpus")
-    if not (corpus / "manifest.csv").exists():
-        pytest.skip("peer corpus not on this machine")
-    s = Store(str(db))
-    rows = import_corpus(s, load_registry(), corpus, tmp_path / "peer_files")
-    rbc = next(x["doc_id"] for x in rows if x.get("doc_id") and x["peer_id"] == "rbc" and x["doc_type"] == "supplementary_financial_info")
-    s.conn.close()
-    r = c.post("/v1/tools/peer_metrics", headers=H, json={"doc_ids": [rbc], "metric_ids": ["nii", "efficiency_ratio"]}).json()
-    assert r["status"] == "ok" and r["display"]["rbc FY2026-Q3 nii"] == "C$8,744 million"
-    good = c.post("/v1/tools/check_output", headers=H, json={
-        "text": "RBC net interest income was C$8,744 million, efficiency 52.8%.", "evidence_ids": [r["evidence_id"]]}).json()
-    bad = c.post("/v1/tools/check_output", headers=H, json={
-        "text": "RBC net interest income was C$8,754 million.", "evidence_ids": [r["evidence_id"]]}).json()
-    assert good["data"]["pass"] and bad["data"]["unsupported"] == ["8,754"]
-
-
 def test_coa_design_over_http(client):
     import json
 

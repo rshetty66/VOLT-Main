@@ -1,5 +1,8 @@
 # VOLT Ledger Brain: Phase 2 ontology spec
 
+> Superseded on 24 Nov 2026 by [`cfo-finance-brain-plan.md`](cfo-finance-brain-plan.md). Kept as history: the engine
+> rules it defines still apply where the code cites it.
+
 Status: draft for approval. Date: 24 Nov 2026. Builds on `spec.md` sections 3.1 and 3.2 and on
 `ratio-catalogue.md`.
 

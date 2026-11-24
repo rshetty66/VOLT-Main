@@ -1,5 +1,8 @@
 # VOLT Ledger Brain: Phase 3 deterministic engine spec
 
+> Superseded on 24 Nov 2026 by [`cfo-finance-brain-plan.md`](cfo-finance-brain-plan.md). Kept as history: the engine
+> rules it defines still apply where the code cites it.
+
 Status: approved 24 Nov 2026 (A19 approved for now). Date: 24 Nov 2026. Builds on `spec.md` (sections 3 and 4), `phase2-ontology.md` and
 `ratio-catalogue.md`.
 
