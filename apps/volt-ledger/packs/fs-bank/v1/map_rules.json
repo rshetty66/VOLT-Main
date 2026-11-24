@@ -1,0 +1,222 @@
+{
+ "note": "Which GL account each balance type of each product posts to, IFRS ledger. The FSDF data's dim_gl_map_rule must match (tested).",
+ "ledger": "IFRS",
+ "rules": [
+  {
+   "product": "RES_MTG",
+   "balance_type": "CARRYING",
+   "account": "13100",
+   "sign": 1
+  },
+  {
+   "product": "RES_MTG",
+   "balance_type": "ALLOWANCE",
+   "account": "13900",
+   "sign": -1
+  },
+  {
+   "product": "COMM_LOAN",
+   "balance_type": "CARRYING",
+   "account": "13200",
+   "sign": 1
+  },
+  {
+   "product": "COMM_LOAN",
+   "balance_type": "ALLOWANCE",
+   "account": "13900",
+   "sign": -1
+  },
+  {
+   "product": "EQUIP_LEASE",
+   "balance_type": "CARRYING",
+   "account": "13200",
+   "sign": 1
+  },
+  {
+   "product": "EQUIP_LEASE",
+   "balance_type": "ALLOWANCE",
+   "account": "13900",
+   "sign": -1
+  },
+  {
+   "product": "BUS_OD",
+   "balance_type": "CARRYING",
+   "account": "13200",
+   "sign": 1
+  },
+  {
+   "product": "BUS_OD",
+   "balance_type": "ALLOWANCE",
+   "account": "13900",
+   "sign": -1
+  },
+  {
+   "product": "CREDIT_CARD",
+   "balance_type": "CARRYING",
+   "account": "13300",
+   "sign": 1
+  },
+  {
+   "product": "CREDIT_CARD",
+   "balance_type": "ALLOWANCE",
+   "account": "13900",
+   "sign": -1
+  },
+  {
+   "product": "NOSTRO",
+   "balance_type": "CARRYING",
+   "account": "11200",
+   "sign": 1
+  },
+  {
+   "product": "REV_REPO",
+   "balance_type": "CARRYING",
+   "account": "11200",
+   "sign": 1
+  },
+  {
+   "product": "BOND_FVOCI",
+   "balance_type": "CARRYING",
+   "account": "12100",
+   "sign": 1
+  },
+  {
+   "product": "BOND_AC",
+   "balance_type": "CARRYING",
+   "account": "12200",
+   "sign": 1
+  },
+  {
+   "product": "EQUITY_HFT",
+   "balance_type": "CARRYING",
+   "account": "12300",
+   "sign": 1
+  },
+  {
+   "product": "IRS",
+   "balance_type": "FV_POSITIVE",
+   "account": "12400",
+   "sign": 1
+  },
+  {
+   "product": "IRS",
+   "balance_type": "FV_NEGATIVE",
+   "account": "23100",
+   "sign": 1
+  },
+  {
+   "product": "FX_FWD",
+   "balance_type": "FV_POSITIVE",
+   "account": "12400",
+   "sign": 1
+  },
+  {
+   "product": "FX_FWD",
+   "balance_type": "FV_NEGATIVE",
+   "account": "23100",
+   "sign": 1
+  },
+  {
+   "product": "CDS",
+   "balance_type": "FV_POSITIVE",
+   "account": "12400",
+   "sign": 1
+  },
+  {
+   "product": "CDS",
+   "balance_type": "FV_NEGATIVE",
+   "account": "23100",
+   "sign": 1
+  },
+  {
+   "product": "CURR_ACCT",
+   "balance_type": "CARRYING",
+   "account": "21200",
+   "sign": -1
+  },
+  {
+   "product": "SAVINGS",
+   "balance_type": "CARRYING",
+   "account": "21300",
+   "sign": -1
+  },
+  {
+   "product": "TERM_DEP",
+   "balance_type": "CARRYING",
+   "account": "21400",
+   "sign": -1
+  },
+  {
+   "product": "REPO",
+   "balance_type": "CARRYING",
+   "account": "21100",
+   "sign": -1
+  },
+  {
+   "product": "INTERBANK",
+   "balance_type": "CARRYING",
+   "account": "21100",
+   "sign": -1
+  },
+  {
+   "product": "ISSUED_BOND",
+   "balance_type": "CARRYING",
+   "account": "22100",
+   "sign": -1
+  },
+  {
+   "product": "SUB_DEBT",
+   "balance_type": "CARRYING",
+   "account": "22200",
+   "sign": -1
+  },
+  {
+   "product": "TERM_LIFE",
+   "balance_type": "IFRS17_LRC_LIC",
+   "account": "24100",
+   "sign": -1
+  },
+  {
+   "product": "UNIV_LIFE",
+   "balance_type": "IFRS17_LRC_LIC",
+   "account": "24100",
+   "sign": -1
+  },
+  {
+   "product": "ANNUITY",
+   "balance_type": "IFRS17_LRC_LIC",
+   "account": "24100",
+   "sign": -1
+  },
+  {
+   "product": "GRP_HEALTH",
+   "balance_type": "IFRS17_LRC_LIC",
+   "account": "24100",
+   "sign": -1
+  },
+  {
+   "product": "MOTOR",
+   "balance_type": "IFRS17_LRC_LIC",
+   "account": "24100",
+   "sign": -1
+  },
+  {
+   "product": "PROPERTY",
+   "balance_type": "IFRS17_LRC_LIC",
+   "account": "24100",
+   "sign": -1
+  },
+  {
+   "product": "REINS_ASSUMED",
+   "balance_type": "IFRS17_LRC_LIC",
+   "account": "24100",
+   "sign": -1
+  },
+  {
+   "product": "REINS_HELD",
+   "balance_type": "IFRS17_LRC_LIC",
+   "account": "18100",
+   "sign": 1
+  }
+ ]
+}

@@ -28,6 +28,8 @@ from .coa import (CoaError, check_design, coverage as coa_coverage, design_statu
                   posting_accounts, propose_design, propose_mapping)
 from .drivers import DriverError, record_driver_value
 from .evidence import write_evidence
+from . import fim
+from .fim import FimError
 from .ingest import ColumnMap, IngestError, ingest_trial_balance
 from .mapping import (MappingError, client_visible, coverage, flag_policy_gap, get_ontology_context,
                       map_line_item_to_element, record_review_decision, tb_accounts)
@@ -36,6 +38,7 @@ from .ontology import load_ontology
 from .posting import JournalIn, LineIn, PostingError, post_journal_entry, reverse_journal_entry
 from .reporting import (ReportingError, build_statement, check_output, compute_ratio, display_ratio, get_balances,
                         load_metrics)
+from .pack import PackError, data_requirements, load_pack, pack_info, register_csv, run_exam
 from .store import Store
 
 WIRE_AMOUNT = r"^[0-9]+$"
@@ -179,6 +182,50 @@ class CoaMappingBody(BaseModel):
 
 class DesignIdBody(BaseModel):
     design_id: str
+
+
+class FimLoadBody(BaseModel):
+    name: str = "synthetic"
+
+
+class TraceBody(BaseModel):
+    account: str
+    filters: dict[str, str] = {}
+    ledger: str = "IFRS"
+
+
+class InstrumentBody(BaseModel):
+    instrument_id: str
+
+
+class AdjLine(BaseModel):
+    account: str
+    instrument_id: str | None = None
+    segments: dict[str, str] = {}
+    debit: str | None = None
+    credit: str | None = None
+
+
+class AdjustmentBody(BaseModel):
+    level: Literal["instrument", "gl"]
+    period: str
+    reason_code: str
+    rationale: str
+    lines: list[AdjLine] = Field(min_length=2, max_length=50)
+
+
+class ReverseAdjBody(BaseModel):
+    adj_id: str
+    rationale: str
+
+
+class RegisterBody(BaseModel):
+    design_id: str | None = None
+
+
+class ExamBody(BaseModel):
+    doc_id: str | None = None
+    design_id: str | None = None
 
 
 class DecisionBody(BaseModel):
@@ -521,6 +568,134 @@ def create_app(db_path: str | None = None) -> FastAPI:
         except CoaError as e:
             return coa_refused(e)
 
+    # ---- finance information model: lineage and adjustments (Phase 1) -----------------------------------------
+    CCY = "USD"   # the v1 dataset is one currency
+
+    def fim_refused(e: FimError) -> dict:
+        return refused(e.code, str(e))
+
+    def trace_display(t: dict) -> dict:
+        keys = ("gl_minor", "from_instruments_minor", "instrument_adjustments_minor", "gl_adjustments_minor",
+                "adjusted_gl_minor", "untraced_minor")
+        d = {k.replace("_minor", ""): money(t[k], CCY) for k in keys}
+        d |= {f"{c['instrument_id']}": money(c["amount_minor"], CCY) for c in t["instruments"]}
+        return d | {"status": t["status"], "instrument_count": str(t["instrument_count"])}
+
+    def wire(t):
+        """Minor-unit integers to wire strings, recursively, for every *_minor key."""
+        if isinstance(t, dict):
+            return {k: (to_wire(v) if k.endswith("_minor") and isinstance(v, int) else wire(v)) for k, v in t.items()}
+        if isinstance(t, list):
+            return [wire(x) for x in t]
+        return t
+
+    @app.post("/v1/tools/load_information_model", dependencies=[Depends(auth)])
+    def fim_load(body: FimLoadBody) -> dict:
+        try:
+            with locked() as s:
+                d = fim.load_information_model(s, body.name, "model")
+                rec = fim.reconcile(s)
+        except FimError as e:
+            return fim_refused(e)
+        data = {**d, "tie_out": {"balances_checked": rec["balances_checked"], "ties": rec["ties"],
+                                 "breaks": len(rec["breaks"])}}
+        return ok(d["evidence_id"], data, {"contracts": str(d["contracts"]), "balances tied": f"{rec['ties']} of "
+                                           f"{rec['balances_checked']}"})
+
+    @app.post("/v1/tools/trace_gl_balance", dependencies=[Depends(auth)])
+    def fim_trace(body: TraceBody) -> dict:
+        try:
+            with locked() as s:
+                t = fim.trace_gl_balance(s, body.account, body.filters, body.ledger)
+                display = trace_display(t)
+                ev = recorded(s, "trace_gl_balance", body.model_dump(), wire(t), display)
+        except FimError as e:
+            return fim_refused(e)
+        warn = [] if t["status"] in ("ties", "gl_only") else [f"status {t['status']}: {t['note']}"]
+        if any(a["review"] != "approved" for a in t["adjustments"]):
+            warn.append("some adjustments await review: adjusted figures are draft")
+        return ok(ev, wire(t), display, warn)
+
+    @app.post("/v1/tools/instrument_summary", dependencies=[Depends(auth)])
+    def fim_instrument(body: InstrumentBody) -> dict:
+        try:
+            with locked() as s:
+                t = fim.instrument_summary(s, body.instrument_id)
+                display = {f"feeds {f['account']} ({f['balance_type']})": money(f["amount_minor"], CCY) for f in t["feeds_gl"]}
+                ev = recorded(s, "instrument_summary", body.model_dump(), wire(t), display)
+        except FimError as e:
+            return fim_refused(e)
+        return ok(ev, wire(t), display)
+
+    @app.post("/v1/tools/propose_adjustment", dependencies=[Depends(auth)])
+    def fim_adjust(body: AdjustmentBody) -> dict:
+        try:
+            lines = [{"account": l.account, "instrument_id": l.instrument_id, "segments": l.segments,
+                      "debit_minor": from_wire(l.debit) if l.debit else 0,
+                      "credit_minor": from_wire(l.credit) if l.credit else 0} for l in body.lines]
+            with locked() as s:
+                a = fim.propose_adjustment(s, body.level, body.period, body.reason_code, body.rationale, lines, "model")
+        except (FimError, AmountError) as e:
+            return refused(getattr(e, "code", "amount"), str(e))
+        total = sum(x["debit_minor"] for x in a["lines"])
+        return ok(a["evidence_id"], wire(a), {"adjustment": a["adj_id"], "total": money(total, CCY)},
+                  [f"awaiting engagement-lead review ({a['review_item_id']})"])
+
+    @app.post("/v1/tools/reverse_adjustment", dependencies=[Depends(auth)])
+    def fim_reverse(body: ReverseAdjBody) -> dict:
+        try:
+            with locked() as s:
+                a = fim.reverse_adjustment(s, body.adj_id, body.rationale, "model")
+        except FimError as e:
+            return fim_refused(e)
+        return ok(a["evidence_id"], wire(a), {"reversal": a["adj_id"]}, [f"awaiting engagement-lead review ({a['review_item_id']})"])
+
+    # ---- knowledge pack: data requirements and exam ----------------------------------------------------------------
+
+    def register_for(s, design_id: str | None) -> dict:
+        pack = load_pack()
+        design = None
+        if design_id:
+            from .coa import load_design
+            design, _, _ = load_design(s, design_id)
+        return data_requirements(s, pack, design), pack
+
+    @app.post("/v1/tools/data_requirements", dependencies=[Depends(auth)])
+    def register(body: RegisterBody) -> dict:
+        try:
+            with locked() as s:
+                reg, pack = register_for(s, body.design_id)
+                accounts, catalogue = {}, {}
+                for r in reg["rows"]:
+                    a = accounts.setdefault(r["account"], {"account": r["account"], "name": r["account_name"],
+                                                           "concept": r["concept"], "backing": "gl", "products": ""})
+                    if r["backing"] != "all":
+                        a["backing"] = r["backing"].split(":")[0]
+                        a["products"] = r["products"]
+                    catalogue.setdefault(r["backing"], {})[r["attribute"]] = {"why": r["why"], "dq_rule": r["dq_rule"]}
+                data = {"pack": pack_info(pack), "chart": reg["chart"], "posting_accounts": reg["posting_accounts"],
+                        "accounts_by_backing": reg["accounts_by_backing"], "requirements": reg["requirements"],
+                        "accounts": list(accounts.values()),
+                        "attributes_by_backing": {k: [{"attribute": a, **v} for a, v in d.items()] for k, d in catalogue.items()}}
+                display = {"posting accounts": str(reg["posting_accounts"]), "requirements": str(reg["requirements"])} | \
+                          {f"{k} accounts": str(v) for k, v in reg["accounts_by_backing"].items()}
+                ev = recorded(s, "data_requirements", body.model_dump(), data, display)
+        except (PackError, CoaError) as e:
+            return refused(e.code, str(e))
+        return ok(ev, data, display)
+
+    @app.post("/v1/tools/run_exam", dependencies=[Depends(auth)])
+    def exam(body: ExamBody) -> dict:
+        try:
+            with locked() as s:
+                r = run_exam(s, load_pack(), body.doc_id, body.design_id)
+                display = {"overall": r["overall"]} | {x["id"]: f"{x['status']} ({x['score_pct']}%)" if "score_pct" in x
+                                                       else x["status"] for x in r["sections"]}
+                ev = recorded(s, "run_exam", body.model_dump(), r, display)
+        except PackError as e:
+            return refused(e.code, str(e))
+        return ok(ev, r, display)
+
     @app.post("/v1/tools/check_output", dependencies=[Depends(auth)])
     def gate(body: CheckBody) -> dict:
         """Called by the console on a draft, not offered to the model."""
@@ -567,6 +742,15 @@ def create_app(db_path: str | None = None) -> FastAPI:
         except CoaError as e:
             raise HTTPException(404, str(e))
         return PlainTextResponse(text, media_type="text/csv")
+
+    @app.get("/v1/people/data_requirements_export", dependencies=[Depends(auth)])
+    def register_download(design_id: str | None = None) -> PlainTextResponse:
+        try:
+            with locked() as s:
+                reg, _ = register_for(s, design_id)
+        except (PackError, CoaError) as e:
+            raise HTTPException(404, str(e))
+        return PlainTextResponse(register_csv(reg), media_type="text/csv")
 
     @app.get("/v1/people/review_items", dependencies=[Depends(auth)])
     def review_items() -> dict:

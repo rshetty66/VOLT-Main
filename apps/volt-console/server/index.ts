@@ -45,7 +45,7 @@ import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH
 import { runBudgetMs } from "./budget.js";
 import { startHeartbeat } from "./sse.js";
 import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requestUser, requireToken, sameOriginWrites, securityConfig } from "./security.js";
-import { ledgerCoaExport, ledgerEnabled, ledgerPeople } from "./ledger.js";
+import { ledgerCoaExport, ledgerDataRequirementsExport, ledgerEnabled, ledgerPeople } from "./ledger.js";
 
 const catalog = loadCatalog();
 const security = securityConfig();
@@ -275,6 +275,18 @@ app.get("/api/ledger/coa/export", async (req, res) => {
   if (r.status !== 200) return void res.status(r.status).json({ error: r.text });
   res.setHeader("content-type", "text/csv; charset=utf-8");
   res.setHeader("content-disposition", `attachment; filename="${parsed.data.design_id.replace(":", "-")}-${parsed.data.what}.csv"`);
+  res.send(r.text);
+});
+
+const RegisterExport = z.object({ design_id: z.string().regex(/^coa:[0-9]{4}$/).optional() });
+
+app.get("/api/ledger/data-requirements/export", async (req, res) => {
+  const parsed = RegisterExport.safeParse(req.query);
+  if (!parsed.success) return void res.status(400).json({ error: parsed.error.message });
+  const r = await ledgerDataRequirementsExport(parsed.data.design_id, reviewer(req));
+  if (r.status !== 200) return void res.status(r.status).json({ error: r.text });
+  res.setHeader("content-type", "text/csv; charset=utf-8");
+  res.setHeader("content-disposition", `attachment; filename="${(parsed.data.design_id ?? "reference-chart").replace(":", "-")}-data-requirements.csv"`);
   res.send(r.text);
 });
 

@@ -173,3 +173,45 @@ def test_coa_design_over_http(client):
     csv = client.get("/v1/people/coa_export", headers=H, params={"design_id": "coa:0001", "what": "chart"})
     assert csv.status_code == 200 and csv.text.startswith("code,name,class")
     assert client.get("/v1/people/coa_designs", headers=H).json()["data"][0]["design_id"] == "coa:0001"
+
+
+def test_information_model_routes_trace_adjust_and_feed_the_gate(client, monkeypatch, tmp_path):
+    assert client.post("/v1/tools/trace_gl_balance", headers=H, json={"account": "13100"}).json()["status"] == "refused"
+    r = client.post("/v1/tools/load_information_model", headers=H, json={}).json()
+    assert r["status"] == "ok" and r["data"]["tie_out"] == {"balances_checked": 46, "ties": 46, "breaks": 0}
+    t = client.post("/v1/tools/trace_gl_balance", headers=H, json={"account": "13900", "filters": {"product": "MTG"}}).json()
+    assert t["status"] == "ok" and t["data"]["status"] == "ties" and t["data"]["untraced_minor"] == "0"
+    inst = t["data"]["instruments"][0]["instrument_id"]
+    gate = client.post("/v1/tools/check_output", headers=H, json={
+        "text": f"The mortgage allowance is {t['display']['gl']}.", "evidence_ids": [t["evidence_id"]]}).json()
+    assert gate["data"]["pass"] is True
+
+    a = client.post("/v1/tools/propose_adjustment", headers=H, json={
+        "level": "instrument", "period": "2026-09", "reason_code": "ecl_overlay", "rationale": "rate shock",
+        "lines": [{"account": "70000", "instrument_id": inst, "debit": "10000"},
+                  {"account": "13900", "instrument_id": inst, "credit": "10000"}]}).json()
+    assert a["status"] == "ok" and a["display"]["total"] == "100.00 USD" and "awaiting" in a["warnings"][0]
+    bad = client.post("/v1/tools/propose_adjustment", headers=H, json={
+        "level": "gl", "period": "2026-09", "reason_code": "top_side", "rationale": "x",
+        "lines": [{"account": "61000", "debit": "1.5"}, {"account": "23900", "credit": "1"}]}).json()
+    assert bad["status"] == "refused"
+    t2 = client.post("/v1/tools/trace_gl_balance", headers=H, json={"account": "13900", "filters": {"product": "MTG"}}).json()
+    assert t2["data"]["instrument_adjustments_minor"] == "-10000" and any("draft" in w for w in t2["warnings"])
+    rv = client.post("/v1/tools/reverse_adjustment", headers=H, json={"adj_id": a["data"]["adj_id"], "rationale": "undo"}).json()
+    assert rv["status"] == "ok"
+    s = client.post("/v1/tools/instrument_summary", headers=H, json={"instrument_id": inst}).json()
+    assert s["status"] == "ok" and len(s["data"]["adjustments"]) == 4   # two lines each
+    items = client.get("/v1/people/review_items", headers=H).json()["data"]
+    assert sum(i["kind"] == "adjustment" for i in items) == 2
+
+
+def test_pack_routes_register_and_exam(client):
+    r = client.post("/v1/tools/data_requirements", headers=H, json={}).json()
+    assert r["status"] == "ok" and r["data"]["posting_accounts"] == 55 and r["data"]["pack"]["id"] == "fs-bank"
+    assert {a["backing"] for a in r["data"]["accounts"]} == {"gl", "instrument", "event"}
+    csv = client.get("/v1/people/data_requirements_export", headers=H)
+    assert csv.status_code == 200 and csv.text.startswith("account,account_name")
+    assert client.post("/v1/tools/data_requirements", headers=H, json={"design_id": "coa:9999"}).json()["status"] == "refused"
+    e = client.post("/v1/tools/run_exam", headers=H, json={"doc_id": "D0001"}).json()
+    assert e["status"] == "ok" and e["data"]["sections"][0]["id"] == "mapping"
+    assert e["data"]["sections"][0]["status"] == "fail" and e["display"]["tie_out"] == "skipped"

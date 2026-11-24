@@ -44,7 +44,8 @@ describe("VOLT Ledger tools", () => {
       "ledger_get_balances", "ledger_build_statement", "ledger_list_metrics", "ledger_compute_ratio",
       "ledger_propose_allocation_rule", "ledger_run_allocation",
       "ledger_diagnose_coa", "ledger_check_coa_design", "ledger_propose_coa_design", "ledger_propose_coa_mapping",
-      "ledger_coa_status"]);
+      "ledger_coa_status", "ledger_load_information_model", "ledger_trace_gl_balance", "ledger_instrument_summary",
+      "ledger_propose_adjustment", "ledger_reverse_adjustment", "ledger_data_requirements", "ledger_run_exam"]);
     expect(names.some((n) => /driver_value|check_output/.test(n))).toBe(false);
     expect(names.some((n) => /review|decision/.test(n))).toBe(false);
     expect(isLedgerTool("ledger_coverage")).toBe(true);
@@ -166,6 +167,18 @@ describe("VOLT Ledger tools", () => {
     const sent = JSON.parse(fetchMock.mock.calls[1][1].body);
     expect(sent).toEqual({ text: `NII was 311,000,000.00 USD [${key}].`, evidence_ids: ["E000077"] });
     expect(await checkLedgerFigures("No ledger figures here [S01].", registry)).toBeNull();
+  });
+
+  it("refuses a decimal adjustment amount locally and cites a traced balance", async () => {
+    const registry = new SourceRegistry("x");
+    const bad = await runLedgerTool("ledger_propose_adjustment", { level: "gl", period: "2026-09", reason_code: "top_side",
+      rationale: "x", lines: [{ account: "61000", debit: "1.50" }, { account: "23900", credit: "150" }] }, registry);
+    expect(bad.ok).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+    fetchMock.mockResolvedValueOnce(ok({ status: "ties" }, { gl: "-46,894,949.28 USD" }, "E000200"));
+    const r = await runLedgerTool("ledger_trace_gl_balance", { account: "13900", filters: { product: "MTG" } }, registry);
+    expect(r.ok && r.newSource?.type).toBe("calculation");
+    expect(fetchMock.mock.calls[0][0]).toBe("http://ledger.test/v1/tools/trace_gl_balance");
   });
 
   it("validates a CoA design before calling the service and cites a stored design", async () => {

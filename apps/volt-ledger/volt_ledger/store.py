@@ -76,6 +76,24 @@ CREATE TABLE IF NOT EXISTS coa_mapping (
   design_version INTEGER NOT NULL, doc_id TEXT NOT NULL, definition TEXT NOT NULL, proposed_by TEXT NOT NULL,
   review_item_id TEXT NOT NULL, evidence_id TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS fim_dataset (
+  dataset_id TEXT PRIMARY KEY, name TEXT NOT NULL, sha256 TEXT UNIQUE NOT NULL, as_of TEXT NOT NULL,
+  loaded_by TEXT NOT NULL, evidence_id TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS adjustment (
+  adj_id TEXT PRIMARY KEY, level TEXT NOT NULL CHECK (level IN ('instrument','gl')), ledger TEXT NOT NULL,
+  period TEXT NOT NULL, reason_code TEXT NOT NULL, rationale TEXT NOT NULL,
+  reverses_adj_id TEXT UNIQUE REFERENCES adjustment(adj_id), proposed_by TEXT NOT NULL, review_item_id TEXT NOT NULL,
+  evidence_id TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS adjustment_line (
+  adj_id TEXT NOT NULL REFERENCES adjustment(adj_id), line_no INTEGER NOT NULL, account TEXT NOT NULL,
+  entity TEXT NOT NULL, cost_centre TEXT NOT NULL, business_line TEXT NOT NULL, product TEXT NOT NULL,
+  credit_stage TEXT NOT NULL, intercompany TEXT NOT NULL, instrument_id TEXT,
+  debit_minor INTEGER NOT NULL CHECK (debit_minor >= 0), credit_minor INTEGER NOT NULL CHECK (credit_minor >= 0),
+  CHECK ((debit_minor > 0) <> (credit_minor > 0)),
+  PRIMARY KEY (adj_id, line_no)
+);
 CREATE TABLE IF NOT EXISTS period_lock_event (
   seq INTEGER PRIMARY KEY AUTOINCREMENT, period TEXT NOT NULL, action TEXT NOT NULL CHECK (action IN ('lock','unlock')),
   actor TEXT NOT NULL, reason TEXT NOT NULL, evidence_id TEXT NOT NULL
@@ -86,6 +104,7 @@ APPEND_ONLY_TABLES = (
     "evidence", "element", "association", "source_document", "tb_row",
     "journal_entry", "journal_line", "period_lock_event", "review_item", "review_decision",
     "driver_value", "allocation_rule", "coa_design", "coa_mapping",
+    "fim_dataset", "adjustment", "adjustment_line",
 )
 
 
@@ -103,6 +122,7 @@ class Store:
     def __init__(self, path: str = ":memory:", check_same_thread: bool = True) -> None:
         # isolation_level=None: we manage transactions ourselves. The API serialises access with a lock, so it
         # may share one connection across worker threads (check_same_thread=False).
+        self.path = path
         self.conn = sqlite3.connect(path, isolation_level=None, check_same_thread=check_same_thread)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")

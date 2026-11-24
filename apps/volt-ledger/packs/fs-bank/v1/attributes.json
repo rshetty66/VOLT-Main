@@ -1,0 +1,45 @@
+{
+  "note": "Finance data requirements catalogue for banks. For each way a GL balance is backed, the source attributes it needs, why, and the data quality rule that proves them. The register is generated from this file, the reference chart and the map rules; nothing here is client data.",
+  "every_account": [
+    {"attribute": "fct_gl_balance.n_balance", "why": "The balance itself, signed debit positive, per ledger and period end", "dq_rule": "Each entity's trial balance nets to zero (check 9.7)"},
+    {"attribute": "fct_gl_balance segments (entity, natural account, cost centre, business line, product, credit stage, intercompany)", "why": "Statutory, management and segment views all read the same balance at full segment grain", "dq_rule": "Every segment value is a member of its dimension; unassigned members are explicit, never blank"},
+    {"attribute": "dim_gl_account.v_concept_id", "why": "The canonical concept gives the IFRS and US GAAP line and XBRL tag", "dq_rule": "Every posting account in use carries a concept (check 9.3)"}
+  ],
+  "instrument": {
+    "common": [
+      {"attribute": "fsi_d_contract.v_contract_id, v_source_system", "why": "Identifies the instrument so every GL amount can be traced to it", "dq_rule": "Unique per source system; every contract has its product subtype row (check 9.1)"},
+      {"attribute": "fsi_d_contract.n_org_sk, n_mgmt_org_sk, n_product_sk", "why": "Gives the instrument's Entity, BusinessLine and Product segments", "dq_rule": "Never null; business line is assigned for every income-bearing contract"},
+      {"attribute": "fct_position.fic_mis_date, v_ledger, v_ccy_code", "why": "Positions are taken at the same period end, ledger and currency as the GL", "dq_rule": "One position per contract, date and ledger"}
+    ],
+    "CARRYING": [
+      {"attribute": "fct_position.n_carrying_amt", "why": "Amortised cost or carrying value, routed to the product's balance sheet account", "dq_rule": "Positions through the map rules equal the GL to the cent (check 9.5)"},
+      {"attribute": "fct_position.n_principal_bal, n_accrued_interest, n_unamortised_fee", "why": "Components of carrying amount for the effective interest method and disclosure", "dq_rule": "principal + accrued interest - unamortised fee = carrying amount"},
+      {"attribute": "fct_position.v_measure_class", "why": "AC, FVOCI or FVTPL decides measurement and the statement line", "dq_rule": "Matches the product's accounting treatment"}
+    ],
+    "ALLOWANCE": [
+      {"attribute": "fct_position.n_impairment_allow", "why": "Expected credit loss allowance, routed to the allowance account", "dq_rule": "Equals booked ECL per contract (fct_expected_loss)"},
+      {"attribute": "fct_position.n_ifrs9_stage, f_poci", "why": "Gives the CreditStage segment for IFRS 9 staging disclosure", "dq_rule": "Stage 1, 2, 3 or POCI for every amortised cost and FVOCI loan"},
+      {"attribute": "fct_expected_loss PD, LGD, EAD", "why": "ECL inputs, needed for overlays and for the US GAAP CECL difference", "dq_rule": "ECL = PD x LGD x EAD within the model's tolerance"}
+    ],
+    "FV_POSITIVE": [
+      {"attribute": "fct_position.n_fair_value", "why": "Positive fair values go to derivative assets", "dq_rule": "Fair value is from an approved price or model, with its level in the fair value hierarchy"}
+    ],
+    "FV_NEGATIVE": [
+      {"attribute": "fct_position.n_fair_value", "why": "Negative fair values go to derivative liabilities", "dq_rule": "Fair value is from an approved price or model, with its level in the fair value hierarchy"}
+    ]
+  },
+  "ifrs17_group": [
+    {"attribute": "fsi_d_ins_group.v_group_id, v_portfolio, n_cohort_year, v_profit_bucket, v_measurement_model", "why": "IFRS 17 measures by group of contracts, not by policy", "dq_rule": "Every policy belongs to exactly one group"},
+    {"attribute": "fct_ifrs17_measurement.n_lrc, n_lic", "why": "LRC plus LIC per group is the insurance contract balance", "dq_rule": "Groups through the map rules equal the GL to the cent (check 9.6)"},
+    {"attribute": "fct_ifrs17_measurement.n_bel, n_risk_adjustment, n_csm", "why": "Disclosure of the liability's building blocks (memo concepts, not accounts)", "dq_rule": "BEL + RA + CSM = LRC for GMM groups"}
+  ],
+  "event": [
+    {"attribute": "fct_event.n_contract_sk, v_event_type, d_effective, n_amount", "why": "Income and expense come from instrument events (accruals, fees, write-offs), so P&L traces to contracts", "dq_rule": "Every journal carries its source event; journals balance per event (check 9.2)"},
+    {"attribute": "fct_journal segments", "why": "Event journals post at full segment grain, so segment P&L needs no allocation for direct income", "dq_rule": "Every journal combination exists in the GL (check 9.4)"}
+  ],
+  "event_driven_concepts": ["canon:InterestIncome", "canon:InterestExpense", "canon:FeeAndCommissionIncome", "canon:FeeAndCommissionExpense", "canon:CreditLossExpense", "canon:InsuranceRevenue", "canon:InsuranceServiceExpense", "canon:InsuranceFinanceIncomeExpense", "canon:NetExpenseFromReinsuranceHeld"],
+  "gl": [
+    {"attribute": "Journal source and approver for manual entries", "why": "Balances with no instrument behind them are owned at GL level and need an owner", "dq_rule": "Every manual or top-side journal has a reason code and an approver"},
+    {"attribute": "Driver values for allocation (FTE, transactions, space)", "why": "Costs reach segments through approved allocation rules, not by hand", "dq_rule": "Allocated totals equal the pool to the cent"}
+  ]
+}

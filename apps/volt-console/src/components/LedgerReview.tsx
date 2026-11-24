@@ -98,7 +98,10 @@ export function LedgerReview() {
       </div>
 
       <div className="card stack" style={{ gap: 10 }}>
-        <strong>Chart-of-accounts designs</strong>
+        <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap", gap: 8 }}>
+          <strong>Chart-of-accounts designs</strong>
+          <a className="btn ghost sm" href="/api/ledger/data-requirements/export" download>Data requirements for the bank pack's reference chart (CSV)</a>
+        </div>
         {designs.length === 0 ? (
           <span className="muted">No design yet. Ask the Agent Console to diagnose a trial balance and design a target chart.</span>
         ) : (
@@ -116,6 +119,9 @@ export function LedgerReview() {
                     Download {w} (CSV)
                   </a>
                 ))}
+                <a className="btn ghost sm" href={`/api/ledger/data-requirements/export?design_id=${encodeURIComponent(d.design_id)}`} download>
+                  Download data requirements (CSV)
+                </a>
               </div>
             </div>
           ))
