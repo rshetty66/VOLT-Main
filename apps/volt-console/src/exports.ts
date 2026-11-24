@@ -10,11 +10,13 @@ import { chartFor } from "./charts/RunVisuals";
 import { chartableResults, exportCharts, type ChartableResult } from "./charts/results";
 import { chartSvg } from "./charts/Visual";
 import { renderMermaid } from "./charts/mermaid";
-import { isArchitecture, isChart, isMermaid } from "./charts/mermaidBlock";
+import { isArchitecture, isChart, isMermaid, isProcess } from "./charts/mermaidBlock";
+import { processSvg } from "./charts/specProcess";
 import { archSvg } from "./charts/specArch";
 import { specSvg } from "./charts/specChart";
-import { LIGHT } from "./charts/palette";
-import { archBlocks, chartBlocks } from "../shared/viz";
+import { DARK, LIGHT } from "./charts/palette";
+import { splitPages, toneTables, voltHtml } from "./htmlTemplate";
+import { archBlocks, chartBlocks, processBlocks, type ProcessSpec } from "../shared/viz";
 import { downloadBlob, downloadText, svgSize, svgToPng } from "./download";
 
 /** The template selected in the top bar; downloads follow its fonts and colours. */
@@ -106,7 +108,8 @@ async function pictures(d: Deliverable) {
   const diagrams = await Promise.all(mermaidSources(d.markdown).map((code) => renderMermaid(code, "default").catch(() => "")));
   const specs = chartBlocks(d.markdown).map((spec) => (spec ? specSvg(spec, LIGHT) : ""));
   const archs = archBlocks(d.markdown).map((spec) => (spec ? archSvg(spec, LIGHT) : ""));
-  return { charts, diagrams, specs, archs };
+  const procs = processBlocks(d.markdown).map((spec) => (spec ? processSvg(spec, LIGHT) : ""));
+  return { charts, diagrams, specs, archs, procs };
 }
 
 async function asImage(ref: string, svg: string, caption?: string): Promise<ExportImage | null> {
@@ -125,13 +128,31 @@ const CAPTION: Record<ChartableResult["kind"], (r: ChartableResult) => string> =
   },
 };
 
-/** A standalone HTML page with the charts and diagrams inline as SVG. */
+/** The steps of a process flow as the HTML walkthrough reads them. */
+const flowSteps = (spec: ProcessSpec) =>
+  spec.steps.map((st) => ({ name: st.name, lane: spec.lanes[st.lane], stage: spec.stages[st.stage], system: st.system, control: st.control, owner: st.owner, duration: st.duration, status: st.status, issue: st.issue, detail: st.detail }));
+
+/**
+ * The HTML deliverable: VOLT's house template (src/htmlTemplate.ts), dark, with a tab per section. Charts, diagrams
+ * and architectures are inline SVG in the console palette; process flows are interactive.
+ */
 export async function htmlDocument(d: Deliverable): Promise<string> {
   const { renderToStaticMarkup } = await import("react-dom/server");
-  const { charts, diagrams, specs, archs } = await pictures(d);
+  const charts = await Promise.all((d.charts ?? []).map((c) => chartFor(c).render(DARK)).map((el) => renderToStaticMarkup(el)));
+  const diagrams = await Promise.all(mermaidSources(d.markdown).map((code) => renderMermaid(code, "dark").catch(() => "")));
+  const specs = chartBlocks(d.markdown).map((spec) => (spec ? specSvg(spec, DARK) : ""));
+  const archs = archBlocks(d.markdown).map((spec) => (spec ? archSvg(spec, DARK) : ""));
+  const procs = processBlocks(d.markdown);
   let n = 0;
   let c = 0;
   let a = 0;
+  let f = 0;
+  const figure = (cls: string, svg: string) => createElement("figure", { className: cls, dangerouslySetInnerHTML: { __html: svg } });
+  const flow = () => {
+    const spec = procs[f++];
+    if (!spec) return createElement("figure", null);
+    return createElement("figure", { className: "flow", "data-steps": JSON.stringify(flowSteps(spec)), dangerouslySetInnerHTML: { __html: processSvg(spec, DARK) } });
+  };
   const body = renderToStaticMarkup(
     createElement(ReactMarkdown, {
       remarkPlugins: [remarkGfm],
@@ -140,31 +161,21 @@ export async function htmlDocument(d: Deliverable): Promise<string> {
           const first = node?.children[0];
           const cls = first && first.type === "element" ? first.properties?.className : undefined;
           const name = Array.isArray(cls) ? cls.join(" ") : String(cls ?? "");
-          return isMermaid(name) || isChart(name) || isArchitecture(name) ? (children as ReactElement) : createElement("pre", null, children);
+          return isMermaid(name) || isChart(name) || isArchitecture(name) || isProcess(name) ? (children as ReactElement) : createElement("pre", null, children);
         },
         code: ({ className, children }) =>
-          isArchitecture(className) ? createElement("figure", { dangerouslySetInnerHTML: { __html: archs[a++] || "" } }) : isChart(className) ? createElement("figure", { dangerouslySetInnerHTML: { __html: specs[c++] || "" } }) : isMermaid(className) ? createElement("figure", { dangerouslySetInnerHTML: { __html: diagrams[n++] || "" } }) : createElement("code", { className }, children),
+          isProcess(className) ? flow()
+          : isArchitecture(className) ? figure("arch", archs[a++] || "")
+          : isChart(className) ? figure("chart", specs[c++] || "")
+          : isMermaid(className) ? figure("diagram", diagrams[n++] || "")
+          : createElement("code", { className }, children),
       },
-      children: d.markdown,
+      // The title is the page's own heading, so a leading "# Title" line is not repeated.
+      children: d.markdown.replace(/^\s*#\s+.+\n/, ""),
     }),
   );
-  const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
-  const results = charts.length ? `<h2>Appendix: Supporting analysis</h2>${charts.map((svg) => `<figure>${svg}</figure>`).join("")}` : "";
-  return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${esc(d.title)}</title>
-<style>
-body{font:15px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;color:#1a1e2e;background:#fff;max-width:960px;margin:0 auto;padding:32px 20px}
-h1,h2,h3{line-height:1.25;color:#1a1e2e}h1{font-size:28px}.sub{color:#5a6278;margin-top:-8px}
-table{border-collapse:collapse;width:100%;margin:12px 0;font-size:14px}th,td{border:1px solid #d9dce6;padding:6px 9px;text-align:left;vertical-align:top}th{background:#1a1e2e;color:#fff}
-code{font-family:ui-monospace,Menlo,Consolas,monospace;background:#f2f4f3;padding:1px 4px;border-radius:3px}pre{background:#f2f4f3;padding:12px;overflow:auto}pre code{background:none;padding:0}
-figure{margin:16px 0;overflow-x:auto}figure svg{max-width:100%;height:auto}blockquote{margin:12px 0;padding-left:12px;border-left:3px solid #00b8d4;color:#3b4258}
-</style></head><body>
-<h1>${esc(d.title)}</h1>${d.subtitle ? `<p class="sub">${esc(d.subtitle)}</p>` : ""}
-${body}
-${results}
-</body></html>
-`;
+  const appendix = charts.length ? `<h2>Appendix: Supporting analysis</h2>${charts.map((svg) => `<figure class="chart">${svg}</figure>`).join("")}` : "";
+  return voltHtml({ title: d.title, subtitle: d.subtitle, pages: splitPages(toneTables(body + appendix)) });
 }
 
 /**
@@ -200,12 +211,13 @@ export async function downloadDeliverable(format: DownloadFormat, d: Deliverable
 
   const images: ExportImage[] = [];
   if (format !== "xlsx") {
-    const { charts, diagrams, specs, archs } = await pictures(d);
+    const { charts, diagrams, specs, archs, procs } = await pictures(d);
     const made = await Promise.all([
       ...charts.map((svg, i) => asImage(`chart-${i}`, svg, d.charts?.[i] ? CAPTION[d.charts[i].kind](d.charts[i]) : undefined)),
       ...diagrams.map((svg, i) => asImage(`diagram-${i}`, svg)),
       ...specs.map((svg, i) => asImage(`viz-${i}`, svg)),
       ...archs.map((svg, i) => asImage(`arch-${i}`, svg)),
+      ...procs.map((svg, i) => asImage(`proc-${i}`, svg)),
     ]);
     images.push(...made.filter((x): x is ExportImage => !!x));
   }

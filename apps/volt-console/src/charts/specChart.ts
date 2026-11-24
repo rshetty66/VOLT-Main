@@ -325,7 +325,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
           const level = total ? v : cum[i] + v;
           parts.push(`<line x1="${n1(mid(i) + bw / 2)}" y1="${n1(val(level))}" x2="${n1(mid(i + 1) - bw / 2)}" y2="${n1(val(level))}" stroke="${p.muted}" stroke-dasharray="2 3"/>`);
         }
-        if (spec.highlight === i) callout.push({ x: mid(i), y: (v >= 0 || total ? yA : yB) - 26, s: `${spec.labels[i]}: ${total ? fmt(v) : signed(v)}${unit}` });
+        if (spec.highlight === i) callout.push({ x: mid(i), y: v >= 0 || total ? yA - 26 : yB + 34, s: `${spec.labels[i]}: ${total ? fmt(v) : signed(v)}${unit}` });
       });
     } else {
       const k = bars.length;
