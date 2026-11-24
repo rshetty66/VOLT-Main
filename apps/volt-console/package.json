@@ -15,7 +15,6 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.134.0",
-    "@assistant-ui/react": "0.15.29",
     "docx": "9.14.0",
     "exceljs": "4.4.0",
     "express": "^5.3.0",

@@ -3,13 +3,6 @@
 #   docker build -f apps/volt-console/Dockerfile -t volt-console .
 FROM node:22-slim
 
-# Python is used by the finance-architecture validators and the PDF page extractor (run with python3 -I,
-# so the packages go in the system site-packages).
-RUN apt-get update \
- && apt-get install -y --no-install-recommends python3 python3-pip \
- && python3 -m pip install --break-system-packages --no-cache-dir pypdf==6.21.1 \
- && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 COPY plugins/volt ./plugins/volt
 COPY apps/volt-console ./apps/volt-console

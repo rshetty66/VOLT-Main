@@ -22,7 +22,6 @@ React UI (Vite) --SSE--> Node API (Express) --> Claude Messages API (streaming t
 | Services | The 60-service catalogue with coverage ratings; each service launches its workflow |
 | Analytics | APQC benchmark positioning and a finance transformation value case. Agents call the same deterministic tools for every figure |
 | Templates | Upload a Word, Excel or PowerPoint template; VOLT extracts its theme colours and fonts, styles, page setup, slide layouts, cell styles and number formats into a formatting guide. Pick a template in the top bar and every agent in a run applies it |
-| Finance Workbench | Six-step workbench over the `design-finance-architecture` skill, real data first. **Sources** finds an issuer's published statements (Claude web search), fetches and extracts the residential-mortgage figures, or takes an uploaded document; every figure is checked against its page (`verify_extraction.py`, 0 tokens) and confirmed by the maker. Journals are derived from confirmed figures; the synthetic golden case appears only after "Data not available: use illustrative example". Also: mapping prover (CSV), copyable evidence pack with source register, run-status chip, token meter. An assistant-ui side panel answers questions and runs validation at 0 tokens. Needs `python3` with `pypdf` on the server path (`VOLT_PYTHON` overrides) |
 | Capability Health | What the registry references against what the plugin ships |
 
 ## Run it
