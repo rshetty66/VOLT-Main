@@ -1,5 +1,8 @@
 # VOLT Ledger Brain: specification
 
+> Superseded on 24 Nov 2026 by [`cfo-finance-brain-plan.md`](cfo-finance-brain-plan.md). Kept as history: the engine
+> rules it defines still apply where the code cites it.
+
 Status: approved 24 Nov 2026 (separate Render service chosen); ratio catalogue expanded the same day. Date: 24 Nov 2026. Companion to `intent.md`.
 No application code is written until this spec is approved.
 

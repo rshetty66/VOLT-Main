@@ -17,7 +17,6 @@ import { listUploads, originalPath } from "./uploads.js";
 
 const AMOUNT = z.string().regex(/^[0-9]+$/, "amount_minor must be an integer string of minor units (cents), e.g. '125000099'");
 const PERIOD = z.string().regex(/^[0-9]{4}-(0[1-9]|1[0-2])$/, "period is YYYY-MM");
-const FISCAL = z.string().regex(/^FY[0-9]{4}(-(Q[1-4]|H[12]))?$/, "fiscal period is FY2026-Q3, FY2026-H1 or FY2026");
 
 const COA_DESIGN = z.object({
   name: z.string(),
@@ -152,23 +151,6 @@ export const ledgerSchemas = {
     })).min(1),
   }),
   ledger_coa_status: z.object({ design_id: z.string() }),
-  ledger_resolve_peer_period: z.object({
-    peer_ids: z.array(z.string()).min(1).describe("Peer ids or groups: big6, canadian_midsize, canadian_banks, cooperatives_and_credit_unions, insurers, maple_pensions, asset_managers."),
-    period: FISCAL.optional().describe("FY2026-Q3, FY2026-H1 or FY2026. Leave out for each peer's latest released period."),
-  }),
-  ledger_fetch_peer_documents: z.object({
-    items: z.array(z.object({
-      peer_id: z.string(),
-      period: FISCAL,
-      doc_types: z.array(z.enum(["supplementary_financial_info", "press_release", "report_to_shareholders", "quarterly_report",
-        "interim_financial_statements", "mdna", "annual_report"])).default([]),
-      url: z.string().url().optional().describe("Only a PDF found on the peer's own investor-relations site."),
-    })).min(1).max(40),
-  }),
-  ledger_peer_metrics: z.object({
-    doc_ids: z.array(z.string()).min(1).max(40),
-    metric_ids: z.array(z.enum(["nii", "non_interest_income", "total_operating_income", "non_interest_expense", "efficiency_ratio"])).optional(),
-  }),
 } as const;
 
 export type LedgerToolName = keyof typeof ledgerSchemas;
@@ -183,12 +165,6 @@ const descriptions: Record<LedgerToolName, string> = {
   ledger_propose_coa_mapping:
     "Store the old-to-new account mapping for a design and trial balance. Every trial-balance row must be placed exactly once; the balances are recut under the new chart and tied out by total, class and concept.",
   ledger_coa_status: "The latest version of a design, and the review state of the design, each decision and each mapping.",
-  ledger_resolve_peer_period:
-    "Which fiscal period is the latest released one for each peer (from the peers' fiscal calendars), or whether a named period is out yet. Call first in any peer comparison.",
-  ledger_fetch_peer_documents:
-    "Download peers' official results PDFs in parallel from their registered investor-relations sites and store them by hash. Returns a doc_id per stored PDF and a reason per failure.",
-  ledger_peer_metrics:
-    "Read reported results (net interest income, non-interest income, total revenue, non-interest expenses, efficiency ratio) from stored peer packs. Figures are accepted only where the table ties to its printed total. Quote display values exactly.",
   ledger_get_ontology_context:
     "Look up VOLT's canonical, XBRL-labelled accounting concepts by words, or one account or concept by id (an account comes with its trial-balance rows, sign and current mapping). Use before every mapping.",
   ledger_map_line_item:
@@ -236,19 +212,13 @@ const routes: Record<LedgerToolName, string> = {
   ledger_propose_coa_design: "/v1/tools/propose_coa_design",
   ledger_propose_coa_mapping: "/v1/tools/propose_coa_mapping",
   ledger_coa_status: "/v1/tools/coa_status",
-  ledger_resolve_peer_period: "/v1/tools/resolve_peer_period",
-  ledger_fetch_peer_documents: "/v1/tools/fetch_peer_documents",
-  ledger_peer_metrics: "/v1/tools/peer_metrics",
 };
-
-const PEER_FILINGS: ReadonlySet<LedgerToolName> = new Set(["ledger_fetch_peer_documents", "ledger_peer_metrics"]);
 
 /** Tools whose results are evidence the model may cite (lookups are not). */
 const CITABLE: ReadonlySet<LedgerToolName> = new Set([
   "ledger_map_line_item", "ledger_flag_policy_gap", "ledger_propose_journal", "ledger_reverse_journal", "ledger_coverage",
   "ledger_ingest_upload", "ledger_get_balances", "ledger_build_statement", "ledger_compute_ratio",
-  "ledger_propose_allocation_rule", "ledger_run_allocation", "ledger_resolve_peer_period", "ledger_fetch_peer_documents",
-  "ledger_peer_metrics", "ledger_diagnose_coa", "ledger_propose_coa_design", "ledger_propose_coa_mapping",
+  "ledger_propose_allocation_rule", "ledger_run_allocation", "ledger_diagnose_coa", "ledger_propose_coa_design", "ledger_propose_coa_mapping",
 ]);
 
 /** Dimension columns recognised in a trial balance header when the model does not name them. */
@@ -362,8 +332,7 @@ export async function runLedgerTool(name: LedgerToolName, input: unknown, regist
       title: `VOLT Ledger ${name.replace("ledger_", "").replace(/_/g, " ")} (evidence ${envelope.evidence_id ?? "n/a"})`,
       publisher: "VOLT Ledger",
       date: new Date().toISOString().slice(0, 7),
-      // Peer figures are read from issuers' own filings: a different kind of evidence from the ledger's calculations.
-      type: PEER_FILINGS.has(name) ? "public filing" : name === "ledger_diagnose_coa" || name === "ledger_ingest_upload" ? "client data" : "calculation",
+      type: name === "ledger_diagnose_coa" || name === "ledger_ingest_upload" ? "client data" : "calculation",
       authority: 8,
     });
     const map = resultData.get(registry) ?? new Map<string, string>();
@@ -461,6 +430,5 @@ Turn budget: the full flow fits in about ten turns. Put independent calls in the
 Supporting tools, used for the design rather than as the deliverable:
 - Statements and ratios: ledger_build_statement, ledger_compute_ratio and the coverage in the design results show which accounts the chart needs to produce statutory lines and investor metrics. Never compute, round or restate a ledger figure yourself: quote the display value exactly and cite its source key. A check in the console rejects ledger-cited figures that do not appear in the cited result.
 - Allocation: ledger_propose_allocation_rule and ledger_run_allocation (driver values are entered by people; the engagement lead approves rules).
-- Peer results: ledger_resolve_peer_period, ledger_fetch_peer_documents and ledger_peer_metrics read peers' official filings, for example to see which lines peers disclose. For the engagement team, show the per-peer table with page references when asked; mark it internal.
 - Journals are proposals only. Copy journal amounts from earlier ledger results and name that source key.
 - Mappings below 90% confidence, first-run mappings, every policy gap, allocation rule, CoA design, design decision and CoA mapping go to the engagement lead's review queue. Say what awaits review.`;

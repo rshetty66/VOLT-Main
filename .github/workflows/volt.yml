@@ -49,11 +49,3 @@ jobs:
           npm ci --ignore-scripts
           npm run typecheck
           npm test
-
-      - name: VOLT COA Designer
-        working-directory: apps/volt-coa
-        run: |
-          npm ci --ignore-scripts
-          npm run typecheck
-          npm test
-          npm run build

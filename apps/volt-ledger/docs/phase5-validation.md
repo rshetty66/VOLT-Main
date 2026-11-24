@@ -1,5 +1,8 @@
 # VOLT Ledger Brain: Phase 5 validation and acceptance plan
 
+> Superseded on 24 Nov 2026 by [`cfo-finance-brain-plan.md`](cfo-finance-brain-plan.md). Kept as history: the engine
+> rules it defines still apply where the code cites it.
+
 Status: approved 24 Nov 2026 (A24 thresholds as written; A25 single reviewer for now). Used through the VOLT chat interface. Builds on all earlier phase documents.
 
 The MVP is accepted only when every test in this plan passes. A phase is not called done on a "mostly". Where a

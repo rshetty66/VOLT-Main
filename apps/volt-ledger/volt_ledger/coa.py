@@ -2,7 +2,7 @@
 
 Four deterministic parts. The model proposes; this code decides whether a proposal is sound, and people approve it.
 1. diagnose_coa: findings about the client's current chart from its ingested trial balance, mappings and gaps.
-2. check_design: structure checks on a proposed target chart (ported from apps/volt-coa shared/coa.ts, extended with
+2. check_design: structure checks on a proposed target chart (first written in the retired apps/volt-coa app, extended with
    segments, concept anchoring and class checks).
 3. check_mapping / recut: the old-to-new mapping, every trial-balance row placed exactly once, and the balances
    recut under the new chart, tied out against the old chart by total, by class and by concept.
@@ -274,7 +274,7 @@ def diagnose_coa(store: Store, doc_id: str) -> dict:
             "findings": findings, "coverage": cov}
 
 
-# ---- 2. target design checks (ported from apps/volt-coa shared/coa.ts) -------------------------------------------
+# ---- 2. target design checks (first written in the retired apps/volt-coa app) -------------------------------------------
 
 def _accounts(design: dict) -> list[dict]:
     return [{"code": str(a.get("code", "")).strip(), "name": str(a.get("name", "")).strip(),

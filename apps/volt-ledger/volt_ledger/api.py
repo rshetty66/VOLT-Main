@@ -33,7 +33,6 @@ from .mapping import (MappingError, client_visible, coverage, flag_policy_gap, g
                       map_line_item_to_element, record_review_decision, tb_accounts)
 from .money import AmountError, format_amount, from_wire, to_wire
 from .ontology import load_ontology
-from .peers import PeerError, fetch_peer_documents, load_registry, peer_metrics, resolve_peer_period
 from .posting import JournalIn, LineIn, PostingError, post_journal_entry, reverse_journal_entry
 from .reporting import (ReportingError, build_statement, check_output, compute_ratio, display_ratio, get_balances,
                         load_metrics)
@@ -180,28 +179,6 @@ class CoaMappingBody(BaseModel):
 
 class DesignIdBody(BaseModel):
     design_id: str
-
-
-class PeerPeriodBody(BaseModel):
-    peer_ids: list[str] = Field(min_length=1)
-    period: str | None = Field(default=None, pattern=r"^FY\d{4}(-(Q[1-4]|H[12]))?$")
-    as_of: str | None = Field(default=None, pattern=r"^\d{4}-\d{2}-\d{2}$")
-
-
-class PeerFetchItem(BaseModel):
-    peer_id: str
-    period: str = Field(pattern=r"^FY\d{4}(-(Q[1-4]|H[12]))?$")
-    doc_types: list[str] = []
-    url: str | None = None
-
-
-class PeerFetchBody(BaseModel):
-    items: list[PeerFetchItem] = Field(min_length=1, max_length=40)
-
-
-class PeerMetricsBody(BaseModel):
-    doc_ids: list[str] = Field(min_length=1, max_length=40)
-    metric_ids: list[str] | None = None
 
 
 class DecisionBody(BaseModel):
@@ -543,61 +520,6 @@ def create_app(db_path: str | None = None) -> FastAPI:
                 return ok(None, design_status(s, body.design_id))
         except CoaError as e:
             return coa_refused(e)
-
-    # ---- peer results search (internal benchmarking only, P1) --------------------------------------------------
-    peer_files = os.environ.get("VOLT_LEDGER_PEER_FILES", str(Path(path).resolve().parent / "peer_files"))
-    mailbox = os.environ.get("VOLT_LEDGER_MAILBOX", "volt-research@example.invalid")
-    PEER_WARNING = "internal use only: do not reproduce peer tables in client deliverables"
-
-    @app.post("/v1/tools/resolve_peer_period", dependencies=[Depends(auth)])
-    def peer_period(body: PeerPeriodBody) -> dict:
-        from datetime import date
-        try:
-            rows = resolve_peer_period(load_registry(), body.peer_ids, date.fromisoformat(body.as_of) if body.as_of
-                                       else date.today(), body.period)
-        except PeerError as e:
-            return refused(e.code, f"{e} {', '.join(map(str, e.details))}".strip())
-        except ValueError as e:
-            return refused("bad_period", str(e))
-        display = {f"{r['peer_id']} period": f"{r['period']} (ends {r['period_end']}, {r['status']})" for r in rows}
-        with locked() as s:
-            ev = recorded(s, "resolve_peer_period", body.model_dump(), {"peers": rows}, display)
-        return ok(ev, rows, display, [PEER_WARNING])
-
-    @app.post("/v1/tools/fetch_peer_documents", dependencies=[Depends(auth)])
-    def peer_fetch(body: PeerFetchBody) -> dict:
-        try:
-            with locked() as s:
-                rows = fetch_peer_documents(s, load_registry(), [i.model_dump() for i in body.items], peer_files, mailbox)
-        except PeerError as e:
-            return refused(e.code, f"{e} {', '.join(map(str, e.details))}".strip())
-        display = {f"{r['peer_id']} {r['period']} {r['doc_type']}": r.get("doc_id") or f"failed: {r['reason']}" for r in rows}
-        with locked() as s:
-            ev = recorded(s, "fetch_peer_documents", body.model_dump(), {"documents": rows}, display)
-        failed = [r for r in rows if r["status"] != "stored"]
-        return ok(ev, rows, display, [PEER_WARNING] + ([f"{len(failed)} of {len(rows)} documents were not stored"] if failed else []))
-
-    @app.post("/v1/tools/peer_metrics", dependencies=[Depends(auth)])
-    def peer_figures(body: PeerMetricsBody) -> dict:
-        try:
-            with locked() as s:
-                rows = peer_metrics(s, body.doc_ids, body.metric_ids)
-        except PeerError as e:
-            return refused(e.code, f"{e} {', '.join(map(str, e.details))}".strip())
-        display: dict[str, str] = {}
-        for r in rows:
-            for m, v in r["metrics"].items():
-                key = f"{r['peer_id']} {r['period']} {m}"
-                if "display" in v:
-                    display[key] = v["display"]
-                for basis in ("reported", "computed"):
-                    if basis in v:
-                        display[f"{key} {basis}"] = v[basis]["display"]
-        with locked() as s:
-            ev = recorded(s, "peer_metrics", body.model_dump(), {"peers": rows}, display)
-        unverified = [r["peer_id"] for r in rows if r["status"] != "ok"]
-        return ok(ev, rows, display, [PEER_WARNING] + ([f"not verified (no tied table found): {', '.join(unverified)}"]
-                                                       if unverified else []))
 
     @app.post("/v1/tools/check_output", dependencies=[Depends(auth)])
     def gate(body: CheckBody) -> dict:
