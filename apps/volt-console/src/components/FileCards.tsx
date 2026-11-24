@@ -1,12 +1,25 @@
 import { useContext, useState } from "react";
-import { TemplateContext, downloadDeliverable } from "../exports";
+import { TemplateContext, chartTables, downloadDeliverable } from "../exports";
+import { chartableResults } from "../charts/results";
+import type { ExportTable } from "../../shared/export";
 import { FILE_LABEL, type FileSpec } from "../../shared/files";
 import type { ActivityItem, Run } from "../runState";
 
-/** The files agents made in a run (create_file calls that succeeded), Rudra's first, then each specialist's. */
+/**
+ * The files agents made in a run (create_file calls that succeeded), Rudra's first, then each specialist's. An Excel
+ * or CSV file also carries the run's tool results (value case, benchmarks, maturity) as data sheets, built from the
+ * tool output itself, so the agent never retypes the figures.
+ */
 export function runFiles(run: Run): { id: string; spec: FileSpec }[] {
   const items: ActivityItem[] = [...run.activity, ...run.laneOrder.flatMap((id) => run.lanes[id]?.activity ?? [])];
-  return items.filter((it) => it.kind === "tool" && it.text === "create_file" && !it.isError && !it.pending && it.data).map((it) => ({ id: it.id, spec: it.data as FileSpec }));
+  const results: ExportTable[] = chartTables(chartableResults(run));
+  return items
+    .filter((it) => it.kind === "tool" && it.text === "create_file" && !it.isError && !it.pending && it.data)
+    .map((it) => {
+      const spec = it.data as FileSpec;
+      const data = spec.format === "xlsx" || spec.format === "csv" ? [...(spec.tables ?? []), ...results] : spec.tables;
+      return { id: it.id, spec: { ...spec, tables: data?.length ? data : undefined } };
+    });
 }
 
 function detail(s: FileSpec): string {
