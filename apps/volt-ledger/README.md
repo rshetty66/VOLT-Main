@@ -13,8 +13,8 @@ engine come next. The system prompts Claude will use are in `prompts/`.
 ```bash
 cd apps/volt-ledger
 python3 -m venv .venv && . .venv/bin/activate
-pip install pytest hypothesis
-python -m pytest                                          # 60 tests, a few seconds
+pip install -e '.[dev]'
+python -m pytest                                          # 67 tests, a few seconds
 VOLT_PROPERTY_EXAMPLES=10000 python -m pytest tests/property   # the full property run, about 6 minutes
 ```
 
@@ -92,6 +92,19 @@ before the client can see it or sign it off, and only a signed-in person can rec
 `coverage` proves every account is either mapped or has a gap. In the tests a scripted stand-in plays the model,
 mapping all 54 synthetic accounts and flagging all 8 seeded gap types; the live Claude run comes with step 4b.
 
+### Step 4b: the HTTP API (`volt_ledger/api.py`)
+
+The service the VOLT Console calls. It refuses to start without `VOLT_LEDGER_TOKEN`, and every call must carry it.
+Amounts travel as integer strings of cents (a JSON number for an amount is rejected), and every answer uses the
+same envelope: status, evidence id, data, and display strings the model copies instead of formatting numbers
+itself. Routes under `/v1/tools/` are for the model; routes under `/v1/people/` (review decisions) need a signed-in
+person and are never offered to the model.
+
+```bash
+VOLT_LEDGER_TOKEN=local-secret VOLT_LEDGER_DB=/tmp/ledger.db python -m volt_ledger.api   # listens on :8790
+curl -s localhost:8790/healthz                                                          # {"ok":true}
+```
+
 ## Tests
 
 | File | What it proves |
@@ -101,4 +114,5 @@ mapping all 54 synthetic accounts and flagging all 8 seeded gap types; the live 
 | `tests/unit/test_ontology.py` | Presentation and calculation queries; one canonical node per XBRL name |
 | `tests/unit/test_posting.py` | Validation, reversals, period locks, idempotency, append-only tables |
 | `tests/unit/test_mapping.py` | Coverage of every account, all 8 gap types, traceability to TB rows, review routing, two-stage approval |
+| `tests/api/test_api.py` | Token required, integer-string amounts, refusals in the envelope, person-only review routes |
 | `tests/property/test_properties.py` | P1 to P4 and P7 to P10 from `docs/phase3-engine.md`, on random data |

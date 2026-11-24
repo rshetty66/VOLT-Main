@@ -80,8 +80,10 @@ def _triggers() -> str:
 
 
 class Store:
-    def __init__(self, path: str = ":memory:") -> None:
-        self.conn = sqlite3.connect(path, isolation_level=None)  # we manage transactions ourselves
+    def __init__(self, path: str = ":memory:", check_same_thread: bool = True) -> None:
+        # isolation_level=None: we manage transactions ourselves. The API serialises access with a lock, so it
+        # may share one connection across worker threads (check_same_thread=False).
+        self.conn = sqlite3.connect(path, isolation_level=None, check_same_thread=check_same_thread)
         self.conn.row_factory = sqlite3.Row
         self.conn.execute("PRAGMA foreign_keys = ON")
         if path != ":memory:":
