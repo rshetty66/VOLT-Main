@@ -10,6 +10,8 @@ from .evidence import write_evidence
 from .store import Store
 
 DEFAULT_ONTOLOGY = Path(__file__).resolve().parent.parent / "data" / "ontology" / "mvg-bank-v1.json"
+# Industry packs loaded on top of the default graph. Each only adds elements and arcs; stored ones never change.
+EXTENSIONS = [DEFAULT_ONTOLOGY.parent / "ext-insurance-v1.json"]
 GAAPS = ("ifrs", "us-gaap")
 
 
@@ -27,8 +29,16 @@ class LoadResult:
 
 
 def load_ontology(store: Store, path: Path = DEFAULT_ONTOLOGY, actor: str = "system") -> LoadResult:
-    """Load the minimum viable graph. Loading the same file twice is a no-op; a different file with the same
-    version is refused, because stored elements are never changed."""
+    """Load the minimum viable graph, and with the default graph its industry extensions. Loading the same file twice
+    is a no-op; a different file with the same version is refused, because stored elements are never changed."""
+    base = _load_file(store, path, actor)
+    if Path(path) == DEFAULT_ONTOLOGY:
+        for ext in EXTENSIONS:
+            _load_file(store, ext, actor)
+    return base
+
+
+def _load_file(store: Store, path: Path, actor: str) -> LoadResult:
     raw = Path(path).read_bytes()
     sha = hashlib.sha256(raw).hexdigest()
     doc = json.loads(raw)
@@ -40,11 +50,23 @@ def load_ontology(store: Store, path: Path = DEFAULT_ONTOLOGY, actor: str = "sys
                 raise OntologyError(f"ontology {version} is already loaded with different content")
             return LoadResult(version, False, out["elements"], out["associations"], None)
 
+    extends = doc.get("extends")
+    stored: set[str] = set()
+    if extends:
+        loaded = {json.loads(r[0])["version"] for r in store.conn.execute(
+            "SELECT outputs FROM evidence WHERE tool = 'load_ontology'")}
+        if extends not in loaded:
+            raise OntologyError(f"{version} extends {extends}, which is not loaded")
+        stored = {r[0] for r in store.conn.execute("SELECT element_id FROM element")}
+    industry = doc.get("industry")
+
     elements: list[tuple] = []
     assocs: list[tuple] = []
     prov = json.dumps({"source": f"volt-ledger {version}", "added_by": "loader"})
 
     def el(eid, etype, label, ifrs=None, us=None, bal=None, ptype=None, traits=None):
+        if eid in stored and etype in ("line_item", "dimension"):
+            return   # an extension reuses the base graph's statement roots and dimensions
         elements.append((eid, etype, label, ifrs, us, bal, ptype, json.dumps(traits or {}, sort_keys=True), prov))
 
     def arc(src, dst, atype, gaap=None, weight=None, order=None):
@@ -55,7 +77,7 @@ def load_ontology(store: Store, path: Path = DEFAULT_ONTOLOGY, actor: str = "sys
             el(root, "line_item", f"{gaap} {'balance sheet' if kind == 'BS' else 'income statement'}",
                traits={"statement": kind, "gaap": gaap})
     for c in doc["concepts"]:
-        traits = {"monetary": True, "xbrl_verified": False}
+        traits = {"monetary": True, "xbrl_verified": False, **({"industry": industry} if industry else {})}
         if not c["xbrl"]["ifrs"] and not c["xbrl"]["us-gaap"]:
             traits["no_standard_term"] = True
         el(c["id"], "concept", c["label"], c["xbrl"]["ifrs"], c["xbrl"]["us-gaap"], c["balance_type"],
@@ -73,10 +95,16 @@ def load_ontology(store: Store, path: Path = DEFAULT_ONTOLOGY, actor: str = "sys
             arc(f"dim:{dim}", f"mem:{dim}:{m}", "dimension_member", order=(i + 1) * 10)
 
     ids = {e[0] for e in elements}
+    clash = sorted(ids & stored)
+    if clash:
+        raise OntologyError(f"{version} redefines stored elements: {', '.join(clash[:5])}")
+    ids |= stored
     for a in assocs:
         if a[1] not in ids or a[2] not in ids:
             raise OntologyError(f"arc {a[0]} points at an unknown element")
-    _check_no_cycles(assocs)
+    _check_no_cycles(assocs + [tuple(r) for r in store.conn.execute(
+        "SELECT association_id, from_element, to_element, association_type FROM association "
+        "WHERE association_type = 'calculation'")])
 
     with store.transaction() as cur:
         ev = write_evidence(cur, "load_ontology", {"path": Path(path).name},

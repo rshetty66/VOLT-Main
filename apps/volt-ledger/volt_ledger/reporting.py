@@ -111,10 +111,12 @@ def build_statement(store: Store, period: str, gaap: str, statement: str, dimens
     if not b.by_account:
         raise ReportingError("no_data", f"no trial balance for {period}")
     lines = []
-    for r in store.conn.execute("SELECT a.to_element, e.label, e.xbrl_ifrs, e.xbrl_usgaap FROM association a "
+    for r in store.conn.execute("SELECT a.to_element, e.label, e.xbrl_ifrs, e.xbrl_usgaap, e.traits FROM association a "
                                 "JOIN element e ON e.element_id = a.to_element WHERE a.association_type = 'presentation' "
                                 "AND a.from_element = ? AND a.gaap = ? ORDER BY a.ord", (root, gaap)):
         signed = b.element(r[0])
+        if signed == 0 and json.loads(r[4] or "{}").get("industry"):
+            continue   # an industry line (insurance) is shown only when the entity has a balance on it
         lines.append({"concept": r[0], "label": r[1], "xbrl": r[2] if gaap == "ifrs" else r[3],
                       "is_total": bool(b.children.get(r[0])), "amount": natural(store, r[0], signed)})
     # Unmapped accounts are not on any line; accounts with an open policy gap are on their line but flagged.

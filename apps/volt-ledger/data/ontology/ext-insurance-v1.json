@@ -1,0 +1,230 @@
+{
+ "version": "ext-insurance-v1",
+ "extends": "mvg-bank-v1",
+ "industry": "insurance",
+ "note": "Insurance extension (IFRS 17, segregated funds), proposed by the FSDF schema work. Added on top of mvg-bank-v1 without changing it. Its concepts count toward chart coverage only when a chart or trial balance uses at least one of them. Present value of future cash flows, risk adjustment and CSM are memo concepts for the IFRS 17 measurement reconciliation, not balance sheet lines; LRC and LIC are members of the InsuranceCoverage dimension. Insurance finance income or expenses is net and debit-signed. XBRL names are UNVERIFIED until checked against the taxonomy packages.",
+ "statements": {
+  "ifrs": {
+   "BS": "stmt:IFRS:BS",
+   "IS": "stmt:IFRS:IS"
+  },
+  "us-gaap": {
+   "BS": "stmt:USGAAP:BS",
+   "IS": "stmt:USGAAP:IS"
+  }
+ },
+ "concepts": [
+  {
+   "id": "canon:InsuranceContractAssets",
+   "label": "Insurance contract assets",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:InsuranceContractsIssuedThatAreAssets",
+    "us-gaap": null
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 146
+  },
+  {
+   "id": "canon:ReinsuranceContractAssets",
+   "label": "Reinsurance contract assets",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:ReinsuranceContractsHeldThatAreAssets",
+    "us-gaap": "us-gaap:ReinsuranceRecoverables"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 147
+  },
+  {
+   "id": "canon:SegregatedFundAssets",
+   "label": "Segregated fund (separate account) assets",
+   "balance_type": "debit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": "us-gaap:SeparateAccountAssets"
+   },
+   "calc_parent": "canon:TotalAssets",
+   "statement": "BS",
+   "order": 148
+  },
+  {
+   "id": "canon:InsuranceContractLiabilities",
+   "label": "Insurance contract liabilities",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:InsuranceContractsIssuedThatAreLiabilities",
+    "us-gaap": "us-gaap:LiabilityForFuturePolicyBenefits"
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 272
+  },
+  {
+   "id": "canon:ReinsuranceContractLiabilities",
+   "label": "Reinsurance contract liabilities",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:ReinsuranceContractsHeldThatAreLiabilities",
+    "us-gaap": null
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 273
+  },
+  {
+   "id": "canon:InvestmentContractLiabilities",
+   "label": "Investment contract liabilities",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": "us-gaap:PolicyholderContractDeposits"
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 274
+  },
+  {
+   "id": "canon:SegregatedFundLiabilities",
+   "label": "Segregated fund (separate account) liabilities",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": null,
+    "us-gaap": "us-gaap:SeparateAccountsLiability"
+   },
+   "calc_parent": "canon:TotalLiabilities",
+   "statement": "BS",
+   "order": 275
+  },
+  {
+   "id": "canon:InsuranceRevenue",
+   "label": "Insurance revenue",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:InsuranceRevenue",
+    "us-gaap": "us-gaap:PremiumsEarnedNet"
+   },
+   "calc_parent": "canon:InsuranceServiceResult",
+   "statement": "IS",
+   "order": 91
+  },
+  {
+   "id": "canon:InsuranceServiceExpense",
+   "label": "Insurance service expenses",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:InsuranceServiceExpensesFromInsuranceContractsIssued",
+    "us-gaap": "us-gaap:PolicyholderBenefitsAndClaimsIncurredNet"
+   },
+   "calc_parent": "canon:InsuranceServiceResult",
+   "statement": "IS",
+   "order": 92
+  },
+  {
+   "id": "canon:NetExpenseFromReinsuranceHeld",
+   "label": "Net expense from reinsurance contracts held",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:IncomeExpensesFromReinsuranceContractsHeldOtherThanFinanceIncomeExpenses",
+    "us-gaap": null
+   },
+   "calc_parent": "canon:InsuranceServiceResult",
+   "statement": "IS",
+   "order": 93
+  },
+  {
+   "id": "canon:InsuranceServiceResult",
+   "label": "Insurance service result",
+   "balance_type": "credit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:InsuranceServiceResult",
+    "us-gaap": null
+   },
+   "calc_parent": "canon:TotalOperatingIncome",
+   "statement": "IS",
+   "order": 94
+  },
+  {
+   "id": "canon:InsuranceFinanceIncomeExpense",
+   "label": "Insurance finance income or expenses",
+   "balance_type": "debit",
+   "period_type": "duration",
+   "xbrl": {
+    "ifrs": "ifrs-full:InsuranceFinanceIncomeExpensesFromInsuranceContractsIssuedRecognisedInProfitOrLoss",
+    "us-gaap": null
+   },
+   "calc_parent": "canon:TotalOperatingIncome",
+   "statement": "IS",
+   "order": 95
+  },
+  {
+   "id": "canon:PresentValueOfFutureCashFlows",
+   "label": "Estimates of the present value of future cash flows",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:EstimatesOfPresentValueOfFutureCashFlowsMember",
+    "us-gaap": null
+   },
+   "calc_parent": null,
+   "statement": null,
+   "order": null
+  },
+  {
+   "id": "canon:RiskAdjustment",
+   "label": "Risk adjustment for non-financial risk",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:RiskAdjustmentForNonfinancialRiskMember",
+    "us-gaap": null
+   },
+   "calc_parent": null,
+   "statement": null,
+   "order": null
+  },
+  {
+   "id": "canon:ContractualServiceMargin",
+   "label": "Contractual service margin",
+   "balance_type": "credit",
+   "period_type": "instant",
+   "xbrl": {
+    "ifrs": "ifrs-full:ContractualServiceMarginMember",
+    "us-gaap": null
+   },
+   "calc_parent": null,
+   "statement": null,
+   "order": null
+  }
+ ],
+ "dimensions": {
+  "BusinessLine": [
+   "Insurance"
+  ],
+  "Product": [
+   "LifeInsurance",
+   "Annuities",
+   "Health",
+   "PropertyAndCasualty",
+   "ReinsuranceAssumed",
+   "ReinsuranceHeld"
+  ],
+  "InsuranceCoverage": [
+   "LRC",
+   "LIC"
+  ]
+ }
+}

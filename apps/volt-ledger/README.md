@@ -77,6 +77,12 @@ XBRL names, calculation arcs for every subtotal, presentation arcs for both GAAP
 line, credit stage, product, cost centre). Loading twice does nothing; loading changed content under the same
 version is refused. XBRL names are marked unverified until checked against the official taxonomies.
 
+The insurance extension (`data/ontology/ext-insurance-v1.json`) loads on top of it without changing any stored
+element, so an existing ledger picks it up on its next start. It adds 15 IFRS 17 and segregated-fund concepts, the
+Insurance business line, insurance products and an InsuranceCoverage dimension (LRC, LIC). The CSM, risk adjustment
+and present value of future cash flows are memo concepts, not statement lines. Insurance lines count toward chart
+coverage, and appear on a statement, only for an entity that uses them.
+
 ```bash
 python -c "
 from volt_ledger.store import Store; from volt_ledger.ontology import load_ontology, presentation_children
