@@ -1,7 +1,8 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from "react";
 import { DARK, LIGHT, type Palette } from "./palette";
 import { renderMermaid } from "./mermaid";
-import { parseArchSpec, parseChartSpec } from "../../shared/viz";
+import { parseArchSpec, parseChartSpec, parseProcessSpec } from "../../shared/viz";
+import { processSvg } from "./specProcess";
 import { archSvg } from "./specArch";
 import { specSvg } from "./specChart";
 import { datedName, downloadBlob, downloadText, svgToPng } from "../download";
@@ -165,6 +166,34 @@ export function SpecArchitecture({ code }: { code: string }) {
     <figure className="visual spec-arch">
       <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: archSvg(spec, DARK) }} />
       <DownloadButtons name={spec.title || "architecture"} svg={async () => archSvg(spec, LIGHT)} />
+    </figure>
+  );
+}
+
+/** A ```process block from agent output: a process flow drawn as swimlanes. Hover a step for its detail. */
+export function SpecProcess({ code }: { code: string }) {
+  const [spec, setSpec] = useState(() => parseProcessSpec(code));
+  const [waited, setWaited] = useState(false);
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setSpec(parseProcessSpec(code));
+      setWaited(true);
+    }, 300);
+    return () => clearTimeout(t);
+  }, [code]);
+  if (!spec)
+    return waited ? (
+      <figure className="visual">
+        <pre><code>{code}</code></pre>
+        <figcaption className="muted" style={{ fontSize: 11 }}>Process flow could not be drawn: the data is not valid.</figcaption>
+      </figure>
+    ) : (
+      <span className="muted"><span className="spinner" /> drawing process flow</span>
+    );
+  return (
+    <figure className="visual spec-process">
+      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: processSvg(spec, DARK) }} />
+      <DownloadButtons name={spec.title || "process"} svg={async () => processSvg(spec, LIGHT)} />
     </figure>
   );
 }
