@@ -75,7 +75,8 @@ def _list(xs: list[str], n: int = 8) -> str:
 class Concepts:
     def __init__(self, store: Store) -> None:
         self.info = {r[0]: {"label": r[1], "balance_type": r[2], "ifrs": r[3], "usgaap": r[4],
-                            "statement": json.loads(r[5] or "{}").get("statement")}
+                            "statement": json.loads(r[5] or "{}").get("statement"),
+                            "industry": json.loads(r[5] or "{}").get("industry")}
                      for r in store.conn.execute("SELECT element_id, label, balance_type, xbrl_ifrs, xbrl_usgaap, traits "
                                                  "FROM element WHERE element_type = 'concept'")}
         self.parent: dict[str, str] = {}
@@ -129,10 +130,13 @@ def coverage(store: Store, posting_concepts: set[str], segment_dimensions: set[s
     """Which statement lines and v1 metrics a chart can produce from the concepts its posting accounts carry."""
     cs = Concepts(store)
     have = cs.reachable(posting_concepts)
+    # Industry lines (insurance) count only for a chart that posts to at least one concept of that industry.
+    industries = {cs.info[c]["industry"] for c in posting_concepts if c in cs.info} - {None}
     lines = {}
     for gaap in ("ifrs", "us-gaap"):
         # Profit attribution lines (owners, non-controlling interests) are computed at consolidation, not posted.
-        on = sorted(c for c in cs.presented[gaap] if c not in ATTRIBUTION)
+        on = sorted(c for c in cs.presented[gaap] if c not in ATTRIBUTION
+                    and cs.info.get(c, {}).get("industry") in industries | {None})
         missing = [c for c in on if c not in have]
         lines[gaap] = {"lines": len(on), "producible": len(on) - len(missing), "missing": missing,
                        "computed_at_consolidation": sorted(ATTRIBUTION & cs.presented[gaap])}
@@ -144,7 +148,7 @@ def coverage(store: Store, posting_concepts: set[str], segment_dimensions: set[s
         dim_missing = [dim] if dim and dim not in segment_dimensions else []
         metrics.append({"metric_id": m["metric_id"], "label": m["label"], "producible": not miss and not dim_missing,
                         "missing_concepts": miss, "missing_segments": dim_missing})
-    return {"statements": lines, "metrics": metrics,
+    return {"statements": lines, "industries": sorted(industries), "metrics": metrics,
             "metrics_producible": sum(1 for m in metrics if m["producible"]), "metrics_total": len(metrics)}
 
 
