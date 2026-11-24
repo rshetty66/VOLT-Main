@@ -11,6 +11,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { type Catalog, loadSkillBody, rankAgents, rankSkills } from "./catalog.js";
 import { BENCHMARKS, appraiseInvestment, buildValueCase, compareToBenchmark, MATURITY_DIMENSIONS, scoreMaturity } from "./analytics.js";
 import { templateStore } from "./templates.js";
+import { FILE_FORMATS, FILE_LABEL, type FileSpec } from "../shared/files.js";
 
 export const schemas = {
   find_agents: z.object({
@@ -66,6 +67,27 @@ export const schemas = {
   get_template: z.object({
     template_id: z.string().describe("Template id from list_templates."),
   }),
+  create_file: z.object({
+    format: z.enum(FILE_FORMATS).describe("docx Word report, pptx deck, xlsx workbook, csv data, html interactive page, pdf report, md markdown."),
+    title: z.string().trim().min(1).max(160).describe("An action title: the answer in one line, not a topic (e.g. 'Close can fall from 9 to 5 days by Q3')."),
+    subtitle: z.string().max(300).optional(),
+    markdown: z
+      .string()
+      .max(200_000)
+      .describe("The content as markdown: '##' sections, tables, and ```chart / ```process / ```architecture / ```mermaid blocks, which become native charts and diagrams. For pptx each '##' is a slide."),
+    tables: z
+      .array(
+        z.object({
+          name: z.string().min(1).max(80),
+          columns: z.array(z.string().max(200)).min(1).max(50),
+          rows: z.array(z.array(z.union([z.string().max(5000), z.number(), z.null()])).max(50)).max(5000),
+        }),
+      )
+      .max(20)
+      .optional()
+      .describe("Data sheets for xlsx (one sheet each) and csv (one file each). A text cell starting with '=' is an Excel formula, e.g. '=SUM(B2:B5)'."),
+    template_id: z.string().max(80).optional().describe("Uploaded client template to style the file with (from list_templates)."),
+  }),
 } as const;
 
 export type ToolName = keyof typeof schemas;
@@ -86,6 +108,8 @@ const descriptions: Record<ToolName, string> = {
   build_value_case:
     "Build a finance transformation value case from FTEs, loaded cost, automation %, investment and run cost: yearly benefit ramp plus NPV/IRR/payback.",
   list_templates: "List the client Word, Excel and PowerPoint templates uploaded to VOLT, with their ids and brand fonts.",
+  create_file:
+    "Make a file the user can download from the chat: a Word report, PowerPoint deck, Excel workbook (with formulas), CSV, interactive web page or PDF. Use it whenever the user asks for a file, model, deck, report or export. Write consulting-grade content: an action title, the answer first (situation, complication, resolution), numbered exhibits each with a source line.",
   get_template:
     "Get the formatting guide of an uploaded template: theme colours and fonts, styles, page setup, slide layouts or workbook formats. Use it whenever a deliverable must match a client template.",
 };
@@ -115,11 +139,13 @@ export const ORCHESTRATOR_TOOLS: ToolName[] = [
   "build_value_case",
   "list_templates",
   "get_template",
+  "create_file",
 ];
 
-export const SPECIALIST_TOOLS: ToolName[] = ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template"];
+export const SPECIALIST_TOOLS: ToolName[] = ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template", "create_file"];
 
-export type LocalResult = { ok: true; data: unknown; summary: string } | { ok: false; error: string };
+/** `reply`, when set, is what the model reads back instead of the data (a made file is not echoed to it). */
+export type LocalResult = { ok: true; data: unknown; summary: string; reply?: string } | { ok: false; error: string };
 
 /** Runs every tool except consult_agent. Input must already be validated. */
 export function runLocalTool(catalog: Catalog, name: Exclude<ToolName, "consult_agent">, input: unknown): LocalResult {
@@ -209,6 +235,15 @@ export function runLocalTool(catalog: Catalog, name: Exclude<ToolName, "consult_
       const t = templateStore().get(template_id);
       if (!t) return { ok: false, error: `No template '${template_id}'. Use list_templates to see the uploaded templates.` };
       return { ok: true, data: t.guide, summary: `${t.name} (${t.kind}) formatting guide` };
+    }
+    case "create_file": {
+      const f = input as z.infer<typeof schemas.create_file>;
+      if (f.format === "csv" && !f.tables?.length) return { ok: false, error: "A csv file needs at least one entry in tables." };
+      if (f.format !== "csv" && !f.markdown.trim() && !f.tables?.length) return { ok: false, error: "The file has no content: give markdown or tables." };
+      if (f.template_id && !templateStore().get(f.template_id)) return { ok: false, error: `No template '${f.template_id}'. Use list_templates to see the uploaded templates.` };
+      const spec: FileSpec = { format: f.format, title: f.title, subtitle: f.subtitle, markdown: f.markdown, tables: f.tables, templateId: f.template_id };
+      const label = `${FILE_LABEL[f.format]}: ${f.title}`;
+      return { ok: true, data: spec, summary: label, reply: `${label} is ready as a download card in the chat. Do not repeat its content; summarise it in two or three lines.` };
     }
   }
 }

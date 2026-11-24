@@ -18,11 +18,12 @@ import { DARK, LIGHT } from "./charts/palette";
 import { splitPages, toneTables, voltHtml } from "./htmlTemplate";
 import { archBlocks, chartBlocks, processBlocks, type ProcessSpec } from "../shared/viz";
 import { downloadBlob, downloadText, svgSize, svgToPng } from "./download";
+import { csvText } from "../shared/files";
 
 /** The template selected in the top bar; downloads follow its fonts and colours. */
 export const TemplateContext = createContext("");
 
-export type DownloadFormat = ExportFormat | "md" | "html" | "zip";
+export type DownloadFormat = ExportFormat | "md" | "html" | "zip" | "csv" | "pdf";
 
 export interface Deliverable {
   title: string;
@@ -208,6 +209,8 @@ export async function downloadDeliverable(format: DownloadFormat, d: Deliverable
   }
   if (format === "zip") return downloadBlob(exportFileName(d.title, "zip"), new Blob([researchBundle(d) as BlobPart], { type: "application/zip" }));
   if (format === "html") return downloadText(exportFileName(d.title, "html"), await htmlDocument(d), "text/html");
+  if (format === "csv") return downloadCsv(d);
+  if (format === "pdf") return printPdf(await htmlDocument(d));
 
   const images: ExportImage[] = [];
   if (format !== "xlsx") {
@@ -225,4 +228,44 @@ export async function downloadDeliverable(format: DownloadFormat, d: Deliverable
   const r = await fetch("/api/export", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error ?? `Download failed (${r.status})`);
   downloadBlob(exportFileName(d.title, format), await r.blob());
+}
+
+/** One table saves as a .csv; several save as a .zip of one .csv each. */
+function downloadCsv(d: Deliverable) {
+  const tables = d.tables ?? [];
+  if (!tables.length) throw new Error("There is no table data to save as CSV.");
+  if (tables.length === 1) return downloadText(exportFileName(d.title, "csv"), csvText(tables[0]), "text/csv");
+  const used = new Set<string>();
+  const files = Object.fromEntries(
+    tables.map((t, i) => {
+      let name = t.name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || `table-${i + 1}`;
+      if (used.has(name)) name = `${name}-${i + 1}`;
+      used.add(name);
+      return [`${name}.csv`, strToU8(csvText(t))];
+    }),
+  );
+  downloadBlob(exportFileName(d.title, "zip"), new Blob([zipSync(files) as BlobPart], { type: "application/zip" }));
+}
+
+/**
+ * A PDF through the browser's own print engine: the VOLT web page, laid out by its print styles (every tab on its own
+ * page, charts drawn in full), printed from a hidden frame. The user picks "Save as PDF" in the print dialog.
+ */
+function printPdf(html: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const frame = document.createElement("iframe");
+    frame.setAttribute("aria-hidden", "true");
+    frame.style.cssText = "position:fixed;inline-size:0;block-size:0;border:0;inset-inline-start:-9999px";
+    frame.onload = () => {
+      const w = frame.contentWindow;
+      if (!w) return reject(new Error("The print view could not open."));
+      w.addEventListener("afterprint", () => frame.remove(), { once: true });
+      setTimeout(() => frame.remove(), 60_000);
+      w.focus();
+      w.print();
+      resolve();
+    };
+    frame.srcdoc = html;
+    document.body.appendChild(frame);
+  });
 }
