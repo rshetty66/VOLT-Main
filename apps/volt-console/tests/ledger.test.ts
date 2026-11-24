@@ -175,6 +175,7 @@ describe("VOLT Ledger tools", () => {
     fetchMock.mockResolvedValueOnce(ok([{ peer_id: "rbc", status: "ok" }], { "rbc FY2026-Q3 nii": "C$8,744 million" }, "E000090"));
     const r = await runLedgerTool("ledger_peer_metrics", { doc_ids: ["P00002"], metric_ids: ["nii"] }, registry);
     expect(r.ok && r.newSource?.publisher).toBe("VOLT Ledger");
+    expect(r.ok && r.newSource?.type).toBe("public filing");
     expect(fetchMock.mock.calls[0][0]).toBe("http://ledger.test/v1/tools/peer_metrics");
   });
 

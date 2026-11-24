@@ -121,6 +121,19 @@ def test_parallel_fetch_stores_by_hash_and_accounts_for_every_document(store, re
     assert store.conn.execute("SELECT COUNT(*) FROM peer_document").fetchone()[0] == 1
 
 
+def test_a_transient_bot_screen_is_retried(store, registry, tmp_path):
+    url = "https://www.td.com/content/dam/tdcom/canada/about-td/pdf/quarterly-results/2026/q4/2026-q4-financial-supppack-en.pdf"
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(1)
+        return httpx.Response(403) if len(seen) == 1 else httpx.Response(200, content=tiny_pdf())
+    out = fetch_peer_documents(store, registry, [{"peer_id": "td", "period": "FY2026-Q4",
+                                                  "doc_types": ["supplementary_financial_info"]}], tmp_path,
+                               client_factory=lambda: httpx.AsyncClient(transport=httpx.MockTransport(handler)))
+    assert out[0]["status"] == "stored" and len(seen) == 2 and out[0]["url"] == url
+
+
 def test_off_domain_redirect_is_refused(store, registry, tmp_path):
     src = "https://www.td.com/content/dam/tdcom/canada/about-td/pdf/quarterly-results/2026/q4/2026-q4-financial-supppack-en.pdf"
 
@@ -168,5 +181,7 @@ def test_corpus_golden_figures_tie(store, registry, tmp_path):
         got = tuple(r["metrics"][m]["printed"] for m in ("nii", "non_interest_income", "total_operating_income"))
         assert got == GOLDEN[r["peer_id"]], r["peer_id"]
         assert all(v["check"] == "tied" and v["evidence"]["page"] for v in r["metrics"].values())
+    lb = peer_metrics(store, [sups["lb"]], ["nii"])[0]["metrics"]["nii"]["evidence"]
+    assert (lb["column"], lb["column_label"]) == (1, "July 31, 2026")   # the first column is the unreported Q4
     rbc = next(r for r in peer_metrics(store, [sups["rbc"]], ["efficiency_ratio"]))
     assert rbc["metrics"]["efficiency_ratio"]["reported"]["value"] == "52.8"
