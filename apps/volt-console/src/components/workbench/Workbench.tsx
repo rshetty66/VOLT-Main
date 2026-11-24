@@ -1,4 +1,4 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getJSON } from "../../api";
 import { Markdown } from "../Markdown";
 import type { Figure } from "../../../shared/mortgageFigures";
@@ -30,8 +30,6 @@ export const STEPS: { id: StepId; label: string; badge: string; zero: boolean }[
   { id: "evidence", label: "Evidence pack", badge: "0 tokens", zero: true },
 ];
 
-// CopilotKit sits alongside the assistant-ui panel; its bundle loads only in live mode.
-const WorkbenchCopilot = lazy(() => import("./WorkbenchCopilot"));
 
 const CHIP: Record<string, string> = { NOT_RUN: "", PARTIAL: "partial", BLOCKED: "fail", VALIDATED_SCOPED: "full" };
 const EMPTY_CSV: MappingCsv = { legacy: "", mapping: "", target: "" };
@@ -45,7 +43,7 @@ async function post<T>(url: string, body: unknown): Promise<T> {
 }
 const validate = (kind: "journal" | "mapping", document: unknown) => post<Report>("/api/finance-architecture/validate", { kind, document });
 
-/** Everything the workbench exposes to assistants (assistant-ui panel and the CopilotKit layer). */
+/** Everything the workbench exposes to assistants (the assistant-ui panel). */
 export interface WorkbenchApi extends WorkbenchBridge {
   goTo: (step: StepId) => void;
   find: (issuer: string, period: string) => Promise<Candidate[]>;
@@ -215,8 +213,6 @@ export function Workbench({ live, onApi }: { live: boolean; onApi?: (api: Workbe
   };
   const bridge = useRef<WorkbenchBridge | null>(null);
   bridge.current = api;
-  const apiRef = useRef<WorkbenchApi | null>(null);
-  apiRef.current = api;
   useEffect(() => { onApi?.(api); });
 
   if (error && !demo) return <div className="empty">Could not load the workbench: {error}</div>;
@@ -306,11 +302,6 @@ export function Workbench({ live, onApi }: { live: boolean; onApi?: (api: Workbe
       <aside className="wb-chat">
         <ChatPanel bridge={bridge} live={live} />
       </aside>
-      {live && (
-        <Suspense fallback={null}>
-          <WorkbenchCopilot api={apiRef} state={api.state()} />
-        </Suspense>
-      )}
     </div>
   );
 }

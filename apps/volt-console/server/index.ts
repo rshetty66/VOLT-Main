@@ -17,7 +17,6 @@
  *   POST /api/finance-architecture/sources/extract   figures + page quotes from a URL or uploaded source, verified (live only)
  *   POST /api/finance-architecture/sources/upload    store a PDF / text / CSV document (raw body, X-File-Name header)
  *   POST /api/finance-architecture/sources/verify    re-check figures against a stored source, 0 tokens
- *   *    /api/copilotkit/*   CopilotKit (AG-UI) runtime for the workbench copilot, live mode only
  *   GET  /api/healthz
  *
  * In production it also serves the built React app from dist/.
@@ -40,7 +39,6 @@ import { commandPrompt, commandStatus, loadRudraCommands, matchCommand } from ".
 import { TemplateError, templateStore } from "./templates.js";
 import { exportRouter } from "./export/route.js";
 import { demoDocuments, multiBasisAllowance, runValidator } from "./financeArchitecture.js";
-import { COPILOTKIT_PATH, copilotkitHandler } from "./copilotkit.js";
 import { MAX_SOURCE_BYTES, SourceError, extractFigures, findFilings, ingestDocument, verifyFigures } from "./sources.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
@@ -77,7 +75,7 @@ function detectMode(): RunMode {
 }
 const mode = detectMode();
 
-// Access control comes first, ahead of every parser and route (including CopilotKit).
+// Access control comes first, ahead of every parser and route (including the model routes).
 app.use(requireToken(security));
 app.use(sameOriginWrites(security));
 app.use(limitCostly(security.rateLimitPerMinute));
@@ -86,14 +84,12 @@ const loginLimit = rateLimit(10);
 app.get("/api/login", loginLimit, loginHandler(security));
 app.post("/api/login", loginLimit, express.json({ limit: "2kb" }), loginPostHandler(security));
 
-// CopilotKit reads its own request bodies, so it is mounted before the JSON parser. Live mode only.
-if (mode === "live") app.use(copilotkitHandler());
 // Downloads (Word, PowerPoint, Excel) carry images, so they get their own body limit ahead of the 1 MB JSON parser.
 app.use("/api/export", exportRouter((id) => templateStore().get(id)));
 app.use(express.json({ limit: "1mb" }));
 
 app.get("/api/healthz", (_req, res) => {
-  res.json({ ok: true, mode, model: MODEL, agents: catalog.agents.length, copilotkit: mode === "live" ? COPILOTKIT_PATH : null });
+  res.json({ ok: true, mode, model: MODEL, agents: catalog.agents.length });
 });
 
 app.get("/api/catalog", (_req, res) => {
