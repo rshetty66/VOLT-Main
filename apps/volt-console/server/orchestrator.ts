@@ -18,12 +18,12 @@ import { lateForRewrite, runBudgetMs } from "./budget.js";
 import crypto from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
-import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, wantsDeliverable } from "./deliverable.js";
+import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, QUICK_GUIDE, quickAsk, wantsDeliverable } from "./deliverable.js";
 import { SourceRegistry, WEB_RESEARCH_GUIDE, registerWebBlock, sourceForTool, webCitationKeys } from "./research.js";
 import { evidenceGates } from "../shared/research.js";
 import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
 import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerToolDefs, runLedgerTool } from "./ledger.js";
-import { CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
+import { CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, QUICK_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 
 export type Emit = (e: VoltEvent) => void;
@@ -444,20 +444,26 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
     return;
   }
 
-  session.messages.push({ role: "user", content: `${withTemplate(req)}${registry.tier === "QUICK" ? "" : `\n\nResearch depth: ${registry.tier}. State it in Scope and method.`}` });
+  // A file or a calculation from given figures: Rudra answers alone, without the specialist bench or the partner rewrite.
+  const quick = quickAsk(req.prompt);
+  if (quick) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Quick request: building it directly with the VOLT analytics tools" });
+  session.messages.push({ role: "user", content: `${withTemplate(req)}${quick ? `\n\n${QUICK_GUIDE}` : registry.tier === "QUICK" ? "" : `\n\nResearch depth: ${registry.tier}. State it in Scope and method.`}` });
   const lead: LoopOptions = {
     catalog,
     lane: ORCHESTRATOR_LANE,
     system: orchestratorSystem(catalog),
     messages: session.messages,
-    tools: ORCHESTRATOR_TOOLS,
+    tools: quick ? QUICK_TOOLS : ORCHESTRATOR_TOOLS,
     effort: ORCHESTRATOR_EFFORT,
     emit,
     signal,
     registry,
     ledger: true,
   };
-  await reviewDraft(lead, await runAgentLoop(lead), req.prompt);
+  const draft = await runAgentLoop(lead);
+  // A quick ask still gets the ledger check, but not the full-deliverable depth review.
+  if (quick) await reviewDraft(lead, draft, "");
+  else await reviewDraft(lead, draft, req.prompt);
 }
 
 /**

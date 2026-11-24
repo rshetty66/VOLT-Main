@@ -4,8 +4,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import ExcelJS from "exceljs";
 import { loadCatalog } from "../server/catalog";
 import { exportDocument } from "../server/export";
-import { runLocalTool, schemas, toolDefs, CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS } from "../server/tools";
+import { runLocalTool, schemas, toolDefs, CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, QUICK_TOOLS, SPECIALIST_TOOLS } from "../server/tools";
 import { madeFile } from "../server/orchestrator";
+import { quickAsk } from "../server/deliverable";
+import { buildValueCase } from "../server/analytics";
 import { csvText, safeFormula, type FileSpec } from "../shared/files";
 import { FileCards, runFiles } from "../src/components/FileCards";
 import { applyEvent as reduce, newRun } from "../src/runState";
@@ -42,9 +44,10 @@ describe("create_file tool", () => {
     expect(r.reply).not.toContain("Situation");
   });
 
-  it("refuses a CSV without tables, an empty file and an unknown template", () => {
+  it("refuses an empty document and an unknown template, but lets Excel and CSV rely on the run's data sheets", () => {
     const run = (x: object) => runLocalTool(catalog, "create_file", schemas.create_file.parse(x));
-    expect(run({ format: "csv", title: "Data", markdown: "" }).ok).toBe(false);
+    expect(run({ format: "csv", title: "Data", markdown: "" }).ok).toBe(true);
+    expect(run({ format: "xlsx", title: "Value case", markdown: "" }).ok).toBe(true);
     expect(run({ format: "docx", title: "Empty", markdown: "  " }).ok).toBe(false);
     expect(run({ format: "docx", title: "T", markdown: "x", template_id: "nope" }).ok).toBe(false);
     expect(schemas.create_file.safeParse({ format: "exe", title: "T", markdown: "x" }).success).toBe(false);
@@ -95,5 +98,43 @@ describe("download cards", () => {
     expect(html).toContain("Close model");
     expect(html).toContain("Excel workbook · 2 sections · 1 data sheet");
     expect(html).toContain(">Download<");
+  });
+});
+
+describe("quick asks", () => {
+  it("sends a file or a calculation from given figures down the quick path", () => {
+    expect(quickAsk("Build a value case in excel : 140 finance FTEs at $115K loaded cost, 25% automation, $6M one-time investment.")).toBe(true);
+    expect(quickAsk("Give me a CSV of the APQC close benchmarks")).toBe(true);
+    expect(quickAsk("Calculate NPV and IRR for a $2M investment returning $700K a year for 5 years at 8%")).toBe(true);
+  });
+
+  it("keeps studies, open questions and commands on the full path", () => {
+    expect(quickAsk("Assess our close and give me a roadmap deck")).toBe(false);
+    expect(quickAsk("Design the target operating model for group finance in a Word report")).toBe(false);
+    expect(quickAsk("What is the CSM under IFRS 17?")).toBe(false);
+    expect(quickAsk("/compare excel")).toBe(false);
+    expect(quickAsk("What data model should hold IFRS 17 cohorts?")).toBe(false);
+  });
+
+  it("gives Rudra the analytics and file tools, without the specialist bench", () => {
+    expect(QUICK_TOOLS).toContain("build_value_case");
+    expect(QUICK_TOOLS).toContain("create_file");
+    expect(QUICK_TOOLS).not.toContain("consult_agent");
+    expect(QUICK_TOOLS).not.toContain("find_agents");
+  });
+
+  it("adds the run's value case to an Excel file as a data sheet, so the agent never retypes it", () => {
+    let r = newRun("Build a value case in excel", "Rudra", "orchestrate");
+    const vc = buildValueCase({ financeFtes: 140, loadedCostPerFte: 115_000, automationPct: 25, oneTimeInvestment: 6_000_000 });
+    r = reduce(r, { type: "tool_call", lane: "rudra", callId: "v1", name: "build_value_case", input: {} });
+    r = reduce(r, { type: "tool_result", lane: "rudra", callId: "v1", name: "build_value_case", summary: "ok", data: vc });
+    for (const [id, format] of [["x", "xlsx"], ["d", "docx"]] as const) {
+      r = reduce(r, { type: "tool_call", lane: "rudra", callId: id, name: "create_file", input: {} });
+      r = reduce(r, { type: "tool_result", lane: "rudra", callId: id, name: "create_file", summary: "ok", data: { format, title: "Value case", markdown: "## 1. Result" } });
+    }
+    const [xlsx, docx] = runFiles(r);
+    expect(xlsx.spec.tables?.map((t) => t.name)).toEqual(["Value case"]);
+    expect(xlsx.spec.tables?.[0].rows.at(-3)).toEqual(["NPV", null, null, null, vc.npv]);
+    expect(docx.spec.tables).toBeUndefined();
   });
 });

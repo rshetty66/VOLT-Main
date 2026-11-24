@@ -149,6 +149,21 @@ export function wantsDeliverable(prompt: string): boolean {
   return p.length >= 120 || /\b(plan|assess|assessment|design|business case|roadmap|strategy|recommend|diagnos\w*|benchmark|options|proposal|transform\w*|readiness|architecture|approach|case for)\b/i.test(p);
 }
 
+/**
+ * A quick ask: a file or a calculation from figures the user gives ("Build a value case in Excel: 140 FTEs ..."). Rudra
+ * answers it alone with the analytics tools and create_file, in one to three minutes, instead of briefing a bench of
+ * specialists and writing a full deliverable. Asks for an assessment, strategy, roadmap or design keep the full path.
+ */
+export function quickAsk(prompt: string): boolean {
+  const p = prompt.trim();
+  if (!p || p.startsWith("/") || p.length > 300) return false;
+  const fileOrCalc = /\b(excel|xlsx|spreadsheet|workbook|csv|pptx|powerpoint|deck|slides?|word|docx|pdf|file|value case|npv|irr|payback|calculate|compute|financial model)\b/i.test(p);
+  const study = /\b(assess\w*|diagnos\w*|roadmap|strategy|target operating|operating model|architecture|options|recommend\w*|readiness|transform\w*)\b/i.test(p);
+  return fileOrCalc && !study;
+}
+
+export const QUICK_GUIDE = `Quick request: answer it yourself, without consulting specialists. Get every figure from the analytics tools. If a file is asked for, make it with create_file: the tool results of this run (value case, benchmarks, maturity) are added to an Excel or CSV file as data sheets automatically, so do not retype them; add only the inputs and assumptions table. Then reply in under 200 words: the headline result, the key figures and what the file holds.`;
+
 /** The instruction for the one rewrite of a thin draft. */
 export function strengthenPrompt(report: DepthReport): string {
   return `Partner review. Your draft does not yet meet the depth standard for a client deliverable that has to win the work:

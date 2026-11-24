@@ -142,6 +142,9 @@ export const ORCHESTRATOR_TOOLS: ToolName[] = [
   "create_file",
 ];
 
+/** Rudra on a quick ask (see quickAsk): its own tools without the specialist bench. */
+export const QUICK_TOOLS: ToolName[] = ORCHESTRATOR_TOOLS.filter((t) => t !== "consult_agent" && t !== "find_agents");
+
 /** A specialist talking to the user directly can make files; one consulted by Rudra cannot (Rudra makes the one file). */
 export const SPECIALIST_TOOLS: ToolName[] = ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template", "create_file"];
 export const CONSULTED_TOOLS: ToolName[] = SPECIALIST_TOOLS.filter((t) => t !== "create_file");
@@ -240,8 +243,8 @@ export function runLocalTool(catalog: Catalog, name: Exclude<ToolName, "consult_
     }
     case "create_file": {
       const f = input as z.infer<typeof schemas.create_file>;
-      if (f.format === "csv" && !f.tables?.length) return { ok: false, error: "A csv file needs at least one entry in tables." };
-      if (f.format !== "csv" && !f.markdown.trim() && !f.tables?.length) return { ok: false, error: "The file has no content: give markdown or tables." };
+      // Excel and CSV files also get this run's analytics results as data sheets (added by the console), so they may come with no content of their own.
+      if (f.format !== "csv" && f.format !== "xlsx" && !f.markdown.trim() && !f.tables?.length) return { ok: false, error: "The file has no content: give markdown or tables." };
       if (f.template_id && !templateStore().get(f.template_id)) return { ok: false, error: `No template '${f.template_id}'. Use list_templates to see the uploaded templates.` };
       const spec: FileSpec = { format: f.format, title: f.title, subtitle: f.subtitle, markdown: f.markdown, tables: f.tables, templateId: f.template_id };
       const label = `${FILE_LABEL[f.format]}: ${f.title}`;
