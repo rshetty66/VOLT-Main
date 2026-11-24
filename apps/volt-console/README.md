@@ -98,6 +98,8 @@ The API listens on `127.0.0.1` by default. To expose it (a Codespaces Public por
 |---|---|
 | `VOLT_HOST` | Bind address. Anything other than loopback needs `VOLT_ACCESS_TOKEN`, or the server refuses to start. |
 | `VOLT_ACCESS_TOKEN` | At least 16 characters. Every `/api` route except `/api/healthz` then needs `Authorization: Bearer <token>`, or the cookie that `GET /api/login?token=<token>` sets (open that URL once in the browser). |
+| `VOLT_AUTH_MODE` | Default `token`. `username` switches the sign-in screen to a username with NO secret and lets a public bind start without a token. Anyone who can reach the URL can then use the Claude API key, so use it only where the host already restricts access. If `VOLT_ACCESS_TOKEN` is also set it still works as a Bearer token. |
+| `VOLT_ALLOWED_USERS` | Optional, with `VOLT_AUTH_MODE=username`: comma-separated names allowed to sign in (case-insensitive). A guessable list, not a password. |
 | `VOLT_ALLOWED_ORIGINS` | Comma-separated extra origins allowed to make write requests. Same-origin is always allowed. |
 | `VOLT_RATE_LIMIT` | Requests per minute per client on the routes that spend Claude tokens (default 30). |
 
