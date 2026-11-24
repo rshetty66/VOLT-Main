@@ -1,3 +1,4 @@
 .hypothesis/
 .pytest_cache/
 *.db
+*.egg-info/
