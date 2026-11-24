@@ -151,9 +151,6 @@ export function App() {
             ))}
           </select>
         </label>
-        <span className="usage" title={catalog.source.ref}>
-          {catalog.source.name}@{catalog.source.commit?.slice(0, 7)}
-        </span>
       </header>
       <nav className="nav">
         <button className="btn primary new-chat" onClick={newChat}>
