@@ -1,0 +1,59 @@
+{
+  "id": "fs-bank",
+  "version": "1",
+  "title": "Financial services: bank",
+  "industry": "Banking (IFRS primary ledger; US GAAP and local GAAP as delta ledgers from Phase 2)",
+  "note": "Sealed: each file's SHA-256 is recorded, so a pack version cannot change silently. After a reviewed change, run python -m volt_ledger.pack fs-bank 1 and bump the version if the content is in client use.",
+  "files": {
+    "reference_chart": {
+      "what": "Reference chart of accounts: segments, ranges, hierarchy, a concept on every posting account, decisions",
+      "path": "tests/golden/synbank_target_coa.json",
+      "sha256": "7ca7ce5fdd3540e62677bfbfb08bacd04b4808e467c1897b82f805aa12dc32c2"
+    },
+    "ontology": {
+      "what": "Canonical concepts with IFRS and US GAAP lines and XBRL names, calculation and presentation arcs",
+      "path": "data/ontology/mvg-bank-v1.json",
+      "sha256": "c423d35fe8709f4317b8e1c6b3c77216db73de642800d4a7b43f5b727cb1707f"
+    },
+    "ontology_insurance": {
+      "what": "IFRS 17 and segregated fund concepts, for bancassurance groups",
+      "path": "data/ontology/ext-insurance-v1.json",
+      "sha256": "9ff37d86beec71d2b0fb41a41fffdf50369e1e507aa2cea5874ecf9979c02174"
+    },
+    "information_model": {
+      "what": "Reference finance information model (FSDF-derived): contracts, positions, events, journals, GL balances",
+      "path": "fsdf/schema.sql",
+      "sha256": "219800985bb4f926f90a06d88dfff963a990de945087b64971400d98861b51c6"
+    },
+    "map_rules": {
+      "what": "Which GL account each balance type of each product posts to",
+      "path": "packs/fs-bank/v1/map_rules.json",
+      "sha256": "3d1162006f3a4688822207e9d8a947a3d45c5a997ca9e049a4b08b83c0004a71"
+    },
+    "attributes": {
+      "what": "Finance data requirements catalogue: source attributes per kind of balance, why, and the data quality rule",
+      "path": "packs/fs-bank/v1/attributes.json",
+      "sha256": "f6d813a678d72e60e8766a0034039bc8192919a428913ed178b3375d95362296"
+    },
+    "metrics": {
+      "what": "KPI definitions computed from the ledger",
+      "path": "data/metrics/metrics-v1.json",
+      "sha256": "13050f49f151b0986424b976c68b3814b470004d224e291e517aec435dc4d63a"
+    },
+    "exam": {
+      "what": "The exam and its answer keys, scored on the synthetic bank test bank",
+      "path": "packs/fs-bank/v1/exam.json",
+      "sha256": "c49cbe13128a66fcd7a5d3363f8c0b03200f8a1c9787bf994f8c1eeb81a8027b"
+    },
+    "mapping_answer_key": {
+      "what": "People-written answer key: concept per synthetic bank account, and its seeded policy gaps",
+      "path": "tests/golden/synbank_mapping.json",
+      "sha256": "1ceaa60fcb72002edefefe54d95fee36e90c10fb8522a239ada651f2e303dd29"
+    },
+    "test_bank": {
+      "what": "Synthetic bank trial balance used by the exam",
+      "path": "data/synthetic/tb_2026-09.csv",
+      "sha256": "52c12b485db37c7690389e8569b6ae81527fabd83ecf4e498a3fbf058ddf2f67"
+    }
+  }
+}

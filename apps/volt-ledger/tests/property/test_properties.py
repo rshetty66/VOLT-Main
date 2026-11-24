@@ -132,6 +132,11 @@ def test_p8_append_only(table, sql):
     s.conn.execute("INSERT INTO coa_mapping (mapping_id, design_id, design_version, doc_id, definition, proposed_by, "
                    "review_item_id, evidence_id) VALUES ('coa:0001@1:M001', 'coa:0001', 1, 'D0001', '[]', 'model', "
                    "'R000001', 'E000001')")
+    s.conn.execute("INSERT INTO fim_dataset VALUES ('FIM000001', 'synthetic', '00', '2026-09-30', 'model', 'E000001')")
+    s.conn.execute("INSERT INTO adjustment VALUES ('ADJ000001', 'gl', 'IFRS', '2026-09', 'other', 'x', NULL, 'model', "
+                   "'R000001', 'E000001')")
+    s.conn.execute("INSERT INTO adjustment_line VALUES ('ADJ000001', 1, '61000', '001', 'Unassigned', 'Unassigned', "
+                   "'None', 'NA', 'Unassigned', NULL, 5, 0)")
     assert s.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] > 0   # triggers fire only on existing rows
     with pytest.raises(sqlite3.DatabaseError, match="append-only"):
         s.conn.execute(sql.format(t=table))

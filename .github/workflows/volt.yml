@@ -49,3 +49,10 @@ jobs:
           npm ci --ignore-scripts
           npm run typecheck
           npm test
+
+      - name: VOLT Ledger
+        working-directory: apps/volt-ledger
+        run: |
+          python3 -m venv .venv
+          .venv/bin/pip install --quiet -e '.[dev]'
+          .venv/bin/python -m pytest

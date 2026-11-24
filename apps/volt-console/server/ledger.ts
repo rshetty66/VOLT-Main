@@ -151,6 +151,38 @@ export const ledgerSchemas = {
     })).min(1),
   }),
   ledger_coa_status: z.object({ design_id: z.string() }),
+  ledger_load_information_model: z.object({
+    name: z.literal("synthetic").default("synthetic").describe("v1 loads the bundled synthetic bank and insurer only."),
+  }),
+  ledger_trace_gl_balance: z.object({
+    account: z.string().describe("A posting account of the information model's chart, e.g. 13900."),
+    filters: z.object({
+      entity: z.string().optional(), business_line: z.string().optional(), product: z.string().optional(),
+      credit_stage: z.enum(["1", "2", "3", "POCI", "NA"]).optional(),
+    }).optional().describe("Segment values, e.g. {product: 'MTG', credit_stage: '3'}. Cost centre and intercompany are summed over."),
+  }),
+  ledger_instrument_summary: z.object({ instrument_id: z.string().describe("Contract id, e.g. 01-000088.") }),
+  ledger_propose_adjustment: z.object({
+    level: z.enum(["instrument", "gl"]),
+    period: PERIOD,
+    reason_code: z.enum(["ecl_overlay", "valuation", "accrual", "reclass", "correction", "top_side", "other"]),
+    rationale: z.string().min(1).max(800),
+    lines: z.array(z.object({
+      account: z.string(),
+      instrument_id: z.string().optional().describe("Required on every line of an instrument-level adjustment; its segments come from the instrument."),
+      segments: z.record(z.string(), z.string()).optional().describe("GL level only: entity, cost_centre, business_line, product, credit_stage, intercompany."),
+      debit: AMOUNT.optional(),
+      credit: AMOUNT.optional(),
+    })).min(2).max(50),
+  }),
+  ledger_reverse_adjustment: z.object({ adj_id: z.string(), rationale: z.string().min(1).max(800) }),
+  ledger_data_requirements: z.object({
+    design_id: z.string().optional().describe("A stored CoA design; leave out for the pack's reference chart."),
+  }),
+  ledger_run_exam: z.object({
+    doc_id: z.string().optional().describe("The ingested synthetic bank trial balance, for the mapping and gap sections."),
+    design_id: z.string().optional().describe("A stored CoA design, for the design section."),
+  }),
 } as const;
 
 export type LedgerToolName = keyof typeof ledgerSchemas;
@@ -165,6 +197,18 @@ const descriptions: Record<LedgerToolName, string> = {
   ledger_propose_coa_mapping:
     "Store the old-to-new account mapping for a design and trial balance. Every trial-balance row must be placed exactly once; the balances are recut under the new chart and tied out by total, class and concept.",
   ledger_coa_status: "The latest version of a design, and the review state of the design, each decision and each mapping.",
+  ledger_load_information_model:
+    "Load the finance information model (FSDF-shaped contracts, positions, events, journals and GL balances; v1: the synthetic bank and insurer) and tie every instrument-backed GL balance to its instruments. Do this once before tracing or adjusting.",
+  ledger_trace_gl_balance:
+    "Trace one GL balance down to the instruments (or IFRS 17 groups), journals and adjustments behind it. Returns GL, from instruments, instrument-level and GL-level adjustments, adjusted GL, untraced, a status (ties, break, partly_traced, gl_only) and the largest instruments. Quote display values exactly.",
+  ledger_instrument_summary: "One instrument: its segments, latest position, the GL accounts it feeds, its journals and adjustments.",
+  ledger_propose_adjustment:
+    "Propose a balanced adjustment. Instrument level: every line names an instrument and takes its segments from it (for example an ECL overlay: debit credit loss expense, credit the allowance). GL level: top-side lines with segments and no instrument. Amounts are integer strings of minor units copied from an earlier ledger result or given by a person; never calculate them. Always goes to the engagement lead's review queue.",
+  ledger_reverse_adjustment: "Propose the reversal of an earlier adjustment. An adjustment can be reversed once.",
+  ledger_data_requirements:
+    "The finance data requirements register from the knowledge pack: for every posting account of a chart, how it is backed (instrument, IFRS 17 group, event journals or GL only), the source attributes it needs, why, and the data quality rule. Also says what the pack contains. People download the full register as CSV in Ledger review.",
+  ledger_run_exam:
+    "Score the brain on the pack's test bank against people-written answer keys: mapping, seeded policy gaps, instrument tie-out and the proposed design. Sections without their input are skipped.",
   ledger_get_ontology_context:
     "Look up VOLT's canonical, XBRL-labelled accounting concepts by words, or one account or concept by id (an account comes with its trial-balance rows, sign and current mapping). Use before every mapping.",
   ledger_map_line_item:
@@ -212,6 +256,13 @@ const routes: Record<LedgerToolName, string> = {
   ledger_propose_coa_design: "/v1/tools/propose_coa_design",
   ledger_propose_coa_mapping: "/v1/tools/propose_coa_mapping",
   ledger_coa_status: "/v1/tools/coa_status",
+  ledger_load_information_model: "/v1/tools/load_information_model",
+  ledger_trace_gl_balance: "/v1/tools/trace_gl_balance",
+  ledger_instrument_summary: "/v1/tools/instrument_summary",
+  ledger_propose_adjustment: "/v1/tools/propose_adjustment",
+  ledger_reverse_adjustment: "/v1/tools/reverse_adjustment",
+  ledger_data_requirements: "/v1/tools/data_requirements",
+  ledger_run_exam: "/v1/tools/run_exam",
 };
 
 /** Tools whose results are evidence the model may cite (lookups are not). */
@@ -219,6 +270,8 @@ const CITABLE: ReadonlySet<LedgerToolName> = new Set([
   "ledger_map_line_item", "ledger_flag_policy_gap", "ledger_propose_journal", "ledger_reverse_journal", "ledger_coverage",
   "ledger_ingest_upload", "ledger_get_balances", "ledger_build_statement", "ledger_compute_ratio",
   "ledger_propose_allocation_rule", "ledger_run_allocation", "ledger_diagnose_coa", "ledger_propose_coa_design", "ledger_propose_coa_mapping",
+  "ledger_load_information_model", "ledger_trace_gl_balance", "ledger_instrument_summary", "ledger_propose_adjustment",
+  "ledger_reverse_adjustment", "ledger_data_requirements", "ledger_run_exam",
 ]);
 
 /** Dimension columns recognised in a trial balance header when the model does not name them. */
@@ -398,6 +451,20 @@ export async function ledgerCoaExport(designId: string, what: string, user: stri
   }
 }
 
+/** The data requirements register as CSV (the pack's reference chart, or a stored design) for a signed-in person. */
+export async function ledgerDataRequirementsExport(designId: string | undefined, user: string): Promise<{ status: number; text: string }> {
+  const base = ledgerBaseUrl();
+  const token = process.env.VOLT_LEDGER_TOKEN?.trim();
+  if (!base || !token) return { status: 503, text: "VOLT Ledger is not configured." };
+  try {
+    const q = designId ? `?${new URLSearchParams({ design_id: designId })}` : "";
+    const res = await fetch(`${base}/v1/people/data_requirements_export${q}`, { headers: { authorization: `Bearer ${token}`, "x-volt-user": user } });
+    return { status: res.status, text: await res.text() };
+  } catch (err) {
+    return { status: 502, text: `VOLT Ledger is unreachable: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
 export async function ledgerPeople(method: "GET" | "POST", path: "review_items" | "review_decision" | "driver_value" | "coa_designs", user: string, body?: unknown): Promise<{ status: number; json: unknown }> {
   const base = ledgerBaseUrl();
   const token = process.env.VOLT_LEDGER_TOKEN?.trim();
@@ -430,5 +497,8 @@ Turn budget: the full flow fits in about ten turns. Put independent calls in the
 Supporting tools, used for the design rather than as the deliverable:
 - Statements and ratios: ledger_build_statement, ledger_compute_ratio and the coverage in the design results show which accounts the chart needs to produce statutory lines and investor metrics. Never compute, round or restate a ledger figure yourself: quote the display value exactly and cite its source key. A check in the console rejects ledger-cited figures that do not appear in the cited result.
 - Allocation: ledger_propose_allocation_rule and ledger_run_allocation (driver values are entered by people; the engagement lead approves rules).
+- Finance information model and lineage: ledger_load_information_model once, then ledger_trace_gl_balance to show how a GL balance breaks down to instruments, IFRS 17 groups, journals and adjustments, and ledger_instrument_summary for one instrument. "ties" means instruments equal the GL to the cent; "break", "partly_traced" and "gl_only" must be explained, never smoothed over.
+- Adjustments: ledger_propose_adjustment at instrument level (lines name the instrument; segments come from it) or GL level (top-side, with segments and a reason code), ledger_reverse_adjustment to undo one. Both go to review.
+- Knowledge pack: ledger_data_requirements gives the finance data requirements register (how each account is backed, the source attributes, why, and the data quality rule); ledger_run_exam scores mapping, gaps, tie-out and design against the pack's answer keys.
 - Journals are proposals only. Copy journal amounts from earlier ledger results and name that source key.
 - Mappings below 90% confidence, first-run mappings, every policy gap, allocation rule, CoA design, design decision and CoA mapping go to the engagement lead's review queue. Say what awaits review.`;

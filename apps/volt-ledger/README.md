@@ -38,13 +38,40 @@ The golden target chart for the synthetic bank is `tests/golden/synbank_target_c
 Not in v1: ERP load formats (Oracle, SAP, Workday), local statutory taxonomies beyond IFRS and US GAAP, and
 PDF statement ingestion as a diagnosis input.
 
+## Finance information model and lineage (`volt_ledger/fim.py`)
+
+Phase 1 of `docs/cfo-finance-brain-plan.md`. The FSDF-shaped dataset (`fsdf/`) is loaded into its own SQLite file
+next to the ledger (`<db>.fim`); amounts are read as text, so every figure is exact to the cent.
+
+| Tool | What code decides |
+|---|---|
+| `load_information_model` | Loads the synthetic bank and insurer once (a second, different dataset is refused) and ties every instrument-backed balance |
+| `trace_gl_balance` | For an account and optional Entity, BusinessLine, Product and CreditStage: GL, from instruments (positions through the map rules, or IFRS 17 groups, or event journals), instrument-level and GL-level adjustments, adjusted GL, untraced, and a status: `ties`, `break`, `partly_traced` or `gl_only` |
+| `instrument_summary` | One instrument: segments, position, the GL accounts it feeds, journals and adjustments |
+| `propose_adjustment`, `reverse_adjustment` | Balanced adjustments at instrument level (segments come from the instrument) or GL level (top-side, with a reason code). Every adjustment goes to review; a rejected one drops out of lineage; a reversal is allowed once |
+
+On the synthetic data all 46 instrument-backed and IFRS 17 balances tie to the cent. Income accounts trace through
+their journals as far as the journals go, and the rest is shown as untraced.
+
+## Knowledge pack (`volt_ledger/pack.py`, `packs/fs-bank/v1`)
+
+The "pre-trained" content, sealed by SHA-256 in `pack.json` (re-seal after a reviewed change with
+`python -m volt_ledger.pack fs-bank 1`): reference chart, ontology, information model, map rules, the data
+requirements catalogue (`attributes.json`) and the exam (`exam.json`).
+
+- `data_requirements` builds the finance data requirements register for the reference chart or a stored design:
+  for every posting account, how it is backed, the source attributes, why, and the data quality rule. People
+  download it as CSV from Ledger review (`/v1/people/data_requirements_export`).
+- `run_exam` scores mapping, seeded policy gaps, instrument tie-out and a proposed design against people-written
+  answer keys. The reviewed golden answers score 100% on every section.
+
 ## Run the tests
 
 ```bash
 cd apps/volt-ledger
 python3 -m venv .venv && . .venv/bin/activate
 pip install -e '.[dev]'
-python -m pytest                                          # 67 tests, a few seconds
+python -m pytest                                          # about 150 tests, under a minute
 VOLT_PROPERTY_EXAMPLES=10000 python -m pytest tests/property   # the full property run, about 6 minutes
 ```
 
@@ -181,4 +208,6 @@ FTE." Approve the rule and enter FTEs on Ledger review, then ask it to run the a
 | `tests/api/test_api.py` | Token required, integer-string amounts, refusals in the envelope, person-only review routes |
 | `tests/unit/test_allocation.py` | Golden IT allocation and 100.00 three-way split; approval, missing drivers, replay, bad rules |
 | `tests/unit/test_reporting.py` | Golden income statement, balance-sheet tie, NII, efficiency and loan-to-deposit; the safe evaluator; the gate |
+| `tests/unit/test_fim.py` | Every instrument-backed balance ties; lineage by instrument, group and journal; adjustments at both levels, review, reversal, refusals |
+| `tests/unit/test_pack.py` | The pack seal, map rules match the data, the register covers every posting account, the exam scores and marks misses |
 | `tests/property/test_properties.py` | P1 to P10 from `docs/phase3-engine.md`, on random data |

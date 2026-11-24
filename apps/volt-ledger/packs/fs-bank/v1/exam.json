@@ -1,0 +1,10 @@
+{
+  "note": "The exam a pack version must pass before it ships, and the bar the brain is scored against on the pack's test bank. Answer keys are written by people, never by the model.",
+  "test_bank": {"client": "SYNBANK", "trial_balance": "data/synthetic/tb_2026-09.csv", "period": "2026-09"},
+  "sections": [
+    {"id": "mapping", "title": "Trial-balance accounts mapped to the right concept", "answer_key": "tests/golden/synbank_mapping.json", "pass_pct": 95},
+    {"id": "gaps", "title": "Seeded policy gaps flagged", "answer_key": "tests/golden/synbank_mapping.json", "pass_pct": 100},
+    {"id": "tie_out", "title": "Every instrument-backed and IFRS 17 GL balance ties to its instruments or groups to the cent", "pass_pct": 100},
+    {"id": "design", "title": "A proposed chart passes every check and covers every concept of the reference chart", "reference": "tests/golden/synbank_target_coa.json", "pass_pct": 100}
+  ]
+}
