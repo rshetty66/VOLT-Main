@@ -19,7 +19,7 @@ import crypto from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
 import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, wantsDeliverable } from "./deliverable.js";
-import { SourceRegistry, sourceForTool, sourcesFromWebSearch } from "./research.js";
+import { SourceRegistry, WEB_RESEARCH_GUIDE, registerWebBlock, sourceForTool, webCitationKeys } from "./research.js";
 import { evidenceGates } from "../shared/research.js";
 import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
 import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerToolDefs, runLedgerTool } from "./ledger.js";
@@ -49,9 +49,17 @@ type Effort = "low" | "medium" | "high" | "xhigh" | "max";
 export const MODEL = process.env.VOLT_MODEL ?? "claude-opus-5-5";
 const ORCHESTRATOR_EFFORT = (process.env.VOLT_ORCHESTRATOR_EFFORT ?? "medium") as Effort;
 const SPECIALIST_EFFORT = (process.env.VOLT_SPECIALIST_EFFORT ?? "medium") as Effort;
-/** Claude's own web_search, opt-in: sources then come from real pages. Off by default until it has had a live test. */
+/**
+ * Claude's own web_search and web_fetch, opt-in (VOLT_WEB_RESEARCH=on): sources then come from real pages.
+ * Cost: each search is billed (USD 10 per 1,000) on top of tokens; a fetch costs only the tokens of the page it reads.
+ */
 const WEB_RESEARCH = (process.env.VOLT_WEB_RESEARCH ?? "off") === "on";
-const WEB_SEARCH_TOOL = { type: "web_search_20260209", name: "web_search", max_uses: 8 } as unknown as Anthropic.Beta.BetaTool;
+/** Searches one run may make across all its agents before the agents are told to stop searching. A soft cap: a model turn already under way can overshoot it by a few. */
+export const MAX_WEB_SEARCHES = Number(process.env.VOLT_WEB_MAX_SEARCHES) > 0 ? Number(process.env.VOLT_WEB_MAX_SEARCHES) : 20;
+const WEB_TOOLS = [
+  { type: "web_search_20260209", name: "web_search", max_uses: 5 },
+  { type: "web_fetch_20260209", name: "web_fetch", max_uses: 5, citations: { enabled: true }, max_content_tokens: 20000 },
+] as unknown as Anthropic.Beta.BetaTool[];
 const USE_FALLBACKS = (process.env.VOLT_FALLBACKS ?? "on") !== "off";
 /** Model turns per agent. A full chart-of-accounts run (load, map, diagnose, design, check, propose, map, report) needs more than a chat answer. */
 const MAX_TURNS = Number(process.env.VOLT_MAX_TURNS) > 0 ? Number(process.env.VOLT_MAX_TURNS) : 40;
@@ -163,9 +171,9 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
       {
         model: MODEL,
         max_tokens: 64000,
-        system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
+        system: [{ type: "text", text: WEB_RESEARCH ? `${opts.system}\n\n${WEB_RESEARCH_GUIDE}` : opts.system, cache_control: { type: "ephemeral" } }],
         messages,
-        tools: [...toolDefs(opts.tools), ...(opts.ledger && ledgerEnabled() ? [...goalToolDefs(), ...ledgerToolDefs()] : []), ...(WEB_RESEARCH ? [WEB_SEARCH_TOOL] : [])],
+        tools: [...toolDefs(opts.tools), ...(opts.ledger && ledgerEnabled() ? [...goalToolDefs(), ...ledgerToolDefs()] : []), ...(WEB_RESEARCH ? WEB_TOOLS : [])],
         ...(wrapUp ? { tool_choice: { type: "none" as const } } : {}),
         thinking: { type: "adaptive", display: "updates" },
         output_config: { effort: opts.effort },
@@ -176,19 +184,37 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
     );
 
     let thinkingBuf = "";
+    // Web citations on the text block being streamed, and the source keys added after each cited block (by block index).
+    let citations: unknown[] = [];
+    const keySuffix = new Map<number, string>();
     for await (const ev of stream) {
       if (ev.type === "content_block_start") {
         if (ev.content_block.type === "thinking") thinkingBuf = "";
+        if (ev.content_block.type === "text") citations = [];
         if (ev.content_block.type === "fallback") {
           emit({ type: "fallback", lane, from: ev.content_block.from.model, to: ev.content_block.to.model });
         }
+        // Search and fetch results arrive whole: record their pages before the text that cites them streams.
+        if (WEB_RESEARCH) for (const record of registerWebBlock(ev.content_block, opts.registry)) emit({ type: "source", record });
       } else if (ev.type === "content_block_delta") {
         if (ev.delta.type === "text_delta") emit({ type: "text_delta", lane, text: ev.delta.text });
         else if (ev.delta.type === "thinking_delta") thinkingBuf += ev.delta.thinking;
-      } else if (ev.type === "content_block_stop" && thinkingBuf.trim()) {
-        // With display "updates", non-empty thinking blocks are short progress notes.
-        emit({ type: "status", lane, text: thinkingBuf.trim() });
-        thinkingBuf = "";
+        else if (ev.delta.type === "citations_delta") citations.push(ev.delta.citation);
+      } else if (ev.type === "content_block_stop") {
+        if (thinkingBuf.trim()) {
+          // With display "updates", non-empty thinking blocks are short progress notes.
+          emit({ type: "status", lane, text: thinkingBuf.trim() });
+          thinkingBuf = "";
+        }
+        if (citations.length) {
+          const keys = webCitationKeys(citations, opts.registry);
+          if (keys.length) {
+            const suffix = ` ${keys.map((k) => `[${k}]`).join(" ")}`;
+            keySuffix.set(ev.index, suffix);
+            emit({ type: "text_delta", lane, text: suffix });
+          }
+          citations = [];
+        }
       }
     }
 
@@ -216,19 +242,20 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
       return finalText;
     }
 
+    let searchCapNote = "";
     if (WEB_RESEARCH) {
-      for (const b of message.content as { type: string; content?: unknown }[]) {
-        if (b.type !== "web_search_tool_result") continue;
-        for (const src of sourcesFromWebSearch(b.content)) {
-          const { record, isNew } = opts.registry.add(src);
-          if (isNew) emit({ type: "source", record });
-        }
+      const before = opts.registry.webSearches;
+      opts.registry.webSearches += message.usage.server_tool_use?.web_search_requests ?? 0;
+      if (before < MAX_WEB_SEARCHES && opts.registry.webSearches >= MAX_WEB_SEARCHES) {
+        emit({ type: "status", lane, text: `Web research: ${opts.registry.webSearches} searches, the cap for this run; the agents stop searching now` });
+        searchCapNote = `The web search budget for this run (${MAX_WEB_SEARCHES} searches) is spent. Do not call web_search again; work from the pages already retrieved.`;
       }
     }
 
+    // The history keeps the API's blocks unchanged; only the answer text carries the source keys added for web citations.
     const content = echoableContent(message.content);
     messages.push({ role: "assistant", content });
-    finalText = content.filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text").map((b) => b.text).join("");
+    finalText = message.content.map((b, i) => (b.type === "text" ? b.text + (keySuffix.get(i) ?? "") : "")).join("");
 
     if (message.stop_reason === "pause_turn") continue;
     const toolUses = content.filter((b): b is Anthropic.Beta.BetaToolUseBlock => b.type === "tool_use");
@@ -241,7 +268,7 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
 
     // Execute every tool call of this turn concurrently; reply with all results in one message.
     const results = await Promise.all(toolUses.map((tu) => executeTool(catalog, lane, tu, emit, signal, opts.registry)));
-    messages.push({ role: "user", content: results });
+    messages.push({ role: "user", content: searchCapNote ? [...results, { type: "text", text: searchCapNote }] : results });
   }
   emit({ type: "error", lane, message: `Stopped after ${MAX_TURNS} turns.` });
   return finalText;
