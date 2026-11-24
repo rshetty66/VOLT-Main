@@ -42,8 +42,9 @@ describe("VOLT Ledger tools", () => {
     expect(names).toEqual(["ledger_get_ontology_context", "ledger_map_line_item", "ledger_flag_policy_gap",
       "ledger_propose_journal", "ledger_reverse_journal", "ledger_coverage", "ledger_ingest_upload", "ledger_list_accounts",
       "ledger_get_balances", "ledger_build_statement", "ledger_list_metrics", "ledger_compute_ratio",
-      "ledger_propose_allocation_rule", "ledger_run_allocation", "ledger_resolve_peer_period",
-      "ledger_fetch_peer_documents", "ledger_peer_metrics"]);
+      "ledger_propose_allocation_rule", "ledger_run_allocation",
+      "ledger_diagnose_coa", "ledger_check_coa_design", "ledger_propose_coa_design", "ledger_propose_coa_mapping",
+      "ledger_coa_status", "ledger_resolve_peer_period", "ledger_fetch_peer_documents", "ledger_peer_metrics"]);
     expect(names.some((n) => /driver_value|check_output/.test(n))).toBe(false);
     expect(names.some((n) => /review|decision/.test(n))).toBe(false);
     expect(isLedgerTool("ledger_coverage")).toBe(true);
@@ -177,6 +178,22 @@ describe("VOLT Ledger tools", () => {
     expect(r.ok && r.newSource?.publisher).toBe("VOLT Ledger");
     expect(r.ok && r.newSource?.type).toBe("public filing");
     expect(fetchMock.mock.calls[0][0]).toBe("http://ledger.test/v1/tools/peer_metrics");
+  });
+
+  it("validates a CoA design before calling the service and cites a stored design", async () => {
+    const registry = new SourceRegistry("x");
+    const bad = await runLedgerTool("ledger_propose_coa_design", { design: { name: "x", segments: [], accounts: [] } }, registry);
+    expect(bad.ok).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+    fetchMock.mockResolvedValueOnce(ok({ design_id: "coa:0001", version: 1 }, { design: "coa:0001 version 1" }, "E000100"));
+    const r = await runLedgerTool("ledger_propose_coa_design", { design: {
+      name: "Target", segments: [{ name: "NaturalAccount", length: 5, natural: true }],
+      accounts: [{ code: "11100", name: "Cash", class: "asset", concept_id: "canon:CashAndCentralBankBalances" }],
+      decisions: [{ topic: "t", choice: "c", rationale: "r" }],
+    } }, registry);
+    expect(r.ok && r.newSource?.type).toBe("calculation");
+    const sent = JSON.parse(fetchMock.mock.calls[0][1].body);
+    expect(sent.design.decisions[0]).toEqual({ topic: "t", choice: "c", rationale: "r", alternatives: [], standard_refs: [] });
   });
 
   it("sends the signed-in person to people-only routes", async () => {

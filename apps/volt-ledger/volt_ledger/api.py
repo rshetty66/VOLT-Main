@@ -20,9 +20,12 @@ from pathlib import Path
 from typing import Any, Literal
 
 from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field
 
 from .allocation import AllocationError, AllocationRule, propose_allocation_rule, run_allocation
+from .coa import (CoaError, check_design, coverage as coa_coverage, design_status, diagnose_coa, export as coa_export,
+                  posting_accounts, propose_design, propose_mapping)
 from .drivers import DriverError, record_driver_value
 from .evidence import write_evidence
 from .ingest import ColumnMap, IngestError, ingest_trial_balance
@@ -154,6 +157,25 @@ class DriverBody(BaseModel):
     value: str = Field(pattern=r"^-?[0-9]+(\.[0-9]+)?$")
     unit: str
     note: str = ""
+
+
+class DiagnoseBody(BaseModel):
+    doc_id: str
+
+
+class DesignBody(BaseModel):
+    design: dict
+    design_id: str | None = None
+
+
+class CoaMappingBody(BaseModel):
+    design_id: str
+    doc_id: str
+    rules: list[dict] = Field(min_length=1)
+
+
+class DesignIdBody(BaseModel):
+    design_id: str
 
 
 class PeerPeriodBody(BaseModel):
@@ -427,6 +449,79 @@ def create_app(db_path: str | None = None) -> FastAPI:
             ev = recorded(s, "run_allocation", body.model_dump(), data, display)
         return ok(ev, data, display, ["this is a proposed allocation journal, not posted to the client's GL"])
 
+    # ---- chart-of-accounts design (the primary output) ------------------------------------------------------------
+
+    def coa_refused(e: CoaError) -> dict:
+        r = refused(e.code, str(e))
+        r["data"]["details"] = e.details
+        return r
+
+    @app.post("/v1/tools/diagnose_coa", dependencies=[Depends(auth)])
+    def diagnose(body: DiagnoseBody) -> dict:
+        try:
+            with locked() as s:
+                d = diagnose_coa(s, body.doc_id)
+                display = {"accounts": str(d["stats"]["accounts"]), "findings": str(len(d["findings"]))} | \
+                    {f["id"]: f"{f['count']} ({f['severity']})" for f in d["findings"]}
+                ev = recorded(s, "diagnose_coa", body.model_dump(), d, display)
+        except CoaError as e:
+            return coa_refused(e)
+        return ok(ev, d, display)
+
+    @app.post("/v1/tools/check_coa_design", dependencies=[Depends(auth)])
+    def check_coa(body: DesignBody) -> dict:
+        """A dry run while the model drafts: checks and coverage, nothing stored, not citable."""
+        with locked() as s:
+            checks = check_design(s, body.design)
+            post = posting_accounts(body.design)
+            cov = coa_coverage(s, {a["concept_id"] for a in post if a.get("concept_id")},
+                               {x["source_dimension"] for x in body.design.get("segments", []) if x.get("source_dimension")})
+        failed = [c for c in checks if not c["ok"]]
+        return ok(None, {"pass": not failed, "checks": checks, "coverage": cov},
+                  warnings=[f"{c['id']}: {c['detail']}" for c in failed])
+
+    @app.post("/v1/tools/propose_coa_design", dependencies=[Depends(auth)])
+    def propose_coa(body: DesignBody) -> dict:
+        try:
+            with locked() as s:
+                out = propose_design(s, body.design, "model", body.design_id)
+        except CoaError as e:
+            return coa_refused(e)
+        cov = out["coverage"]
+        display = {"design": f"{out['design_id']} version {out['version']}", "accounts": str(out["accounts"]),
+                   "posting accounts": str(out["posting_accounts"]), "decisions": str(len(out["decisions"])),
+                   "IFRS lines producible": f"{cov['statements']['ifrs']['producible']} of {cov['statements']['ifrs']['lines']}",
+                   "metrics producible": f"{cov['metrics_producible']} of {cov['metrics_total']}"}
+        return ok(out["evidence_id"], out, display,
+                  ["the engagement lead must approve the design and each decision in the Ledger review screen"])
+
+    @app.post("/v1/tools/propose_coa_mapping", dependencies=[Depends(auth)])
+    def propose_coa_map(body: CoaMappingBody) -> dict:
+        try:
+            with locked() as s:
+                out = propose_mapping(s, body.design_id, body.doc_id, body.rules, "model")
+        except CoaError as e:
+            return coa_refused(e)
+        cur = out["currency"]
+        lines = out.pop("recut_lines")
+        out["recut_lines"] = lines[:200]
+        out["recut_line_count"] = len(lines)
+        tie = out["tie_out"]
+        display = {"mapping": out["mapping_id"], "recut lines": str(len(lines)),
+                   "total old": money(tie["T_TOTAL"]["old"], cur), "total new": money(tie["T_TOTAL"]["new"], cur)}
+        display |= {f"reclassified {x['concept']}": money(x["new"] - x["old"], cur) for x in tie["T_CONCEPT"]["reclassified"]}
+        warnings = [] if tie["T_CLASS"]["ok"] else ["class tie-out not confirmed: some legacy accounts were unmapped or "
+                                                    "unclassified; see the reclassified concepts"]
+        return ok(out["evidence_id"], out, display, warnings)
+
+    @app.post("/v1/tools/coa_status", dependencies=[Depends(auth)])
+    def coa_state(body: DesignIdBody) -> dict:
+        try:
+            with locked() as s:
+                return ok(None, design_status(s, body.design_id))
+        except CoaError as e:
+            return coa_refused(e)
+
     # ---- peer results search (internal benchmarking only, P1) --------------------------------------------------
     peer_files = os.environ.get("VOLT_LEDGER_PEER_FILES", str(Path(path).resolve().parent / "peer_files"))
     mailbox = os.environ.get("VOLT_LEDGER_MAILBOX", "volt-research@example.invalid")
@@ -513,6 +608,21 @@ def create_app(db_path: str | None = None) -> FastAPI:
         except DriverError as e:
             return refused(e.code, str(e))
         return ok(ev, {"value_id": vid})
+
+    @app.get("/v1/people/coa_designs", dependencies=[Depends(auth)])
+    def coa_designs() -> dict:
+        with locked() as s:
+            ids = [r[0] for r in s.conn.execute("SELECT DISTINCT design_id FROM coa_design ORDER BY design_id")]
+            return ok(None, [design_status(s, i) for i in ids])
+
+    @app.get("/v1/people/coa_export", dependencies=[Depends(auth)])
+    def coa_download(design_id: str, what: str) -> PlainTextResponse:
+        try:
+            with locked() as s:
+                text = coa_export(s, design_id, what)
+        except CoaError as e:
+            raise HTTPException(404, str(e))
+        return PlainTextResponse(text, media_type="text/csv")
 
     @app.get("/v1/people/review_items", dependencies=[Depends(auth)])
     def review_items() -> dict:

@@ -19,6 +19,29 @@ const AMOUNT = z.string().regex(/^[0-9]+$/, "amount_minor must be an integer str
 const PERIOD = z.string().regex(/^[0-9]{4}-(0[1-9]|1[0-2])$/, "period is YYYY-MM");
 const FISCAL = z.string().regex(/^FY[0-9]{4}(-(Q[1-4]|H[12]))?$/, "fiscal period is FY2026-Q3, FY2026-H1 or FY2026");
 
+const COA_DESIGN = z.object({
+  name: z.string(),
+  segments: z.array(z.object({
+    name: z.string(),
+    length: z.number().int().positive().optional(),
+    natural: z.boolean().optional(),
+    source_dimension: z.string().optional().describe("The trial-balance dimension that fills this segment, e.g. BusinessLine."),
+    default: z.string().optional(),
+  })).min(1),
+  ranges: z.record(z.string(), z.array(z.string())).optional().describe("First-digit prefixes per class; default 1 asset, 2 liability, 3 equity, 4 revenue, 5-9 expense."),
+  accounts: z.array(z.object({
+    code: z.string(),
+    name: z.string(),
+    class: z.enum(["asset", "liability", "equity", "revenue", "expense"]),
+    parent: z.string().optional(),
+    concept_id: z.string().optional().describe("Required on every posting account: the canonical concept it rolls into."),
+  })).min(1),
+  decisions: z.array(z.object({
+    topic: z.string(), choice: z.string(), alternatives: z.array(z.string()).default([]), rationale: z.string(),
+    standard_refs: z.array(z.string()).default([]).describe("Paragraph references only; they are marked unverified."),
+  })).default([]),
+});
+
 export const ledgerSchemas = {
   ledger_get_ontology_context: z.object({
     query: z.string().optional().describe("Words to match against canonical concepts, e.g. 'fee and commission income'."),
@@ -109,6 +132,23 @@ export const ledgerSchemas = {
     period: PERIOD,
     idempotency_key: z.string().min(1).max(200),
   }),
+  ledger_diagnose_coa: z.object({ doc_id: z.string().describe("The ingested trial balance, e.g. D0001.") }),
+  ledger_check_coa_design: z.object({ design: COA_DESIGN }),
+  ledger_propose_coa_design: z.object({
+    design: COA_DESIGN,
+    design_id: z.string().optional().describe("Give the existing id (coa:0001) to propose a new version of that design."),
+  }),
+  ledger_propose_coa_mapping: z.object({
+    design_id: z.string(),
+    doc_id: z.string(),
+    rules: z.array(z.object({
+      legacy_code: z.string().describe("The legacy account code exactly as in the trial balance."),
+      when: z.record(z.string(), z.string()).optional().describe("Dimension values that select some of the account's rows, for splits."),
+      target: z.string().describe("A posting account code of the design, or RETIRE for a zero-balance account."),
+      segments: z.record(z.string(), z.string()).optional().describe("Segment values to set, e.g. {BusinessLine: 'Retail'} for a dimension that was in the legacy code."),
+    })).min(1),
+  }),
+  ledger_coa_status: z.object({ design_id: z.string() }),
   ledger_resolve_peer_period: z.object({
     peer_ids: z.array(z.string()).min(1).describe("Peer ids or groups: big6, canadian_midsize, canadian_banks, cooperatives_and_credit_unions, insurers, maple_pensions, asset_managers."),
     period: FISCAL.optional().describe("FY2026-Q3, FY2026-H1 or FY2026. Leave out for each peer's latest released period."),
@@ -131,6 +171,15 @@ export const ledgerSchemas = {
 export type LedgerToolName = keyof typeof ledgerSchemas;
 
 const descriptions: Record<LedgerToolName, string> = {
+  ledger_diagnose_coa:
+    "Diagnose the client's current chart of accounts from an ingested, mapped trial balance: catch-alls, dimensions built into accounts, near-duplicates, wrong-sign balances, unmapped accounts, sparse segments, open policy gaps, and statement lines and metrics the chart cannot produce.",
+  ledger_check_coa_design:
+    "Dry-run a draft target chart: structure checks (codes, ranges, hierarchy, naming, segments, concept anchoring) and which IFRS and US GAAP lines and metrics it can produce. Nothing is stored. Iterate until it passes.",
+  ledger_propose_coa_design:
+    "Store a target chart of accounts that passes every check, with its design decisions. The design and each decision go to the engagement lead's review queue. Refused with the failing checks otherwise.",
+  ledger_propose_coa_mapping:
+    "Store the old-to-new account mapping for a design and trial balance. Every trial-balance row must be placed exactly once; the balances are recut under the new chart and tied out by total, class and concept.",
+  ledger_coa_status: "The latest version of a design, and the review state of the design, each decision and each mapping.",
   ledger_resolve_peer_period:
     "Which fiscal period is the latest released one for each peer (from the peers' fiscal calendars), or whether a named period is out yet. Call first in any peer comparison.",
   ledger_fetch_peer_documents:
@@ -176,6 +225,11 @@ const routes: Record<LedgerToolName, string> = {
   ledger_compute_ratio: "/v1/tools/compute_ratio",
   ledger_propose_allocation_rule: "/v1/tools/propose_allocation_rule",
   ledger_run_allocation: "/v1/tools/run_allocation",
+  ledger_diagnose_coa: "/v1/tools/diagnose_coa",
+  ledger_check_coa_design: "/v1/tools/check_coa_design",
+  ledger_propose_coa_design: "/v1/tools/propose_coa_design",
+  ledger_propose_coa_mapping: "/v1/tools/propose_coa_mapping",
+  ledger_coa_status: "/v1/tools/coa_status",
   ledger_resolve_peer_period: "/v1/tools/resolve_peer_period",
   ledger_fetch_peer_documents: "/v1/tools/fetch_peer_documents",
   ledger_peer_metrics: "/v1/tools/peer_metrics",
@@ -188,7 +242,7 @@ const CITABLE: ReadonlySet<LedgerToolName> = new Set([
   "ledger_map_line_item", "ledger_flag_policy_gap", "ledger_propose_journal", "ledger_reverse_journal", "ledger_coverage",
   "ledger_ingest_upload", "ledger_get_balances", "ledger_build_statement", "ledger_compute_ratio",
   "ledger_propose_allocation_rule", "ledger_run_allocation", "ledger_resolve_peer_period", "ledger_fetch_peer_documents",
-  "ledger_peer_metrics",
+  "ledger_peer_metrics", "ledger_diagnose_coa", "ledger_propose_coa_design", "ledger_propose_coa_mapping",
 ]);
 
 /** Dimension columns recognised in a trial balance header when the model does not name them. */
@@ -303,7 +357,7 @@ export async function runLedgerTool(name: LedgerToolName, input: unknown, regist
       publisher: "VOLT Ledger",
       date: new Date().toISOString().slice(0, 7),
       // Peer figures are read from issuers' own filings: a different kind of evidence from the ledger's calculations.
-      type: PEER_FILINGS.has(name) ? "public filing" : "calculation",
+      type: PEER_FILINGS.has(name) ? "public filing" : name === "ledger_diagnose_coa" || name === "ledger_ingest_upload" ? "client data" : "calculation",
       authority: 8,
     });
     const map = resultData.get(registry) ?? new Map<string, string>();
@@ -355,7 +409,21 @@ export async function checkLedgerFigures(draft: string, registry: SourceRegistry
  * People-only ledger calls (review decisions, driver values, the review list). Never offered to the model: the console
  * calls these from its own routes for a signed-in person, whose name goes in X-Volt-User.
  */
-export async function ledgerPeople(method: "GET" | "POST", path: "review_items" | "review_decision" | "driver_value", user: string, body?: unknown): Promise<{ status: number; json: unknown }> {
+/** A CSV download of a design (chart, hierarchy, mapping or decisions) for a signed-in person. */
+export async function ledgerCoaExport(designId: string, what: string, user: string): Promise<{ status: number; text: string }> {
+  const base = ledgerBaseUrl();
+  const token = process.env.VOLT_LEDGER_TOKEN?.trim();
+  if (!base || !token) return { status: 503, text: "VOLT Ledger is not configured." };
+  try {
+    const q = new URLSearchParams({ design_id: designId, what });
+    const res = await fetch(`${base}/v1/people/coa_export?${q}`, { headers: { authorization: `Bearer ${token}`, "x-volt-user": user } });
+    return { status: res.status, text: await res.text() };
+  } catch (err) {
+    return { status: 502, text: `VOLT Ledger is unreachable: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
+
+export async function ledgerPeople(method: "GET" | "POST", path: "review_items" | "review_decision" | "driver_value" | "coa_designs", user: string, body?: unknown): Promise<{ status: number; json: unknown }> {
   const base = ledgerBaseUrl();
   const token = process.env.VOLT_LEDGER_TOKEN?.trim();
   if (!base || !token) return { status: 503, json: { error: "VOLT Ledger is not configured." } };
@@ -372,12 +440,20 @@ export async function ledgerPeople(method: "GET" | "POST", path: "review_items" 
 }
 
 /** What the lead needs to know to use the ledger tools well; added to its system prompt only when they are on. */
-export const LEDGER_GUIDE = `## VOLT Ledger (accounting brain)
-You have ledger_* tools backed by a deterministic accounting service. It computes every number; you reason, map and explain.
-- Trial balance: when the client attaches a CSV or XLSX trial balance (it shows an upload id), call ledger_ingest_upload first, then ledger_list_accounts.
-- Mapping: map every account to one canonical concept with ledger_map_line_item (use ledger_get_ontology_context to find concepts). When a policy decision is needed (mixed recognition bases, missing credit stage, catch-all balances, dimensions in account codes, lease or capitalisation differences, netting, wrong-sign balances), use ledger_flag_policy_gap instead of forcing a mapping. Finish with ledger_coverage: every account must be mapped or flagged.
-- Statements and ratios: ledger_build_statement for IFRS or US GAAP statements, ledger_compute_ratio for every ratio or KPI. Never compute, round or restate a ledger figure yourself: quote the display value exactly and cite its source key. A check in the console rejects ledger-cited figures that do not appear in the cited result.
-- Allocation is driver-based: propose a rule with ledger_propose_allocation_rule (pool, driver, targets). Driver values (FTEs, transaction counts, RWA) are entered by people, and the engagement lead approves the rule in the Ledger review screen. Then run it with ledger_run_allocation, and use include_proposals for business-line figures after allocation. If a rule is unapproved or a driver is missing, say exactly what the person must do.
-- Journals are proposals only, never posted to the client's ledger. Copy journal amounts from earlier ledger results and name that source key.
-- Peer results (internal benchmarking only): ledger_resolve_peer_period, then ledger_fetch_peer_documents (supplementary_financial_info packs), then ledger_peer_metrics. Never type a peer figure from memory or a web page. Report "not verified" peers as such. Peer figures are for the engagement team: do not reproduce peer tables in client deliverables; describe position in ranges instead.
-- Mappings below 90% confidence, first-run mappings, every policy gap and every allocation rule go to the engagement lead's review queue. Say which figures are draft because they await review.`;
+export const LEDGER_GUIDE = `## VOLT Ledger: chart-of-accounts design brain
+You have ledger_* tools backed by a deterministic accounting service. It checks and computes; you reason, design and explain. Its primary job is chart-of-accounts (CoA) design for banks, insurers, credit unions, pension funds and asset managers.
+
+The CoA design workflow (follow it in order whenever the client wants a chart designed, redesigned, rationalised or diagnosed):
+1. Load: when the client attaches a CSV or XLSX trial balance (it shows an upload id), call ledger_ingest_upload, then ledger_list_accounts.
+2. Map the current chart: map every account to one canonical concept with ledger_map_line_item (use ledger_get_ontology_context). Where a policy decision is needed, use ledger_flag_policy_gap instead of forcing a mapping. Finish with ledger_coverage.
+3. Diagnose: ledger_diagnose_coa. Explain each finding in plain language and the design question it raises.
+4. Design the target chart: segments (entity, natural account, cost centre, business line, product, credit stage where relevant, intercompany), fixed-length natural account codes in class ranges, a posting and roll-up hierarchy, and a canonical concept on every posting account so IFRS, US GAAP, statutory and management roll-ups follow from it. Record each choice that needs judgement as a decision (topic, choice, alternatives, rationale, paragraph references). Use ledger_check_coa_design until every check passes, then ledger_propose_coa_design.
+5. Map old to new: ledger_propose_coa_mapping with one rule per legacy account (use "when" to split an account by dimension and "segments" to move a dimension out of a legacy code). Every row must be placed once; explain every reclassified concept in the tie-out.
+6. Report: the deliverable is the CoA design pack: diagnosis, target segments and ranges, the hierarchy, statement and metric coverage, the mapping and tie-out, and the decision log, each cited to its ledger result. The engagement lead approves the design and each decision in the Ledger review screen, where the chart, hierarchy, mapping and decisions download as CSV.
+
+Supporting tools, used for the design rather than as the deliverable:
+- Statements and ratios: ledger_build_statement, ledger_compute_ratio and the coverage in the design results show which accounts the chart needs to produce statutory lines and investor metrics. Never compute, round or restate a ledger figure yourself: quote the display value exactly and cite its source key. A check in the console rejects ledger-cited figures that do not appear in the cited result.
+- Allocation: ledger_propose_allocation_rule and ledger_run_allocation (driver values are entered by people; the engagement lead approves rules).
+- Peer results: ledger_resolve_peer_period, ledger_fetch_peer_documents and ledger_peer_metrics read peers' official filings, for example to see which lines peers disclose. For the engagement team, show the per-peer table with page references when asked; mark it internal.
+- Journals are proposals only. Copy journal amounts from earlier ledger results and name that source key.
+- Mappings below 90% confidence, first-run mappings, every policy gap, allocation rule, CoA design, design decision and CoA mapping go to the engagement lead's review queue. Say what awaits review.`;

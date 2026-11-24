@@ -1,0 +1,858 @@
+{
+ "note": "Hand-made target chart and old-to-new mapping for the synthetic bank, used by the CoA golden tests.",
+ "design": {
+  "name": "SYNBANK target chart v1",
+  "segments": [
+   {
+    "name": "Entity",
+    "length": 3,
+    "default": "001"
+   },
+   {
+    "name": "NaturalAccount",
+    "length": 5,
+    "natural": true
+   },
+   {
+    "name": "CostCentre",
+    "length": 5,
+    "source_dimension": "CostCentre",
+    "default": "00000"
+   },
+   {
+    "name": "BusinessLine",
+    "length": 3,
+    "source_dimension": "BusinessLine",
+    "default": "Unassigned"
+   },
+   {
+    "name": "Product",
+    "length": 3,
+    "source_dimension": "Product",
+    "default": "None"
+   },
+   {
+    "name": "CreditStage",
+    "length": 1,
+    "source_dimension": "CreditStage",
+    "default": "NA"
+   },
+   {
+    "name": "Intercompany",
+    "length": 3,
+    "default": "000"
+   }
+  ],
+  "accounts": [
+   {
+    "code": "10000",
+    "name": "Assets",
+    "class": "asset",
+    "parent": ""
+   },
+   {
+    "code": "11000",
+    "name": "Cash and interbank",
+    "class": "asset",
+    "parent": "10000"
+   },
+   {
+    "code": "11100",
+    "name": "Cash and balances with central banks",
+    "class": "asset",
+    "parent": "11000",
+    "concept_id": "canon:CashAndCentralBankBalances"
+   },
+   {
+    "code": "11200",
+    "name": "Due from banks",
+    "class": "asset",
+    "parent": "11000",
+    "concept_id": "canon:DueFromBanks"
+   },
+   {
+    "code": "12000",
+    "name": "Securities and derivatives",
+    "class": "asset",
+    "parent": "10000"
+   },
+   {
+    "code": "12100",
+    "name": "Investment securities at FVOCI",
+    "class": "asset",
+    "parent": "12000",
+    "concept_id": "canon:InvestmentSecuritiesFVOCI"
+   },
+   {
+    "code": "12200",
+    "name": "Investment securities at amortised cost",
+    "class": "asset",
+    "parent": "12000",
+    "concept_id": "canon:InvestmentSecuritiesAmortisedCost"
+   },
+   {
+    "code": "12300",
+    "name": "Trading assets",
+    "class": "asset",
+    "parent": "12000",
+    "concept_id": "canon:TradingAssets"
+   },
+   {
+    "code": "12400",
+    "name": "Derivative assets",
+    "class": "asset",
+    "parent": "12000",
+    "concept_id": "canon:DerivativeAssets"
+   },
+   {
+    "code": "13000",
+    "name": "Loans and advances",
+    "class": "asset",
+    "parent": "10000"
+   },
+   {
+    "code": "13100",
+    "name": "Residential mortgages",
+    "class": "asset",
+    "parent": "13000",
+    "concept_id": "canon:LoansGross"
+   },
+   {
+    "code": "13200",
+    "name": "Commercial loans",
+    "class": "asset",
+    "parent": "13000",
+    "concept_id": "canon:LoansGross"
+   },
+   {
+    "code": "13300",
+    "name": "Credit card receivables",
+    "class": "asset",
+    "parent": "13000",
+    "concept_id": "canon:LoansGross"
+   },
+   {
+    "code": "13900",
+    "name": "Expected credit loss allowance",
+    "class": "asset",
+    "parent": "13000",
+    "concept_id": "canon:CreditLossAllowance"
+   },
+   {
+    "code": "15000",
+    "name": "Fixed and intangible assets",
+    "class": "asset",
+    "parent": "10000"
+   },
+   {
+    "code": "15100",
+    "name": "Premises and equipment",
+    "class": "asset",
+    "parent": "15000",
+    "concept_id": "canon:PropertyAndEquipment"
+   },
+   {
+    "code": "15200",
+    "name": "Right-of-use assets",
+    "class": "asset",
+    "parent": "15000",
+    "concept_id": "canon:RightOfUseAssets"
+   },
+   {
+    "code": "15300",
+    "name": "Goodwill",
+    "class": "asset",
+    "parent": "15000",
+    "concept_id": "canon:Goodwill"
+   },
+   {
+    "code": "15400",
+    "name": "Software and other intangibles",
+    "class": "asset",
+    "parent": "15000",
+    "concept_id": "canon:IntangibleAssets"
+   },
+   {
+    "code": "17000",
+    "name": "Tax and other assets",
+    "class": "asset",
+    "parent": "10000"
+   },
+   {
+    "code": "17100",
+    "name": "Deferred tax assets",
+    "class": "asset",
+    "parent": "17000",
+    "concept_id": "canon:DeferredTaxAssets"
+   },
+   {
+    "code": "17900",
+    "name": "Other assets",
+    "class": "asset",
+    "parent": "17000",
+    "concept_id": "canon:OtherAssets"
+   },
+   {
+    "code": "20000",
+    "name": "Liabilities",
+    "class": "liability",
+    "parent": ""
+   },
+   {
+    "code": "21000",
+    "name": "Deposits",
+    "class": "liability",
+    "parent": "20000"
+   },
+   {
+    "code": "21100",
+    "name": "Due to banks",
+    "class": "liability",
+    "parent": "21000",
+    "concept_id": "canon:DueToBanks"
+   },
+   {
+    "code": "21200",
+    "name": "Current account deposits",
+    "class": "liability",
+    "parent": "21000",
+    "concept_id": "canon:CurrentAccountDeposits"
+   },
+   {
+    "code": "21300",
+    "name": "Savings deposits",
+    "class": "liability",
+    "parent": "21000",
+    "concept_id": "canon:SavingsDeposits"
+   },
+   {
+    "code": "21400",
+    "name": "Term deposits",
+    "class": "liability",
+    "parent": "21000",
+    "concept_id": "canon:TermDeposits"
+   },
+   {
+    "code": "22000",
+    "name": "Debt issued",
+    "class": "liability",
+    "parent": "20000"
+   },
+   {
+    "code": "22100",
+    "name": "Debt securities issued",
+    "class": "liability",
+    "parent": "22000",
+    "concept_id": "canon:DebtSecuritiesIssued"
+   },
+   {
+    "code": "22200",
+    "name": "Subordinated debt",
+    "class": "liability",
+    "parent": "22000",
+    "concept_id": "canon:SubordinatedDebt"
+   },
+   {
+    "code": "23000",
+    "name": "Other liabilities",
+    "class": "liability",
+    "parent": "20000"
+   },
+   {
+    "code": "23100",
+    "name": "Derivative liabilities",
+    "class": "liability",
+    "parent": "23000",
+    "concept_id": "canon:DerivativeLiabilities"
+   },
+   {
+    "code": "23200",
+    "name": "Lease liabilities",
+    "class": "liability",
+    "parent": "23000",
+    "concept_id": "canon:LeaseLiabilities"
+   },
+   {
+    "code": "23300",
+    "name": "Current tax payable",
+    "class": "liability",
+    "parent": "23000",
+    "concept_id": "canon:CurrentTaxLiabilities"
+   },
+   {
+    "code": "23400",
+    "name": "Provisions",
+    "class": "liability",
+    "parent": "23000",
+    "concept_id": "canon:Provisions"
+   },
+   {
+    "code": "23900",
+    "name": "Accruals and other liabilities",
+    "class": "liability",
+    "parent": "23000",
+    "concept_id": "canon:OtherLiabilities"
+   },
+   {
+    "code": "30000",
+    "name": "Equity",
+    "class": "equity",
+    "parent": ""
+   },
+   {
+    "code": "31000",
+    "name": "Share capital",
+    "class": "equity",
+    "parent": "30000",
+    "concept_id": "canon:ShareCapital"
+   },
+   {
+    "code": "32000",
+    "name": "Retained earnings",
+    "class": "equity",
+    "parent": "30000",
+    "concept_id": "canon:RetainedEarnings"
+   },
+   {
+    "code": "33000",
+    "name": "FVOCI reserve",
+    "class": "equity",
+    "parent": "30000",
+    "concept_id": "canon:OtherComprehensiveIncomeReserve"
+   },
+   {
+    "code": "34000",
+    "name": "Non-controlling interests",
+    "class": "equity",
+    "parent": "30000",
+    "concept_id": "canon:NonControllingInterests"
+   },
+   {
+    "code": "40000",
+    "name": "Income",
+    "class": "revenue",
+    "parent": ""
+   },
+   {
+    "code": "41000",
+    "name": "Interest income",
+    "class": "revenue",
+    "parent": "40000"
+   },
+   {
+    "code": "41100",
+    "name": "Interest income on loans",
+    "class": "revenue",
+    "parent": "41000",
+    "concept_id": "canon:InterestIncome"
+   },
+   {
+    "code": "41200",
+    "name": "Interest income on securities",
+    "class": "revenue",
+    "parent": "41000",
+    "concept_id": "canon:InterestIncome"
+   },
+   {
+    "code": "42000",
+    "name": "Fee and commission income",
+    "class": "revenue",
+    "parent": "40000"
+   },
+   {
+    "code": "42100",
+    "name": "Loan and card fees",
+    "class": "revenue",
+    "parent": "42000",
+    "concept_id": "canon:FeeAndCommissionIncome"
+   },
+   {
+    "code": "42200",
+    "name": "Account service fees",
+    "class": "revenue",
+    "parent": "42000",
+    "concept_id": "canon:FeeAndCommissionIncome"
+   },
+   {
+    "code": "42300",
+    "name": "Wealth management fees",
+    "class": "revenue",
+    "parent": "42000",
+    "concept_id": "canon:FeeAndCommissionIncome"
+   },
+   {
+    "code": "42400",
+    "name": "Card interchange income (gross)",
+    "class": "revenue",
+    "parent": "42000",
+    "concept_id": "canon:FeeAndCommissionIncome"
+   },
+   {
+    "code": "42500",
+    "name": "Insurance commission",
+    "class": "revenue",
+    "parent": "42000",
+    "concept_id": "canon:FeeAndCommissionIncome"
+   },
+   {
+    "code": "43000",
+    "name": "Trading income",
+    "class": "revenue",
+    "parent": "40000",
+    "concept_id": "canon:TradingIncome"
+   },
+   {
+    "code": "44000",
+    "name": "Other income",
+    "class": "revenue",
+    "parent": "40000"
+   },
+   {
+    "code": "44100",
+    "name": "Other operating income",
+    "class": "revenue",
+    "parent": "44000",
+    "concept_id": "canon:OtherOperatingIncome"
+   },
+   {
+    "code": "44200",
+    "name": "Share of profit of associates",
+    "class": "revenue",
+    "parent": "44000",
+    "concept_id": "canon:ShareOfProfitOfAssociates"
+   },
+   {
+    "code": "50000",
+    "name": "Interest and fee expense",
+    "class": "expense",
+    "parent": ""
+   },
+   {
+    "code": "51000",
+    "name": "Interest expense",
+    "class": "expense",
+    "parent": "50000"
+   },
+   {
+    "code": "51100",
+    "name": "Interest expense on deposits",
+    "class": "expense",
+    "parent": "51000",
+    "concept_id": "canon:InterestExpense"
+   },
+   {
+    "code": "51200",
+    "name": "Interest expense on debt issued",
+    "class": "expense",
+    "parent": "51000",
+    "concept_id": "canon:InterestExpense"
+   },
+   {
+    "code": "52000",
+    "name": "Fee and commission expense",
+    "class": "expense",
+    "parent": "50000"
+   },
+   {
+    "code": "52100",
+    "name": "Fee and commission expense",
+    "class": "expense",
+    "parent": "52000",
+    "concept_id": "canon:FeeAndCommissionExpense"
+   },
+   {
+    "code": "52200",
+    "name": "Card scheme costs",
+    "class": "expense",
+    "parent": "52000",
+    "concept_id": "canon:FeeAndCommissionExpense"
+   },
+   {
+    "code": "60000",
+    "name": "Operating expenses",
+    "class": "expense",
+    "parent": ""
+   },
+   {
+    "code": "61000",
+    "name": "Staff costs",
+    "class": "expense",
+    "parent": "60000",
+    "concept_id": "canon:StaffCosts"
+   },
+   {
+    "code": "62000",
+    "name": "Technology costs",
+    "class": "expense",
+    "parent": "60000"
+   },
+   {
+    "code": "62100",
+    "name": "IT running costs",
+    "class": "expense",
+    "parent": "62000",
+    "concept_id": "canon:ITCosts"
+   },
+   {
+    "code": "62200",
+    "name": "Software development expensed",
+    "class": "expense",
+    "parent": "62000",
+    "concept_id": "canon:ITCosts"
+   },
+   {
+    "code": "63000",
+    "name": "Premises costs",
+    "class": "expense",
+    "parent": "60000"
+   },
+   {
+    "code": "63100",
+    "name": "Short-term and low-value lease expense",
+    "class": "expense",
+    "parent": "63000",
+    "concept_id": "canon:PremisesCosts"
+   },
+   {
+    "code": "63200",
+    "name": "Occupancy costs",
+    "class": "expense",
+    "parent": "63000",
+    "concept_id": "canon:PremisesCosts"
+   },
+   {
+    "code": "64000",
+    "name": "Depreciation and amortisation",
+    "class": "expense",
+    "parent": "60000",
+    "concept_id": "canon:DepreciationAndAmortisation"
+   },
+   {
+    "code": "65000",
+    "name": "Other operating expenses",
+    "class": "expense",
+    "parent": "60000"
+   },
+   {
+    "code": "65100",
+    "name": "Marketing",
+    "class": "expense",
+    "parent": "65000",
+    "concept_id": "canon:OtherOperatingExpenses"
+   },
+   {
+    "code": "65900",
+    "name": "General operating expenses",
+    "class": "expense",
+    "parent": "65000",
+    "concept_id": "canon:OtherOperatingExpenses"
+   },
+   {
+    "code": "70000",
+    "name": "Credit loss expense",
+    "class": "expense",
+    "parent": "",
+    "concept_id": "canon:CreditLossExpense"
+   },
+   {
+    "code": "80000",
+    "name": "Income tax expense",
+    "class": "expense",
+    "parent": "",
+    "concept_id": "canon:IncomeTaxExpense"
+   }
+  ],
+  "decisions": [
+   {
+    "topic": "IFRS 9 credit stage",
+    "choice": "Capture stage as a segment on loan and allowance accounts",
+    "alternatives": [
+     "Separate natural accounts per stage"
+    ],
+    "rationale": "Stage moves every quarter; a segment avoids reclassification journals between accounts and keeps one natural account per product.",
+    "standard_refs": [
+     "IFRS 9.5.5"
+    ]
+   },
+   {
+    "topic": "Business line",
+    "choice": "Business line is a mandatory segment, default Unassigned until allocated",
+    "alternatives": [
+     "Business line in the account code",
+     "Optional segment"
+    ],
+    "rationale": "The legacy chart built business lines into insurance commission codes; a mandatory segment gives complete business-line profitability.",
+    "standard_refs": [
+     "IFRS 8.5"
+    ]
+   },
+   {
+    "topic": "Card interchange",
+    "choice": "Record interchange gross and scheme costs separately",
+    "alternatives": [
+     "Keep net presentation"
+    ],
+    "rationale": "Gross amounts are needed to assess principal versus agent and to disclose fee income and expense.",
+    "standard_refs": [
+     "IFRS 15.B34"
+    ]
+   },
+   {
+    "topic": "Software development",
+    "choice": "Separate expensed development from capitalised software",
+    "alternatives": [
+     "One IT cost account"
+    ],
+    "rationale": "Capitalisation criteria must be evidenced; separate accounts make the split auditable.",
+    "standard_refs": [
+     "IAS 38.57"
+    ]
+   },
+   {
+    "topic": "Sundry income",
+    "choice": "Retire sundry income; post to other operating income with a description rule",
+    "alternatives": [
+     "Keep a sundry account"
+    ],
+    "rationale": "A catch-all balance cannot be mapped or explained.",
+    "standard_refs": []
+   },
+   {
+    "topic": "Leases",
+    "choice": "Rent account limited to short-term and low-value leases",
+    "alternatives": [
+     "One rent account"
+    ],
+    "rationale": "Other leases sit in right-of-use assets and lease liabilities; under US GAAP operating leases the parent view needs a lease cost adjustment.",
+    "standard_refs": [
+     "IFRS 16.6",
+     "ASC 842-20-25-6"
+    ]
+   }
+  ]
+ },
+ "mapping": [
+  {
+   "legacy_code": "1000",
+   "target": "11100"
+  },
+  {
+   "legacy_code": "1100",
+   "target": "11200"
+  },
+  {
+   "legacy_code": "1200",
+   "target": "12100"
+  },
+  {
+   "legacy_code": "1210",
+   "target": "12200"
+  },
+  {
+   "legacy_code": "1300",
+   "target": "12300"
+  },
+  {
+   "legacy_code": "1310",
+   "target": "12400"
+  },
+  {
+   "legacy_code": "1400",
+   "target": "13100"
+  },
+  {
+   "legacy_code": "1410",
+   "target": "13200"
+  },
+  {
+   "legacy_code": "1420",
+   "target": "13300"
+  },
+  {
+   "legacy_code": "1490",
+   "target": "13900"
+  },
+  {
+   "legacy_code": "1500",
+   "target": "15100"
+  },
+  {
+   "legacy_code": "1510",
+   "target": "15200"
+  },
+  {
+   "legacy_code": "1600",
+   "target": "15300"
+  },
+  {
+   "legacy_code": "1610",
+   "target": "15400"
+  },
+  {
+   "legacy_code": "1700",
+   "target": "17100"
+  },
+  {
+   "legacy_code": "1900",
+   "target": "17900"
+  },
+  {
+   "legacy_code": "2000",
+   "target": "21100"
+  },
+  {
+   "legacy_code": "2100",
+   "target": "21200"
+  },
+  {
+   "legacy_code": "2110",
+   "target": "21300"
+  },
+  {
+   "legacy_code": "2120",
+   "target": "21400"
+  },
+  {
+   "legacy_code": "2200",
+   "target": "22100"
+  },
+  {
+   "legacy_code": "2210",
+   "target": "22200"
+  },
+  {
+   "legacy_code": "2300",
+   "target": "23100"
+  },
+  {
+   "legacy_code": "2400",
+   "target": "23200"
+  },
+  {
+   "legacy_code": "2500",
+   "target": "23300"
+  },
+  {
+   "legacy_code": "2600",
+   "target": "23400"
+  },
+  {
+   "legacy_code": "2900",
+   "target": "23900"
+  },
+  {
+   "legacy_code": "3000",
+   "target": "31000"
+  },
+  {
+   "legacy_code": "3100",
+   "target": "32000"
+  },
+  {
+   "legacy_code": "3200",
+   "target": "33000"
+  },
+  {
+   "legacy_code": "3300",
+   "target": "34000"
+  },
+  {
+   "legacy_code": "4000",
+   "target": "41100"
+  },
+  {
+   "legacy_code": "4010",
+   "target": "41200"
+  },
+  {
+   "legacy_code": "4100",
+   "target": "42100"
+  },
+  {
+   "legacy_code": "4110",
+   "target": "42200"
+  },
+  {
+   "legacy_code": "4120",
+   "target": "42300"
+  },
+  {
+   "legacy_code": "4130",
+   "target": "42400"
+  },
+  {
+   "legacy_code": "4200",
+   "target": "43000"
+  },
+  {
+   "legacy_code": "4900",
+   "target": "44100"
+  },
+  {
+   "legacy_code": "5000",
+   "target": "51100"
+  },
+  {
+   "legacy_code": "5010",
+   "target": "51200"
+  },
+  {
+   "legacy_code": "5100",
+   "target": "52100"
+  },
+  {
+   "legacy_code": "6000",
+   "target": "61000"
+  },
+  {
+   "legacy_code": "6100",
+   "target": "62100"
+  },
+  {
+   "legacy_code": "6200",
+   "target": "63100"
+  },
+  {
+   "legacy_code": "6210",
+   "target": "63200"
+  },
+  {
+   "legacy_code": "6300",
+   "target": "64000"
+  },
+  {
+   "legacy_code": "6400",
+   "target": "62200"
+  },
+  {
+   "legacy_code": "6900",
+   "target": "65900"
+  },
+  {
+   "legacy_code": "6950",
+   "target": "65100"
+  },
+  {
+   "legacy_code": "7000",
+   "target": "70000"
+  },
+  {
+   "legacy_code": "8000",
+   "target": "80000"
+  },
+  {
+   "legacy_code": "4300-RET",
+   "target": "42500",
+   "segments": {
+    "BusinessLine": "Retail"
+   }
+  },
+  {
+   "legacy_code": "4300-COM",
+   "target": "42500",
+   "segments": {
+    "BusinessLine": "Commercial"
+   }
+  }
+ ]
+}

@@ -167,3 +167,29 @@ def test_peer_routes_record_evidence_and_feed_the_gate(monkeypatch, tmp_path):
     bad = c.post("/v1/tools/check_output", headers=H, json={
         "text": "RBC net interest income was C$8,754 million.", "evidence_ids": [r["evidence_id"]]}).json()
     assert good["data"]["pass"] and bad["data"]["unsupported"] == ["8,754"]
+
+
+def test_coa_design_over_http(client):
+    import json
+
+    from tests.conftest import GOLDEN
+    g = json.loads((GOLDEN / "synbank_target_coa.json").read_text())
+    d = client.post("/v1/tools/diagnose_coa", headers=H, json={"doc_id": "D0001"}).json()
+    assert d["status"] == "ok" and d["evidence_id"] and d["display"]["D_CATCH_ALL"] == "1 (high)"
+    dry = client.post("/v1/tools/check_coa_design", headers=H, json={"design": g["design"]}).json()
+    assert dry["data"]["pass"] and dry["evidence_id"] is None
+    bad = json.loads(json.dumps(g["design"]))
+    bad["accounts"][2]["code"] = "1110"
+    r = client.post("/v1/tools/propose_coa_design", headers=H, json={"design": bad}).json()
+    assert r["status"] == "refused" and any("C_CODE_LENGTH" in x for x in r["data"]["details"])
+    p = client.post("/v1/tools/propose_coa_design", headers=H, json={"design": g["design"]}).json()
+    assert p["status"] == "ok" and p["display"]["decisions"] == "6"
+    m = client.post("/v1/tools/propose_coa_mapping", headers=H, json={"design_id": "coa:0001", "doc_id": "D0001",
+                                                                     "rules": g["mapping"]}).json()
+    assert m["status"] == "ok" and m["display"]["total old"] == m["display"]["total new"]
+    assert m["warnings"] and m["data"]["recut_line_count"] == 64
+    st = client.post("/v1/tools/coa_status", headers=H, json={"design_id": "coa:0001"}).json()
+    assert st["data"]["approved_by_lead"] is False and len(st["data"]["decisions"]) == 6
+    csv = client.get("/v1/people/coa_export", headers=H, params={"design_id": "coa:0001", "what": "chart"})
+    assert csv.status_code == 200 and csv.text.startswith("code,name,class")
+    assert client.get("/v1/people/coa_designs", headers=H).json()["data"][0]["design_id"] == "coa:0001"
