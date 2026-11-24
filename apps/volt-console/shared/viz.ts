@@ -76,6 +76,14 @@ export function parseChartSpec(json: string): ChartSpec | null {
   if (labels.length < lim.labels[0] || labels.length > lim.labels[1] || series.length < lim.series[0] || series.length > lim.series[1]) return null;
   if (series.some((s) => s.values.length !== labels.length || s.values.some((v) => !Number.isFinite(v)))) return null;
   if (type === "donut" && series[0].values.some((v) => v < 0)) return null;
+  // A donut keeps five slices and folds the rest into "Other", so every slice has its own colour.
+  if (type === "donut" && labels.length > 6) {
+    const order = series[0].values.map((v, i) => i).sort((x, y) => series[0].values[y] - series[0].values[x]);
+    const keep = order.slice(0, 5).sort((x, y) => x - y);
+    const rest = order.slice(5).reduce((sum, i) => sum + series[0].values[i], 0);
+    labels.splice(0, labels.length, ...keep.map((i) => labels[i]), "Other");
+    series.splice(0, series.length, { name: series[0].name, values: [...keep.map((i) => series[0].values[i]), rest] });
+  }
   const clean = labels.map((l) => l.slice(0, 40));
   const t = (r.target ?? null) as Record<string, unknown> | number | null;
   const tv = typeof t === "number" ? t : Number(t?.value);

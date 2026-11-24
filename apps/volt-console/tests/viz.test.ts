@@ -129,3 +129,25 @@ describe("executive chart types", () => {
     expect(specSvg(parseChartSpec(JSON.stringify(specs.heatmap))!, DARK)).toContain("<title>EMEA / Data: Red</title>");
   });
 });
+
+describe("chart colours", () => {
+  const lum = (hex: string) => {
+    const c = hex.replace("#", "").match(/../g)!.map((h) => parseInt(h, 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const ratio = (a: string, b: string) => {
+    const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m);
+    return (x + 0.05) / (y + 0.05);
+  };
+  it.each([["dark", DARK], ["light", LIGHT]] as const)("gives every %s series a distinct colour at 3:1 or more against the background", (_, p) => {
+    for (const set of [p.cats, [p.series, p.series2, p.cats[2], p.cats[3]]]) {
+      expect(new Set(set.map((c) => c.toLowerCase())).size).toBe(set.length);
+      for (const c of set) expect(ratio(c, p.bg)).toBeGreaterThanOrEqual(3);
+    }
+  });
+  it("folds a donut's smallest slices into Other so no two slices share a colour", () => {
+    const spec = parseChartSpec(JSON.stringify({ type: "donut", title: "Split", labels: ["A", "B", "C", "D", "E", "F", "G", "H"], series: [{ name: "x", values: [8, 1, 7, 2, 6, 3, 5, 4] }] }))!;
+    expect(spec.labels).toEqual(["A", "C", "E", "G", "H", "Other"]);
+    expect(spec.series[0].values).toEqual([8, 7, 6, 5, 4, 6]);
+  });
+});

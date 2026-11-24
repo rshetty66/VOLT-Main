@@ -64,6 +64,6 @@ export const LIGHT: Palette = {
   positive: "#13895f",
   negInk: "#c2410c",
   tile: "#f5f6fa",
-  cats: ["#1a1e2e", "#0097a7", "#d4af37", "#ff5722", "#5c6bc0", "#8a90a5"],
+  cats: ["#1a1e2e", "#0097a7", "#a8841c", "#e64a19", "#5c6bc0", "#6b7280"],
   font,
 };

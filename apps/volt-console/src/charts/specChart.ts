@@ -323,7 +323,8 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
           const off = (bi - (k - 1) / 2) * bw;
           const m = mid(i) + off;
           const base = val(0), end = val(v * e);
-          const colour = v < 0 ? p.negative : cs[si];
+          // One series: a negative bar turns orange. Several: each keeps its series colour, and its sign shows below the axis.
+          const colour = v < 0 && spec.series.length === 1 ? p.negative : cs[si];
           const neg = v < 0;
           const d = horizontal
             ? barPath(Math.min(base, end), m - bw / 2 + 1, Math.max(1, Math.abs(end - base)), bw - 2, 4, neg ? "l" : "r")
