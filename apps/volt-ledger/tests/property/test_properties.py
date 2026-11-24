@@ -1,4 +1,4 @@
-"""Property-based tests from phase3-engine.md section 10.1 (P5 and P6 arrive with the allocation step)."""
+"""Property-based tests from phase3-engine.md section 10.1 (P1 to P10)."""
 from __future__ import annotations
 
 import csv
@@ -122,6 +122,11 @@ def test_p8_append_only(table, sql):
     lock_period(s, "2026-10", "prop", "x")
     m = map_line_item_to_element(s, ACCOUNTS[0], "canon:CashAndCentralBankBalances", "0.9", "x", "model")
     record_review_decision(s, m.review_item_id, "engagement_lead", "approve", "user:prop")
+    from volt_ledger.allocation import AllocationRule, propose_allocation_rule
+    from volt_ledger.drivers import record_driver_value
+    record_driver_value(s, "driver", "fte", "2026-09", {"BusinessLine": "Retail"}, "1", "FTE", {"user": "p"}, "user:p")
+    propose_allocation_rule(s, AllocationRule(["acct:SYNBANK:6100"], {"CostCentre": "IT01"}, "fte", "BusinessLine",
+                                              ["Retail"]), "p8", "model")
     assert s.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] > 0   # triggers fire only on existing rows
     with pytest.raises(sqlite3.DatabaseError, match="append-only"):
         s.conn.execute(sql.format(t=table))
@@ -163,3 +168,56 @@ def test_p10_every_row_accounted_for(rows):
         assert r.data_rows == n_rows
         assert r.stored + len(r.rejected) == n_rows
         assert s.count("tb_row") == r.stored
+
+
+# ---- P5 and P6: allocation (Phase 6 step 5) ---------------------------------------------------------------------
+
+from decimal import Decimal  # noqa: E402
+from fractions import Fraction  # noqa: E402
+
+from volt_ledger.allocation import AllocationRule, largest_remainder, propose_allocation_rule, run_allocation  # noqa: E402
+from volt_ledger.drivers import record_driver_value  # noqa: E402
+
+weights_st = st.dictionaries(st.text("ABCDEFGHIJKLMNOPQRSTUVWXYZ", min_size=1, max_size=3),
+                             st.decimals(min_value=0, max_value=10**9, places=4, allow_nan=False, allow_infinity=False),
+                             min_size=1, max_size=50).filter(lambda w: any(v > 0 for v in w.values()))
+
+
+@SETTINGS
+@given(pool=st.integers(min_value=-10**15, max_value=10**15), weights=weights_st)
+def test_p5_largest_remainder_is_exact(pool, weights):
+    shares = largest_remainder(pool, weights)
+    assert sum(shares.values()) == pool
+    total = sum(Fraction(v) for v in weights.values())
+    for k, v in weights.items():
+        assert abs(Fraction(shares[k]) - Fraction(pool) * Fraction(v) / total) < 1
+
+
+IT_POOL_ACCTS = ["acct:SYNBANK:6000", "acct:SYNBANK:6100", "acct:SYNBANK:6400"]
+LINES = ["Retail", "Commercial", "Wealth", "Treasury"]
+
+
+@settings(max_examples=max(20, SETTINGS.max_examples // 10), deadline=None)
+@given(pool_accts=st.lists(st.sampled_from(IT_POOL_ACCTS), min_size=1, max_size=3, unique=True),
+       drivers=st.lists(st.integers(min_value=0, max_value=10**6), min_size=4, max_size=4).filter(any))
+def test_p6_allocation_moves_exactly_the_pool(pool_accts, drivers):
+    s = bank()
+    for bl, v in zip(LINES, drivers):
+        record_driver_value(s, "driver", "fte", "2026-09", {"BusinessLine": bl}, str(v), "FTE", {"user": "t"}, "user:t")
+    rule = AllocationRule(pool_accts, {"CostCentre": "IT01"}, "fte", "BusinessLine", LINES)
+    rule_id, item, _ = propose_allocation_rule(s, rule, "p6", "model")
+    record_review_decision(s, item, "engagement_lead", "approve", "user:lead")
+    before = account_balances(s, "2026-09")
+    in_pool = lambda d: '"CostCentre": "IT01"' in d  # noqa: E731
+    pool_before = sum(b for (a, d), b in before.items() if a in pool_accts and in_pool(d))
+    r = run_allocation(s, rule_id, "2026-09", "p6", "model")
+    after = account_balances(s, "2026-09")
+    assert r.pool == pool_before and sum(r.shares.values()) == pool_before
+    assert sum(b for (a, d), b in after.items() if a in pool_accts and in_pool(d)) == 0
+    moved = sum(after.get(k, 0) - before.get(k, 0) for k in set(after) | set(before)
+                if k[0] in pool_accts and not in_pool(k[1]))
+    assert moved == pool_before
+    # Every account's total is unchanged: allocation only moves cost between dimensions.
+    for a in pool_accts:
+        assert sum(b for (x, _), b in after.items() if x == a) == sum(b for (x, _), b in before.items() if x == a)
+    s.close()

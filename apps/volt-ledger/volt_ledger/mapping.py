@@ -226,3 +226,15 @@ def client_visible(store: Store) -> list[str]:
     """Items the client may see: approved by the engagement lead (and not since rejected)."""
     return [r[0] for r in store.conn.execute("SELECT item_id FROM review_item ORDER BY item_id")
             if _latest(store, r[0], "engagement_lead") == "approve"]
+
+
+def tb_accounts(store: Store, doc_id: str) -> list[dict]:
+    """Every account in an ingested trial balance with its name, net side, current mapping and open gaps, so the
+    model can work through the mapping without one lookup per account."""
+    out = []
+    for r in store.conn.execute("SELECT account_id, MIN(account_name), SUM(debit_minor - credit_minor), COUNT(*) "
+                                "FROM tb_row WHERE doc_id = ? GROUP BY account_id ORDER BY account_id", (doc_id,)):
+        m = active_mapping(store, r[0])
+        out.append({"account_id": r[0], "name": r[1], "side": "debit" if r[2] > 0 else "credit" if r[2] < 0 else "zero",
+                    "rows": r[3], "mapped_to": m["to_element"] if m else None, "gaps": open_gaps(store, r[0])})
+    return out

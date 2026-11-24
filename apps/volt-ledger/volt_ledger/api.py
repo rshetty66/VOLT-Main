@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import base64
 import hmac
+import json
 import os
 import tempfile
 import threading
@@ -21,12 +22,17 @@ from typing import Any, Literal
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, Field
 
+from .allocation import AllocationError, AllocationRule, propose_allocation_rule, run_allocation
+from .drivers import DriverError, record_driver_value
+from .evidence import write_evidence
 from .ingest import ColumnMap, IngestError, ingest_trial_balance
 from .mapping import (MappingError, client_visible, coverage, flag_policy_gap, get_ontology_context,
-                      map_line_item_to_element, record_review_decision)
+                      map_line_item_to_element, record_review_decision, tb_accounts)
 from .money import AmountError, format_amount, from_wire, to_wire
 from .ontology import load_ontology
 from .posting import JournalIn, LineIn, PostingError, post_journal_entry, reverse_journal_entry
+from .reporting import (ReportingError, build_statement, check_output, compute_ratio, display_ratio, get_balances,
+                        load_metrics)
 from .store import Store
 
 WIRE_AMOUNT = r"^[0-9]+$"
@@ -92,6 +98,61 @@ class ReverseBody(BaseModel):
 
 class CoverageBody(BaseModel):
     doc_id: str
+
+
+PERIOD = r"^[0-9]{4}-(0[1-9]|1[0-2])$"
+
+
+class BalancesBody(BaseModel):
+    period: str = Field(pattern=PERIOD)
+    element_ids: list[str] = Field(min_length=1, max_length=60)
+    dimensions: dict[str, str] = {}
+    include_proposals: bool = False
+
+
+class StatementBody(BaseModel):
+    period: str = Field(pattern=PERIOD)
+    gaap: Literal["ifrs", "us-gaap"] = "ifrs"
+    statement: Literal["BS", "IS"]
+    dimensions: dict[str, str] = {}
+    include_proposals: bool = False
+
+
+class RatioBody(BaseModel):
+    metric_id: str
+    period: str = Field(pattern=PERIOD)
+    dimensions: dict[str, str] = {}
+    include_proposals: bool = False
+
+
+class RuleBody(BaseModel):
+    pool_accounts: list[str] = Field(min_length=1)
+    pool_filter: dict[str, str] = {}
+    basis: Literal["fte", "transaction_count", "rwa"]
+    target_dimension: str
+    targets: list[str] = Field(min_length=1)
+    rationale: str
+
+
+class RunAllocationBody(BaseModel):
+    rule_id: str
+    period: str = Field(pattern=PERIOD)
+    idempotency_key: str = Field(min_length=1, max_length=200)
+
+
+class CheckBody(BaseModel):
+    text: str = Field(max_length=400_000)
+    evidence_ids: list[str] = []
+
+
+class DriverBody(BaseModel):
+    kind: Literal["plan", "driver", "reg", "market"] = "driver"
+    key: str
+    period: str = Field(pattern=PERIOD)
+    dimensions: dict[str, str] = {}
+    value: str = Field(pattern=r"^-?[0-9]+(\.[0-9]+)?$")
+    unit: str
+    note: str = ""
 
 
 class DecisionBody(BaseModel):
@@ -222,11 +283,126 @@ def create_app(db_path: str | None = None) -> FastAPI:
         return ok(out.evidence_id, {"journal_id": out.journal_id, "created": out.created})
 
 
+    @app.post("/v1/tools/list_accounts", dependencies=[Depends(auth)])
+    def accounts(body: CoverageBody) -> dict:
+        with locked() as s:
+            rows = tb_accounts(s, body.doc_id)
+        if not rows:
+            return {**refused("not_found", f"no trial balance {body.doc_id}"), "status": "not_found"}
+        return ok(None, rows)
+
     @app.post("/v1/tools/coverage", dependencies=[Depends(auth)])
     def cover(body: CoverageBody) -> dict:
         with locked() as s:
             c = coverage(s, body.doc_id)
         return ok(None, c, {k: str(v) for k, v in c.items() if k != "unaccounted"} | {"unaccounted": str(len(c["unaccounted"]))})
+
+    def currency_for(s, period: str) -> str:
+        r = s.conn.execute("SELECT currency FROM tb_row WHERE period = ? LIMIT 1", (period,)).fetchone()
+        return r[0] if r else "USD"
+
+    def money(n: int, cur: str) -> str:
+        return f"{format_amount(n, cur)} {cur}"
+
+    def recorded(s, tool: str, inputs: dict, data: dict, display: dict) -> str:
+        """Read tools write evidence too, so every figure the model quotes traces to a stored computation."""
+        with s.transaction() as cur:
+            return write_evidence(cur, tool, inputs, {"data": data, "display": display}, [{"period": inputs.get("period")}],
+                                  "model").evidence_id
+
+    @app.post("/v1/tools/get_balances", dependencies=[Depends(auth)])
+    def balances(body: BalancesBody) -> dict:
+        try:
+            with locked() as s:
+                b = get_balances(s, body.period, body.element_ids, body.dimensions, body.include_proposals)
+                cur = currency_for(s, body.period)
+                data = {**b, "balances": {k: {"signed_minor": to_wire(abs(v["signed"])), "signed_side":
+                                              "debit" if v["signed"] >= 0 else "credit", "natural_minor": to_wire(abs(v["natural"])),
+                                              "natural_negative": v["natural"] < 0} for k, v in b["balances"].items()}}
+                display = {k: money(v["natural"], cur) for k, v in b["balances"].items()}
+                ev = recorded(s, "get_balances", body.model_dump(), data, display)
+        except ReportingError as e:
+            return refused(e.code, f"{e}: {', '.join(map(str, e.details))}")
+        return ok(ev, data, display, [] if not b["accounts_pending_review"] else
+                  [f"{b['accounts_pending_review']} accounts have mappings awaiting review: figures are draft"])
+
+    @app.post("/v1/tools/build_statement", dependencies=[Depends(auth)])
+    def statement(body: StatementBody) -> dict:
+        try:
+            with locked() as s:
+                st = build_statement(s, body.period, body.gaap, body.statement, body.dimensions, body.include_proposals)
+                cur = currency_for(s, body.period)
+                display = {l["label"]: money(l["amount"], cur) for l in st["lines"]}
+                display |= {f"check: {k}": (money(v, cur) if isinstance(v, int) and not isinstance(v, bool) else str(v))
+                            for k, v in st["checks"].items()}
+                data = {**st, "lines": [{**l, "amount": to_wire(abs(l["amount"])), "negative": l["amount"] < 0} for l in st["lines"]],
+                        "excluded": [{**x, "signed": to_wire(abs(x["signed"]))} for x in st["excluded"]],
+                        "flagged": [{**x, "signed": to_wire(abs(x["signed"]))} for x in st["flagged"]],
+                        "checks": {k: (to_wire(abs(v)) if isinstance(v, int) and not isinstance(v, bool) else v)
+                                   for k, v in st["checks"].items()}}
+                ev = recorded(s, "build_statement", body.model_dump(), data, display)
+        except ReportingError as e:
+            return refused(e.code, str(e))
+        warnings = []
+        if st["excluded"]:
+            warnings.append(f"{len(st['excluded'])} accounts are unmapped and not on the statement")
+        if st["flagged"]:
+            warnings.append(f"{len(st['flagged'])} accounts carry open policy gaps")
+        if st["accounts_pending_review"]:
+            warnings.append(f"{len(st['accounts_pending_review'])} mappings await engagement-lead review: this is a draft")
+        return ok(ev, data, display, warnings)
+
+    @app.post("/v1/tools/list_metrics", dependencies=[Depends(auth)])
+    def metrics() -> dict:
+        return ok(None, [{k: m[k] for k in ("metric_id", "label", "formula", "unit", "audiences")} | 
+                         ({"needs_dimension": m["needs_dimension"]} if "needs_dimension" in m else {})
+                         for m in load_metrics().values()])
+
+    @app.post("/v1/tools/compute_ratio", dependencies=[Depends(auth)])
+    def ratio(body: RatioBody) -> dict:
+        try:
+            with locked() as s:
+                r = compute_ratio(s, body.metric_id, body.period, body.dimensions, body.include_proposals)
+                display = display_ratio(r, currency_for(s, body.period))
+                ev = recorded(s, "compute_ratio", body.model_dump(), r, display)
+        except ReportingError as e:
+            return refused(e.code, str(e))
+        out = ok(ev, r, display, ["figures are draft: some mappings await review"] if r.get("draft") else [])
+        if r["status"] != "ok":
+            out["status"] = r["status"]
+        return out
+
+    @app.post("/v1/tools/propose_allocation_rule", dependencies=[Depends(auth)])
+    def propose_rule(body: RuleBody) -> dict:
+        rule = AllocationRule(body.pool_accounts, body.pool_filter, body.basis, body.target_dimension, body.targets)
+        try:
+            with locked() as s:
+                rule_id, item, ev = propose_allocation_rule(s, rule, body.rationale, "model")
+        except AllocationError as e:
+            return refused(e.code, f"{e} {', '.join(map(str, e.details))}".strip())
+        return ok(ev, {"rule_id": rule_id, "review_item_id": item},
+                  warnings=["the engagement lead must approve this rule before it can run"])
+
+    @app.post("/v1/tools/run_allocation", dependencies=[Depends(auth)])
+    def run_alloc(body: RunAllocationBody) -> dict:
+        try:
+            with locked() as s:
+                r = run_allocation(s, body.rule_id, body.period, body.idempotency_key, "model")
+        except (AllocationError, PostingError) as e:
+            details = getattr(e, "details", [])
+            return refused(e.code, f"{e} {', '.join(map(str, details))}".strip())
+        data = {"rule_id": r.rule_id, "period": r.period, "journal_id": r.journal_id, "created": r.created,
+                "pool": to_wire(abs(r.pool)), "pool_side": "debit" if r.pool >= 0 else "credit",
+                "drivers": r.drivers, "shares": {t: to_wire(abs(v)) for t, v in r.shares.items()}}
+        display = {"pool": money(r.pool, r.currency)} | {f"share {t}": money(v, r.currency) for t, v in r.shares.items()}
+        display |= {f"driver {t}": d["value"] for t, d in r.drivers.items()}
+        return ok(r.evidence_id, data, display, ["this is a proposed allocation journal, not posted to the client's GL"])
+
+    @app.post("/v1/tools/check_output", dependencies=[Depends(auth)])
+    def gate(body: CheckBody) -> dict:
+        """Called by the console on a draft, not offered to the model."""
+        with locked() as s:
+            return ok(None, check_output(s, body.text, body.evidence_ids))
 
     # ---- people only: never offered to the model ----------------------------------------------------------------
 
@@ -242,12 +418,32 @@ def create_app(db_path: str | None = None) -> FastAPI:
             return refused(e.code, str(e))
         return ok(ev, {"recorded": True})
 
+    @app.post("/v1/people/driver_value", dependencies=[Depends(auth)])
+    def driver(body: DriverBody, x_volt_user: str = Header(default="")) -> dict:
+        if not x_volt_user:
+            raise HTTPException(403, "a signed-in person is required")
+        try:
+            with locked() as s:
+                vid, ev = record_driver_value(s, body.kind, body.key, body.period, body.dimensions, body.value, body.unit,
+                                              {"user": x_volt_user, "note": body.note}, f"user:{x_volt_user}")
+        except DriverError as e:
+            return refused(e.code, str(e))
+        return ok(ev, {"value_id": vid})
+
     @app.get("/v1/people/review_items", dependencies=[Depends(auth)])
     def review_items() -> dict:
         with locked() as s:
-            rows = [dict(r) for r in s.conn.execute("SELECT item_id, kind, ref_id, reason FROM review_item ORDER BY item_id")]
+            rows = [dict(r) for r in s.conn.execute(
+                "SELECT i.item_id, i.kind, i.ref_id, i.reason, e.inputs AS proposal FROM review_item i "
+                "JOIN evidence e ON e.evidence_id = i.evidence_id ORDER BY i.item_id")]
             visible = set(client_visible(s))
+            latest = {}
+            for d in s.conn.execute("SELECT item_id, stage, decision, by_user, note FROM review_decision ORDER BY seq"):
+                latest[(d[0], d[1])] = {"decision": d[2], "by": d[3], "note": d[4]}
         for r in rows:
+            r["proposal"] = json.loads(r["proposal"])
+            r["engagement_lead"] = latest.get((r["item_id"], "engagement_lead"))
+            r["client"] = latest.get((r["item_id"], "client"))
             r["client_visible"] = r["item_id"] in visible
         return ok(None, rows)
 

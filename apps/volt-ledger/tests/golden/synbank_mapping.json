@@ -1,0 +1,26 @@
+{
+  "note": "Hand-made mapping of the synthetic bank used by the golden tests. The four accounts left out are the ones no concept fits without a policy decision; every seeded gap is flagged.",
+  "mappings": {
+    "1000": "canon:CashAndCentralBankBalances", "1100": "canon:DueFromBanks", "1200": "canon:InvestmentSecuritiesFVOCI",
+    "1210": "canon:InvestmentSecuritiesAmortisedCost", "1300": "canon:TradingAssets", "1310": "canon:DerivativeAssets",
+    "1400": "canon:LoansGross", "1410": "canon:LoansGross", "1420": "canon:LoansGross", "1490": "canon:CreditLossAllowance",
+    "1500": "canon:PropertyAndEquipment", "1510": "canon:RightOfUseAssets", "1600": "canon:Goodwill",
+    "1610": "canon:IntangibleAssets", "1700": "canon:DeferredTaxAssets", "1900": "canon:OtherAssets",
+    "2000": "canon:DueToBanks", "2100": "canon:CurrentAccountDeposits", "2110": "canon:SavingsDeposits",
+    "2120": "canon:TermDeposits", "2200": "canon:DebtSecuritiesIssued", "2210": "canon:SubordinatedDebt",
+    "2300": "canon:DerivativeLiabilities", "2400": "canon:LeaseLiabilities", "2500": "canon:CurrentTaxLiabilities",
+    "2600": "canon:Provisions", "2900": "canon:OtherLiabilities", "3000": "canon:ShareCapital",
+    "3100": "canon:RetainedEarnings", "3200": "canon:OtherComprehensiveIncomeReserve", "3300": "canon:NonControllingInterests",
+    "4000": "canon:InterestIncome", "4010": "canon:InterestIncome", "5000": "canon:InterestExpense", "5010": "canon:InterestExpense",
+    "4100": "canon:FeeAndCommissionIncome", "4110": "canon:FeeAndCommissionIncome", "4120": "canon:FeeAndCommissionIncome",
+    "4130": "canon:FeeAndCommissionIncome", "5100": "canon:FeeAndCommissionExpense", "4200": "canon:TradingIncome",
+    "6000": "canon:StaffCosts", "6100": "canon:ITCosts", "6200": "canon:PremisesCosts", "6210": "canon:PremisesCosts",
+    "6300": "canon:DepreciationAndAmortisation", "6400": "canon:ITCosts", "6900": "canon:OtherOperatingExpenses",
+    "7000": "canon:CreditLossExpense", "8000": "canon:IncomeTaxExpense"
+  },
+  "gaps": {
+    "1490": "stage_not_captured", "4100": "recognition_basis_mixed", "4130": "gross_vs_net", "4300-RET": "dimension_in_account",
+    "4300-COM": "dimension_in_account", "4900": "catch_all_account", "6200": "lease_model_difference",
+    "6400": "capitalisation_policy", "6950": "unmappable_sign"
+  }
+}

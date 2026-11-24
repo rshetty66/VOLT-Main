@@ -90,3 +90,42 @@ def test_review_needs_a_person_and_lead_first(client):
     assert client.post("/v1/people/review_decision", headers={**H, "X-Volt-User": "rakesh"}, json=lead).json()["status"] == "ok"
     items = client.get("/v1/people/review_items", headers=H).json()["data"]
     assert items[0]["client_visible"] is True
+
+
+def test_statement_ratio_allocation_and_gate_over_http(client):
+    accts = client.post("/v1/tools/list_accounts", headers=H, json={"doc_id": "D0001"}).json()
+    assert len(accts["data"]) == 54 and accts["data"][0]["mapped_to"] is None
+    for code, concept in [("4000", "canon:InterestIncome"), ("5000", "canon:InterestExpense"), ("6000", "canon:StaffCosts"),
+                          ("6100", "canon:ITCosts"), ("6400", "canon:ITCosts")]:
+        assert client.post("/v1/tools/map_line_item", headers=H, json={
+            "account_id": f"acct:SYNBANK:{code}", "concept_id": concept, "confidence": 0.95, "rationale": "r"}).json()["status"] == "ok"
+
+    nii = client.post("/v1/tools/compute_ratio", headers=H, json={"metric_id": "nii", "period": "2026-09"}).json()
+    assert nii["status"] == "ok" and nii["display"]["value"] == "310,000,000.00 USD"   # 520 - 210 on the mapped accounts
+    assert nii["warnings"] and nii["evidence_id"]
+    st = client.post("/v1/tools/build_statement", headers=H, json={"period": "2026-09", "statement": "IS"}).json()
+    assert st["status"] == "ok" and st["display"]["Net interest income"] == "310,000,000.00 USD"
+    assert all(isinstance(l["amount"], str) for l in st["data"]["lines"])
+    gate = client.post("/v1/tools/check_output", headers=H, json={
+        "text": "NII was 310,000,000.00 USD, not 311,000,000.00 USD.", "evidence_ids": [nii["evidence_id"]]}).json()
+    assert gate["data"]["unsupported"] == ["311,000,000.00"]
+
+    rule = client.post("/v1/tools/propose_allocation_rule", headers=H, json={
+        "pool_accounts": ["acct:SYNBANK:6000", "acct:SYNBANK:6100", "acct:SYNBANK:6400"], "pool_filter": {"CostCentre": "IT01"},
+        "basis": "fte", "target_dimension": "BusinessLine", "targets": ["Retail", "Commercial", "Wealth"],
+        "rationale": "IT serves staff"}).json()
+    assert rule["status"] == "ok"
+    run = {"rule_id": rule["data"]["rule_id"], "period": "2026-09", "idempotency_key": "it-1"}
+    assert client.post("/v1/tools/run_allocation", headers=H, json=run).json()["data"]["code"] == "rule_not_approved"
+    lead = {**H, "X-Volt-User": "lead"}
+    assert client.post("/v1/people/review_decision", headers=lead, json={
+        "item_id": rule["data"]["review_item_id"], "stage": "engagement_lead", "decision": "approve"}).json()["status"] == "ok"
+    assert client.post("/v1/people/driver_value", headers=H, json={"key": "fte", "period": "2026-09", "value": "1", "unit": "FTE"}).status_code == 403
+    for bl, v in [("Retail", "120"), ("Commercial", "45"), ("Wealth", "35")]:
+        assert client.post("/v1/people/driver_value", headers=lead, json={
+            "key": "fte", "period": "2026-09", "dimensions": {"BusinessLine": bl}, "value": v, "unit": "FTE"}).json()["status"] == "ok"
+    out = client.post("/v1/tools/run_allocation", headers=H, json=run).json()
+    assert out["status"] == "ok" and out["display"]["share Retail"] == "85,800,000.00 USD"
+    assert out["data"]["shares"] == {"Retail": "8580000000", "Commercial": "3217500000", "Wealth": "2502500000"}
+    items = client.get("/v1/people/review_items", headers=H).json()["data"]
+    assert any(i["kind"] == "allocation_rule" and i["engagement_lead"]["decision"] == "approve" for i in items)

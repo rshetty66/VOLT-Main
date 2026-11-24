@@ -57,6 +57,16 @@ CREATE TABLE IF NOT EXISTS review_decision (
   decision TEXT NOT NULL CHECK (decision IN ('approve','reject','amend')),
   by_user TEXT NOT NULL, note TEXT NOT NULL, evidence_id TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS driver_value (
+  seq INTEGER PRIMARY KEY AUTOINCREMENT, value_id TEXT UNIQUE NOT NULL,
+  kind TEXT NOT NULL CHECK (kind IN ('plan','driver','reg','market')), key TEXT NOT NULL, period TEXT NOT NULL,
+  dimensions TEXT NOT NULL, value TEXT NOT NULL, unit TEXT NOT NULL, source TEXT NOT NULL, entered_by TEXT NOT NULL,
+  evidence_id TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS allocation_rule (
+  rule_id TEXT PRIMARY KEY, definition TEXT NOT NULL, proposed_by TEXT NOT NULL, review_item_id TEXT NOT NULL,
+  evidence_id TEXT NOT NULL
+);
 CREATE TABLE IF NOT EXISTS period_lock_event (
   seq INTEGER PRIMARY KEY AUTOINCREMENT, period TEXT NOT NULL, action TEXT NOT NULL CHECK (action IN ('lock','unlock')),
   actor TEXT NOT NULL, reason TEXT NOT NULL, evidence_id TEXT NOT NULL
@@ -66,6 +76,7 @@ CREATE TABLE IF NOT EXISTS period_lock_event (
 APPEND_ONLY_TABLES = (
     "evidence", "element", "association", "source_document", "tb_row",
     "journal_entry", "journal_line", "period_lock_event", "review_item", "review_decision",
+    "driver_value", "allocation_rule",
 )
 
 

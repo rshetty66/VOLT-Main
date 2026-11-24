@@ -1,0 +1,20 @@
+{
+  "version": "metrics-v1",
+  "note": "Default metric definitions from docs/ratio-catalogue.md (v1 rows that the general ledger alone can answer). Formulas use natural amounts: credit-natured concepts such as income and deposits are positive when in credit. Definitions vary by bank; a client override is a new version, never an edit.",
+  "metrics": [
+    {"metric_id": "nii", "version": 1, "label": "Net interest income (NII)", "formula": "canon:InterestIncome - canon:InterestExpense", "unit": "money", "audiences": ["IR", "CFO", "FPA", "BL"]},
+    {"metric_id": "non_interest_income", "version": 1, "label": "Non-interest income", "formula": "canon:NonInterestIncome", "unit": "money", "audiences": ["IR", "CFO", "FPA", "BL"]},
+    {"metric_id": "total_operating_income", "version": 1, "label": "Total operating income (revenue)", "formula": "canon:TotalOperatingIncome", "unit": "money", "audiences": ["IR", "CFO", "FPA", "BL"]},
+    {"metric_id": "fee_income_share", "version": 1, "label": "Non-interest income share", "formula": "canon:NonInterestIncome / canon:TotalOperatingIncome", "unit": "percent", "audiences": ["IR", "CFO", "BL"]},
+    {"metric_id": "ppop", "version": 1, "label": "Pre-provision operating profit", "formula": "canon:TotalOperatingIncome - canon:OperatingExpenses", "unit": "money", "audiences": ["IR", "CFO", "FPA", "BL"]},
+    {"metric_id": "effective_tax_rate", "version": 1, "label": "Effective tax rate", "formula": "canon:IncomeTaxExpense / canon:ProfitBeforeTax", "unit": "percent", "audiences": ["CFO"]},
+    {"metric_id": "efficiency_ratio", "version": 1, "label": "Efficiency ratio (cost-income ratio)", "formula": "canon:OperatingExpenses / canon:TotalOperatingIncome", "unit": "percent", "audiences": ["IR", "CFO", "FPA", "BL"], "caveat": "[UNVERIFIED] some banks exclude amortisation of intangibles or one-off items"},
+    {"metric_id": "staff_cost_ratio", "version": 1, "label": "Staff cost ratio", "formula": "canon:StaffCosts / canon:TotalOperatingIncome", "unit": "percent", "audiences": ["CFO", "FPA"]},
+    {"metric_id": "allowance_ratio", "version": 1, "label": "Allowance to loans", "formula": "canon:CreditLossAllowance / canon:LoansGross", "unit": "percent", "audiences": ["IR", "CFO", "BL"]},
+    {"metric_id": "loan_to_deposit", "version": 1, "label": "Loan-to-deposit ratio", "formula": "canon:LoansNet / canon:CustomerDeposits", "unit": "percent", "audiences": ["IR", "CFO", "BL"]},
+    {"metric_id": "equity_to_assets", "version": 1, "label": "Equity to assets", "formula": "canon:TotalEquity / canon:TotalAssets", "unit": "percent", "audiences": ["IR", "CFO"]},
+    {"metric_id": "bl_operating_income", "version": 1, "label": "Business-line operating income", "formula": "canon:TotalOperatingIncome", "unit": "money", "audiences": ["BL", "CFO", "FPA"], "needs_dimension": "BusinessLine"},
+    {"metric_id": "bl_operating_expenses", "version": 1, "label": "Business-line costs (direct plus allocated when proposals are included)", "formula": "canon:OperatingExpenses", "unit": "money", "audiences": ["BL", "CFO", "FPA"], "needs_dimension": "BusinessLine"},
+    {"metric_id": "bl_efficiency_ratio", "version": 1, "label": "Business-line efficiency ratio", "formula": "canon:OperatingExpenses / canon:TotalOperatingIncome", "unit": "percent", "audiences": ["BL", "CFO"], "needs_dimension": "BusinessLine"}
+  ]
+}
