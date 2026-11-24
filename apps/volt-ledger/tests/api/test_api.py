@@ -78,6 +78,18 @@ def test_journal_refusal_and_success(client):
     assert rev["status"] == "ok"
 
 
+def test_map_line_items_maps_the_chart_in_one_call(client):
+    r = client.post("/v1/tools/map_line_items", headers=H, json={"items": [
+        {"account_id": "acct:SYNBANK:1000", "concept_id": "canon:CashAndCentralBankBalances", "confidence": 0.98,
+         "rationale": "cash"},
+        {"account_id": "acct:SYNBANK:4000", "concept_id": "canon:InterestIncome", "confidence": 0.95, "rationale": "r"},
+        {"account_id": "acct:SYNBANK:1000", "concept_id": "canon:NoSuchConcept", "confidence": 0.9, "rationale": "r"}]}).json()
+    assert r["status"] == "ok" and (r["data"]["mapped"], r["data"]["refused"]) == (2, 1)
+    assert [x["status"] for x in r["data"]["results"]] == ["mapped", "mapped", "refused"]
+    assert all(x["evidence_id"].startswith("E") for x in r["data"]["results"][:2])
+    assert r["warnings"] and r["warnings"][0].startswith("acct:SYNBANK:1000")
+
+
 def test_review_needs_a_person_and_lead_first(client):
     m = client.post("/v1/tools/map_line_item", headers=H, json={
         "account_id": "acct:SYNBANK:1000", "concept_id": "canon:CashAndCentralBankBalances", "confidence": 0.98,
@@ -177,9 +189,12 @@ def test_coa_design_over_http(client):
     d = client.post("/v1/tools/diagnose_coa", headers=H, json={"doc_id": "D0001"}).json()
     assert d["status"] == "ok" and d["evidence_id"] and d["display"]["D_CATCH_ALL"] == "1 (high)"
     dry = client.post("/v1/tools/check_coa_design", headers=H, json={"design": g["design"]}).json()
-    assert dry["data"]["pass"] and dry["evidence_id"] is None
+    assert dry["data"]["pass"] and dry["evidence_id"] is None and dry["data"]["failed_checks"] == []
     bad = json.loads(json.dumps(g["design"]))
     bad["accounts"][2]["code"] = "1110"
+    fail = client.post("/v1/tools/check_coa_design", headers=H, json={"design": bad}).json()["data"]
+    assert not fail["pass"] and [c["id"] for c in fail["failed_checks"]] == ["C_CODE_LENGTH"]
+    assert fail["failed_checks"][0]["items"] and "C_CODE_LENGTH" not in fail["passed"]
     r = client.post("/v1/tools/propose_coa_design", headers=H, json={"design": bad}).json()
     assert r["status"] == "refused" and any("C_CODE_LENGTH" in x for x in r["data"]["details"])
     p = client.post("/v1/tools/propose_coa_design", headers=H, json={"design": g["design"]}).json()

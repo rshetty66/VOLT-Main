@@ -52,7 +52,8 @@ const SPECIALIST_EFFORT = (process.env.VOLT_SPECIALIST_EFFORT ?? "medium") as Ef
 const WEB_RESEARCH = (process.env.VOLT_WEB_RESEARCH ?? "off") === "on";
 const WEB_SEARCH_TOOL = { type: "web_search_20260209", name: "web_search", max_uses: 8 } as unknown as Anthropic.Beta.BetaTool;
 const USE_FALLBACKS = (process.env.VOLT_FALLBACKS ?? "on") !== "off";
-const MAX_TURNS = 16;
+/** Model turns per agent. A full chart-of-accounts run (load, map, diagnose, design, check, propose, map, report) needs more than a chat answer. */
+const MAX_TURNS = Number(process.env.VOLT_MAX_TURNS) > 0 ? Number(process.env.VOLT_MAX_TURNS) : 40;
 const MAX_CONSULT_CHARS = 24_000;
 /** Specialists a single run may consult. Each one is a full model run, so this bounds the time and the cost. */
 export const MAX_CONSULTS = Number(process.env.VOLT_MAX_CONSULTS) > 0 ? Number(process.env.VOLT_MAX_CONSULTS) : 6;
@@ -153,7 +154,10 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
   let finalText = "";
   let jsonRetries = 0;
 
-  for (let turn = 0; turn < MAX_TURNS; turn++) {
+  for (let turn = 0; turn <= MAX_TURNS; turn++) {
+    // The last turn has no tools: the agent writes its answer from what it has instead of stopping mid-way.
+    const wrapUp = turn === MAX_TURNS;
+    if (wrapUp) emit({ type: "status", lane, text: `Reached ${MAX_TURNS} turns; writing the answer from the results so far` });
     const stream = getClient().beta.messages.stream(
       {
         model: MODEL,
@@ -161,6 +165,7 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
         system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
         messages,
         tools: [...toolDefs(opts.tools), ...(opts.ledger ? ledgerToolDefs() : []), ...(WEB_RESEARCH ? [WEB_SEARCH_TOOL] : [])],
+        ...(wrapUp ? { tool_choice: { type: "none" as const } } : {}),
         thinking: { type: "adaptive", display: "updates" },
         output_config: { effort: opts.effort },
         betas,

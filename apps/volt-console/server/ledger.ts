@@ -42,19 +42,22 @@ const COA_DESIGN = z.object({
   })).default([]),
 });
 
+const MAP_ITEM = z.object({
+  account_id: z.string().describe("acct:<client>:<code>"),
+  concept_id: z.string().describe("canon:<Name> from ledger_get_ontology_context"),
+  confidence: z.number().min(0).max(1).describe("Your honest probability that a reviewer accepts this mapping."),
+  rationale: z.string().max(600),
+  uncertainty: z.array(z.string()).optional().describe("What could make this mapping wrong."),
+  source_refs: z.array(z.string()).optional().describe("Source keys you relied on, e.g. S03."),
+});
+
 export const ledgerSchemas = {
   ledger_get_ontology_context: z.object({
     query: z.string().optional().describe("Words to match against canonical concepts, e.g. 'fee and commission income'."),
     element_id: z.string().optional().describe("An account (acct:<client>:<code>) or concept (canon:<Name>) id."),
   }),
-  ledger_map_line_item: z.object({
-    account_id: z.string().describe("acct:<client>:<code>"),
-    concept_id: z.string().describe("canon:<Name> from ledger_get_ontology_context"),
-    confidence: z.number().min(0).max(1).describe("Your honest probability that a reviewer accepts this mapping."),
-    rationale: z.string().max(600),
-    uncertainty: z.array(z.string()).optional().describe("What could make this mapping wrong."),
-    source_refs: z.array(z.string()).optional().describe("Source keys you relied on, e.g. S03."),
-  }),
+  ledger_map_line_item: MAP_ITEM,
+  ledger_map_line_items: z.object({ items: z.array(MAP_ITEM).min(1).max(500) }),
   ledger_flag_policy_gap: z.object({
     element_ids: z.array(z.string()).min(1),
     gap_type: z.enum(["recognition_basis_mixed", "stage_not_captured", "catch_all_account", "dimension_in_account",
@@ -174,7 +177,7 @@ const descriptions: Record<LedgerToolName, string> = {
   ledger_diagnose_coa:
     "Diagnose the client's current chart of accounts from an ingested, mapped trial balance: catch-alls, dimensions built into accounts, near-duplicates, wrong-sign balances, unmapped accounts, sparse segments, open policy gaps, and statement lines and metrics the chart cannot produce.",
   ledger_check_coa_design:
-    "Dry-run a draft target chart: structure checks (codes, ranges, hierarchy, naming, segments, concept anchoring) and which IFRS and US GAAP lines and metrics it can produce. Nothing is stored. Iterate until it passes.",
+    "Dry-run a draft target chart: structure checks (codes, ranges, hierarchy, naming, segments, concept anchoring) and which IFRS and US GAAP lines and metrics it can produce. Nothing is stored. Returns only the failing checks, each with the exact accounts or segments to fix.",
   ledger_propose_coa_design:
     "Store a target chart of accounts that passes every check, with its design decisions. The design and each decision go to the engagement lead's review queue. Refused with the failing checks otherwise.",
   ledger_propose_coa_mapping:
@@ -190,6 +193,8 @@ const descriptions: Record<LedgerToolName, string> = {
     "Look up VOLT's canonical, XBRL-labelled accounting concepts by words, or one account or concept by id (an account comes with its trial-balance rows, sign and current mapping). Use before every mapping.",
   ledger_map_line_item:
     "Propose the canonical concept for one trial-balance account. Low-confidence and first-run mappings go to the engagement lead's review queue. If no concept fits or a policy decision is needed, use ledger_flag_policy_gap instead.",
+  ledger_map_line_items:
+    "Map many trial-balance accounts in one call (the whole chart at once). Each item is mapped or refused with a reason; fix only the refused ones.",
   ledger_flag_policy_gap:
     "Flag accounts that cannot be mapped or presented without a policy decision (mixed recognition bases, missing credit stage, catch-all balances, dimensions in account codes, lease or capitalisation differences, netting, wrong-sign balances). Always reviewed by a person.",
   ledger_propose_journal:
@@ -213,6 +218,7 @@ const descriptions: Record<LedgerToolName, string> = {
 const routes: Record<LedgerToolName, string> = {
   ledger_get_ontology_context: "/v1/tools/get_ontology_context",
   ledger_map_line_item: "/v1/tools/map_line_item",
+  ledger_map_line_items: "/v1/tools/map_line_items",
   ledger_flag_policy_gap: "/v1/tools/flag_policy_gap",
   ledger_propose_journal: "/v1/tools/propose_journal",
   ledger_reverse_journal: "/v1/tools/reverse_journal",
@@ -445,11 +451,12 @@ You have ledger_* tools backed by a deterministic accounting service. It checks 
 
 The CoA design workflow (follow it in order whenever the client wants a chart designed, redesigned, rationalised or diagnosed):
 1. Load: when the client attaches a CSV or XLSX trial balance (it shows an upload id), call ledger_ingest_upload, then ledger_list_accounts.
-2. Map the current chart: map every account to one canonical concept with ledger_map_line_item (use ledger_get_ontology_context). Where a policy decision is needed, use ledger_flag_policy_gap instead of forcing a mapping. Finish with ledger_coverage.
+2. Map the current chart: look up concepts with ledger_get_ontology_context, then map every account in ONE ledger_map_line_items call (the whole chart; fix only refused items). Where a policy decision is needed, use ledger_flag_policy_gap instead of forcing a mapping. Finish with ledger_coverage.
 3. Diagnose: ledger_diagnose_coa. Explain each finding in plain language and the design question it raises.
-4. Design the target chart: segments (entity, natural account, cost centre, business line, product, credit stage where relevant, intercompany), fixed-length natural account codes in class ranges, a posting and roll-up hierarchy, and a canonical concept on every posting account so IFRS, US GAAP, statutory and management roll-ups follow from it. Record each choice that needs judgement as a decision (topic, choice, alternatives, rationale, paragraph references). Use ledger_check_coa_design until every check passes, then ledger_propose_coa_design.
+4. Design the target chart: segments (entity, natural account, cost centre, business line, product, credit stage where relevant, intercompany), fixed-length natural account codes in class ranges, a posting and roll-up hierarchy, and a canonical concept on every posting account so IFRS, US GAAP, statutory and management roll-ups follow from it. Record each choice that needs judgement as a decision (topic, choice, alternatives, rationale, paragraph references). Build the whole design before checking it. Call ledger_check_coa_design, fix only the accounts and segments listed in failed_checks, check once more, then call ledger_propose_coa_design. Do not redraft a passing design.
 5. Map old to new: ledger_propose_coa_mapping with one rule per legacy account (use "when" to split an account by dimension and "segments" to move a dimension out of a legacy code). Every row must be placed once; explain every reclassified concept in the tie-out.
 6. Report: the deliverable is the CoA design pack: diagnosis, target segments and ranges, the hierarchy, statement and metric coverage, the mapping and tie-out, and the decision log, each cited to its ledger result. The engagement lead approves the design and each decision in the Ledger review screen, where the chart, hierarchy, mapping and decisions download as CSV.
+Turn budget: the full flow fits in about ten turns. Put independent calls in the same turn, call each read tool once, and do not consult specialists or load skills during a CoA run.
 
 Supporting tools, used for the design rather than as the deliverable:
 - Statements and ratios: ledger_build_statement, ledger_compute_ratio and the coverage in the design results show which accounts the chart needs to produce statutory lines and investor metrics. Never compute, round or restate a ledger figure yourself: quote the display value exactly and cite its source key. A check in the console rejects ledger-cited figures that do not appear in the cited result.

@@ -66,6 +66,10 @@ class MapBody(BaseModel):
     first_client_run: bool = True
 
 
+class MapManyBody(BaseModel):
+    items: list[MapBody] = Field(min_length=1, max_length=500)
+
+
 class GapBody(BaseModel):
     element_ids: list[str] = Field(min_length=1)
     gap_type: str
@@ -287,6 +291,23 @@ def create_app(db_path: str | None = None) -> FastAPI:
         return ok(out.evidence_id, {"association_id": out.association_id, "review_item_id": out.review_item_id})
 
 
+    @app.post("/v1/tools/map_line_items", dependencies=[Depends(auth)])
+    def map_line_items(body: MapManyBody) -> dict:
+        """The whole chart in one call: each item is mapped (with its own evidence) or refused, never silently dropped."""
+        results = []
+        with locked() as s:
+            for m in body.items:
+                try:
+                    out = map_line_item_to_element(s, m.account_id, m.concept_id, str(m.confidence), m.rationale,
+                                                   "model", m.source_refs, m.first_client_run)
+                    results.append({"account_id": m.account_id, "status": "mapped", "evidence_id": out.evidence_id,
+                                    "association_id": out.association_id, "review_item_id": out.review_item_id})
+                except MappingError as e:
+                    results.append({"account_id": m.account_id, "status": "refused", "code": e.code, "message": str(e)})
+        bad = [r for r in results if r["status"] == "refused"]
+        return ok(None, {"mapped": len(results) - len(bad), "refused": len(bad), "results": results},
+                  warnings=[f"{r['account_id']}: {r['message']}" for r in bad])
+
     @app.post("/v1/tools/flag_policy_gap", dependencies=[Depends(auth)])
     def gap(body: GapBody) -> dict:
         try:
@@ -477,7 +498,8 @@ def create_app(db_path: str | None = None) -> FastAPI:
             cov = coa_coverage(s, {a["concept_id"] for a in post if a.get("concept_id")},
                                {x["source_dimension"] for x in body.design.get("segments", []) if x.get("source_dimension")})
         failed = [c for c in checks if not c["ok"]]
-        return ok(None, {"pass": not failed, "checks": checks, "coverage": cov},
+        return ok(None, {"pass": not failed, "failed_checks": failed, "passed": [c["id"] for c in checks if c["ok"]],
+                         "coverage": cov},
                   warnings=[f"{c['id']}: {c['detail']}" for c in failed])
 
     @app.post("/v1/tools/propose_coa_design", dependencies=[Depends(auth)])
