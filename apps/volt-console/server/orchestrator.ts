@@ -21,6 +21,7 @@ import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
 import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, wantsDeliverable } from "./deliverable.js";
 import { SourceRegistry, WEB_RESEARCH_GUIDE, registerWebBlock, sourceForTool, webCitationKeys } from "./research.js";
 import { evidenceGates } from "../shared/research.js";
+import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
 import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerToolDefs, runLedgerTool } from "./ledger.js";
 import { ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
@@ -114,7 +115,7 @@ You lead a bench of VOLT specialist agents. For any request that spans more than
 Write the final answer as an executive-grade consulting deliverable in Markdown: a one-paragraph answer first, then structured sections and tables. Where a picture clarifies an architecture, process, roadmap or prioritisation, include Mermaid diagrams (up to four) in \`\`\`mermaid code blocks (flowchart, gantt, quadrantChart or pie; short plain labels, no styling); the console draws them and carries them into downloads. State assumptions and data gaps plainly instead of inventing client facts. If a simple question needs no delegation, answer it directly.
 
 ${leadDeliverableGuide()}
-${ledgerEnabled() ? `\n${LEDGER_GUIDE}\n` : ""}
+${ledgerEnabled() ? `\n${GOAL_GUIDE}\n\n${LEDGER_GUIDE}\n` : ""}
 When a request matches one of the VOLT workflows below, mention it by name so the user can launch it as a full multi-phase run.
 
 ## VOLT workflows
@@ -172,7 +173,7 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
         max_tokens: 64000,
         system: [{ type: "text", text: WEB_RESEARCH ? `${opts.system}\n\n${WEB_RESEARCH_GUIDE}` : opts.system, cache_control: { type: "ephemeral" } }],
         messages,
-        tools: [...toolDefs(opts.tools), ...(opts.ledger ? ledgerToolDefs() : []), ...(WEB_RESEARCH ? WEB_TOOLS : [])],
+        tools: [...toolDefs(opts.tools), ...(opts.ledger && ledgerEnabled() ? [...goalToolDefs(), ...ledgerToolDefs()] : []), ...(WEB_RESEARCH ? WEB_TOOLS : [])],
         ...(wrapUp ? { tool_choice: { type: "none" as const } } : {}),
         thinking: { type: "adaptive", display: "updates" },
         output_config: { effort: opts.effort },
@@ -300,6 +301,15 @@ async function executeTool(
     emit({ type: "tool_result", lane, callId: tu.id, name, summary: error, isError: true });
     return { type: "tool_result", tool_use_id: tu.id, is_error: true, content: error };
   };
+
+  if (tu.name === PLAN_TOOL) {
+    if (lane !== ORCHESTRATOR_LANE || !ledgerEnabled()) return fail(`Unknown tool '${tu.name}'`);
+    const r = planGoal(tu.input);
+    if (!r.ok) return fail(r.error);
+    const { goals, ask, next } = r.plan;
+    emit({ type: "tool_result", lane, callId: tu.id, name, summary: `${goals.map((g) => g.goal).join(" + ")}: ${next === "ask" ? `${ask.length} input(s) to ask for` : "ready to run"}` });
+    return { type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(r.plan) };
+  }
 
   if (isLedgerTool(tu.name)) {
     // Ledger tools are offered to the lead only; a specialist naming one is refused.

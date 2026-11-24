@@ -482,8 +482,8 @@ export async function ledgerPeople(method: "GET" | "POST", path: "review_items" 
 }
 
 /** What the lead needs to know to use the ledger tools well; added to its system prompt only when they are on. */
-export const LEDGER_GUIDE = `## VOLT Ledger: chart-of-accounts design brain
-You have ledger_* tools backed by a deterministic accounting service. It checks and computes; you reason, design and explain. Its primary job is chart-of-accounts (CoA) design for banks, insurers, credit unions, pension funds and asset managers.
+export const LEDGER_GUIDE = `## VOLT Ledger: the CFO finance brain
+You have ledger_* tools backed by a deterministic accounting service. It checks and computes; you reason, design and explain. It serves the finance goals above for banks, insurers, credit unions, pension funds and asset managers; chart-of-accounts (CoA) design is its deepest workflow.
 
 The CoA design workflow (follow it in order whenever the client wants a chart designed, redesigned, rationalised or diagnosed):
 1. Load: when the client attaches a CSV or XLSX trial balance (it shows an upload id), call ledger_ingest_upload, then ledger_list_accounts.
