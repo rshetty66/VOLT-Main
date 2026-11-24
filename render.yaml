@@ -30,3 +30,32 @@ services:
         value: 0.0.0.0
       - key: VOLT_TRUST_PROXY
         value: "1"
+      # VOLT Ledger tools appear in the chat only when both of these resolve to the private service below.
+      - key: VOLT_LEDGER_HOSTPORT
+        fromService:
+          type: pserv
+          name: volt-ledger
+          property: hostport
+      - key: VOLT_LEDGER_TOKEN
+        fromService:
+          type: pserv
+          name: volt-ledger
+          envVarKey: VOLT_LEDGER_TOKEN
+
+  # VOLT Ledger: the accounting brain (apps/volt-ledger). A private service: no public URL, reached only by the
+  # console over Render's private network with a shared token. Its SQLite ledger is append-only and lives on the disk.
+  - type: pserv
+    name: volt-ledger
+    runtime: docker
+    dockerfilePath: ./apps/volt-ledger/Dockerfile
+    dockerContext: .
+    plan: starter
+    disk:
+      name: volt-ledger-data
+      mountPath: /var/volt-ledger
+      sizeGB: 1
+    envVars:
+      - key: VOLT_LEDGER_TOKEN
+        generateValue: true
+      - key: PORT
+        value: "8790"

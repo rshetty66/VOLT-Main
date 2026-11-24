@@ -21,6 +21,7 @@ import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
 import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, wantsDeliverable } from "./deliverable.js";
 import { SourceRegistry, sourceForTool, sourcesFromWebSearch } from "./research.js";
 import { evidenceGates } from "../shared/research.js";
+import { isLedgerTool, ledgerToolDefs, runLedgerTool } from "./ledger.js";
 import { ORCHESTRATOR_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 
@@ -137,6 +138,8 @@ interface LoopOptions {
   signal: AbortSignal;
   /** The run's source register: tool results are recorded in it and cited by key. */
   registry: SourceRegistry;
+  /** Offer the VOLT Ledger tools (lead only, and only when the ledger service is configured). */
+  ledger?: boolean;
 }
 
 /**
@@ -157,7 +160,7 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
         max_tokens: 64000,
         system: [{ type: "text", text: opts.system, cache_control: { type: "ephemeral" } }],
         messages,
-        tools: [...toolDefs(opts.tools), ...(WEB_RESEARCH ? [WEB_SEARCH_TOOL] : [])],
+        tools: [...toolDefs(opts.tools), ...(opts.ledger ? ledgerToolDefs() : []), ...(WEB_RESEARCH ? [WEB_SEARCH_TOOL] : [])],
         thinking: { type: "adaptive", display: "updates" },
         output_config: { effort: opts.effort },
         betas,
@@ -265,6 +268,16 @@ async function executeTool(
     emit({ type: "tool_result", lane, callId: tu.id, name, summary: error, isError: true });
     return { type: "tool_result", tool_use_id: tu.id, is_error: true, content: error };
   };
+
+  if (isLedgerTool(tu.name)) {
+    // Ledger tools are offered to the lead only; a specialist naming one is refused.
+    if (lane !== ORCHESTRATOR_LANE) return fail(`Unknown tool '${tu.name}'`);
+    const r = await runLedgerTool(tu.name, tu.input, registry, signal);
+    if (!r.ok) return fail(r.error);
+    if (r.newSource) emit({ type: "source", record: r.newSource });
+    emit({ type: "tool_result", lane, callId: tu.id, name, summary: r.summary, data: r.envelope.display });
+    return { type: "tool_result", tool_use_id: tu.id, is_error: r.envelope.status !== "ok", content: r.content };
+  }
 
   const schema = schemas[name];
   if (!schema) return fail(`Unknown tool '${tu.name}'`);
@@ -400,6 +413,7 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
     emit,
     signal,
     registry,
+    ledger: true,
   };
   await reviewDraft(lead, await runAgentLoop(lead), req.prompt);
 }
