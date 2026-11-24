@@ -133,6 +133,32 @@ Thin slice in the chat: attach `data/synthetic/tb_2026-09.csv` and ask "Load thi
 September 2026, map it to IFRS statements with policy gaps, and propose an IT cost allocation to the business lines by
 FTE." Approve the rule and enter FTEs on Ledger review, then ask it to run the allocation and explain the result.
 
+### Step 7: peer results search (`volt_ledger/peers.py`, `data/peers/peers.json`)
+
+For internal benchmarking only: peer figures are not reproduced in client deliverables.
+
+- `data/peers/peers.json` is built by `tools/make_peers.py` from the 24 Nov 2026 corpus manifest. It holds 23 peers
+  (Big 6, mid-size banks, credit unions, insurers, Maple 8 pensions, asset managers) with fiscal year ends, cadence,
+  estimated release lags (P2), registered investor-relations domains, URL templates and the corpus documents with
+  their hashes.
+- `resolve_peer_period` works out each peer's latest released period from its fiscal calendar. A named period that
+  is not out yet comes back `not_yet_released`; it is never swapped for the prior period.
+- `fetch_peer_documents` downloads PDFs in parallel (8 at once, 2 per domain), only from a peer's registered domains
+  (news wires are accepted as secondary). Off-domain redirects, non-PDF responses and scanned PDFs are refused.
+  Files are stored by SHA-256, and a second fetch of the same URL creates nothing new.
+- `peer_metrics` reads the supplementary pack with pdfplumber. A figure is accepted only where net interest income
+  plus non-interest income equals the printed total revenue in the requested quarter's column and the next two (P5),
+  and the column is found from the page header (P6). Otherwise the peer is reported as not verified.
+- `import_corpus` loads the corpus files a person downloaded, checking each hash against the manifest.
+
+Verified on the corpus: RBC, TD, BMO, Scotiabank, CIBC, National Bank, EQB, Laurentian and ATB all tie. Desjardins,
+Servus and the insurers are not verified yet; the insurers need an IFRS 17 pack reader.
+
+Routes: `/v1/tools/resolve_peer_period`, `/v1/tools/fetch_peer_documents`, `/v1/tools/peer_metrics`. Each writes
+evidence with display values, so the console's figure gate checks quoted peer figures too. Set
+`VOLT_LEDGER_PEER_FILES` for where PDFs are kept (default: `peer_files` next to the database) and
+`VOLT_LEDGER_MAILBOX` for the contact address in the User-Agent (use a shared research mailbox, never a person's).
+
 ## Tests
 
 | File | What it proves |

@@ -67,6 +67,12 @@ CREATE TABLE IF NOT EXISTS allocation_rule (
   rule_id TEXT PRIMARY KEY, definition TEXT NOT NULL, proposed_by TEXT NOT NULL, review_item_id TEXT NOT NULL,
   evidence_id TEXT NOT NULL
 );
+CREATE TABLE IF NOT EXISTS peer_document (
+  doc_id TEXT PRIMARY KEY, peer_id TEXT NOT NULL, period TEXT NOT NULL, doc_type TEXT NOT NULL, url TEXT NOT NULL,
+  source_tier TEXT NOT NULL CHECK (source_tier IN ('primary','secondary')), retrieved_utc TEXT NOT NULL,
+  sha256 TEXT NOT NULL, pages INTEGER NOT NULL, bytes INTEGER NOT NULL, path TEXT NOT NULL, evidence_id TEXT NOT NULL,
+  UNIQUE (url, sha256)
+);
 CREATE TABLE IF NOT EXISTS period_lock_event (
   seq INTEGER PRIMARY KEY AUTOINCREMENT, period TEXT NOT NULL, action TEXT NOT NULL CHECK (action IN ('lock','unlock')),
   actor TEXT NOT NULL, reason TEXT NOT NULL, evidence_id TEXT NOT NULL
@@ -76,7 +82,7 @@ CREATE TABLE IF NOT EXISTS period_lock_event (
 APPEND_ONLY_TABLES = (
     "evidence", "element", "association", "source_document", "tb_row",
     "journal_entry", "journal_line", "period_lock_event", "review_item", "review_decision",
-    "driver_value", "allocation_rule",
+    "driver_value", "allocation_rule", "peer_document",
 )
 
 

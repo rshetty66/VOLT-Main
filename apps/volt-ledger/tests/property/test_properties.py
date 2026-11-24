@@ -127,6 +127,9 @@ def test_p8_append_only(table, sql):
     record_driver_value(s, "driver", "fte", "2026-09", {"BusinessLine": "Retail"}, "1", "FTE", {"user": "p"}, "user:p")
     propose_allocation_rule(s, AllocationRule(["acct:SYNBANK:6100"], {"CostCentre": "IT01"}, "fte", "BusinessLine",
                                               ["Retail"]), "p8", "model")
+    s.conn.execute("INSERT INTO peer_document (doc_id, peer_id, period, doc_type, url, source_tier, retrieved_utc, sha256, "
+                   "pages, bytes, path, evidence_id) VALUES ('P00001','td','FY2026-Q3','press_release','https://www.td.com/x.pdf',"
+                   "'primary','2026-11-24T00:00:00Z','00',1,1,'/x.pdf','E000001')")
     assert s.conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0] > 0   # triggers fire only on existing rows
     with pytest.raises(sqlite3.DatabaseError, match="append-only"):
         s.conn.execute(sql.format(t=table))

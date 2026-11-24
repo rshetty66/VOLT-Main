@@ -42,7 +42,8 @@ describe("VOLT Ledger tools", () => {
     expect(names).toEqual(["ledger_get_ontology_context", "ledger_map_line_item", "ledger_flag_policy_gap",
       "ledger_propose_journal", "ledger_reverse_journal", "ledger_coverage", "ledger_ingest_upload", "ledger_list_accounts",
       "ledger_get_balances", "ledger_build_statement", "ledger_list_metrics", "ledger_compute_ratio",
-      "ledger_propose_allocation_rule", "ledger_run_allocation"]);
+      "ledger_propose_allocation_rule", "ledger_run_allocation", "ledger_resolve_peer_period",
+      "ledger_fetch_peer_documents", "ledger_peer_metrics"]);
     expect(names.some((n) => /driver_value|check_output/.test(n))).toBe(false);
     expect(names.some((n) => /review|decision/.test(n))).toBe(false);
     expect(isLedgerTool("ledger_coverage")).toBe(true);
@@ -164,6 +165,17 @@ describe("VOLT Ledger tools", () => {
     const sent = JSON.parse(fetchMock.mock.calls[1][1].body);
     expect(sent).toEqual({ text: `NII was 311,000,000.00 USD [${key}].`, evidence_ids: ["E000077"] });
     expect(await checkLedgerFigures("No ledger figures here [S01].", registry)).toBeNull();
+  });
+
+  it("makes peer results citable and refuses a bad fiscal period before calling the service", async () => {
+    const registry = new SourceRegistry("x");
+    const bad = await runLedgerTool("ledger_resolve_peer_period", { peer_ids: ["td"], period: "2026-Q3" }, registry);
+    expect(bad.ok).toBe(false);
+    expect(fetchMock).not.toHaveBeenCalled();
+    fetchMock.mockResolvedValueOnce(ok([{ peer_id: "rbc", status: "ok" }], { "rbc FY2026-Q3 nii": "C$8,744 million" }, "E000090"));
+    const r = await runLedgerTool("ledger_peer_metrics", { doc_ids: ["P00002"], metric_ids: ["nii"] }, registry);
+    expect(r.ok && r.newSource?.publisher).toBe("VOLT Ledger");
+    expect(fetchMock.mock.calls[0][0]).toBe("http://ledger.test/v1/tools/peer_metrics");
   });
 
   it("sends the signed-in person to people-only routes", async () => {

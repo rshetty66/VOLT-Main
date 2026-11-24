@@ -17,6 +17,7 @@ import { listUploads, originalPath } from "./uploads.js";
 
 const AMOUNT = z.string().regex(/^[0-9]+$/, "amount_minor must be an integer string of minor units (cents), e.g. '125000099'");
 const PERIOD = z.string().regex(/^[0-9]{4}-(0[1-9]|1[0-2])$/, "period is YYYY-MM");
+const FISCAL = z.string().regex(/^FY[0-9]{4}(-(Q[1-4]|H[12]))?$/, "fiscal period is FY2026-Q3, FY2026-H1 or FY2026");
 
 export const ledgerSchemas = {
   ledger_get_ontology_context: z.object({
@@ -108,11 +109,34 @@ export const ledgerSchemas = {
     period: PERIOD,
     idempotency_key: z.string().min(1).max(200),
   }),
+  ledger_resolve_peer_period: z.object({
+    peer_ids: z.array(z.string()).min(1).describe("Peer ids or groups: big6, canadian_midsize, canadian_banks, cooperatives_and_credit_unions, insurers, maple_pensions, asset_managers."),
+    period: FISCAL.optional().describe("FY2026-Q3, FY2026-H1 or FY2026. Leave out for each peer's latest released period."),
+  }),
+  ledger_fetch_peer_documents: z.object({
+    items: z.array(z.object({
+      peer_id: z.string(),
+      period: FISCAL,
+      doc_types: z.array(z.enum(["supplementary_financial_info", "press_release", "report_to_shareholders", "quarterly_report",
+        "interim_financial_statements", "mdna", "annual_report"])).default([]),
+      url: z.string().url().optional().describe("Only a PDF found on the peer's own investor-relations site."),
+    })).min(1).max(40),
+  }),
+  ledger_peer_metrics: z.object({
+    doc_ids: z.array(z.string()).min(1).max(40),
+    metric_ids: z.array(z.enum(["nii", "non_interest_income", "total_operating_income", "non_interest_expense", "efficiency_ratio"])).optional(),
+  }),
 } as const;
 
 export type LedgerToolName = keyof typeof ledgerSchemas;
 
 const descriptions: Record<LedgerToolName, string> = {
+  ledger_resolve_peer_period:
+    "Which fiscal period is the latest released one for each peer (from the peers' fiscal calendars), or whether a named period is out yet. Call first in any peer comparison.",
+  ledger_fetch_peer_documents:
+    "Download peers' official results PDFs in parallel from their registered investor-relations sites and store them by hash. Returns a doc_id per stored PDF and a reason per failure.",
+  ledger_peer_metrics:
+    "Read reported results (net interest income, non-interest income, total revenue, non-interest expenses, efficiency ratio) from stored peer packs. Figures are accepted only where the table ties to its printed total. Quote display values exactly.",
   ledger_get_ontology_context:
     "Look up VOLT's canonical, XBRL-labelled accounting concepts by words, or one account or concept by id (an account comes with its trial-balance rows, sign and current mapping). Use before every mapping.",
   ledger_map_line_item:
@@ -152,13 +176,17 @@ const routes: Record<LedgerToolName, string> = {
   ledger_compute_ratio: "/v1/tools/compute_ratio",
   ledger_propose_allocation_rule: "/v1/tools/propose_allocation_rule",
   ledger_run_allocation: "/v1/tools/run_allocation",
+  ledger_resolve_peer_period: "/v1/tools/resolve_peer_period",
+  ledger_fetch_peer_documents: "/v1/tools/fetch_peer_documents",
+  ledger_peer_metrics: "/v1/tools/peer_metrics",
 };
 
 /** Tools whose results are evidence the model may cite (lookups are not). */
 const CITABLE: ReadonlySet<LedgerToolName> = new Set([
   "ledger_map_line_item", "ledger_flag_policy_gap", "ledger_propose_journal", "ledger_reverse_journal", "ledger_coverage",
   "ledger_ingest_upload", "ledger_get_balances", "ledger_build_statement", "ledger_compute_ratio",
-  "ledger_propose_allocation_rule", "ledger_run_allocation",
+  "ledger_propose_allocation_rule", "ledger_run_allocation", "ledger_resolve_peer_period", "ledger_fetch_peer_documents",
+  "ledger_peer_metrics",
 ]);
 
 /** Dimension columns recognised in a trial balance header when the model does not name them. */
@@ -348,4 +376,5 @@ You have ledger_* tools backed by a deterministic accounting service. It compute
 - Statements and ratios: ledger_build_statement for IFRS or US GAAP statements, ledger_compute_ratio for every ratio or KPI. Never compute, round or restate a ledger figure yourself: quote the display value exactly and cite its source key. A check in the console rejects ledger-cited figures that do not appear in the cited result.
 - Allocation is driver-based: propose a rule with ledger_propose_allocation_rule (pool, driver, targets). Driver values (FTEs, transaction counts, RWA) are entered by people, and the engagement lead approves the rule in the Ledger review screen. Then run it with ledger_run_allocation, and use include_proposals for business-line figures after allocation. If a rule is unapproved or a driver is missing, say exactly what the person must do.
 - Journals are proposals only, never posted to the client's ledger. Copy journal amounts from earlier ledger results and name that source key.
+- Peer results (internal benchmarking only): ledger_resolve_peer_period, then ledger_fetch_peer_documents (supplementary_financial_info packs), then ledger_peer_metrics. Never type a peer figure from memory or a web page. Report "not verified" peers as such. Peer figures are for the engagement team: do not reproduce peer tables in client deliverables; describe position in ranges instead.
 - Mappings below 90% confidence, first-run mappings, every policy gap and every allocation rule go to the engagement lead's review queue. Say which figures are draft because they await review.`;
