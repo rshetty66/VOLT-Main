@@ -1,0 +1,21 @@
+{
+  "_note": "Recorded working settings for the memory-first agent system (CLAUDE.md). Claude Code does NOT read this file; its real settings are in .claude/settings.json, which this does not change. Every value here is advisory and followed as an instruction unless marked enforced.",
+  "compaction": {
+    "normalTaskThresholdPct": 40,
+    "largeTaskThresholdPct": 60,
+    "beforeCompaction": "Run .claude/skills/session-memory-update first, so nothing important depends on the summary alone.",
+    "afterCompaction": "Tell Rakesh that a compaction happened and what was kept.",
+    "enforced": false
+  },
+  "modelRouting": {
+    "planner": { "model": "opus", "effort": "xhigh", "enforcedBy": ".claude/agents/planner.md frontmatter" },
+    "verifier": { "model": "opus", "effort": "high", "enforcedBy": ".claude/agents/verifier.md frontmatter" },
+    "worker": { "model": "haiku", "effort": "low", "rule": "lowest effort that still passes verification", "enforcedBy": ".claude/agents/worker.md frontmatter" },
+    "note": "The model and effort apply only when the agent is actually invoked as a subagent; the main session's model is set by the surface. Otherwise simulate the split in one session."
+  },
+  "memory": {
+    "loadAtStart": ["CLAUDE.md", "memory/MEMORY.md", "memory/open-loops.md", "memory/decisions.md"],
+    "updateAtEnd": "Run .claude/skills/session-memory-update",
+    "enforced": false
+  }
+}
