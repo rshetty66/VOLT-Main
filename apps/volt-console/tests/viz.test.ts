@@ -151,3 +151,12 @@ describe("chart colours", () => {
     expect(spec.series[0].values).toEqual([8, 7, 6, 5, 4, 6]);
   });
 });
+
+describe("chart accessibility", () => {
+  it("names the chart and describes its data for screen readers", () => {
+    const svg = specSvg(parseChartSpec(JSON.stringify(good))!, LIGHT);
+    expect(svg).toMatch(/aria-labelledby="(\w+)t \1d"/);
+    expect(svg).toContain(">Close days</title>");
+    expect(svg).toContain("Today: EMEA 12 days, APAC 9 days");
+  });
+});

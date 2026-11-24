@@ -4,6 +4,7 @@ import { cellValue, contentsOf, markdownBlocks, plain } from "./blocks.js";
 import { TONE_STYLE, toneFor } from "../../shared/brand.js";
 import { BRAND, brandLogo } from "./brand.js";
 import type { ExportStyle } from "./style.js";
+import { safeFormula } from "../../shared/files.js";
 
 /** Sheet names: at most 31 characters, none of []:*?/\ and unique within the workbook. */
 function sheetNamer() {
@@ -31,6 +32,7 @@ function addTable(wb: ExcelJS.Workbook, name: string, columns: string[], rows: (
       const raw = r[i];
       const cell = row.getCell(i + 1);
       if (typeof raw === "number" || raw === null || raw === undefined) cell.value = raw ?? null;
+      else if (safeFormula(raw)) cell.value = { formula: raw.slice(1) } as ExcelJS.CellFormulaValue;
       else {
         const v = cellValue(raw);
         cell.value = v.value;
@@ -71,6 +73,8 @@ export async function writeXlsx(req: ExportRequest, s: ExportStyle): Promise<Uin
   const wb = new ExcelJS.Workbook();
   wb.creator = "VOLT Console";
   wb.title = req.title;
+  // Formulas are written without cached results; Excel and LibreOffice calculate them on open.
+  wb.calcProperties.fullCalcOnLoad = true;
   const name = sheetNamer();
 
   const blocks = markdownBlocks(req.markdown);

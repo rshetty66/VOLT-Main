@@ -5,6 +5,7 @@ import { summariseWork, type Run } from "../runState";
 import { Markdown } from "./Markdown";
 import { RunVisuals } from "../charts/RunVisuals";
 import { DownloadMenu } from "./DownloadMenu";
+import { FileCards } from "./FileCards";
 import { runDeliverable } from "../exports";
 import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
 import { ATTACH_EXTENSIONS, ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../../shared/attachments";
@@ -312,6 +313,7 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
         <div className="answer">
           {run.text ? <Markdown text={run.text} /> : run.state === "running" ? <p className="muted"><span className="spinner" /> Rudra is working…</p> : null}
         </div>
+        <FileCards run={run} />
       </div>
     </section>
   );

@@ -27,6 +27,12 @@ export function fmt(v: number): string {
   if (a >= 1e4) return `${+(v / 1e3).toFixed(0)}K`;
   return `${+v.toFixed(a < 10 ? 2 : a < 100 ? 1 : 0)}`;
 }
+/** Approximate rendered width of a label in the chart font, from character classes (no DOM in downloads). */
+export function textWidth(s: string, size = 12): number {
+  let w = 0;
+  for (const ch of s) w += /[ilj.,:;'|!]/.test(ch) ? 0.28 : /[ftr() -]/.test(ch) ? 0.36 : /[MWmw@%]/.test(ch) ? 0.86 : /[A-Z0-9#$&]/.test(ch) ? 0.64 : 0.54;
+  return w * size;
+}
 const signed = (v: number) => (v > 0 ? `+${fmt(v)}` : fmt(v));
 
 /** A "nice" axis range and step, so gridlines land on round numbers. */
@@ -62,6 +68,13 @@ function uid(spec: ChartSpec, p: Palette): string {
   return `vz${h.toString(36)}`;
 }
 
+/** A plain-text summary of the data for screen readers: the type, the takeaway and each series' values. */
+function describe(spec: ChartSpec): string {
+  const u = spec.unit ? ` ${spec.unit}` : "";
+  const series = spec.series.map((s) => `${s.name}: ${s.values.map((v, i) => `${spec.labels[i]} ${fmt(v)}${u}`).join(", ")}`).join(". ");
+  return `${spec.type} chart. ${spec.note ? `${spec.note}. ` : ""}${series}.`.slice(0, 600);
+}
+
 const RAG = ["#e5534b", "#f0b429", "#3fb67a"];
 const RAG_INK = "#10131c";
 
@@ -88,7 +101,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
   };
   /** A rounded label pill, for call-outs and the target line. */
   const pill = (x: number, y: number, s: string, colour: string, anchor: "start" | "middle" | "end" = "middle") => {
-    const w = s.length * 6.6 + 24;
+    const w = textWidth(s, 11) + 26;
     const x0 = anchor === "middle" ? x - w / 2 : anchor === "end" ? x - w : x;
     return `<rect x="${n1(x0)}" y="${n1(y - 13)}" width="${n1(w)}" height="18" rx="9" fill="${p.ink}"/><circle cx="${n1(x0 + 9)}" cy="${n1(y - 4)}" r="3" fill="${colour}"/>` + text(x0 + w / 2 + 4, y, s, { size: 11, anchor: "middle", fill: p.bg, weight: 700 });
   };
@@ -104,7 +117,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
     for (const [i, s] of spec.series.entries()) {
       const name = spec.type === "combo" && i === 1 && spec.unit2 ? `${s.name} (${spec.unit2}, right axis)` : s.name;
       parts.push(spec.type === "line" || (spec.type === "combo" && i === 1) ? `<line x1="${x}" y1="${y - 4}" x2="${x + 14}" y2="${y - 4}" stroke="${cs[i]}" stroke-width="3" stroke-linecap="round"/>` : `<rect x="${x}" y="${y - 10}" width="12" height="12" rx="3" fill="${cs[i]}"/>`, text(x + 19, y, name, { size: 12, fill: p.ink }));
-      x += 44 + name.length * 6.8;
+      x += 19 + textWidth(name) + 22;
     }
   }
   const top = y + 24;
@@ -117,7 +130,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
   else cartesian();
 
   if (spec.source) parts.push(text(24, H - 11, `Source: ${spec.source}`, { size: 11 }));
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(spec.title || "Chart")}" style="font-variant-numeric:tabular-nums"><defs>${defs.join("")}</defs><rect width="${W}" height="${H}" fill="${p.bg}" rx="10"/>${parts.join("")}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-labelledby="${id}t ${id}d" style="font-variant-numeric:tabular-nums"><title id="${id}t">${esc(spec.title || "Chart")}</title><desc id="${id}d">${esc(describe(spec))}</desc><defs>${defs.join("")}</defs><rect width="${W}" height="${H}" fill="${p.bg}" rx="10"/>${parts.join("")}</svg>`;
 
   function donut() {
     const vals = spec.series[0].values;
@@ -312,7 +325,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
           const level = total ? v : cum[i] + v;
           parts.push(`<line x1="${n1(mid(i) + bw / 2)}" y1="${n1(val(level))}" x2="${n1(mid(i + 1) - bw / 2)}" y2="${n1(val(level))}" stroke="${p.muted}" stroke-dasharray="2 3"/>`);
         }
-        if (spec.highlight === i) callout.push({ x: mid(i), y: (v >= 0 || total ? yA : yB) - 26, s: `${spec.labels[i]}: ${total ? fmt(v) : signed(v)}${unit}` });
+        if (spec.highlight === i) callout.push({ x: mid(i), y: v >= 0 || total ? yA - 26 : yB + 34, s: `${spec.labels[i]}: ${total ? fmt(v) : signed(v)}${unit}` });
       });
     } else {
       const k = bars.length;
