@@ -1,16 +1,25 @@
 # FSDF-derived schema for banking and insurance products
 
-Companion to [`fsdf-derived-schema.sql`](fsdf-derived-schema.sql). Status: derived design, 2026-11-24.
+Status: derived design, 2026-11-24. Files in this folder:
+
+| File | What it is |
+|---|---|
+| [`schema.sql`](schema.sql) | Oracle 19c+ DDL: 51 tables, a staging generator and the Section 9 post-load checks |
+| [`synthetic_data.sql`](synthetic_data.sql) | Synthetic data for every product family, tied to the GL (generated, do not edit) |
+| [`make_synthetic.py`](make_synthetic.py) | The generator: `python fsdf/make_synthetic.py` from `apps/volt-ledger` |
+| `../tests/unit/test_fsdf_synthetic.py` | Loads schema and data into SQLite and runs every Section 9 check |
 
 ## What this is and is not
 
-- It is an Oracle (19c+) physical schema: 50 tables plus a staging generator and post-load checks. It covers every
+- It is an Oracle (19c+) physical schema: 51 tables plus a staging generator and post-load checks. It covers every
   banking and insurance product family and follows Oracle FSDF conventions.
 - It is **not** Oracle's licensed FSDF or OIDF physical model. That model has well over a thousand tables and is
   published as an erwin model to licensees. Where a site runs real OFSAA, use the crosswalk in section 4 to map
   this design onto the licensed tables.
 - It has not been compiled against an Oracle instance. Checks run so far:
-  - All 65 non-PL/SQL statements parse in the Oracle dialect of `sqlglot` 30.34, which is a lenient parser.
+  - All 69 non-PL/SQL statements parse in the Oracle dialect of `sqlglot` 30.34, which is a lenient parser.
+  - The schema and synthetic data load into SQLite with foreign keys enforced, and all seven Section 9 checks return
+    no rows (section 7). SQLite proves the data and keys are consistent; it is not an Oracle compile.
   - A structural script confirmed several more things. Every foreign key points to a table created earlier, and to
     columns that exist. Every key and index column exists. Each column's prefix matches its type. No identifier is
     longer than 27 characters, and there are no duplicate constraint names.
@@ -74,6 +83,10 @@ ontology in `data/ontology/mvg-bank-v1.json`).
 
 - `dim_gl_account.v_concept_id` holds the canonical concept (`canon:<Name>`). Check 9.3 flags any account in use
   without one.
+- `dim_gl_map_rule` says which GL account each balance type of each product posts to (carrying amount, ECL
+  allowance, positive or negative fair value, IFRS 17 LRC + LIC). It is the brain's mapping output in FSDF form.
+  Check 9.5 reconciles contract positions to the GL through it at full segment grain; check 9.6 does the same for
+  IFRS 17 groups.
 - Each dimension has a `v_segment_code` column for the segment value. The unassigned member is key -1, which
   matches the target chart's segment defaults.
 - `fct_gl_balance` is held at the full segment grain. Check 9.4 confirms that every journal combination exists in
@@ -144,9 +157,40 @@ Column conventions: Oracle's examples show `FIC_MIS_DATE`, `V_ACCOUNT_NUMBER`, `
 ## 6. Open items
 
 - Compile and load-test the DDL on Oracle 19c or 23ai.
-- Add the position-to-GL mapping rule (check 9.5). This is the CoA brain's mapping output.
 - Add the insurance canonical concepts to the volt-ledger ontology (section 3).
 - Verify the [UNVERIFIED] crosswalk rows against a licensed FSDF/OIDF erwin model.
+
+## 7. Synthetic data
+
+Two fictional entities, as of 2026-09-30, IFRS ledger, USD:
+
+- **001 Synthetic Bank** is the volt-ledger synthetic bank. Its GL is `data/synthetic/tb_2026-09.csv` moved onto
+  the target chart in `tests/golden/synbank_target_coa.json`, so totals by target account match the TB exactly
+  (tested). Contract-backed lines are split by product (for example commercial loans into term loans, leases and
+  overdrafts), and the generated contracts add up to those lines exactly.
+- **002 Synthetic Insurance Co** is a small insurer added so the insurance families have a GL to tie to. It uses the
+  proposed insurance concepts from section 3.
+
+What ties, and which check proves it:
+
+| Tie | Check |
+|---|---|
+| Every contract has its product subtype row | 9.1 |
+| Journals balance per event | 9.2 |
+| Every GL account in use has a canonical concept | 9.3 |
+| Every journal segment combination exists in the GL | 9.4 |
+| Contract positions equal GL balances by account, entity, business line, product and credit stage | 9.5 |
+| IFRS 17 LRC + LIC per product equals the insurance and reinsurance contract balances in the GL | 9.6 |
+| Each entity's trial balance nets to zero | 9.7 |
+| ECL booked equals the position allowance; LIC equals claim reserves per group | pytest only |
+
+One difference from the TB is intended. The TB holds the loan loss allowance (165m) on one line with no stage or
+business line, which is one of the seeded gaps. The FSDF data rebuilds it from contract-level ECL, so the target
+design carries it by business line, product and stage, with the same total.
+
+Each synthetic contract stands for a pool of similar accounts, so amounts per contract are large. Accrual journals
+are only generated where the TB has a matching P&L line, so 29 contracts (for example commercial current accounts)
+have no September accrual.
 
 ## Sources
 

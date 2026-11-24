@@ -15,7 +15,7 @@
 --              appear in Oracle's FSDF examples; d_ for dates is [UNVERIFIED].
 --              FSI_D_ follows the OFSAA ALM/FTP processing-table style [UNVERIFIED];
 --              FSDF itself lands data in STG_ product-processor tables. The
---              crosswalk to real OFSAA table names is in fsdf-derived-schema.md.
+--              crosswalk to real OFSAA table names is in README.md.
 -- DEVIATION  : OFSAA instrument tables are daily snapshots keyed
 --              (fic_mis_date, v_account_number). Here the contract master is
 --              1 row per contract (current terms) and all time-varying values sit
@@ -167,6 +167,25 @@ INSERT INTO dim_product (n_product_sk, v_product_code, v_product_name, v_busines
 INSERT INTO dim_org_unit (n_org_sk, v_org_code, v_org_name, v_hierarchy_type, v_org_type,
                           v_segment_code, d_eff_start)
   VALUES (-1, 'NONE', 'Unassigned', 'MGMT', 'UNASSIGNED', 'Unassigned', DATE '1900-01-01');
+
+-- Position-to-GL mapping rule: which GL account each balance type of each product posts to.
+-- This is the chart-of-accounts brain's mapping output in FSDF form; checks 9.5 and 9.6 use it.
+-- n_sign turns the position value into the GL sign (debit positive): +1 assets, -1 liabilities.
+-- Balance types: CARRYING, ALLOWANCE, FV_POSITIVE, FV_NEGATIVE (fct_position) and
+-- IFRS17_LRC_LIC (fct_ifrs17_measurement, group level).
+CREATE TABLE dim_gl_map_rule (
+  n_product_sk       NUMBER(18)    NOT NULL,
+  v_balance_type     VARCHAR2(20)  NOT NULL,
+  v_ledger           VARCHAR2(15)  NOT NULL,
+  n_gl_account_sk    NUMBER(18)    NOT NULL,
+  n_sign             NUMBER(1)     NOT NULL,
+  CONSTRAINT pk_dim_gl_map_rule PRIMARY KEY (n_product_sk, v_balance_type, v_ledger),
+  CONSTRAINT fk_glmr_prod FOREIGN KEY (n_product_sk) REFERENCES dim_product (n_product_sk),
+  CONSTRAINT fk_glmr_gl FOREIGN KEY (n_gl_account_sk) REFERENCES dim_gl_account (n_gl_account_sk),
+  CONSTRAINT ck_glmr_sign CHECK (n_sign IN (1, -1)),
+  CONSTRAINT ck_glmr_type CHECK (v_balance_type IN
+    ('CARRYING','ALLOWANCE','FV_POSITIVE','FV_NEGATIVE','IFRS17_LRC_LIC'))
+);
 
 -- ---------------------------------------------------------------------------
 -- 2. PARTY (customers, counterparties, issuers, policyholders, brokers, reinsurers)
@@ -561,10 +580,12 @@ CREATE TABLE fsi_d_ins_group (
   v_measurement_model VARCHAR2(5)  NOT NULL,   -- GMM | PAA | VFA
   v_direction        VARCHAR2(10)  NOT NULL,   -- ISSUED | REINS_HELD
   n_org_sk           NUMBER(18)    NOT NULL,
+  n_product_sk       NUMBER(18)    NOT NULL,   -- portfolio's product; drives the GL mapping rule
   v_ccy_code         CHAR(3)       NOT NULL,
   CONSTRAINT pk_fsi_d_ins_group PRIMARY KEY (n_group_sk),
   CONSTRAINT uq_fsi_d_ins_group UNIQUE (v_group_id),
   CONSTRAINT fk_grp_org FOREIGN KEY (n_org_sk) REFERENCES dim_org_unit (n_org_sk),
+  CONSTRAINT fk_grp_prod FOREIGN KEY (n_product_sk) REFERENCES dim_product (n_product_sk),
   CONSTRAINT ck_grp_model CHECK (v_measurement_model IN ('GMM','PAA','VFA'))
 );
 
@@ -1046,6 +1067,82 @@ HAVING NOT EXISTS (
      AND b.v_credit_stage = j.v_credit_stage AND b.n_ic_org_sk = j.n_ic_org_sk
      AND b.v_ccy_code = j.v_ccy_code);
 
--- 9.5 Position-to-GL reconciliation needs a site rule from contract family and
--- balance type to GL account (the CoA brain's mapping output). Add it at build time;
--- a non-empty result then is a genuine break, not a process artefact.
+-- 9.5 Position-to-GL reconciliation at segment grain. Contract balances, routed through
+-- dim_gl_map_rule, must equal fct_gl_balance for every mapped account (summed over the
+-- CostCentre and Intercompany segments, which positions do not carry).
+WITH pos AS (
+  SELECT p.fic_mis_date, p.v_ledger, c.n_org_sk, COALESCE(c.n_mgmt_org_sk, -1) AS n_mgmt_org_sk,
+         c.n_product_sk, p.v_ccy_code,
+         CASE WHEN p.f_poci = 'Y' THEN 'POCI' WHEN p.n_ifrs9_stage = 1 THEN '1'
+              WHEN p.n_ifrs9_stage = 2 THEN '2' WHEN p.n_ifrs9_stage = 3 THEN '3' ELSE 'NA' END AS v_credit_stage,
+         p.n_carrying_amt, p.n_impairment_allow, p.n_fair_value
+    FROM fct_position p JOIN fsi_d_contract c ON c.n_contract_sk = p.n_contract_sk
+), bal AS (
+  SELECT pos.*, 'CARRYING' AS v_balance_type, n_carrying_amt AS n_amt FROM pos
+  UNION ALL SELECT pos.*, 'ALLOWANCE', n_impairment_allow FROM pos
+  UNION ALL SELECT pos.*, 'FV_POSITIVE', CASE WHEN n_fair_value > 0 THEN n_fair_value ELSE 0 END FROM pos
+  UNION ALL SELECT pos.*, 'FV_NEGATIVE', CASE WHEN n_fair_value < 0 THEN n_fair_value ELSE 0 END FROM pos
+), mapped AS (
+  SELECT b.fic_mis_date, b.v_ledger, r.n_gl_account_sk, b.n_org_sk, b.n_mgmt_org_sk, b.n_product_sk,
+         b.v_credit_stage, b.v_ccy_code, SUM(COALESCE(b.n_amt, 0) * r.n_sign) AS n_amt
+    FROM bal b
+    JOIN dim_gl_map_rule r ON r.n_product_sk = b.n_product_sk AND r.v_balance_type = b.v_balance_type
+                          AND r.v_ledger = b.v_ledger
+   GROUP BY b.fic_mis_date, b.v_ledger, r.n_gl_account_sk, b.n_org_sk, b.n_mgmt_org_sk, b.n_product_sk,
+            b.v_credit_stage, b.v_ccy_code
+), gl AS (
+  SELECT g.fic_mis_date, g.v_ledger, g.n_gl_account_sk, g.n_org_sk, g.n_mgmt_org_sk, g.n_product_sk,
+         g.v_credit_stage, g.v_ccy_code, SUM(g.n_balance) AS n_amt
+    FROM fct_gl_balance g
+   WHERE g.n_gl_account_sk IN (SELECT n_gl_account_sk FROM dim_gl_map_rule
+                                WHERE v_balance_type <> 'IFRS17_LRC_LIC')
+   GROUP BY g.fic_mis_date, g.v_ledger, g.n_gl_account_sk, g.n_org_sk, g.n_mgmt_org_sk, g.n_product_sk,
+            g.v_credit_stage, g.v_ccy_code
+)
+SELECT COALESCE(m.n_gl_account_sk, g.n_gl_account_sk) AS n_gl_account_sk,
+       COALESCE(m.n_product_sk, g.n_product_sk) AS n_product_sk,
+       m.n_amt AS position_amt, g.n_amt AS gl_amt
+  FROM mapped m
+  FULL OUTER JOIN gl g
+    ON g.fic_mis_date = m.fic_mis_date AND g.v_ledger = m.v_ledger
+   AND g.n_gl_account_sk = m.n_gl_account_sk AND g.n_org_sk = m.n_org_sk
+   AND g.n_mgmt_org_sk = m.n_mgmt_org_sk AND g.n_product_sk = m.n_product_sk
+   AND g.v_credit_stage = m.v_credit_stage AND g.v_ccy_code = m.v_ccy_code
+ WHERE ABS(COALESCE(m.n_amt, 0) - COALESCE(g.n_amt, 0)) > 0.005;
+
+-- 9.6 IFRS 17 groups-to-GL reconciliation: LRC + LIC per entity and product equals the
+-- insurance (and reinsurance held) contract balances in the GL.
+WITH grp AS (
+  SELECT m.fic_mis_date, 'IFRS' AS v_ledger, g.n_org_sk, g.n_product_sk, m.v_ccy_code,
+         SUM(COALESCE(m.n_lrc, 0) + COALESCE(m.n_lic, 0)) AS n_amt
+    FROM fct_ifrs17_measurement m JOIN fsi_d_ins_group g ON g.n_group_sk = m.n_group_sk
+   GROUP BY m.fic_mis_date, g.n_org_sk, g.n_product_sk, m.v_ccy_code
+), mapped AS (
+  SELECT grp.fic_mis_date, grp.v_ledger, r.n_gl_account_sk, grp.n_org_sk, grp.n_product_sk, grp.v_ccy_code,
+         grp.n_amt * r.n_sign AS n_amt
+    FROM grp JOIN dim_gl_map_rule r ON r.n_product_sk = grp.n_product_sk
+                                   AND r.v_balance_type = 'IFRS17_LRC_LIC' AND r.v_ledger = grp.v_ledger
+), gl AS (
+  SELECT g.fic_mis_date, g.v_ledger, g.n_gl_account_sk, g.n_org_sk, g.n_product_sk, g.v_ccy_code,
+         SUM(g.n_balance) AS n_amt
+    FROM fct_gl_balance g
+   WHERE g.n_gl_account_sk IN (SELECT n_gl_account_sk FROM dim_gl_map_rule
+                                WHERE v_balance_type = 'IFRS17_LRC_LIC')
+   GROUP BY g.fic_mis_date, g.v_ledger, g.n_gl_account_sk, g.n_org_sk, g.n_product_sk, g.v_ccy_code
+)
+SELECT COALESCE(m.n_gl_account_sk, g.n_gl_account_sk) AS n_gl_account_sk,
+       COALESCE(m.n_product_sk, g.n_product_sk) AS n_product_sk,
+       m.n_amt AS group_amt, g.n_amt AS gl_amt
+  FROM mapped m
+  FULL OUTER JOIN gl g
+    ON g.fic_mis_date = m.fic_mis_date AND g.v_ledger = m.v_ledger
+   AND g.n_gl_account_sk = m.n_gl_account_sk AND g.n_org_sk = m.n_org_sk
+   AND g.n_product_sk = m.n_product_sk AND g.v_ccy_code = m.v_ccy_code
+ WHERE ABS(COALESCE(m.n_amt, 0) - COALESCE(g.n_amt, 0)) > 0.005;
+
+-- 9.7 The trial balance balances: GL balances in reporting currency net to zero per
+-- entity, ledger and date.
+SELECT fic_mis_date, v_ledger, n_org_sk, SUM(n_balance_rpt) AS net
+  FROM fct_gl_balance
+ GROUP BY fic_mis_date, v_ledger, n_org_sk
+HAVING ABS(SUM(n_balance_rpt)) > 0.005;
