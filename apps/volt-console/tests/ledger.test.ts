@@ -39,7 +39,7 @@ describe("VOLT Ledger tools", () => {
 
   it("offers the model tools and never a review decision or a driver value", () => {
     const names = ledgerToolDefs().map((t) => t.name);
-    expect(names).toEqual(["ledger_get_ontology_context", "ledger_map_line_item", "ledger_flag_policy_gap",
+    expect(names).toEqual(["ledger_get_ontology_context", "ledger_map_line_item", "ledger_map_line_items", "ledger_flag_policy_gap",
       "ledger_propose_journal", "ledger_reverse_journal", "ledger_coverage", "ledger_ingest_upload", "ledger_list_accounts",
       "ledger_get_balances", "ledger_build_statement", "ledger_list_metrics", "ledger_compute_ratio",
       "ledger_propose_allocation_rule", "ledger_run_allocation",
