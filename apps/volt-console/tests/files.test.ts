@@ -11,7 +11,7 @@ import { STALE_PAGE, errorText } from "../src/download";
 import { quickAsk } from "../server/deliverable";
 import { buildValueCase } from "../server/analytics";
 import { csvText, safeFormula, type FileSpec } from "../shared/files";
-import { FileCards, runFiles } from "../src/components/FileCards";
+import { FileCards, cardDeliverable, runFiles } from "../src/components/FileCards";
 import { applyEvent as reduce, newRun } from "../src/runState";
 
 const catalog = loadCatalog();
@@ -157,5 +157,17 @@ describe("after a deploy", () => {
   it("explains a missing asset chunk as an update, not a fetch error", () => {
     expect(errorText(new TypeError("Failed to fetch dynamically imported module: https://x/assets/server.browser-CQrruq1j.js"))).toBe(STALE_PAGE);
     expect(errorText(new Error("Download failed (500)"))).toBe("Download failed (500)");
+  });
+});
+
+describe("HTML page companions", () => {
+  it("gives an HTML file the run's deck and workbook as companions, and no other file any", () => {
+    const html: FileSpec = { format: "html", title: "Page", markdown: "## A" };
+    const deck: FileSpec = { format: "pptx", title: "Deck", markdown: "## A" };
+    const book: FileSpec = { format: "xlsx", title: "Book", markdown: "", tables: [{ name: "T", columns: ["a"], rows: [[1]] }] };
+    const csv: FileSpec = { format: "csv", title: "Data", markdown: "" };
+    const all = [html, deck, book, csv];
+    expect(cardDeliverable(html, all).companions?.map((c) => c.format)).toEqual(["pptx", "xlsx"]);
+    expect(cardDeliverable(book, all).companions).toBeUndefined();
   });
 });

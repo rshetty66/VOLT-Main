@@ -207,6 +207,8 @@ export function buildValueCase(v: ValueCaseInput) {
     discountRate: v.discountRate ?? 0.08,
   });
   return {
+    // The inputs as used, so the Excel export can rebuild the case as a live model.
+    inputs: { financeFtes: v.financeFtes, loadedCostPerFte: v.loadedCostPerFte, automationPct: v.automationPct, oneTimeInvestment: v.oneTimeInvestment, annualRunCost: run, rampYears: ramp, horizonYears: horizon, discountRate: v.discountRate ?? 0.08 },
     oneTimeInvestment: v.oneTimeInvestment,
     capacityReleasedFtes: round(v.financeFtes * (v.automationPct / 100)),
     steadyStateAnnualSaving: round(steadyStateSaving),

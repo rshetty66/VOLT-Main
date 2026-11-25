@@ -21,6 +21,8 @@ export interface MaturityData {
 }
 
 export interface ValueCaseData {
+  /** The tool's inputs (absent on runs saved before they were recorded). */
+  inputs?: { financeFtes: number; loadedCostPerFte: number; automationPct: number; oneTimeInvestment: number; annualRunCost: number; rampYears: number; horizonYears: number; discountRate: number };
   oneTimeInvestment: number;
   steadyStateAnnualSaving: number;
   npv: number;
