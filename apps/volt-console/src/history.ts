@@ -9,10 +9,14 @@ export interface StorageLike {
   setItem(key: string, value: string): void;
 }
 
-/** What is kept of a finished run: the answer, the evidence and the specialists' notes, without the bulky tool traces. */
+/** Tool results kept with a saved run: the files it made and the analytics their data sheets come from. */
+const KEEP_DATA = new Set(["create_file", "build_value_case", "apqc_benchmark", "score_maturity"]);
+
+/** What is kept of a finished run: the answer, the evidence, the specialists' notes and its files, without the bulky tool traces. */
 export function slim(run: Run): Run {
-  const lanes = Object.fromEntries(Object.entries(run.lanes).map(([id, l]) => [id, { ...l, activity: l.activity.map(({ data: _d, detail: _x, ...rest }) => rest) }]));
-  return { ...run, lanes, activity: run.activity.map(({ data: _d, detail: _x, ...rest }) => rest) };
+  const item = ({ data, detail: _x, ...rest }: Run["activity"][number]) => (KEEP_DATA.has(rest.text) && data !== undefined ? { ...rest, data } : rest);
+  const lanes = Object.fromEntries(Object.entries(run.lanes).map(([id, l]) => [id, { ...l, activity: l.activity.map(item) }]));
+  return { ...run, lanes, activity: run.activity.map(item) };
 }
 
 /** Finished runs only (a run still working is not history), newest first, merged by id, capped. */

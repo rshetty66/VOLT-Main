@@ -54,6 +54,27 @@ export function App() {
   }, [runs]);
   useEffect(() => saveHistory(history), [history]);
 
+  // After a deploy, the page still names the old asset files, which the server no longer has. When nothing is running
+  // (finished chats are already saved in History), reload once to pick up the new version; otherwise the action that
+  // needed the file reports it (see STALE_PAGE).
+  const busy = useRef(false);
+  busy.current = runs.some((r) => r.state === "running");
+  useEffect(() => {
+    const onStale = () => {
+      if (busy.current) return;
+      try {
+        const last = Number(sessionStorage.getItem("volt.reloadedAt") ?? 0);
+        if (Date.now() - last < 60_000) return;
+        sessionStorage.setItem("volt.reloadedAt", String(Date.now()));
+      } catch {
+        return;
+      }
+      window.location.reload();
+    };
+    window.addEventListener("vite:preloadError", onStale);
+    return () => window.removeEventListener("vite:preloadError", onStale);
+  }, []);
+
   const refreshTemplates = useCallback(async () => {
     const list = await listTemplates();
     setTemplates(list);

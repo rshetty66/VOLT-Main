@@ -52,6 +52,15 @@ export async function svgToCanvas(svg: string, scale = 2): Promise<HTMLCanvasEle
   return canvas;
 }
 
+/** A chunk that no longer exists on the server: the page was opened before VOLT was redeployed. */
+export const STALE_PAGE = "VOLT was updated since this page was opened. Reload the page and try again; your chats stay in History.";
+export function isStaleChunk(e: unknown): boolean {
+  return /dynamically imported module|Importing a module script failed|error loading dynamically imported|Unable to preload CSS/i.test(String((e as Error)?.message ?? e));
+}
+export function errorText(e: unknown): string {
+  return isStaleChunk(e) ? STALE_PAGE : String((e as Error)?.message ?? e);
+}
+
 export function slug(s: string) {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "volt";
 }

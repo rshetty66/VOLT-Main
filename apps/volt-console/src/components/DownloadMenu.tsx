@@ -1,5 +1,6 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import { TemplateContext, downloadDeliverable, type Deliverable, type DownloadFormat } from "../exports";
+import { errorText } from "../download";
 
 const LABEL: Record<DownloadFormat, string> = { docx: "Word (.docx)", pptx: "PowerPoint (.pptx)", xlsx: "Excel (.xlsx)", md: "Markdown (.md)", html: "Web page (.html)", zip: "Research bundle (.zip)", csv: "CSV data (.csv)", pdf: "PDF (print)" };
 
@@ -44,7 +45,7 @@ export function DownloadMenu({
       await downloadDeliverable(f, { ...build(opt), templateId: templateId || undefined });
       setOpen(false);
     } catch (e) {
-      setError(String((e as Error)?.message ?? e));
+      setError(errorText(e));
     } finally {
       setBusy(null);
     }

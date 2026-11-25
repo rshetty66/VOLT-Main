@@ -6,6 +6,8 @@ import { loadCatalog } from "../server/catalog";
 import { exportDocument } from "../server/export";
 import { runLocalTool, schemas, toolDefs, CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, QUICK_TOOLS, SPECIALIST_TOOLS } from "../server/tools";
 import { madeFile } from "../server/orchestrator";
+import { slim } from "../src/history";
+import { STALE_PAGE, errorText } from "../src/download";
 import { quickAsk } from "../server/deliverable";
 import { buildValueCase } from "../server/analytics";
 import { csvText, safeFormula, type FileSpec } from "../shared/files";
@@ -137,5 +139,23 @@ describe("quick asks", () => {
     expect(xlsx.spec.tables?.map((t) => t.name)).toEqual(["Value case"]);
     expect(xlsx.spec.tables?.[0].rows.at(-3)).toEqual(["NPV", null, null, null, vc.npv]);
     expect(docx.spec.tables).toBeUndefined();
+  });
+});
+
+describe("after a deploy", () => {
+  it("keeps a run's files and analytics in History, so a reload does not lose the download card", () => {
+    let r = newRun("Build a value case in excel", "Rudra", "orchestrate");
+    r = reduce(r, { type: "tool_call", lane: "rudra", callId: "f", name: "create_file", input: {} });
+    r = reduce(r, { type: "tool_result", lane: "rudra", callId: "f", name: "create_file", summary: "ok", data: { format: "html", title: "Close", markdown: "## 1" } });
+    r = reduce(r, { type: "tool_call", lane: "rudra", callId: "s", name: "find_skills", input: {} });
+    r = reduce(r, { type: "tool_result", lane: "rudra", callId: "s", name: "find_skills", summary: "ok", data: [{ big: true }] });
+    const kept = slim(r);
+    expect(runFiles(kept).map((f) => f.spec.title)).toEqual(["Close"]);
+    expect(kept.activity.find((a) => a.text === "find_skills")?.data).toBeUndefined();
+  });
+
+  it("explains a missing asset chunk as an update, not a fetch error", () => {
+    expect(errorText(new TypeError("Failed to fetch dynamically imported module: https://x/assets/server.browser-CQrruq1j.js"))).toBe(STALE_PAGE);
+    expect(errorText(new Error("Download failed (500)"))).toBe("Download failed (500)");
   });
 });

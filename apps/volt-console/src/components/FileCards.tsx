@@ -3,6 +3,7 @@ import { TemplateContext, chartTables, downloadDeliverable } from "../exports";
 import { chartableResults } from "../charts/results";
 import type { ExportTable } from "../../shared/export";
 import { FILE_LABEL, type FileSpec } from "../../shared/files";
+import { errorText } from "../download";
 import type { ActivityItem, Run } from "../runState";
 
 /**
@@ -44,7 +45,7 @@ function FileCard({ spec }: { spec: FileSpec }) {
     try {
       await downloadDeliverable(spec.format, { title: spec.title, subtitle: spec.subtitle, markdown: spec.markdown, tables: spec.tables, templateId: spec.templateId || selected || undefined });
     } catch (e) {
-      setError(String((e as Error)?.message ?? e));
+      setError(errorText(e));
     } finally {
       setBusy(false);
     }

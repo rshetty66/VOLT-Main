@@ -427,8 +427,17 @@ app.use("/api", (err: { status?: number; type?: string; message?: string }, _req
 
 if (process.env.NODE_ENV === "production") {
   const dist = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../dist");
-  app.use(express.static(dist));
-  app.get(/^(?!\/api\/).*/, (_req, res) => res.sendFile(path.join(dist, "index.html")));
+  // Hashed assets never change, so they are cached for good; index.html is always checked, so a reload after a deploy
+  // picks up the new asset names. A missing asset is a 404, not the app page, so the browser reports it plainly.
+  app.use(
+    "/assets",
+    express.static(path.join(dist, "assets"), { immutable: true, maxAge: "1y", fallthrough: false }),
+  );
+  app.use(express.static(dist, { setHeaders: (res, file) => file.endsWith(".html") && res.setHeader("Cache-Control", "no-cache") }));
+  app.get(/^(?!\/api\/).*/, (_req, res) => {
+    res.setHeader("Cache-Control", "no-cache");
+    res.sendFile(path.join(dist, "index.html"));
+  });
 }
 
 // On Vercel the app runs as a serverless function (api/index.ts) and Vercel owns the socket, so nothing listens here.
