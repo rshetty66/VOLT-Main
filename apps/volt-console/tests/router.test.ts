@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { ModelLedger, estimateCost, higher, highStakes, modelFor, parseTriage, ruleRoute, tierForStep, triage } from "../server/router";
+import { ModelLedger, estimateCost, higher, highStakes, modelFor, scopeOpusReason, parseTriage, ruleRoute, tierForStep, triage } from "../server/router";
 
 const ENV = ["VOLT_ROUTING", "VOLT_MODEL", "VOLT_MODEL_OPUS", "VOLT_MODEL_SONNET", "VOLT_MODEL_HAIKU"];
 afterEach(() => ENV.forEach((k) => delete process.env[k]));
@@ -56,6 +56,12 @@ describe("model router", () => {
   it("marks high-stakes finance work, which always runs on Opus", () => {
     for (const t of ["Redesign our chart of accounts", "IFRS 17 vs US GAAP differences", "multi-GAAP ledger", "build the business case", "CECL model", "intercompany eliminations"]) expect(highStakes(t)).toBe(true);
     for (const t of ["What is a suspense account?", "12 day close on SAP", "summarise this memo"]) expect(highStakes(t)).toBe(false);
+  });
+
+  it("forces Opus when the scope asks for a file deliverable or Deep depth", () => {
+    expect(scopeOpusReason({ deliverable: "pptx" })).toBe("the scope asks for a pptx deliverable");
+    expect(scopeOpusReason({ deliverable: "chat", depth: "deep" })).toBe("the scope asks for Deep depth");
+    expect([scopeOpusReason({ deliverable: "chat", depth: "standard" }), scopeOpusReason({}), scopeOpusReason(undefined)]).toEqual([null, null, null]);
   });
 
   it("asks triage to pick Opus when unsure", async () => {
