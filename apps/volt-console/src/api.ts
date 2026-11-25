@@ -99,8 +99,15 @@ export async function runTool<T = unknown>(name: string, input: unknown): Promis
   return r.json();
 }
 
-/** POSTs a run and yields Server-Sent Events as they arrive. */
-export async function* streamRun(req: RunRequest, signal: AbortSignal): AsyncGenerator<VoltEvent> {
+/** The server sends a heartbeat every 10 seconds; this long with nothing at all means the connection is gone. */
+export const STREAM_IDLE_MS = 45_000;
+export const CLOSED_EARLY = "The connection to VOLT closed before the answer finished (the server may have restarted, for example during a deploy). Run it again.";
+
+/**
+ * POSTs a run and yields Server-Sent Events as they arrive. Throws when the stream ends without the server's "done"
+ * event or goes silent past the heartbeat, so a run never stays "running" after the server has stopped.
+ */
+export async function* streamRun(req: RunRequest, signal: AbortSignal, idleMs = STREAM_IDLE_MS): AsyncGenerator<VoltEvent> {
   const r = await fetch("/api/run", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -110,20 +117,34 @@ export async function* streamRun(req: RunRequest, signal: AbortSignal): AsyncGen
   if (!r.ok || !r.body) throw new Error(`Run failed: ${r.status} ${await r.text()}`);
   const reader = r.body.pipeThrough(new TextDecoderStream()).getReader();
   let buf = "";
+  let finished = false;
   while (true) {
-    // A dropped connection surfaces as the browser's bare "TypeError: Load failed"; say what happened instead.
-    const { value, done } = await reader.read().catch((e) => {
-      if (signal.aborted) throw e;
-      throw new Error("The connection dropped before the answer finished. Run it again.");
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const idle = new Promise<never>((_, reject) => {
+      timer = setTimeout(() => reject(new Error(CLOSED_EARLY)), idleMs);
     });
-    if (done) break;
+    // A dropped connection surfaces as the browser's bare "TypeError: Load failed"; say what happened instead.
+    const { value, done } = await Promise.race([reader.read(), idle])
+      .catch((e) => {
+        if (signal.aborted) throw e;
+        void reader.cancel().catch(() => undefined);
+        throw e instanceof Error && e.message === CLOSED_EARLY ? e : new Error("The connection dropped before the answer finished. Run it again.");
+      })
+      .finally(() => clearTimeout(timer));
+    if (done) {
+      if (!finished && !signal.aborted) throw new Error(CLOSED_EARLY);
+      break;
+    }
     buf += value;
     let i: number;
     while ((i = buf.indexOf("\n\n")) >= 0) {
       const frame = buf.slice(0, i);
       buf = buf.slice(i + 2);
       const data = frame.split("\n").filter((l) => l.startsWith("data: ")).map((l) => l.slice(6)).join("\n");
-      if (data) yield JSON.parse(data) as VoltEvent;
+      if (!data) continue;
+      const e = JSON.parse(data) as VoltEvent;
+      if (e.type === "done") finished = true;
+      yield e;
     }
   }
 }

@@ -113,6 +113,7 @@ describe("quick asks", () => {
     expect(quickAsk("Design the target operating model for group finance in a Word report")).toBe(false);
     expect(quickAsk("What is the CSM under IFRS 17?")).toBe(false);
     expect(quickAsk("/compare excel")).toBe(false);
+    expect(quickAsk("Build a value case in excel \n: 140 finance FTEs at $115K loaded cost, 25% automation, $6M one-time investment.")).toBe(true);
     expect(quickAsk("What data model should hold IFRS 17 cohorts?")).toBe(false);
   });
 

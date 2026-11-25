@@ -43,6 +43,7 @@ import { AttachmentError, extractAttachment } from "./attachments.js";
 import { listUploads, originalPath, readUpload, removeUpload, saveUpload } from "./uploads.js";
 import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../shared/attachments.js";
 import { runBudgetMs } from "./budget.js";
+import { quickAsk } from "./deliverable.js";
 import { startHeartbeat } from "./sse.js";
 import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requestUser, requireToken, sameOriginWrites, securityConfig } from "./security.js";
 import { ledgerCoaExport, ledgerDataRequirementsExport, ledgerEnabled, ledgerPeople } from "./ledger.js";
@@ -86,8 +87,11 @@ app.post("/api/login", loginLimit, express.json({ limit: "2kb" }), loginPostHand
 app.use("/api/export", exportRouter((id) => templateStore().get(id)));
 app.use(express.json({ limit: "1mb" }));
 
+/** The deployed commit, from the host's build variables (Render, Vercel), so a deploy can be checked from the browser. */
+const COMMIT = (process.env.RENDER_GIT_COMMIT ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown").slice(0, 7);
+
 app.get("/api/healthz", (_req, res) => {
-  res.json({ ok: true, mode, model: MODEL, agents: catalog.agents.length });
+  res.json({ ok: true, mode, model: MODEL, agents: catalog.agents.length, commit: COMMIT, runBudgetSeconds: runBudgetMs() / 1000 });
 });
 
 app.get("/api/catalog", (_req, res) => {
@@ -387,7 +391,12 @@ app.post("/api/run", async (req, res) => {
     : body.agentId
       ? catalog.agentById.get(body.agentId)?.name ?? body.agentId
       : "All specialists";
-  emit({ type: "run_start", runId: crypto.randomUUID(), sessionId: session.id, mode: runMode, model: runMode === "live" ? MODEL : "simulator", kind, title });
+  const runId = crypto.randomUUID();
+  const startedAt = Date.now();
+  // One line per run start and end in the host's logs, so a slow or cut-off run can be traced (no prompt text is logged).
+  console.log(`[run] start ${runId} ${kind} ${runMode} quick=${kind === "orchestrate" && quickAsk(body.prompt)} budget=${budget / 1000}s commit=${COMMIT}`);
+  res.on("close", () => console.log(`[run] end ${runId} after ${Math.round((Date.now() - startedAt) / 1000)}s${controller.signal.aborted ? " (stopped or cut off)" : ""}`));
+  emit({ type: "run_start", runId, sessionId: session.id, mode: runMode, model: runMode === "live" ? MODEL : "simulator", kind, title });
   if (runMode === "demo" && body.attachments?.length) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Attached files are read in live mode only; this demo run ignores them" });
   if (body.template) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Formatting template "${body.template.name}" attached` });
   // Rudra commands ("/compare ...") apply to Rudra runs only, not to a single specialist or a workflow.
