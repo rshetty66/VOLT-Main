@@ -156,6 +156,9 @@ export interface ArchSpec {
 const STATUSES: ArchStatus[] = ["new", "keep", "retire"];
 
 /** A valid option, or null. A flow that names a system not in the stack is dropped, not an error. */
+/** Longest system name kept; flow ends are cut the same way so they still match. */
+const ITEM_MAX = 48;
+
 export function parseArchSpec(json: string): ArchSpec | null {
   let o: unknown;
   try {
@@ -175,9 +178,9 @@ export function parseArchSpec(json: string): ArchSpec | null {
       .map((i): ArchItem => {
         if (i && typeof i === "object") {
           const it = i as Record<string, unknown>;
-          return { name: String(it.name ?? "").trim().slice(0, 36), status: STATUSES.find((st) => st === it.status) ?? "keep" };
+          return { name: String(it.name ?? "").trim().slice(0, ITEM_MAX), status: STATUSES.find((st) => st === it.status) ?? "keep" };
         }
-        return { name: String(i).trim().slice(0, 36), status: "keep" };
+        return { name: String(i).trim().slice(0, ITEM_MAX), status: "keep" };
       })
       .filter((i) => i.name);
     if (!name || items.length < 1 || items.length > 4) return null;
@@ -187,7 +190,7 @@ export function parseArchSpec(json: string): ArchSpec | null {
   const flows: ArchFlow[] = (Array.isArray(r.flows) ? r.flows : [])
     .map((f) => {
       const x = (f ?? {}) as Record<string, unknown>;
-      return { from: String(x.from ?? "").trim(), to: String(x.to ?? "").trim(), label: typeof x.label === "string" && x.label.trim() ? x.label.trim().slice(0, 24) : undefined };
+      return { from: String(x.from ?? "").trim().slice(0, ITEM_MAX), to: String(x.to ?? "").trim().slice(0, ITEM_MAX), label: typeof x.label === "string" && x.label.trim() ? x.label.trim().slice(0, 24) : undefined };
     })
     .filter((f) => known.has(f.from.toLowerCase()) && known.has(f.to.toLowerCase()) && f.from.toLowerCase() !== f.to.toLowerCase())
     .slice(0, 10);

@@ -8,21 +8,25 @@ import type { Palette } from "./palette";
  */
 const LANE_W = 150;
 const HEAD = 34;
-const BOX_H = 60;
+const BOX_H = 84;
 const GAP = 14;
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const n1 = (v: number) => +v.toFixed(1);
 
-/** Split a step name over at most two lines of about `max` characters. */
-function wrap(s: string, max: number): string[] {
-  if (s.length <= max) return [s];
-  const words = s.split(/\s+/);
-  let a = "";
-  let i = 0;
-  while (i < words.length && (a + (a ? " " : "") + words[i]).length <= max) a += (a ? " " : "") + words[i++];
-  if (!a) return [s.slice(0, max - 3) + "...", ""].filter(Boolean);
-  const b = words.slice(i).join(" ");
-  return [a, b.length > max ? b.slice(0, max - 3) + "..." : b];
+/** Split a name over at most `n` lines of about `max` characters; only the last line may be cut. */
+function wrap(s: string, max: number, n = 2): string[] {
+  const out: string[] = [];
+  let line = "";
+  for (const w of s.split(/\s+/)) {
+    if (line && (line + " " + w).length > max) {
+      out.push(line);
+      line = w;
+    } else line = line ? line + " " + w : w;
+  }
+  out.push(line);
+  const lines = out.slice(0, n);
+  if (out.length > n) lines[n - 1] = out.slice(n - 1).join(" ");
+  return lines.map((l) => (l.length > max ? l.slice(0, max - 3) + "..." : l));
 }
 
 const STATUS_LABEL = { manual: "Manual", automated: "Automated", new: "New" } as const;
@@ -32,8 +36,8 @@ export function processSvg(spec: ProcessSpec, p: Palette): string {
   const text = (x: number, y: number, s: string, f: { size?: number; anchor?: string; fill?: string; weight?: number } = {}) =>
     `<text x="${n1(x)}" y="${n1(y)}" font-family="${esc(p.font)}" font-size="${f.size ?? 12}" fill="${f.fill ?? p.muted}" text-anchor="${f.anchor ?? "start"}"${f.weight ? ` font-weight="${f.weight}"` : ""}>${esc(s)}</text>`;
   const cols = spec.stages.length;
-  // At least 150 px a stage, so a card holds its name; the page scales the drawing down to fit.
-  const W = Math.max(1000, LANE_W + 24 + cols * 150);
+  // At least 170 px a stage, so a card holds its name on three lines; the page scales the drawing down to fit.
+  const W = Math.max(1000, LANE_W + 24 + cols * 170);
   const colW = (W - LANE_W - 24) / cols;
   const boxW = Math.min(180, colW - 16);
 
@@ -91,15 +95,16 @@ export function processSvg(spec: ProcessSpec, p: Palette): string {
     const tint = s.status === "automated" || s.status === "new" ? 0.16 : 1;
     const stroke = s.issue ? p.negative : s.status === "new" ? p.series2 : s.status === "automated" ? p.series : p.grid;
     const tip = [s.name, spec.lanes[s.lane], spec.stages[s.stage], s.system, s.control && `Control: ${s.control}`, s.issue && `Issue: ${s.issue}`].filter(Boolean).join(" | ");
-    const lines = wrap(s.name, Math.floor((boxW - 34) / 6.4));
+    const lines = wrap(s.name, Math.floor((boxW - 34) / 6.4), 3);
     const tag = s.status ? STATUS_LABEL[s.status] : "";
-    const sysMax = Math.floor((boxW - 22 - (tag ? tag.length * 6 + 8 : 0)) / 5.8);
+    // The system gets its own line under the name, the status tag the line below it.
+    const sysMax = Math.floor((boxW - 18) / 5.8);
     parts.push(
       `<g class="vp-step" data-step="${i}" tabindex="0" role="button" aria-label="${esc(tip)}"><title>${esc(tip)}</title>`,
       `<rect x="${n1(x)}" y="${n1(by)}" width="${n1(boxW)}" height="${BOX_H}" rx="8" fill="${p.bg}"/><rect class="vp-card" x="${n1(x)}" y="${n1(by)}" width="${n1(boxW)}" height="${BOX_H}" rx="8" fill="${fill}" fill-opacity="${tint}" stroke="${stroke}" stroke-width="${s.issue ? 2 : 1.2}"/>`,
       text(x + 10, by + 17, `${i + 1}`, { size: 10.5, fill: p.muted, weight: 700 }),
       ...lines.map((ln, k) => text(x + 24, by + 17 + k * 14, ln, { size: 11.5, fill: p.ink, weight: 600 })),
-      s.system ? text(x + 10, by + BOX_H - 10, s.system.length > sysMax ? s.system.slice(0, Math.max(1, sysMax - 3)) + "..." : s.system, { size: 10.5 }) : "",
+      s.system ? text(x + 10, by + BOX_H - 24, s.system.length > sysMax ? s.system.slice(0, Math.max(1, sysMax - 3)) + "..." : s.system, { size: 10.5 }) : "",
       tag ? text(x + boxW - 8, by + BOX_H - 10, tag, { size: 10, anchor: "end", fill: p.ink, weight: 600 }) : "",
       s.issue ? `<circle cx="${n1(x + boxW - 2)}" cy="${n1(by + 2)}" r="8" fill="${p.negative}"/>` + text(x + boxW - 2, by + 6, "!", { size: 11, anchor: "middle", fill: "#ffffff", weight: 800 }) : "",
       "</g>",

@@ -91,3 +91,22 @@ describe("VOLT HTML template", () => {
     expect(out).toContain('<td>High</td><td><span class="tone high">High</span></td>');
   });
 });
+
+describe("HTML deliverable fixes from the 5-day close review", () => {
+  it("shows no change against a zero baseline", () => {
+    const html = kpiStrip({ type: "kpi", title: "", labels: ["Days", "NPV"], series: [{ name: "Target", values: [5, 4.01] }, { name: "Today", values: [12, 0] }], better: "down" } as never);
+    expect(html).toContain("-7");
+    expect(html).not.toContain("+4.01");
+  });
+  it("names tabs in a few words, without the writer's numbering", () => {
+    const html = voltHtml({ title: "T", pages: [{ title: "1. Executive summary", html: "<p>a</p>" }, { title: "2. Findings: a 12-day close is bottom quartile", html: "<p>b</p>" }] });
+    expect(html).toContain("</span>Findings</button>");
+    expect(html).not.toContain("01</span>1.");
+    expect(html).toContain('<h2 class="pt">Findings: a 12-day close is bottom quartile</h2>');
+  });
+  it("gives a long step name three lines before cutting it", () => {
+    const svg = processSvg(parseProcessSpec(JSON.stringify({ lanes: ["GL"], steps: [{ id: "a", lane: "GL", stage: "D1", name: "Recurring and estimate accruals posted to the ledger" }, { id: "b", lane: "GL", stage: "D2", name: "Lock" }] }))!, DARK);
+    expect(svg).toContain(">accruals posted to");
+    expect(svg).not.toContain("...");
+  });
+});
