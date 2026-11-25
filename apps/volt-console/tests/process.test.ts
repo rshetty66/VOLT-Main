@@ -110,3 +110,10 @@ describe("HTML deliverable fixes from the 5-day close review", () => {
     expect(svg).not.toContain("...");
   });
 });
+
+describe("HTML page file links", () => {
+  it("puts each companion file under the title as a download link", () => {
+    const html = voltHtml({ title: "T", pages: [{ title: "A", html: "<p>a</p>" }], files: [{ label: "Excel", name: "volt-t.xlsx", href: "data:application/x;base64,AA==" }] });
+    expect(html).toContain('<nav class="files" aria-label="Files"><a href="data:application/x;base64,AA==" download="volt-t.xlsx">Download Excel</a></nav>');
+  });
+});
