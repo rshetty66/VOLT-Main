@@ -29,7 +29,7 @@ export const SCOPE_QUESTIONS = [
   {
     key: "deliverable",
     label: "Deliverable",
-    options: { chat: "Answer in chat", html: "HTML report", pptx: "PowerPoint deck", docx: "Word document" },
+    options: { chat: "Answer in chat", html: "HTML report", pptx: "PowerPoint deck", docx: "Word document", xlsx: "Excel workbook" },
     fallback: "chat",
   },
   {
@@ -63,7 +63,7 @@ const DEPTH: Record<Scope["depth"], string> = {
   deep: "Go deep: cite the evidence for each claim and show the working.",
 };
 
-const FILE: Partial<Record<Scope["deliverable"], string>> = { html: "an HTML report", pptx: "a PowerPoint deck", docx: "a Word document" };
+const FILE: Partial<Record<Scope["deliverable"], string>> = { html: "an HTML report", pptx: "a PowerPoint deck", docx: "a Word document", xlsx: "an Excel workbook" };
 
 /** The scope block added to the brief. Stay inside it; it replaces the questions it answers. */
 export function scopeBrief(scope: Partial<Scope>): string {

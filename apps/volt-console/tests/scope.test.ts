@@ -11,9 +11,10 @@ describe("chat scope questions", () => {
     }
   });
 
-  it("does not offer Excel as a deliverable", () => {
+  it("offers every file deliverable create_file can make for the chat", () => {
     const deliverable = SCOPE_QUESTIONS.find((q) => q.key === "deliverable")!;
-    expect(Object.keys(deliverable.options)).not.toContain("xlsx");
+    expect(Object.keys(deliverable.options)).toEqual(["chat", "html", "pptx", "docx", "xlsx"]);
+    expect(scopeBrief({ deliverable: "xlsx" })).toContain("an Excel workbook made with create_file");
   });
 
   it("accepts the defaults and rejects an unknown answer or field", () => {
