@@ -454,30 +454,3 @@ describe("consulting deck layout", () => {
     expect(charts.some((c) => (c.match(/<c:valAx>/g) ?? []).length === 2 && c.includes("Journals"))).toBe(true);
   });
 });
-
-describe("consulting deck layout", () => {
-  it("keeps VOLT's deck theme in step with the consulting template skill", () => {
-    const theme = JSON.parse(fs.readFileSync(path.resolve(__dirname, "../../../.claude/skills/consulting-ppt-template/assets/theme.json"), "utf8"));
-    for (const [k, v] of Object.entries(DECK.colors)) expect(theme.colors[k]).toBe(v);
-    expect(theme.fonts).toMatchObject(DECK.fonts);
-    for (const [k, v] of Object.entries(DECK.type_pt)) expect(theme.type_pt[k]).toBe(v);
-    for (const [k, v] of Object.entries(DECK.grid)) expect(theme.grid[k]).toBe(v);
-  });
-
-  it("lays out a board pack without wasted or continuation slides", () => {
-    const markdown = fs.readFileSync(path.resolve(__dirname, "fixtures/five-day-close.md"), "utf8");
-    const plan = planDeck({ format: "pptx", title: "Five-day close", markdown });
-    expect(checkPlan(plan)).toEqual([]);
-    // Contents plus one slide per section. Without rendered images the waterfall and process sections have nothing
-    // to show, so they get no slide and no Contents entry: 10 of the fixture's 12 sections.
-    expect(plan.length).toBe(11);
-    expect(plan[0].paras.length).toBe(10);
-    expect(plan.some((s) => s.title.endsWith("(cont.)"))).toBe(false);
-    expect(plan.every((s) => s.kind === "contents" || s.paras.length > 0 || s.exhibit)).toBe(true);
-    // KPI tiles and the RAG heatmap are native shapes, and the NPV chart shares a slide with its table.
-    const kinds = plan.map((s) => s.exhibit?.kind);
-    expect(kinds).toContain("kpi");
-    expect(kinds).toContain("heatmap");
-    expect(plan.find((s) => s.title.startsWith("USD 1.6M"))?.second?.kind).toBe("chart");
-  });
-});
