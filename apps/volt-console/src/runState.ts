@@ -40,13 +40,19 @@ export interface Run {
   lanes: Record<string, Lane>;
   laneOrder: string[];
   phases: { name: string; agents: string[]; state: "running" | "done" }[];
-  usage: { input: number; output: number; cacheRead: number };
+  /** Tokens for the run; `cost` (USD, estimated at list price) and `models` (tokens and cost per model) since model routing. */
+  usage: { input: number; output: number; cacheRead: number; cost?: number; models?: Record<string, ModelUse> };
   /** The research engine: depth tier and the source register the agents cited from. */
   tier?: Tier;
   sources: SourceRecord[];
   state: "running" | "done" | "stopped";
   startedAt: number;
   finishedAt?: number;
+}
+
+export interface ModelUse {
+  tokens: number;
+  cost: number;
 }
 
 export function newRun(prompt: string, title: string, kind: RunKind): Run {
@@ -134,7 +140,13 @@ export function applyEvent(run: Run, e: VoltEvent): Run {
       pushActivity(e.lane, { id: crypto.randomUUID(), kind: "fallback", text: `Fallback ${e.from} → ${e.to}` });
       return r;
     case "usage":
-      r.usage = { input: r.usage.input + e.inputTokens, output: r.usage.output + e.outputTokens, cacheRead: r.usage.cacheRead + e.cacheReadTokens };
+      r.usage = {
+        input: r.usage.input + e.inputTokens + (e.cacheWriteTokens ?? 0),
+        output: r.usage.output + e.outputTokens,
+        cacheRead: r.usage.cacheRead + e.cacheReadTokens,
+        cost: (r.usage.cost ?? 0) + (e.costUsd ?? 0),
+        models: e.model ? addModelUse(r.usage.models, e.model, e.inputTokens + (e.cacheWriteTokens ?? 0) + e.outputTokens, e.costUsd ?? 0) : r.usage.models,
+      };
       return r;
     case "error":
       pushActivity(e.lane, { id: crypto.randomUUID(), kind: "error", text: e.message, isError: true });
@@ -142,6 +154,11 @@ export function applyEvent(run: Run, e: VoltEvent): Run {
     case "done":
       return { ...r, sessionId: e.sessionId, state: r.state === "stopped" ? "stopped" : "done", finishedAt: Date.now() };
   }
+}
+
+function addModelUse(models: Record<string, ModelUse> | undefined, model: string, tokens: number, cost: number): Record<string, ModelUse> {
+  const m = models?.[model] ?? { tokens: 0, cost: 0 };
+  return { ...models, [model]: { tokens: m.tokens + tokens, cost: m.cost + cost } };
 }
 
 function summariseInput(input: unknown): string {

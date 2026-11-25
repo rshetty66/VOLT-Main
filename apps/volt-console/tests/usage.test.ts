@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chatUsage, compact, usageTotals } from "../src/usage";
+import { chatUsage, compact, usageTotals, usd } from "../src/usage";
 import { newRun, type Run } from "../src/runState";
 
 const run = (over: Partial<Run> & { in?: number; out?: number; cache?: number } = {}): Run => {
@@ -36,11 +36,24 @@ describe("token usage per chat", () => {
 
   it("adds up totals across chats, and handles no history", () => {
     const totals = usageTotals(chatUsage([run({ sessionId: "a", in: 100, out: 20, cache: 5 }), run({ sessionId: "b", in: 50, out: 10, cache: 1 })]));
-    expect(totals).toEqual({ chats: 2, runs: 2, input: 150, output: 30, cacheRead: 6, total: 180 });
-    expect(usageTotals(chatUsage([]))).toEqual({ chats: 0, runs: 0, input: 0, output: 0, cacheRead: 0, total: 0 });
+    expect(totals).toEqual({ chats: 2, runs: 2, input: 150, output: 30, cacheRead: 6, total: 180, cost: 0, models: [] });
+    expect(usageTotals(chatUsage([]))).toEqual({ chats: 0, runs: 0, input: 0, output: 0, cacheRead: 0, total: 0, cost: 0, models: [] });
   });
 
   it("writes compact numbers", () => {
     expect([compact(0), compact(999), compact(1234), compact(52270), compact(361511), compact(2_400_000)]).toEqual(["0", "999", "1.2K", "52.3K", "362K", "2.4M"]);
+  });
+
+  it("adds up estimated cost per chat and per model, most expensive model first", () => {
+    const priced = (sessionId: string, cost: number, models: Record<string, { tokens: number; cost: number }>) => ({ ...run({ sessionId }), usage: { input: 0, output: 0, cacheRead: 0, cost, models } });
+    const chats = chatUsage([
+      priced("a", 0.3, { "claude-opus-5-5": { tokens: 10000, cost: 0.25 }, "claude-haiku-5-5": { tokens: 90, cost: 0.00001 } }),
+      priced("b", 0.1, { "claude-sonnet-5-5": { tokens: 8000, cost: 0.08 }, "claude-opus-5-5": { tokens: 1000, cost: 0.02 } }),
+    ]);
+    const totals = usageTotals(chats);
+    expect(totals.cost).toBeCloseTo(0.4);
+    expect(totals.models.map((m) => m.model)).toEqual(["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]);
+    expect(totals.models[0]).toEqual({ model: "claude-opus-5-5", tokens: 11000, cost: 0.27 });
+    expect([usd(0), usd(0.004), usd(1.234)]).toEqual(["$0.00", "<$0.01", "$1.23"]);
   });
 });

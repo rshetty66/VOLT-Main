@@ -37,9 +37,20 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
 
 - **Demo mode** (no credentials, or the *demo* toggle on) runs offline. Routing, the Skill Finder, benchmarks and
   workflow sequencing are real; agent prose is assembled from the registry and labelled as simulated.
-- **Live mode** uses `claude-opus-5-5` with adaptive thinking, streamed progress updates, prompt caching and
-  server-side refusal fallback. Set `VOLT_FALLBACKS=off` behind a gateway, Bedrock or Vertex. Effort is `high` for
-  Rudra and `medium` for specialists (`VOLT_ORCHESTRATOR_EFFORT`, `VOLT_SPECIALIST_EFFORT`).
+- **Live mode** uses adaptive thinking, streamed progress updates, prompt caching and server-side refusal fallback.
+  Set `VOLT_FALLBACKS=off` behind a gateway, Bedrock or Vertex. Effort is `high` for Rudra and `medium` for
+  specialists (`VOLT_ORCHESTRATOR_EFFORT`, `VOLT_SPECIALIST_EFFORT`).
+- **Model routing** (`server/router.ts`) runs each step on the cheapest model that does it well. One short Haiku call
+  triages each new request: Opus leads client deliverables (assessments, designs, business cases, roadmaps), Sonnet
+  answers direct questions, and triage picks Opus when unsure. Triage runs on every message, so a chat that starts
+  simple moves up to Opus when it turns into a deliverable; it never moves down. High-stakes finance work (chart of
+  accounts, GAAP and IFRS, business or value cases, consolidation, CECL) skips triage and runs on Opus for the lead and
+  every specialist. Otherwise quick files and calculations, specialists, workflow phases and single-agent chats run on
+  Sonnet; workflow synthesis runs on Opus; images are read by Haiku. The **Opus** switch in the header puts every step
+  on Opus. If triage fails, the deliverable rule decides. Every model call is priced at list price: the Token
+  usage page shows the estimated cost per chat and per model, and the host log ends each run with
+  `models: <model> calls= in= out= cache= usd=`. `VOLT_ROUTING=off` puts every step on the Opus-tier model;
+  `VOLT_MODEL_HAIKU`, `VOLT_MODEL_SONNET` and `VOLT_MODEL_OPUS` (or `VOLT_MODEL`) change a tier's model.
 - `VOLT_PLUGIN_DIR` points at a different copy of the plugin (default `../../plugins/volt`).
 - `VOLT_TEMPLATE_DIR` is where uploaded templates and their profiles are kept (default `data/templates`, git-ignored).
 

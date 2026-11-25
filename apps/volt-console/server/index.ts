@@ -32,6 +32,7 @@ import { z } from "zod";
 import { loadCatalog, loadSkillBody, rankSkills } from "./catalog.js";
 import { runLocalTool, schemas, type ToolName } from "./tools.js";
 import { BENCHMARKS } from "./analytics.js";
+import { ModelLedger, routingEnabled } from "./router.js";
 import { MODEL, errorMessage, getSession, intakeFor, runLive, type Emit, type RunInput } from "./orchestrator.js";
 import { runDemo } from "./demo.js";
 import { commandPrompt, commandStatus, loadRudraCommands, matchCommand } from "./commands.js";
@@ -92,7 +93,7 @@ app.use(express.json({ limit: "1mb" }));
 const COMMIT = (process.env.RENDER_GIT_COMMIT ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown").slice(0, 7);
 
 app.get("/api/healthz", (_req, res) => {
-  res.json({ ok: true, mode, model: MODEL, agents: catalog.agents.length, commit: COMMIT, runBudgetSeconds: runBudgetMs() / 1000 });
+  res.json({ ok: true, mode, model: MODEL, routing: routingEnabled(), agents: catalog.agents.length, commit: COMMIT, runBudgetSeconds: runBudgetMs() / 1000 });
 });
 
 app.get("/api/catalog", (_req, res) => {
@@ -350,6 +351,7 @@ const RunBody = z.object({
   intake: z.record(z.string(), z.string()).optional(),
   agentId: z.string().optional(),
   demo: z.boolean().optional(),
+  opus: z.boolean().optional(),
   templateId: z.string().max(32).optional(),
   scope: scopeSchema.optional(),
   attachments: z
@@ -382,7 +384,10 @@ app.post("/api/run", async (req, res) => {
         controller.abort();
       }, budget)
     : undefined;
+  // Model use per run, for the host log line at the end (audit trail: which model did what, at what estimated cost).
+  const models = new ModelLedger();
   const emit: Emit = (e: VoltEvent) => {
+    if (e.type === "usage" && e.model) models.add(e.model, e, e.costUsd ?? 0);
     if (!res.writableEnded) res.write(`data: ${JSON.stringify(e)}\n\n`);
   };
 
@@ -397,7 +402,7 @@ app.post("/api/run", async (req, res) => {
   const startedAt = Date.now();
   // One line per run start and end in the host's logs, so a slow or cut-off run can be traced (no prompt text is logged).
   console.log(`[run] start ${runId} ${kind} ${runMode} quick=${kind === "orchestrate" && quickAsk(body.prompt)} budget=${budget / 1000}s commit=${COMMIT}`);
-  res.on("close", () => console.log(`[run] end ${runId} after ${Math.round((Date.now() - startedAt) / 1000)}s${controller.signal.aborted ? " (stopped or cut off)" : ""}`));
+  res.on("close", () => console.log(`[run] end ${runId} after ${Math.round((Date.now() - startedAt) / 1000)}s${controller.signal.aborted ? " (stopped or cut off)" : ""} models: ${models.summary()}`));
   emit({ type: "run_start", runId, sessionId: session.id, mode: runMode, model: runMode === "live" ? MODEL : "simulator", kind, title });
   if (runMode === "demo" && body.attachments?.length) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Attached files are read in live mode only; this demo run ignores them" });
   if (body.template) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Formatting template "${body.template.name}" attached` });
