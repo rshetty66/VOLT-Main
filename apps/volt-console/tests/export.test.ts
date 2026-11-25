@@ -395,16 +395,17 @@ describe("colour coding", () => {
 
 describe("native PowerPoint charts", () => {
   const chart = (o: object) => "```chart\n" + JSON.stringify(o) + "\n```\n";
-  it("writes a plain bar chart as an editable chart and keeps a call-out chart as a picture", async () => {
+  it("writes plain and call-out bar charts as editable charts, never as pictures", async () => {
     const bar = { type: "bar", title: "Close days", labels: ["EMEA", "APAC"], series: [{ name: "Today", values: [12, 9] }] };
     const markdown = "## Baseline\n\n" + chart(bar) + "\n## Bridge\n\n" + chart({ ...bar, highlight: "EMEA" });
     const files = unzip((await exportDocument({ format: "pptx", title: "Charts", markdown, images: [{ ref: "viz-1", png: PNG, width: 720, height: 400 }] }, null)).data);
     const charts = Object.keys(files).filter((n) => /^ppt\/charts\/chart\d+\.xml$/.test(n));
-    expect(charts).toHaveLength(1);
-    expect(text(files, charts[0])).toContain("EMEA");
+    expect(charts).toHaveLength(2);
+    expect(text(files, charts[1])).toContain("EMEA");
+    // The rendered picture of the call-out chart is not used: the slide carries the native chart instead.
     const pngs = (f: Record<string, Uint8Array>) => Object.keys(f).filter((n) => n.startsWith("ppt/media/")).length;
     const plain = unzip((await exportDocument({ format: "pptx", title: "Charts", markdown: "## Baseline\n\n" + chart(bar), images: [] }, null)).data);
-    expect(pngs(files)).toBe(pngs(plain) + 1);
+    expect(pngs(files)).toBe(pngs(plain));
   });
 });
 
@@ -421,10 +422,10 @@ describe("consulting deck layout", () => {
     const markdown = fs.readFileSync(path.resolve(__dirname, "fixtures/five-day-close.md"), "utf8");
     const plan = planDeck({ format: "pptx", title: "Five-day close", markdown });
     expect(checkPlan(plan)).toEqual([]);
-    // Contents plus one slide per section. Without rendered images the waterfall and process sections have nothing
-    // to show, so they get no slide and no Contents entry: 10 of the fixture's 12 sections.
-    expect(plan.length).toBe(11);
-    expect(plan[0].paras.length).toBe(10);
+    // Contents plus one slide per section: the waterfall and the process map are drawn natively, so no section
+    // depends on a rendered picture.
+    expect(plan.length).toBe(13);
+    expect(plan[0].paras.length).toBe(12);
     expect(plan.some((s) => s.title.endsWith("(cont.)"))).toBe(false);
     expect(plan.every((s) => s.kind === "contents" || s.paras.length > 0 || s.exhibit)).toBe(true);
     // KPI tiles and the RAG heatmap are native shapes, and the NPV chart shares a slide with its table.
@@ -432,5 +433,24 @@ describe("consulting deck layout", () => {
     expect(kinds).toContain("kpi");
     expect(kinds).toContain("heatmap");
     expect(plan.find((s) => s.title.startsWith("USD 1.6M"))?.second?.kind).toBe("chart");
+    expect(kinds).toContain("process");
+    expect(plan.some((s) => s.exhibit?.kind === "chart" && s.exhibit.spec.type === "waterfall")).toBe(true);
+  });
+
+  it("draws waterfalls, target lines, combos and process maps as editable shapes and charts, with no pictures", async () => {
+    const chart = (o: object) => "```chart\n" + JSON.stringify(o) + "\n```\n";
+    const markdown = fs.readFileSync(path.resolve(__dirname, "fixtures/five-day-close.md"), "utf8") +
+      "\n## Target\n\n" + chart({ type: "bar", title: "Days", labels: ["A", "B"], series: [{ name: "Days", values: [12, 9] }], target: { value: 5, label: "Target" }, highlight: "A" }) +
+      "\n## Combo\n\n" + chart({ type: "combo", title: "Journals", labels: ["Jan", "Feb"], series: [{ name: "Journals", values: [2400, 2100] }, { name: "Days", values: [12, 11] }] });
+    const files = unzip((await exportDocument({ format: "pptx", title: "Close", markdown, images: [] }, null)).data);
+    expect(Object.keys(files).filter((n) => n.startsWith("ppt/media/") && !n.endsWith("/"))).toEqual([]);
+    const slides = Object.keys(files).filter((n) => /^ppt\/slides\/slide\d+\.xml$/.test(n)).map((n) => text(files, n));
+    // The bridge's bars and labels, and the process steps, are shapes with their own text.
+    expect(slides.some((x) => x.includes("Target 5 days") && x.includes("ECL &amp; valuations pre-close"))).toBe(true);
+    expect(slides.some((x) => x.includes("ECL true-up") && x.includes("CFO sign-off and period lock"))).toBe(true);
+    const charts = Object.keys(files).filter((n) => /^ppt\/charts\/chart\d+\.xml$/.test(n)).map((n) => text(files, n));
+    // A target is a dashed line series; a combo puts its line on a second value axis.
+    expect(charts.some((c) => c.includes("<c:barChart>") && c.includes("<c:lineChart>") && c.includes("Target"))).toBe(true);
+    expect(charts.some((c) => (c.match(/<c:valAx>/g) ?? []).length === 2 && c.includes("Journals"))).toBe(true);
   });
 });
