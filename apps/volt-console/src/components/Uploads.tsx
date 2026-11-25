@@ -1,50 +1,88 @@
-import { useEffect, useState } from "react";
-import { deleteUpload, listUploads, type UploadMeta } from "../api";
+import { useEffect, useRef, useState } from "react";
+import { addUrlSource, deleteUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
 
 const size = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 const when = (t: number) => new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+const MAX_MB = 25;
 
-/** The uploads library: every file attached in any chat, kept on the server so other chats can use it as a source. */
-export function Uploads({ onChange }: { onChange?: () => void }) {
+/** The project's knowledge base: the uploads library for this project, plus web pages added by URL. VOLT searches it in every chat. */
+export function Uploads({ projectName }: { projectName: string }) {
   const [items, setItems] = useState<UploadMeta[] | null>(null);
+  const [url, setUrl] = useState("");
+  const [busy, setBusy] = useState("");
+  const [error, setError] = useState("");
+  const fileInput = useRef<HTMLInputElement>(null);
   const load = () => void listUploads().then(setItems);
   useEffect(load, []);
+
+  const run = async (label: string, fn: () => Promise<unknown>) => {
+    setError("");
+    setBusy(label);
+    try {
+      await fn();
+      load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy("");
+    }
+  };
+  const addFiles = (list: FileList | null) =>
+    void run("Reading", async () => {
+      for (const f of Array.from(list ?? [])) {
+        if (f.size > MAX_MB * 1048576) throw new Error(`${f.name} is larger than ${MAX_MB} MB.`);
+        await uploadAttachment(f);
+      }
+      if (fileInput.current) fileInput.current.value = "";
+    });
+  const addUrl = () => url.trim() && void run("Fetching", async () => (await addUrlSource(url.trim()), setUrl("")));
 
   return (
     <div className="stack">
       <div>
-        <h1 className="page-title">Uploads</h1>
+        <h1 className="page-title">Knowledge base</h1>
         <p className="page-sub">
-          Every file you attach is kept here (PDF, JPEG, PNG, Word, Excel, PowerPoint, text). In any chat, choose "From uploads" next to Attach files to use one again as a source. Images are read once into text, so reuse costs no extra reading.
+          The documents and web pages of {projectName}. Every chat in this project searches them and cites the passages it uses, with file and page. Files you attach in a chat land here too. Web pages are read once when you add them.
         </p>
+      </div>
+      <div className="card stack">
+        <div className="row">
+          <input ref={fileInput} type="file" multiple hidden accept=".pdf,.docx,.xlsx,.pptx,.txt,.md,.csv,.tsv,.json,.jpg,.jpeg,.png" onChange={(e) => addFiles(e.target.files)} />
+          <button className="btn primary sm" disabled={!!busy} onClick={() => fileInput.current?.click()}>
+            Add files
+          </button>
+          <input className="input" style={{ flex: 1, minWidth: 200 }} placeholder="https://… a web page or PDF to add" value={url} onChange={(e) => setUrl(e.target.value)} onKeyDown={(e) => e.key === "Enter" && addUrl()} />
+          <button className="btn sm" disabled={!!busy || !url.trim()} onClick={addUrl}>
+            Add link
+          </button>
+        </div>
+        {busy && <div className="muted"><span className="spinner" /> {busy}…</div>}
+        {error && <div className="upload-error" role="alert">{error}</div>}
       </div>
       {items === null ? (
         <div className="card empty"><span className="spinner" /> Loading…</div>
       ) : items.length === 0 ? (
-        <div className="card empty">Nothing uploaded yet. Files you attach in the Agent Console appear here.</div>
+        <div className="card empty">Nothing here yet. Add files or a link above, or attach a file in a chat.</div>
       ) : (
         items.map((u) => (
           <div key={u.id} className="card history-item">
             <div className="history-main">
               <div className="micro">
-                {u.ext.toUpperCase()} · {size(u.bytes)} · {u.chars.toLocaleString()} characters read{u.truncated ? " (truncated)" : ""} · {when(u.createdAt)} · used {u.uses}×
+                {u.url ? "WEB" : u.ext.toUpperCase()} · {size(u.bytes)} · {u.chars.toLocaleString()} characters read{u.truncated ? " (truncated)" : ""} · {when(u.createdAt)}
               </div>
               <div className="history-prompt">{u.name}</div>
             </div>
             <div className="row">
-              <a className="btn sm" href={`/api/uploads/${u.id}/file`}>
-                Download
-              </a>
-              <button
-                className="btn ghost sm"
-                onClick={() =>
-                  window.confirm(`Remove ${u.name} from the library?`) &&
-                  void deleteUpload(u.id).then(() => {
-                    load();
-                    onChange?.();
-                  })
-                }
-              >
+              {u.url ? (
+                <a className="btn sm" href={u.url} target="_blank" rel="noopener noreferrer">
+                  Open page
+                </a>
+              ) : (
+                <a className="btn sm" href={`/api/uploads/${u.id}/file`}>
+                  Download
+                </a>
+              )}
+              <button className="btn ghost sm" onClick={() => window.confirm(`Remove ${u.name} from the knowledge base?`) && void deleteUpload(u.id).then(load)}>
                 Remove
               </button>
             </div>

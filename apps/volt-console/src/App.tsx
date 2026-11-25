@@ -6,7 +6,10 @@ import { History } from "./components/History";
 import { Uploads } from "./components/Uploads";
 import { LedgerReview } from "./components/LedgerReview";
 import { Usage } from "./components/Usage";
-import { loadHistory, mergeHistory, saveHistory } from "./history";
+import { mergeHistory } from "./history";
+import { Projects } from "./components/Projects";
+import { createProject, listChats, listProjects, loadActiveProject, migrateBrowserHistory, saveChat, setActiveProject } from "./projects";
+import type { Project } from "../shared/projects";
 import type { TemplateSummary } from "../shared/templates";
 import { applyEvent, newRun, type Run } from "./runState";
 import { Console } from "./components/Console";
@@ -19,7 +22,7 @@ import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
 import { TemplateContext } from "./exports";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads" | "ledger";
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads" | "ledger" | "projects";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -28,7 +31,9 @@ export function App() {
   const [authMode, setAuthMode] = useState<"token" | "username">("token");
   const [view, setView] = useState<View>("console");
   const [runs, setRuns] = useState<Run[]>([]);
-  const [history, setHistory] = useState<Run[]>(() => loadHistory());
+  const [history, setHistory] = useState<Run[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectId, setProjectId] = useState(() => loadActiveProject());
   const [target, setTarget] = useState<string>("rudra");
   const [forceDemo, setForceDemo] = useState(false);
   const [openAgent, setOpenAgent] = useState<string | null>(null);
@@ -42,17 +47,45 @@ export function App() {
     setNeedsSignIn(false);
     fetchCatalog().then(setCatalog, (e) => (e instanceof UnauthorizedError ? (setAuthMode(e.auth), setNeedsSignIn(true)) : setLoadError(String(e))));
     listTemplates().then(setTemplates, () => setTemplates([]));
+    // Chats saved in this browser by earlier versions move to the server once, then the project list loads.
+    void migrateBrowserHistory()
+      .catch(() => 0)
+      .then(listProjects)
+      .then(setProjects, () => setProjects([]));
   }, []);
   useEffect(load, [load]);
 
-  // Finished runs are saved in this browser so a reload does not lose the conversation.
+  // "Save to memory" on an answer updates the project list (see RunView).
   useEffect(() => {
+    const onProject = (e: Event) => {
+      const p = (e as CustomEvent<Project>).detail;
+      setProjects((ps) => ps.map((x) => (x.id === p.id ? p : x)));
+    };
+    window.addEventListener("volt:project", onProject);
+    return () => window.removeEventListener("volt:project", onProject);
+  }, []);
+
+  // The active project's saved chats, from the server.
+  const reloadHistory = useCallback(() => void listChats(projectId).then((cs) => setHistory(cs.map((c) => c.run)), () => setHistory([])), [projectId]);
+  useEffect(() => {
+    if (!needsSignIn) reloadHistory();
+  }, [reloadHistory, needsSignIn]);
+
+  // Each finished run is saved on the server in its project, so chats are kept for good and open on any device.
+  const saved = useRef(new Map<string, string>());
+  useEffect(() => {
+    for (const r of runs) {
+      if (r.state === "running" || !r.text.trim()) continue;
+      const mark = `${r.state}:${r.text.length}:${r.finishedAt ?? 0}`;
+      if (saved.current.get(r.id) === mark) continue;
+      saved.current.set(r.id, mark);
+      void saveChat(r).then((ok) => ok || saved.current.delete(r.id));
+    }
     setHistory((h) => {
-      const next = mergeHistory(h, runs);
+      const next = mergeHistory(h, runs.filter((r) => (r.projectId ?? projectId) === projectId), Infinity);
       return next.length === h.length && next.every((r, i) => r === h[i]) ? h : next;
     });
-  }, [runs]);
-  useEffect(() => saveHistory(history), [history]);
+  }, [runs, projectId]);
 
   // After a deploy, the page still names the old asset files, which the server no longer has. When nothing is running
   // (finished chats are already saved in History), reload once to pick up the new version; otherwise the action that
@@ -84,14 +117,14 @@ export function App() {
   const start = useCallback(
     async (req: RunRequest, title: string, kind: RunKind) => {
       const sessionKey = req.workflowId ? `workflow:${crypto.randomUUID()}` : req.agentId && req.agentId !== "rudra" ? `agent:${req.agentId}` : "rudra";
-      const run = { ...newRun(req.prompt, title, kind), attachments: req.attachments?.map((a) => a.name) };
+      const run = { ...newRun(req.prompt, title, kind), attachments: req.attachments?.map((a) => a.name), projectId };
       const controller = new AbortController();
       controllers.current.set(run.id, controller);
       setRuns((rs) => [...rs, run]);
       setView("console");
       const update = (fn: (r: Run) => Run) => setRuns((rs) => rs.map((r) => (r.id === run.id ? fn(r) : r)));
       try {
-        for await (const e of streamRun({ ...req, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined, templateId: activeTemplate || undefined }, controller.signal)) {
+        for await (const e of streamRun({ ...req, projectId, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined, templateId: activeTemplate || undefined }, controller.signal)) {
           if (e.type === "done") {
             sessions.current.set(sessionKey, e.sessionId);
             // Follow-ups to Rudra continue from a finished workflow's synthesis.
@@ -108,18 +141,37 @@ export function App() {
         controllers.current.delete(run.id);
       }
     },
-    [forceDemo, activeTemplate],
+    [forceDemo, activeTemplate, projectId],
   );
 
   /** A new chat: the screen is cleared and the next question starts a fresh conversation. Earlier chats stay in History. */
   const newChat = () => {
     const working = runs.some((r) => r.state === "running");
-    if (working && !window.confirm("A run is still working. Stop it and start a new chat?")) return;
+    if (working && !window.confirm("A run is still working. Stop it and start a new chat?")) return false;
     controllers.current.forEach((c) => c.abort());
     sessions.current.clear();
     setRuns([]);
     setOpenAgent(null);
     setView("console");
+    return true;
+  };
+
+  /** Switching project starts a new chat there, so one project's conversation never carries into another. */
+  const switchProject = async (id: string) => {
+    if (id === "new") {
+      const name = window.prompt("Name of the new project (for example a client or an engagement)")?.trim();
+      if (!name) return;
+      try {
+        const p = await createProject(name);
+        setProjects((ps) => [...ps, p]);
+        id = p.id;
+      } catch (e) {
+        return void window.alert(e instanceof Error ? e.message : String(e));
+      }
+    }
+    if (id === projectId || !newChat()) return;
+    setActiveProject(id);
+    setProjectId(id);
   };
 
   const stop = (runId: string) => {
@@ -140,8 +192,9 @@ export function App() {
     ["services", "Services", catalog.services.length],
     ["templates", "Templates", templates.length || ""],
     ["analytics", "Analytics", catalog.benchmarks.length],
-    ["history", "History", history.length || ""],
-    ["uploads", "Uploads", ""],
+    ["projects", "Project memory", projects.find((p) => p.id === projectId)?.memory.length || ""],
+    ["history", "Chats", history.length || ""],
+    ["uploads", "Knowledge base", ""],
     ["ledger", "Ledger review", ""],
     ["usage", "Token usage", ""],
     ["health", "Capability Health", catalog.health.missingSkills.length],
@@ -161,6 +214,17 @@ export function App() {
             <input type="checkbox" checked={forceDemo} onChange={(e) => setForceDemo(e.target.checked)} /> demo
           </label>
         )}
+        <label className="row body template-pick" style={{ fontSize: 12 }}>
+          Project
+          <select className="select" value={projectId} onChange={(e) => void switchProject(e.target.value)}>
+            {(projects.length ? projects : [{ id: projectId, name: "General" }]).map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+            <option value="new">+ New project…</option>
+          </select>
+        </label>
         <label className="row body template-pick" style={{ fontSize: 12 }}>
           Template
           <select className="select" value={activeTemplate} onChange={(e) => setActiveTemplate(e.target.value)}>
@@ -199,22 +263,23 @@ export function App() {
         {view === "analytics" && <Analytics catalog={catalog} />}
         {view === "history" && (
           <History
+            projectId={projectId}
+            projectName={projects.find((p) => p.id === projectId)?.name ?? "General"}
             history={history}
             onOpen={(run) => {
+              saved.current.set(run.id, `${run.state}:${run.text.length}:${run.finishedAt ?? 0}`);
               setRuns((rs) => (rs.some((r) => r.id === run.id) ? rs : [...rs, run]));
               setView("console");
             }}
-            onDelete={(id) => {
+            onDeleted={(id) => {
               setHistory((h) => h.filter((r) => r.id !== id));
               setRuns((rs) => rs.filter((r) => r.id !== id));
             }}
-            onClear={() => {
-              setHistory([]);
-              setRuns((rs) => rs.filter((r) => r.state === "running"));
-            }}
+            onRestored={reloadHistory}
           />
         )}
-        {view === "uploads" && <Uploads />}
+        {view === "projects" && <Projects projects={projects} projectId={projectId} onChange={(p) => setProjects((ps) => ps.map((x) => (x.id === p.id ? p : x)))} />}
+        {view === "uploads" && <Uploads key={projectId} projectName={projects.find((p) => p.id === projectId)?.name ?? "General"} />}
         {view === "ledger" && <LedgerReview />}
         {view === "usage" && (
           <Usage

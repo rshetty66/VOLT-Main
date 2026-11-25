@@ -5,6 +5,7 @@ import { summariseWork, type Run } from "../runState";
 import { Markdown } from "./Markdown";
 import { RunVisuals } from "../charts/RunVisuals";
 import { DownloadMenu } from "./DownloadMenu";
+import { addMemory } from "../projects";
 import { FileCards } from "./FileCards";
 import { runDeliverable } from "../exports";
 import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
@@ -236,6 +237,18 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
   // Each specialist's finished workstream, readable while the lead is still writing the summary.
   const readySections = run.laneOrder.map((id) => run.lanes[id]).filter((l) => l && l.state === "done" && l.text.trim());
   const elapsed = Math.round(((run.finishedAt ?? Date.now()) - run.startedAt) / 1000);
+  // Text selected in this answer is offered as the memory item; otherwise the user types it.
+  const saveToMemory = async () => {
+    const sel = window.getSelection();
+    const inRun = sel && sel.anchorNode && document.getElementById(`run-${run.id}`)?.contains(sel.anchorNode);
+    const text = window.prompt("Save to project memory (a fact, decision or client context VOLT should always know)", inRun ? sel.toString().trim().slice(0, 600) : "")?.trim();
+    if (!text) return;
+    try {
+      window.dispatchEvent(new CustomEvent("volt:project", { detail: await addMemory(text) }));
+    } catch (e) {
+      window.alert(e instanceof Error ? e.message : String(e));
+    }
+  };
   const [, tick] = useState(0);
   useEffect(() => {
     if (run.state !== "running") return;
@@ -261,6 +274,11 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
           </button>
         )}
         {run.state === "stopped" && <span className="badge">stopped</span>}
+        {run.state !== "running" && run.text.trim() && (
+          <button className="btn ghost sm" title="Save a key fact or decision from this answer to the project memory" onClick={() => void saveToMemory()}>
+            Save to memory
+          </button>
+        )}
         {run.state !== "running" && run.text.trim() && (
           <DownloadMenu formats={["docx", "pptx", "xlsx", "md", "html", ...(run.tier ? (["zip"] as const) : [])]} build={(lanes) => runDeliverable(run, lanes)} option={run.laneOrder.length ? "Include specialist notes as an appendix" : undefined} />
         )}

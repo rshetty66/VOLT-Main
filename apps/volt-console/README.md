@@ -23,6 +23,13 @@ React UI (Vite) --SSE--> Node API (Express) --> Claude Messages API (streaming t
 | Analytics | APQC benchmark positioning and a finance transformation value case. Agents call the same deterministic tools for every figure |
 | Templates | Upload a Word, Excel or PowerPoint template; VOLT extracts its theme colours and fonts, styles, page setup, slide layouts, cell styles and number formats into a formatting guide. Pick a template in the top bar and every agent in a run applies it |
 | Capability Health | What the registry references against what the plugin ships |
+| Project memory | Key facts, decisions and client context for the project chosen in the top bar. Every chat in the project reads them |
+| Chats | The project's chats, saved on the server and kept for good. A chat untouched for `VOLT_ARCHIVE_DAYS` (default 30) moves to Archived: still searchable and restorable, never deleted automatically |
+| Knowledge base | The project's uploads (files attached in its chats or added here, up to 25 MB) plus web pages and PDFs added by URL. The agents search it with `search_knowledge` (keyword search, no embeddings) and cite each passage by file and page |
+
+Projects, chats and uploads live on the data disk (`VOLT_DATA_DIR`, default `data/`: `projects/` and `uploads/`). URL
+sources are fetched once, on request, over http(s) on ports 80 and 443 only; a name that resolves to a private,
+loopback, link-local or metadata address is refused at connect time.
 
 ## Run it
 

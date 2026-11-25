@@ -28,6 +28,8 @@ export interface Lane {
 export interface Run {
   id: string;
   prompt: string;
+  /** The project the chat is saved in. */
+  projectId?: string;
   /** Names of the files attached to the request. */
   attachments?: string[];
   title: string;

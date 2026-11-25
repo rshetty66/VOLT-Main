@@ -39,8 +39,11 @@ import { TemplateError, templateStore } from "./templates.js";
 import { exportRouter } from "./export/route.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
-import { AttachmentError, extractAttachment } from "./attachments.js";
+import { AttachmentError, extractAttachment, limitText } from "./attachments.js";
 import { listUploads, originalPath, readUpload, removeUpload, saveUpload } from "./uploads.js";
+import { createProject, deleteChat, isProjectId, listChats, listProjects, restoreChat, saveChat, updateProject } from "./projects.js";
+import { WEB_MAX_BYTES, WebSourceError, fetchPublic, htmlText } from "./knowledge.js";
+import { DEFAULT_PROJECT_ID, MEMORY_KINDS } from "../shared/projects.js";
 import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../shared/attachments.js";
 import { runBudgetMs } from "./budget.js";
 import { quickAsk } from "./deliverable.js";
@@ -85,7 +88,9 @@ app.post("/api/login", loginLimit, express.json({ limit: "2kb" }), loginPostHand
 
 // Downloads (Word, PowerPoint, Excel) carry images, so they get their own body limit ahead of the 1 MB JSON parser.
 app.use("/api/export", exportRouter((id) => templateStore().get(id)));
-app.use(express.json({ limit: "1mb" }));
+// Saved chats get their own, larger limit (a chat keeps the files it made); see PUT /api/chats/:id.
+const json1mb = express.json({ limit: "1mb" });
+app.use((req, res, next) => (req.method === "PUT" && req.path.startsWith("/api/chats/") ? next() : json1mb(req, res, next)));
 
 /** The deployed commit, from the host's build variables (Render, Vercel), so a deploy can be checked from the browser. */
 const COMMIT = (process.env.RENDER_GIT_COMMIT ?? process.env.VERCEL_GIT_COMMIT_SHA ?? "unknown").slice(0, 7);
@@ -182,7 +187,12 @@ app.post("/api/attachments/extract", express.raw({ type: () => true, limit: ATTA
 // ── Uploads library ──────────────────────────────────────────────────────────
 // Every attached file is kept (original + extracted text) so any later chat can use it again as a source.
 
-app.post("/api/uploads", express.raw({ type: () => true, limit: ATTACH_MAX_BYTES }), async (req, res) => {
+/** A knowledge-base document is kept whole up to this length; a chat gets the first ATTACH_MAX_CHARS_FILE of it. */
+const KB_MAX_CHARS = 2_000_000;
+const projectParam = (v: unknown) => (isProjectId(v) ? v : DEFAULT_PROJECT_ID);
+
+// A file attached in a chat (4 MB, as before) or added to a project's knowledge base (up to 25 MB).
+app.post("/api/uploads", express.raw({ type: () => true, limit: WEB_MAX_BYTES }), async (req, res) => {
   const data = Buffer.isBuffer(req.body) ? new Uint8Array(req.body) : new Uint8Array(0);
   if (data.length === 0) return void res.status(400).json({ error: "Send the file as the request body.", code: "empty" });
   let name = req.get("x-file-name") ?? "attachment";
@@ -192,9 +202,9 @@ app.post("/api/uploads", express.raw({ type: () => true, limit: ATTACH_MAX_BYTES
     /* keep the raw header */
   }
   try {
-    const extracted = await extractAttachment(name, data);
-    const meta = saveUpload(extracted, data);
-    res.json({ ...extracted, id: meta.id });
+    const extracted = await extractAttachment(name, data, KB_MAX_CHARS);
+    const meta = saveUpload(extracted, data, { projectId: projectParam(req.get("x-project-id")) });
+    res.json({ ...limitText(extracted.name, extracted.text), id: meta.id });
   } catch (err) {
     if (err instanceof AttachmentError) return void res.status(err.code === "unsupported_type" ? 415 : 422).json({ error: err.message, code: err.code });
     console.error("Upload failed", err);
@@ -202,25 +212,101 @@ app.post("/api/uploads", express.raw({ type: () => true, limit: ATTACH_MAX_BYTES
   }
 });
 
-app.get("/api/uploads", (_req, res) => {
-  res.json(listUploads());
+// A web page or PDF added to a project's knowledge base by URL: fetched once, read to text, kept like an upload.
+app.post("/api/uploads/url", express.json({ limit: "8kb" }), async (req, res) => {
+  const body = z.object({ url: z.string().min(4).max(2000), projectId: z.string().optional() }).safeParse(req.body);
+  if (!body.success) return void res.status(400).json({ error: "Send a URL." });
+  try {
+    const got = await fetchPublic(body.data.url);
+    const host = new URL(got.url).hostname;
+    let extracted;
+    if (got.type.includes("pdf") || /\.pdf$/i.test(new URL(got.url).pathname)) {
+      const file = decodeURIComponent(new URL(got.url).pathname.split("/").pop() || "page").replace(/\.pdf$/i, "");
+      extracted = { ...(await extractAttachment(`${file}.pdf`, got.bytes, KB_MAX_CHARS)), name: `${file} (${host})` };
+    } else if (/text\/html|xhtml/.test(got.type) || !got.type) {
+      const page = htmlText(new TextDecoder("utf-8").decode(got.bytes));
+      if (page.text.length < 40) return void res.status(422).json({ error: "No readable text was found on that page (it may need a browser to render)." });
+      extracted = { ...limitText("", page.text, KB_MAX_CHARS), name: `${(page.title || got.url).slice(0, 150)} (${host})` };
+    } else if (/text\/plain|text\/csv|json/.test(got.type)) {
+      extracted = { ...limitText("", new TextDecoder("utf-8").decode(got.bytes).trim(), KB_MAX_CHARS), name: `${got.url.slice(0, 150)}` };
+    } else return void res.status(415).json({ error: `That link returns ${got.type.split(";")[0]}, which VOLT cannot read. Add web pages, PDFs or text.` });
+    const meta = saveUpload(extracted, got.bytes, { projectId: projectParam(body.data.projectId), url: got.url });
+    res.json(meta);
+  } catch (err) {
+    if (err instanceof WebSourceError || err instanceof AttachmentError) return void res.status(422).json({ error: err.message });
+    console.error("URL source failed", err);
+    res.status(500).json({ error: "That page could not be added." });
+  }
+});
+
+app.get("/api/uploads", (req, res) => {
+  res.json(listUploads(typeof req.query.projectId === "string" ? projectParam(req.query.projectId) : undefined));
 });
 
 app.get("/api/uploads/:id", (req, res) => {
   const got = readUpload(req.params.id);
   if (!got) return void res.status(404).json({ error: "unknown upload" });
-  res.json({ ...got.meta, name: got.meta.name, text: got.text });
+  // A long knowledge-base document goes into a chat cut to the chat limit; the agents search the rest.
+  res.json({ ...got.meta, ...limitText(got.meta.name, got.text) });
 });
 
 app.get("/api/uploads/:id/file", (req, res) => {
   const file = originalPath(req.params.id);
   const meta = listUploads().find((m) => m.id === req.params.id);
   if (!file || !meta) return void res.status(404).json({ error: "unknown upload" });
-  res.download(file, meta.name);
+  res.download(file, meta.url ? `${meta.name.replace(/[^\w .()-]/g, "_")}.html` : meta.name);
 });
 
 app.delete("/api/uploads/:id", (req, res) => {
   if (!removeUpload(req.params.id)) return void res.status(404).json({ error: "unknown upload" });
+  res.status(204).end();
+});
+
+// ── Projects, memory and saved chats ─────────────────────────────────────────
+// Kept on the data disk. A chat untouched for VOLT_ARCHIVE_DAYS (30) is archived, never deleted automatically.
+
+const MemoryBody = z.array(z.object({ id: z.string().max(40).optional(), kind: z.enum(MEMORY_KINDS), text: z.string().max(600) })).max(100);
+
+app.get("/api/projects", (_req, res) => {
+  res.json(listProjects());
+});
+
+app.post("/api/projects", express.json({ limit: "4kb" }), (req, res) => {
+  const body = z.object({ name: z.string().min(1).max(80) }).safeParse(req.body);
+  if (!body.success) return void res.status(400).json({ error: "Give the project a name." });
+  res.json(createProject(body.data.name));
+});
+
+app.patch("/api/projects/:id", express.json({ limit: "64kb" }), (req, res) => {
+  const body = z.object({ name: z.string().max(80).optional(), memory: MemoryBody.optional() }).safeParse(req.body);
+  if (!body.success) return void res.status(400).json({ error: body.error.message });
+  const p = updateProject(req.params.id, body.data);
+  if (!p) return void res.status(404).json({ error: "unknown project" });
+  res.json(p);
+});
+
+app.get("/api/chats", (req, res) => {
+  res.json(listChats(projectParam(req.query.projectId), req.query.archived === "1"));
+});
+
+app.put("/api/chats/:id", express.json({ limit: "4mb" }), (req, res) => {
+  const body = z.object({ projectId: z.string(), run: z.looseObject({ id: z.string(), startedAt: z.number().optional() }) }).safeParse(req.body);
+  if (!body.success || body.data.run.id !== req.params.id || !isProjectId(body.data.projectId)) return void res.status(400).json({ error: "invalid chat" });
+  try {
+    saveChat(body.data.projectId, body.data.run);
+    res.status(204).end();
+  } catch {
+    res.status(400).json({ error: "invalid chat" });
+  }
+});
+
+app.post("/api/chats/:id/restore", (req, res) => {
+  if (!restoreChat(req.params.id)) return void res.status(404).json({ error: "unknown chat" });
+  res.status(204).end();
+});
+
+app.delete("/api/chats/:id", (req, res) => {
+  if (!deleteChat(req.params.id)) return void res.status(404).json({ error: "unknown chat" });
   res.status(204).end();
 });
 
@@ -350,6 +436,7 @@ const RunBody = z.object({
   agentId: z.string().optional(),
   demo: z.boolean().optional(),
   templateId: z.string().max(32).optional(),
+  projectId: z.string().regex(/^(general|[0-9a-f-]{36})$/).optional(),
   attachments: z
     .array(z.object({ name: z.string().max(200), text: z.string().max(ATTACH_MAX_CHARS_FILE + 200), uploadId: z.string().regex(/^[0-9a-f-]{36}$/).optional() }))
     .max(ATTACH_MAX_FILES)
