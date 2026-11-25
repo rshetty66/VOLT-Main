@@ -125,10 +125,58 @@ describe("live agent loop (mocked Messages API)", () => {
     expect(req.body.tools.map((t: { name: string }) => t.name)).toEqual(expect.arrayContaining(["list_templates", "get_template"]));
   });
 
+  it("routes the lead by Haiku triage, runs specialists on Sonnet, and prices every call", async () => {
+    const before = mock.requests.length;
+    const triaged = mock.triage.length;
+    const events = await run({ prompt: "12 day close on SAP" });
+    expect(mock.triage.length).toBe(triaged + 1);
+    expect(mock.triage.at(-1)!.body.model).toBe("claude-haiku-5-5");
+    const reqs = mock.requests.slice(before);
+    const isLead = (r: (typeof reqs)[number]) => r.body.tools.some((t: { name: string }) => t.name === "consult_agent");
+    expect(new Set(reqs.filter(isLead).map((r) => r.body.model))).toEqual(new Set(["claude-opus-5-5"]));
+    expect(new Set(reqs.filter((r) => !isLead(r)).map((r) => r.body.model))).toEqual(new Set(["claude-sonnet-5-5"]));
+    expect(events.some((e) => e.type === "status" && e.text.startsWith("Model: Opus for the lead (Haiku triage"))).toBe(true);
+    const usage = events.filter((e) => e.type === "usage") as Extract<VoltEvent, { type: "usage" }>[];
+    expect(new Set(usage.map((u) => u.model))).toEqual(new Set(["claude-haiku-5-5", "claude-opus-5-5", "claude-sonnet-5-5"]));
+    expect(usage.every((u) => (u.costUsd ?? 0) > 0)).toBe(true);
+  });
+
+  it("runs a simple question's lead on Sonnet, and keeps a conversation's lead from moving down", async () => {
+    const session = orchestrator.getSession();
+    const leadModel = async (prompt: string) => {
+      const before = mock.requests.length;
+      await orchestrator.runLive(catalog, { prompt }, session, () => {}, new AbortController().signal);
+      return mock.requests.slice(before).find((r) => r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!.body.model;
+    };
+    expect(await leadModel("TRIAGE-SONNET what is a suspense account")).toBe("claude-sonnet-5-5");
+    expect(await leadModel("12 day close on SAP")).toBe("claude-opus-5-5");
+    expect(await leadModel("TRIAGE-SONNET and a follow-up")).toBe("claude-opus-5-5");
+  });
+
+  it("puts high-stakes finance work and the Opus switch on Opus for the lead and the specialists, without triage", async () => {
+    for (const req of [{ prompt: "Multi-GAAP chart of accounts for our bank" }, { prompt: "TRIAGE-SONNET 12 day close on SAP", opus: true }]) {
+      const before = mock.requests.length;
+      const triaged = mock.triage.length;
+      const events = await run(req);
+      expect(mock.triage.length).toBe(triaged);
+      expect(new Set(mock.requests.slice(before).map((r) => r.body.model))).toEqual(new Set(["claude-opus-5-5"]));
+      expect(events.some((e) => e.type === "status" && e.text.includes("Specialists run on Opus"))).toBe(true);
+    }
+  });
+
+  it("sends a quick file ask to Sonnet without a triage call", async () => {
+    const before = mock.requests.length;
+    const triaged = mock.triage.length;
+    await run({ prompt: "Make an Excel workbook of a 5-day close calendar" });
+    expect(mock.triage.length).toBe(triaged);
+    expect(mock.requests[before].body.model).toBe("claude-sonnet-5-5");
+  });
+
   it("runs a workflow phase by phase", async () => {
     const events = await run({ prompt: "Insurer close", workflowId: "close-optimization" });
     const phases = events.filter((e) => e.type === "phase_start");
     expect(phases.length).toBe(catalog.workflowById.get("close-optimization")!.phases.length);
     expect(events.filter((e) => e.type === "agent_end").every((e) => (e as { ok: boolean }).ok)).toBe(true);
+    expect(events.some((e) => e.type === "status" && e.text === "Model: Sonnet for each phase, Opus for the synthesis.")).toBe(true);
   });
 });

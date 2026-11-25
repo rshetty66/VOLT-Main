@@ -31,6 +31,8 @@ export function App() {
   const [history, setHistory] = useState<Run[]>(() => loadHistory());
   const [target, setTarget] = useState<string>("rudra");
   const [forceDemo, setForceDemo] = useState(false);
+  /** "Opus" switch: every step of the next runs on Opus, and the chat stays there (see server/router.ts). */
+  const [forceOpus, setForceOpus] = useState(false);
   const [openAgent, setOpenAgent] = useState<string | null>(null);
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [activeTemplate, setActiveTemplate] = useState("");
@@ -91,7 +93,7 @@ export function App() {
       setView("console");
       const update = (fn: (r: Run) => Run) => setRuns((rs) => rs.map((r) => (r.id === run.id ? fn(r) : r)));
       try {
-        for await (const e of streamRun({ ...req, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined, templateId: activeTemplate || undefined }, controller.signal)) {
+        for await (const e of streamRun({ ...req, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined, opus: forceOpus || undefined, templateId: activeTemplate || undefined }, controller.signal)) {
           if (e.type === "done") {
             sessions.current.set(sessionKey, e.sessionId);
             // Follow-ups to Rudra continue from a finished workflow's synthesis.
@@ -108,7 +110,7 @@ export function App() {
         controllers.current.delete(run.id);
       }
     },
-    [forceDemo, activeTemplate],
+    [forceDemo, forceOpus, activeTemplate],
   );
 
   /** A new chat: the screen is cleared and the next question starts a fresh conversation. Earlier chats stay in History. */
@@ -159,6 +161,11 @@ export function App() {
         {catalog.mode === "live" && (
           <label className="row body" style={{ fontSize: 12 }}>
             <input type="checkbox" checked={forceDemo} onChange={(e) => setForceDemo(e.target.checked)} /> demo
+          </label>
+        )}
+        {live && (
+          <label className="row body" style={{ fontSize: 12 }} title="Run every step on Opus instead of letting VOLT pick the model. A chat that has used Opus stays on Opus.">
+            <input type="checkbox" checked={forceOpus} onChange={(e) => setForceOpus(e.target.checked)} /> Opus
           </label>
         )}
         <label className="row body template-pick" style={{ fontSize: 12 }}>

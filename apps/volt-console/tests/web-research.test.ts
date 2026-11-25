@@ -91,9 +91,11 @@ describe("web research in the live loop (mocked Messages API)", () => {
       const catalog = (await import("../server/catalog")).loadCatalog();
       const events: any[] = [];
       await orchestrator.runLive(catalog, { prompt: "What CET1 minimum does OSFI set?" }, orchestrator.getSession(), (e) => events.push(e), new AbortController().signal);
-      const tools = bodies[0].tools.map((t: { type?: string; name: string }) => t.type ?? t.name);
+      // bodies also holds the router's triage call (not streamed); the lead's request is the first streamed one.
+      const lead = bodies.find((b) => b.stream);
+      const tools = lead.tools.map((t: { type?: string; name: string }) => t.type ?? t.name);
       expect(tools).toEqual(expect.arrayContaining(["web_search_20260209", "web_fetch_20260209"]));
-      expect(bodies[0].system[0].text).toContain("Web research is on");
+      expect(lead.system[0].text).toContain("Web research is on");
       const source = events.find((e) => e.type === "source" && e.record.url === url);
       expect(source?.record.key).toBe("S02");
       const text = events.filter((e) => e.type === "text_delta").map((e) => e.text).join("");
