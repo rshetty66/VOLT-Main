@@ -105,7 +105,8 @@ async function imageText(bytes: Uint8Array, ext: string): Promise<string> {
   }
 }
 
-export async function extractAttachment(fileName: string, bytes: Uint8Array): Promise<Extracted> {
+/** Reads a file to text. `maxChars` is the chat limit by default; the knowledge base keeps much longer documents. */
+export async function extractAttachment(fileName: string, bytes: Uint8Array, maxChars: number = ATTACH_MAX_CHARS_FILE): Promise<Extracted> {
   const name = fileName.replace(/[\\/]/g, "_").slice(0, 200) || "attachment";
   const ext = name.includes(".") ? name.split(".").pop()!.toLowerCase() : "";
   if (!(ATTACH_EXTENSIONS as readonly string[]).includes(ext)) {
@@ -126,9 +127,14 @@ export async function extractAttachment(fileName: string, bytes: Uint8Array): Pr
 
   text = text.replace(/\r\n?/g, "\n").replace(/\u0000/g, "").trim();
   if (!text) throw new AttachmentError("empty", "No readable text was found in that file.");
-  const truncated = text.length > ATTACH_MAX_CHARS_FILE;
-  if (truncated) text = `${text.slice(0, ATTACH_MAX_CHARS_FILE)}\n[... truncated: the file is longer than ${ATTACH_MAX_CHARS_FILE.toLocaleString()} characters]`;
-  return { name, text, chars: text.length, truncated };
+  return limitText(name, text, maxChars);
+}
+
+/** Cuts text to `max` characters with a visible marker, e.g. a long knowledge-base document attached to one chat. */
+export function limitText(name: string, text: string, max: number = ATTACH_MAX_CHARS_FILE): Extracted {
+  const truncated = text.length > max;
+  const out = truncated ? `${text.slice(0, max)}\n[... truncated: the file is longer than ${max.toLocaleString()} characters]` : text;
+  return { name, text: out, chars: out.length, truncated };
 }
 
 /** Records each attachment as client data in the source register, and returns them with their keys. */

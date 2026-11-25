@@ -24,7 +24,28 @@ const schema = z.object({
     .max(60)
     .optional(),
   tables: z
-    .array(z.object({ name: z.string().min(1).max(80), columns: z.array(z.string().max(200)).min(1).max(50), rows: z.array(z.array(z.union([z.string().max(5000), z.number(), z.null()])).max(50)).max(10000) }))
+    .array(
+      z.object({
+        name: z.string().min(1).max(80),
+        columns: z.array(z.string().max(200)).min(1).max(50),
+        rows: z.array(z.array(z.union([z.string().max(5000), z.number(), z.null()])).max(50)).max(10000),
+        model: z
+          .object({
+            financeFtes: z.number().min(0),
+            loadedCostPerFte: z.number().min(0),
+            automationPct: z.number().min(0).max(100),
+            oneTimeInvestment: z.number(),
+            annualRunCost: z.number(),
+            rampYears: z.number().min(1).max(10),
+            horizonYears: z.number().int().min(1).max(10),
+            discountRate: z.number().min(-0.99).max(10),
+            npv: z.number(),
+            irrPct: z.number().nullable(),
+            paybackYears: z.number().nullable(),
+          })
+          .optional(),
+      }),
+    )
     .max(30)
     .optional(),
   templateId: z.string().max(80).optional(),

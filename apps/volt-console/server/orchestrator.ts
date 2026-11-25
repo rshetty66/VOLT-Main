@@ -22,6 +22,9 @@ import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuid
 import { SourceRegistry, WEB_RESEARCH_GUIDE, registerWebBlock, sourceForTool, webCitationKeys } from "./research.js";
 import { evidenceGates } from "../shared/research.js";
 import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
+import { KNOWLEDGE_TOOL, knowledgeNote, knowledgeToolDef, runKnowledgeTool } from "./knowledge.js";
+import { memoryBlock } from "./memory.js";
+import { listUploads } from "./uploads.js";
 import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerToolDefs, runLedgerTool } from "./ledger.js";
 import { CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, QUICK_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
@@ -38,7 +41,7 @@ export interface RunInput extends RunRequest {
 /** The user's request, with its attached files, the chat's scope answers and the selected template's formatting guide. */
 export function withTemplate(req: RunInput, text = req.prompt): string {
   const scope = req.scope ? scopeBrief(req.scope) : "";
-  const files = `${attachmentsBlock(req.attachments)}${scope ? `\n\n${scope}` : ""}`;
+  const files = `${attachmentsBlock(req.attachments)}${scope ? `\n\n${scope}` : ""}${memoryBlock(req.projectId)}${knowledgeNote(req.projectId)}`;
   if (!req.template) return `${text}${files}`;
   return `${text}${files}
 
@@ -186,7 +189,7 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
         max_tokens: 64000,
         system: [{ type: "text", text: WEB_RESEARCH ? `${opts.system}\n\n${WEB_RESEARCH_GUIDE}` : opts.system, cache_control: { type: "ephemeral" } }],
         messages,
-        tools: [...toolDefs(opts.tools), ...(opts.ledger && ledgerEnabled() ? [...goalToolDefs(), ...ledgerToolDefs()] : []), ...(WEB_RESEARCH ? WEB_TOOLS : [])],
+        tools: [...toolDefs(opts.tools), ...(opts.registry.knowledgeProject ? [knowledgeToolDef()] : []), ...(opts.ledger && ledgerEnabled() ? [...goalToolDefs(), ...ledgerToolDefs()] : []), ...(WEB_RESEARCH ? WEB_TOOLS : [])],
         ...(wrapUp ? { tool_choice: { type: "none" as const } } : {}),
         thinking: haiku ? { type: "adaptive" } : { type: "adaptive", display: "updates" },
         output_config: { effort: opts.effort },
@@ -327,6 +330,15 @@ async function executeTool(
     return { type: "tool_result", tool_use_id: tu.id, content: JSON.stringify(r.plan) };
   }
 
+  if (tu.name === KNOWLEDGE_TOOL) {
+    if (!registry.knowledgeProject) return fail(`Unknown tool '${tu.name}'`);
+    const r = runKnowledgeTool(registry.knowledgeProject, tu.input, registry);
+    if (!r.ok) return fail(r.error);
+    for (const record of r.added) emit({ type: "source", record });
+    emit({ type: "tool_result", lane, callId: tu.id, name, summary: r.summary });
+    return { type: "tool_result", tool_use_id: tu.id, content: r.reply };
+  }
+
   if (isLedgerTool(tu.name)) {
     // Ledger tools are offered to the lead only; a specialist naming one is refused.
     if (lane !== ORCHESTRATOR_LANE) return fail(`Unknown tool '${tu.name}'`);
@@ -431,6 +443,7 @@ export function getSession(id?: string): Session {
 
 export async function runLive(catalog: Catalog, input: RunInput, session: Session, emit: Emit, signal: AbortSignal) {
   const registry = new SourceRegistry(input.prompt);
+  if (input.projectId && listUploads(input.projectId).length) registry.knowledgeProject = input.projectId;
   // Each attached file is client data in the source register, so the answer can cite it.
   const req: RunInput = { ...input, attachments: registerAttachments(registry, input.attachments) };
   emit({ type: "research", tier: registry.tier });

@@ -45,6 +45,8 @@ export interface RunRequest {
   templateId?: string;
   /** The chat's answers to the scope questions (see shared/scope.ts), sent with every message. */
   scope?: Partial<Scope>;
+  /** The project the chat belongs to: its memory and knowledge base are read into the run. */
+  projectId?: string;
   /** Files the user attached, already read to text by POST /api/attachments/extract. */
   attachments?: { name: string; text: string }[];
 }

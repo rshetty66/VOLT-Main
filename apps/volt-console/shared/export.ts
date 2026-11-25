@@ -13,10 +13,29 @@ export interface ExportImage {
   caption?: string;
 }
 
+/** A value case's inputs and the tool's results: Excel rebuilds it as a live model (inputs, calculations, outputs). */
+export interface ValueCaseModel {
+  financeFtes: number;
+  loadedCostPerFte: number;
+  /** 0 to 100. */
+  automationPct: number;
+  oneTimeInvestment: number;
+  annualRunCost: number;
+  rampYears: number;
+  horizonYears: number;
+  /** A decimal, such as 0.08. */
+  discountRate: number;
+  npv: number;
+  irrPct: number | null;
+  paybackYears: number | null;
+}
+
 export interface ExportTable {
   name: string;
   columns: string[];
   rows: (string | number | null)[][];
+  /** Set on a value case: Excel writes the live model instead of the static rows (CSV keeps the rows). */
+  model?: ValueCaseModel;
 }
 
 export interface ExportRequest {
