@@ -26,7 +26,7 @@ import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerTo
 import { CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, QUICK_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 import { scopeBrief } from "../shared/scope.js";
-import { estimateCost, higher, highStakes, modelFor, routingEnabled, ruleRoute, tierForStep, tierName, triage, type Route, type Tier } from "./router.js";
+import { estimateCost, higher, highStakes, modelFor, scopeOpusReason, routingEnabled, ruleRoute, tierForStep, tierName, triage, type Route, type Tier } from "./router.js";
 
 export type Emit = (e: VoltEvent) => void;
 
@@ -496,12 +496,15 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
 async function routeLead(req: RunInput, quick: boolean, session: Session, emit: Emit, signal: AbortSignal): Promise<Tier> {
   if (!routingEnabled()) return "opus";
   const prompt = req.prompt;
-  // The Opus switch and high-stakes finance work skip triage: they always run on Opus.
+  // The Opus switch, high-stakes finance work and a scope asking for a file or Deep depth skip triage: they run on Opus.
+  const scoped = scopeOpusReason(req.scope);
   const forced: Route | null = req.opus
     ? { tier: "opus", reason: "the Opus switch is on", by: "rule" }
     : highStakes(prompt)
       ? { tier: "opus", reason: "high-stakes finance work (CoA, GAAP, business case or consolidation)", by: "rule" }
-      : quick
+      : scoped
+        ? { tier: "opus", reason: scoped, by: "rule" }
+        : quick
         ? { tier: tierForStep("quick"), reason: "a quick file or calculation", by: "rule" }
         : null;
   const { route, usage } = forced ? { route: forced, usage: undefined } : await triage(prompt, ruleRoute(wantsDeliverable(prompt)), signal);

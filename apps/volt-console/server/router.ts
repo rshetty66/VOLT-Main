@@ -65,6 +65,13 @@ const HIGH_STAKES =
   /\b(chart of accounts|coa|multi-?gaap|gaap|ifrs\s?\d*|asc\s?\d{3}|cecl|ecl|expected credit loss|business case|value case|npv|irr|consolidat\w*|intercompany|eliminations?|hedge accounting|revenue recognition|lease accounting|purchase price allocation)\b/i;
 export const highStakes = (text: string) => HIGH_STAKES.test(text);
 
+/** The chat's scope answers force Opus for a file deliverable or Deep depth; returns the reason, or null. */
+export function scopeOpusReason(scope?: { deliverable?: string; depth?: string }): string | null {
+  if (scope?.depth === "deep") return "the scope asks for Deep depth";
+  if (scope?.deliverable && scope.deliverable !== "chat") return `the scope asks for a ${scope.deliverable} deliverable`;
+  return null;
+}
+
 /** The rule used when triage is off or fails: the same signal the partner review uses for a client deliverable. */
 export function ruleRoute(wantsDeliverable: boolean): Route {
   return wantsDeliverable

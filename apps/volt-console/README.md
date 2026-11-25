@@ -46,8 +46,8 @@ Production: `npm run build && npm start` serves the built UI and the API togethe
   simple moves up to Opus when it turns into a deliverable; it never moves down. High-stakes finance work (chart of
   accounts, GAAP and IFRS, business or value cases, consolidation, CECL) skips triage and runs on Opus for the lead and
   every specialist. Otherwise quick files and calculations, specialists, workflow phases and single-agent chats run on
-  Sonnet; workflow synthesis runs on Opus; images are read by Haiku. The **Opus** switch in the header puts every step
-  on Opus. If triage fails, the deliverable rule decides. Every model call is priced at list price: the Token
+  Sonnet; workflow synthesis runs on Opus; images are read by Haiku. A scope answer asking for a file (deck, Word, Excel, HTML) or Deep
+  depth puts the lead on Opus. The **Opus** switch in the header puts every step on Opus. If triage fails, the deliverable rule decides. Every model call is priced at list price: the Token
   usage page shows the estimated cost per chat and per model, and the host log ends each run with
   `models: <model> calls= in= out= cache= usd=`. `VOLT_ROUTING=off` puts every step on the Opus-tier model;
   `VOLT_MODEL_HAIKU`, `VOLT_MODEL_SONNET` and `VOLT_MODEL_OPUS` (or `VOLT_MODEL`) change a tier's model.

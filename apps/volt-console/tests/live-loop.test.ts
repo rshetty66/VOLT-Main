@@ -164,6 +164,18 @@ describe("live agent loop (mocked Messages API)", () => {
     }
   });
 
+  it("puts the lead on Opus without triage when the scope asks for a file or Deep depth", async () => {
+    for (const scope of [{ deliverable: "docx" as const }, { depth: "deep" as const }]) {
+      const before = mock.requests.length;
+      const triaged = mock.triage.length;
+      const events = await run({ prompt: "TRIAGE-SONNET 12 day close on SAP", scope });
+      expect(mock.triage.length).toBe(triaged);
+      const lead = mock.requests.slice(before).filter((r) => r.body.tools.some((t: { name: string }) => t.name === "consult_agent"));
+      expect(new Set(lead.map((r) => r.body.model))).toEqual(new Set(["claude-opus-5-5"]));
+      expect(events.some((e) => e.type === "status" && e.text.includes("the scope asks for"))).toBe(true);
+    }
+  });
+
   it("sends a quick file ask to Sonnet without a triage call", async () => {
     const before = mock.requests.length;
     const triaged = mock.triage.length;
