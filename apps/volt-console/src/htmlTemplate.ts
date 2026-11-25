@@ -87,7 +87,8 @@ export function kpiStrip(spec: ChartSpec): string {
   const tiles = spec.labels.map((label, i) => {
     const v = cur[i] ?? 0;
     let delta = "";
-    if (cmp && Number.isFinite(cmp.values[i])) {
+    // A zero comparison means there is no baseline (NPV, IRR); "+4.01 vs Today" would say nothing.
+    if (cmp && Number.isFinite(cmp.values[i]) && cmp.values[i] !== 0) {
       const d = v - cmp.values[i];
       const tone = d === 0 ? "" : (d > 0) === (spec.better !== "down") ? " good" : " bad";
       const pct = cmp.values[i] ? ` (${d > 0 ? "+" : ""}${Math.round((d / Math.abs(cmp.values[i])) * 1000) / 10}%)` : "";
@@ -287,16 +288,21 @@ const SCRIPT = `
 })();
 `;
 
+/** A section title without the writer's own "2." numbering: the tab already numbers it. */
+const plain = (t: string) => t.replace(/^\s*\d+[.)]\s+/, "");
+/** A tab names its section in a few words: "Findings", not the whole takeaway headline. */
+export const tabLabel = (t: string) => plain(t).split(/:\s/)[0];
+
 /** The full page. `pages` carry already-rendered, trusted HTML (the deliverable's markdown and its SVG exhibits). */
 export function voltHtml(d: HtmlDeliverable): string {
   const many = d.pages.length > 1;
   const id = (i: number) => `s${i + 1}`;
   const tabs = many
-    ? `<nav class="tabs" role="tablist" aria-label="Sections">${d.pages.map((p, i) => `<button class="tab" role="tab" id="t-${id(i)}" aria-controls="${id(i)}" aria-selected="${i === 0}"><span>${String(i + 1).padStart(2, "0")}</span>${esc(p.title)}</button>`).join("")}</nav>`
+    ? `<nav class="tabs" role="tablist" aria-label="Sections">${d.pages.map((p, i) => `<button class="tab" role="tab" id="t-${id(i)}" aria-controls="${id(i)}" aria-selected="${i === 0}" title="${esc(plain(p.title))}"><span>${String(i + 1).padStart(2, "0")}</span>${esc(tabLabel(p.title))}</button>`).join("")}</nav>`
     : "";
   const body = d.pages
     .map((p, i) => {
-      const head = i === 0 ? `<h1>${esc(d.title)}</h1>${d.subtitle ? `<p class="lede">${esc(d.subtitle)}</p>` : ""}` : `<h2 class="pt">${esc(p.title)}</h2>`;
+      const head = i === 0 ? `<h1>${esc(d.title)}</h1>${d.subtitle ? `<p class="lede">${esc(d.subtitle)}</p>` : ""}` : `<h2 class="pt">${esc(plain(p.title))}</h2>`;
       const html = referenceLayout(i === 0 ? withSoWhat(p.html) : p.html.replace(/^\s*<p>/, '<p class="lede">'));
       return `<section class="page" id="${id(i)}"${many ? ` role="tabpanel" aria-labelledby="t-${id(i)}"` : ""}${i > 0 ? " hidden" : ""}>${head}${html}</section>`;
     })

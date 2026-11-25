@@ -108,3 +108,12 @@ describe("architecture drawing", () => {
     expect(archSvg(seven, LIGHT)).not.toContain("NaN");
   });
 });
+
+describe("architecture flows with long system names", () => {
+  it("keeps a flow whose end names a system longer than the name limit", () => {
+    const long = "Consolidation and IC (FCCS or OneStream, chosen to follow the GL)";
+    const spec = parseArchSpec(JSON.stringify({ title: "B", layers: [{ name: "GL", items: ["Existing GL"] }, { name: "Close", items: [{ name: long, status: "new" }] }], flows: [{ from: "Existing GL", to: long, label: "trial balance" }] }));
+    expect(spec?.flows).toHaveLength(1);
+    expect(spec?.layers[1].items[0].name).toBe(spec?.flows[0].to);
+  });
+});
