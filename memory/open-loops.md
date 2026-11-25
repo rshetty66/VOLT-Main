@@ -8,5 +8,6 @@ Add new items with the date. Mark finished items done with the date; never silen
 - [ ] 2026-11-24: Rakesh to set `VOLT_AUTH_MODE=username` in Render.
 - [ ] 2026-11-24: FSDF is not yet run on a real Oracle database.
 - [ ] 2026-11-24: Draft PR for this memory-first agent system awaits Rakesh's review and merge OK.
-- [ ] 2026-11-24: Draft PRs awaiting Rakesh: #95 PR A (executive charts, animation, GIF, native PowerPoint charts), #96 PR C (VOLT HTML template with interactive process flows), PR B (create_file: VOLT makes Word, PowerPoint, Excel with formulas, CSV, web page, PDF via print). PDF uses the browser print path; a server PDF library (pdfkit) is an open option.
+- [x] 2026-11-24: #95, #96, #98 (charts, HTML template, create_file) and fixes #100 to #103 merged. Open option: a server PDF library (pdfkit) for one-click PDF.
+- [ ] 2026-11-25: Draft PR: VOLT HTML deliverable follows Rakesh's reference layout (KPI strip, card grids, lettered sections, walkthrough bar). Awaits his review and merge OK.
 - [ ] 2026-11-24: Draft PR #99 (web research with cited, retrieved sources) awaits Rakesh's merge OK. After merge he sets `VOLT_WEB_RESEARCH=on` in Render (optional `VOLT_WEB_MAX_SEARCHES`, default 20) and an org admin allows web search and web fetch in the Claude Console. Not yet live-tested.

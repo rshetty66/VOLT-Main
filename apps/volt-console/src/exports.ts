@@ -15,8 +15,8 @@ import { processSvg } from "./charts/specProcess";
 import { archSvg } from "./charts/specArch";
 import { specSvg } from "./charts/specChart";
 import { DARK, LIGHT } from "./charts/palette";
-import { splitPages, toneTables, voltHtml } from "./htmlTemplate";
-import { archBlocks, chartBlocks, processBlocks, type ProcessSpec } from "../shared/viz";
+import { kpiStrip, splitPages, toneTables, voltHtml } from "./htmlTemplate";
+import { archBlocks, chartBlocks, processBlocks, type ChartSpec, type ProcessSpec } from "../shared/viz";
 import { downloadBlob, downloadText, svgSize, svgToPng } from "./download";
 import { csvText } from "../shared/files";
 
@@ -141,7 +141,7 @@ export async function htmlDocument(d: Deliverable): Promise<string> {
   const { renderToStaticMarkup } = await import("react-dom/server");
   const charts = await Promise.all((d.charts ?? []).map((c) => chartFor(c).render(DARK)).map((el) => renderToStaticMarkup(el)));
   const diagrams = await Promise.all(mermaidSources(d.markdown).map((code) => renderMermaid(code, "dark").catch(() => "")));
-  const specs = chartBlocks(d.markdown).map((spec) => (spec ? specSvg(spec, DARK) : ""));
+  const specs = chartBlocks(d.markdown);
   const archs = archBlocks(d.markdown).map((spec) => (spec ? archSvg(spec, DARK) : ""));
   const procs = processBlocks(d.markdown);
   let n = 0;
@@ -149,6 +149,11 @@ export async function htmlDocument(d: Deliverable): Promise<string> {
   let a = 0;
   let f = 0;
   const figure = (cls: string, svg: string) => createElement("figure", { className: cls, dangerouslySetInnerHTML: { __html: svg } });
+  // A KPI chart becomes the reference layout's strip of tiles; every other chart stays an SVG exhibit.
+  const chart = (spec: ChartSpec | null | undefined) =>
+    !spec ? figure("chart", "")
+    : spec.type === "kpi" ? createElement("div", { className: "kpi-slot", dangerouslySetInnerHTML: { __html: kpiStrip(spec) } })
+    : figure("chart", specSvg(spec, DARK));
   const flow = () => {
     const spec = procs[f++];
     if (!spec) return createElement("figure", null);
@@ -167,7 +172,7 @@ export async function htmlDocument(d: Deliverable): Promise<string> {
         code: ({ className, children }) =>
           isProcess(className) ? flow()
           : isArchitecture(className) ? figure("arch", archs[a++] || "")
-          : isChart(className) ? figure("chart", specs[c++] || "")
+          : isChart(className) ? chart(specs[c++])
           : isMermaid(className) ? figure("diagram", diagrams[n++] || "")
           : createElement("code", { className }, children),
       },
