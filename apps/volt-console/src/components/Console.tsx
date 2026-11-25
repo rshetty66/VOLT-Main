@@ -9,6 +9,7 @@ import { addMemory } from "../projects";
 import { FileCards } from "./FileCards";
 import { runDeliverable } from "../exports";
 import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
+import { SCOPE_QUESTIONS, defaultScope, scopeLabel, type Scope } from "../../shared/scope";
 import { ATTACH_EXTENSIONS, ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../../shared/attachments";
 
 const EXAMPLES = [
@@ -37,6 +38,12 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   const fileInput = useRef<HTMLInputElement>(null);
   const promptBox = useRef<HTMLTextAreaElement>(null);
   const [library, setLibrary] = useState<UploadMeta[] | null>(null);
+  // The chat's scope: asked once before the first message of each chat, then sent with every message.
+  const [scope, setScope] = useState<Scope | null>(null);
+  const [scoping, setScoping] = useState<{ draft: Scope; pending?: string } | null>(null);
+  useEffect(() => {
+    if (runs.length === 0) setScope(null);
+  }, [runs.length]);
   const running = runs.some((r) => r.state === "running");
   const targetAgent = catalog.agents.find((a) => a.id === target);
 
@@ -90,10 +97,13 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
     if (fileInput.current) fileInput.current.value = "";
   };
 
-  const submit = (text = prompt) => {
+  const submit = (text = prompt, chosen: Scope | null | undefined = scope) => {
     if (!text.trim() || reading > 0) return;
+    // First message of a chat: ask the scope questions before any work starts. Skip sends without a scope.
+    if (chosen === null && runs.length === 0) return void setScoping((s) => ({ draft: s?.draft ?? defaultScope(), pending: text }));
+    setScoping(null);
     const agentMode = target !== "rudra";
-    onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined, attachments: files.length ? files.map(({ name, text, id }) => ({ name, text, uploadId: id })) : undefined }, agentMode ? targetAgent?.name ?? target : "All specialists", agentMode ? "agent" : "orchestrate");
+    onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined, scope: chosen ?? undefined, attachments: files.length ? files.map(({ name, text, id }) => ({ name, text, uploadId: id })) : undefined }, agentMode ? targetAgent?.name ?? target : "All specialists", agentMode ? "agent" : "orchestrate");
     setPrompt("");
     setFiles([]);
     setFileError("");
@@ -105,7 +115,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
         <div className="stack">
           <p className="body intro">
             Describe a client situation in your own words. VOLT puts the right finance specialists on it and returns a written answer with
-            charts and benchmarks, ready to download as Word, PowerPoint or Excel.
+            charts and benchmarks, ready to download as Word, PowerPoint or Excel. Before it starts, it asks a few quick questions to set the scope.
           </p>
           {!live && (
             <div className="card body">
@@ -134,6 +144,22 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
         <RunView key={run.id} run={run} onStop={() => onStop(run.id)} />
       ))}
       <div className="composer">
+        {scoping && (
+          <ScopeCard
+            draft={scoping.draft}
+            onChange={(draft) => setScoping({ ...scoping, draft })}
+            starting={Boolean(scoping.pending)}
+            onConfirm={() => {
+              setScope(scoping.draft);
+              if (scoping.pending) submit(scoping.pending, scoping.draft);
+              else setScoping(null);
+            }}
+            onSkip={() => {
+              if (scoping.pending) submit(scoping.pending, undefined);
+              else setScoping(null);
+            }}
+          />
+        )}
         <div className="card">
           <div className="row">
             <span className="micro">Talk to</span>
@@ -151,6 +177,11 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
                 </optgroup>
               ))}
             </select>
+            {scope && (
+              <button className="chip click" title="Change the scope for this chat" onClick={() => setScoping({ draft: scope })}>
+                Scope: {scopeLabel(scope)}
+              </button>
+            )}
             {target !== "rudra" && (
               <button className="btn ghost sm" onClick={() => onOpenAgent(target)}>
                 About this agent
@@ -224,6 +255,37 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/** The scope questions: one row of choices per question, defaults already picked, so one click starts the work. */
+function ScopeCard({ draft, onChange, starting, onConfirm, onSkip }: { draft: Scope; onChange: (s: Scope) => void; starting: boolean; onConfirm: () => void; onSkip: () => void }) {
+  return (
+    <div className="card scope-card" role="group" aria-labelledby="scope-title">
+      <div className="micro" id="scope-title">{starting ? "Before I start: narrow the scope" : "Scope for this chat"}</div>
+      {SCOPE_QUESTIONS.map((q) => (
+        <div key={q.key} className="scope-row" role="radiogroup" aria-label={q.label}>
+          <span className="scope-label">{q.label}</span>
+          <div className="scope-options">
+            {Object.entries(q.options).map(([value, label]) => (
+              <button
+                key={value}
+                role="radio"
+                aria-checked={draft[q.key] === value}
+                className={`chip click${draft[q.key] === value ? " on" : ""}`}
+                onClick={() => onChange({ ...draft, [q.key]: value } as Scope)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+      <div className="row" style={{ justifyContent: "flex-end" }}>
+        <button className="btn ghost" onClick={onSkip}>{starting ? "Skip and send" : "Cancel"}</button>
+        <button className="btn primary" onClick={onConfirm}>{starting ? "Start" : "Save scope"}</button>
       </div>
     </div>
   );

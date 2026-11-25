@@ -20,10 +20,18 @@ export interface HtmlPage {
   html: string;
 }
 
+/** A companion file carried inside the page (a data: URL), so the offline page can hand it over. */
+export interface HtmlFile {
+  label: string;
+  name: string;
+  href: string;
+}
+
 export interface HtmlDeliverable {
   title: string;
   subtitle?: string;
   pages: HtmlPage[];
+  files?: HtmlFile[];
 }
 
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -203,10 +211,13 @@ figure svg{max-inline-size:100%;block-size:auto;display:block}
 .detail dd{margin:2px 0 0;color:#dce0ea}
 .detail .issue dd{color:var(--bad);font-weight:600}
 .detail .wide{grid-column:1/-1}
+.files{display:flex;flex-wrap:wrap;gap:8px;margin:-8px 0 22px}
+.files a{padding:7px 12px;border:1px solid var(--gold);color:var(--gold);font-size:13px;border-radius:2px;text-decoration:none;white-space:nowrap}
+.files a:hover{background:var(--gold);color:var(--bg)}
 footer{border-top:1px solid var(--bd);padding:14px 28px;color:var(--mu);font-size:12px;text-align:center}
 @media (max-width:1100px){main{padding:20px 16px}h1,h2.pt{font-size:28px}.top{padding:10px 16px;gap:12px}.cap{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){.page{animation:none}.js figure.chart svg{clip-path:none!important;transition:opacity .2s}.vp-link.on path{animation:none}}
-@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.top,.ctl,.dots{display:none!important}.page,.page[hidden]{display:block!important;break-after:page}main{max-inline-size:none;padding:12px}.js figure.chart svg{clip-path:none}figure,.card,.kpi{break-inside:avoid}}
+@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.top,.ctl,.dots,.files{display:none!important}.page,.page[hidden]{display:block!important;break-after:page}main{max-inline-size:none;padding:12px}.js figure.chart svg{clip-path:none}figure,.card,.kpi{break-inside:avoid}}
 `;
 
 /** Tabs, chart reveal and the process walkthrough. Plain ES2017, no dependencies; the page reads fine without it. */
@@ -300,9 +311,10 @@ export function voltHtml(d: HtmlDeliverable): string {
   const tabs = many
     ? `<nav class="tabs" role="tablist" aria-label="Sections">${d.pages.map((p, i) => `<button class="tab" role="tab" id="t-${id(i)}" aria-controls="${id(i)}" aria-selected="${i === 0}" title="${esc(plain(p.title))}"><span>${String(i + 1).padStart(2, "0")}</span>${esc(tabLabel(p.title))}</button>`).join("")}</nav>`
     : "";
+  const files = d.files?.length ? `<nav class="files" aria-label="Files">${d.files.map((f) => `<a href="${esc(f.href)}" download="${esc(f.name)}">Download ${esc(f.label)}</a>`).join("")}</nav>` : "";
   const body = d.pages
     .map((p, i) => {
-      const head = i === 0 ? `<h1>${esc(d.title)}</h1>${d.subtitle ? `<p class="lede">${esc(d.subtitle)}</p>` : ""}` : `<h2 class="pt">${esc(plain(p.title))}</h2>`;
+      const head = i === 0 ? `<h1>${esc(d.title)}</h1>${d.subtitle ? `<p class="lede">${esc(d.subtitle)}</p>` : ""}${files}` : `<h2 class="pt">${esc(plain(p.title))}</h2>`;
       const html = referenceLayout(i === 0 ? withSoWhat(p.html) : p.html.replace(/^\s*<p>/, '<p class="lede">'));
       return `<section class="page" id="${id(i)}"${many ? ` role="tabpanel" aria-labelledby="t-${id(i)}"` : ""}${i > 0 ? " hidden" : ""}>${head}${html}</section>`;
     })

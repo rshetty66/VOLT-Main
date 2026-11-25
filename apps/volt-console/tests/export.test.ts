@@ -131,7 +131,8 @@ describe("Excel export", () => {
     );
     const files = unzip(out.data);
     const wb = text(files, "xl/workbook.xml");
-    expect(wb).toContain('name="Summary"');
+    expect(wb).toContain('name="Cover"');
+    expect(wb).toContain('name="Notes"');
     expect(wb).toContain('name="Current state"');
     expect(wb).toContain('name="Benchmarks"');
     const sheets = Object.keys(files).filter((f) => /^xl\/worksheets\/sheet\d+\.xml$/.test(f)).sort();
@@ -268,13 +269,12 @@ describe("table of contents", () => {
     expect(last).toContain("Appendix");
   });
 
-  it("makes Contents the first worksheet, pointing each section at its table sheet", async () => {
+  it("makes the Cover the first worksheet, with a linked index of every other sheet", async () => {
     const files = unzip((await exportDocument(req("xlsx", { markdown: MD4, images: [] }), null)).data);
     const names = [...text(files, "xl/workbook.xml").matchAll(/<sheet [^>]*name="([^"]+)"/g)].map((m) => m[1]);
-    expect(names[0]).toBe("Contents");
-    expect(names[1]).toBe("Summary");
-    const shared = text(files, "xl/sharedStrings.xml");
-    for (const line of ["1. Current state", "2. Target architecture", "3. Next steps"]) expect(shared).toContain(line);
+    expect(names[0]).toBe("Cover");
+    const cover = text(files, "xl/worksheets/sheet1.xml");
+    for (const n of names.slice(1)) expect(cover).toContain(`HYPERLINK(&quot;#&apos;${n}&apos;!A1&quot;`);
   });
 
   it("adds no Contents to a short document", async () => {
@@ -452,5 +452,20 @@ describe("consulting deck layout", () => {
     // A target is a dashed line series; a combo puts its line on a second value axis.
     expect(charts.some((c) => c.includes("<c:barChart>") && c.includes("<c:lineChart>") && c.includes("Target"))).toBe(true);
     expect(charts.some((c) => (c.match(/<c:valAx>/g) ?? []).length === 2 && c.includes("Journals"))).toBe(true);
+  });
+});
+
+describe("Excel value case model", () => {
+  const model = { financeFtes: 140, loadedCostPerFte: 115000, automationPct: 25, oneTimeInvestment: 6e6, annualRunCost: 1.05e6, rampYears: 2, horizonYears: 5, discountRate: 0.08, npv: 4014886.43, irrPct: 27.71, paybackYears: 2.69 };
+  it("writes inputs as values and the outputs as live formulas over them", async () => {
+    const out = await exportDocument(req("xlsx", { tables: [{ name: "Value case", columns: ["Year"], rows: [[0]], model }] }), null);
+    const files = unzip(out.data);
+    const names = [...text(files, "xl/workbook.xml").matchAll(/<sheet [^>]*name="([^"]+)"/g)].map((m) => m[1]);
+    expect(names[1]).toBe("Value case model");
+    const xml = text(files, "xl/worksheets/sheet2.xml");
+    expect(xml).toMatch(/<c r="B7"[^>]*><v>0.25<\/v>/);
+    expect(xml).toContain("<f>B19+NPV($B$11,C19:G19)</f>");
+    expect(xml).toContain("<f>IFERROR(IRR(B19:G19),&quot;n/a&quot;)</f>");
+    expect(xml).toContain("<f>$B$5*$B$7*$B$6*C15</f>");
   });
 });

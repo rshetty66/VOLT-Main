@@ -10,13 +10,15 @@ import type { AddressInfo } from "node:net";
 export interface Captured { headers: http.IncomingHttpHeaders; body: any }
 
 let n = 0;
+/** The model the request named: each streamed reply says it served that model, as the API does. */
+let served = "claude-opus-5-5";
 const sse = (res: http.ServerResponse, events: any[]) => {
   res.writeHead(200, { "content-type": "text/event-stream" });
   for (const e of events) res.write(`event: ${e.type}\ndata: ${JSON.stringify(e)}\n\n`);
   res.end();
 };
 const msg = (id: string, blocks: any[], stop: string) => {
-  const ev: any[] = [{ type: "message_start", message: { id, type: "message", role: "assistant", model: "claude-opus-5-5", content: [], stop_reason: null, usage: { input_tokens: 100, output_tokens: 0, cache_read_input_tokens: 50 } } }];
+  const ev: any[] = [{ type: "message_start", message: { id, type: "message", role: "assistant", model: served, content: [], stop_reason: null, usage: { input_tokens: 100, output_tokens: 0, cache_read_input_tokens: 50 } } }];
   blocks.forEach((b: any, i: number) => {
     if (b.type === "text") {
       ev.push({ type: "content_block_start", index: i, content_block: { type: "text", text: "" } });
@@ -36,14 +38,23 @@ const msg = (id: string, blocks: any[], stop: string) => {
   return ev;
 };
 
-export async function startMockAnthropic(): Promise<{ url: string; requests: Captured[]; close: () => void }> {
+export async function startMockAnthropic(): Promise<{ url: string; requests: Captured[]; triage: Captured[]; close: () => void }> {
   const requests: Captured[] = [];
+  // The router's Haiku triage call (not streamed, no tools): OPUS unless the request says TRIAGE-SONNET.
+  const triage: Captured[] = [];
   const server = http.createServer((req, res) => {
   let body = "";
   req.on("data", (c) => (body += c));
   req.on("end", () => {
     const b = JSON.parse(body);
+    if (!b.stream) {
+      triage.push({ headers: req.headers, body: b });
+      const tier = JSON.stringify(b.messages).includes("TRIAGE-SONNET") ? "SONNET" : "OPUS";
+      res.writeHead(200, { "content-type": "application/json" });
+      return res.end(JSON.stringify({ id: `t${triage.length}`, type: "message", role: "assistant", model: b.model, content: [{ type: "text", text: `${tier}: test route` }], stop_reason: "end_turn", stop_sequence: null, usage: { input_tokens: 80, output_tokens: 6 } }));
+    }
     requests.push({ headers: req.headers, body: b });
+    served = b.model;
     const isRudra = b.tools.some((t: any) => t.name === "consult_agent");
     const last = b.messages.at(-1);
     const hasResults = Array.isArray(last.content) && last.content.some((c: any) => c.type === "tool_result");
@@ -64,5 +75,5 @@ export async function startMockAnthropic(): Promise<{ url: string; requests: Cap
 });
   await new Promise<void>((r) => server.listen(0, r));
   const { port } = server.address() as AddressInfo;
-  return { url: `http://127.0.0.1:${port}`, requests, close: () => server.close() };
+  return { url: `http://127.0.0.1:${port}`, requests, triage, close: () => server.close() };
 }

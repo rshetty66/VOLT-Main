@@ -2,7 +2,7 @@ import { createContext, createElement, type ReactElement } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ExportFormat, ExportImage, ExportRequest, ExportTable } from "../shared/export";
-import { exportFileName } from "../shared/export";
+import { EXPORT_MIME, exportFileName } from "../shared/export";
 import { strToU8, zipSync } from "fflate";
 import { evidenceGates, registryJsonl, sectionOf, sourceRegisterMarkdown, type SourceRecord, type Tier } from "../shared/research";
 import type { Run } from "./runState";
@@ -32,6 +32,8 @@ export interface Deliverable {
   charts?: ChartableResult[];
   tables?: ExportTable[];
   templateId?: string;
+  /** Files made with this one (a run's deck and workbook), carried inside the HTML page as download links. */
+  companions?: { format: ExportFormat; deliverable: Deliverable }[];
   /** What the research engine recorded for this run; it makes the research bundle. */
   research?: { query: string; tier?: Tier; mode?: string; startedAt: string; sources: SourceRecord[]; log: string[] };
 }
@@ -90,6 +92,7 @@ export function chartTables(results: ChartableResult[]): ExportTable[] {
           ["IRR %", r.data.irrPct, null, null, null],
           ["Payback (years)", r.data.paybackYears, null, null, null],
         ],
+        model: r.data.inputs ? { ...r.data.inputs, npv: r.data.npv, irrPct: r.data.irrPct, paybackYears: r.data.paybackYears } : undefined,
       });
     if (r.kind === "maturity")
       out.push({ name: "Maturity", columns: ["Dimension", "Current", "Target", "Gap"], rows: r.data.dimensions.map((d) => [d.dimension, d.current, d.target, d.gap]) });
@@ -181,7 +184,24 @@ export async function htmlDocument(d: Deliverable): Promise<string> {
     }),
   );
   const appendix = charts.length ? `<h2>Appendix: Supporting analysis</h2>${charts.map((svg) => `<figure class="chart">${svg}</figure>`).join("")}` : "";
-  return voltHtml({ title: d.title, subtitle: d.subtitle, pages: splitPages(toneTables(body + appendix)) });
+  return voltHtml({ title: d.title, subtitle: d.subtitle, pages: splitPages(toneTables(body + appendix)), files: await companionLinks(d) });
+}
+
+const COMPANION_LABEL: Record<ExportFormat, string> = { pptx: "PowerPoint", xlsx: "Excel", docx: "Word" };
+
+/** The companion files, built now and embedded as data: URLs; one that fails to build is left out, not the page. */
+async function companionLinks(d: Deliverable) {
+  const made = await Promise.all(
+    (d.companions ?? []).map(async ({ format, deliverable }) => {
+      try {
+        const blob = await exportBlob(format, deliverable);
+        return { label: COMPANION_LABEL[format], name: exportFileName(deliverable.title, format), href: `data:${EXPORT_MIME[format]};base64,${await base64(blob)}` };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return made.filter((f): f is NonNullable<typeof f> => !!f);
 }
 
 /**
@@ -217,6 +237,11 @@ export async function downloadDeliverable(format: DownloadFormat, d: Deliverable
   if (format === "csv") return downloadCsv(d);
   if (format === "pdf") return printPdf(await htmlDocument(d));
 
+  downloadBlob(exportFileName(d.title, format), await exportBlob(format, d));
+}
+
+/** A Word, PowerPoint or Excel file from the server's writers, with the charts and diagrams rendered to PNG here. */
+async function exportBlob(format: ExportFormat, d: Deliverable): Promise<Blob> {
   const images: ExportImage[] = [];
   if (format !== "xlsx") {
     const { charts, diagrams, specs, archs, procs } = await pictures(d);
@@ -232,7 +257,7 @@ export async function downloadDeliverable(format: DownloadFormat, d: Deliverable
   const body: ExportRequest = { format, title: d.title, subtitle: d.subtitle, markdown: d.markdown, images, tables: format === "xlsx" ? d.tables : undefined, templateId: d.templateId || undefined };
   const r = await fetch("/api/export", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) });
   if (!r.ok) throw new Error((await r.json().catch(() => ({})))?.error ?? `Download failed (${r.status})`);
-  downloadBlob(exportFileName(d.title, format), await r.blob());
+  return r.blob();
 }
 
 /** One table saves as a .csv; several save as a .zip of one .csv each. */
