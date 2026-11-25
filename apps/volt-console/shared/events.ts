@@ -38,6 +38,8 @@ export interface RunRequest {
   agentId?: string;
   /** Force the offline simulator even when credentials exist. */
   demo?: boolean;
+  /** Run every step on the Opus-tier model (the "Opus" switch): overrides the router for this run and the rest of the chat. */
+  opus?: boolean;
   /** Uploaded template whose formatting guide the agents apply (see shared/templates.ts). */
   templateId?: string;
   /** Files the user attached, already read to text by POST /api/attachments/extract. */

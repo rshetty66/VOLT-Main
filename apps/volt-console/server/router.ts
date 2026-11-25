@@ -52,7 +52,18 @@ const TRIAGE_PROMPT = `You route requests for VOLT, a finance transformation con
 SONNET: a direct question, an explanation, a definition, a lookup, a short calculation, a summary, a single-domain answer, or a follow-up that refines an earlier answer.
 OPUS: a client deliverable or a hard problem: an assessment, a strategy, a target operating model, a business case, a roadmap, an architecture or chart-of-accounts design, multi-GAAP treatment, a multi-domain analysis, or anything where a wrong answer is costly.
 
+If you are unsure, answer OPUS: a weak answer to a hard question costs more than the bigger model.
+
 Reply with one line only: SONNET or OPUS, a colon, then a reason of at most twelve words.`;
+
+/**
+ * Finance work where edge-case accuracy decides the answer: chart of accounts, multi-GAAP and accounting standards,
+ * business and value cases, consolidation. A request or brief that names one runs on Opus whatever triage says,
+ * lead and specialists alike, until a live A/B test shows Sonnet matches.
+ */
+const HIGH_STAKES =
+  /\b(chart of accounts|coa|multi-?gaap|gaap|ifrs\s?\d*|asc\s?\d{3}|cecl|ecl|expected credit loss|business case|value case|npv|irr|consolidat\w*|intercompany|eliminations?|hedge accounting|revenue recognition|lease accounting|purchase price allocation)\b/i;
+export const highStakes = (text: string) => HIGH_STAKES.test(text);
 
 /** The rule used when triage is off or fails: the same signal the partner review uses for a client deliverable. */
 export function ruleRoute(wantsDeliverable: boolean): Route {

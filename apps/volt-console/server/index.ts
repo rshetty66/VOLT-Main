@@ -350,6 +350,7 @@ const RunBody = z.object({
   intake: z.record(z.string(), z.string()).optional(),
   agentId: z.string().optional(),
   demo: z.boolean().optional(),
+  opus: z.boolean().optional(),
   templateId: z.string().max(32).optional(),
   attachments: z
     .array(z.object({ name: z.string().max(200), text: z.string().max(ATTACH_MAX_CHARS_FILE + 200), uploadId: z.string().regex(/^[0-9a-f-]{36}$/).optional() }))

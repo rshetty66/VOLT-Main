@@ -153,10 +153,21 @@ describe("live agent loop (mocked Messages API)", () => {
     expect(await leadModel("TRIAGE-SONNET and a follow-up")).toBe("claude-opus-5-5");
   });
 
+  it("puts high-stakes finance work and the Opus switch on Opus for the lead and the specialists, without triage", async () => {
+    for (const req of [{ prompt: "Multi-GAAP chart of accounts for our bank" }, { prompt: "TRIAGE-SONNET 12 day close on SAP", opus: true }]) {
+      const before = mock.requests.length;
+      const triaged = mock.triage.length;
+      const events = await run(req);
+      expect(mock.triage.length).toBe(triaged);
+      expect(new Set(mock.requests.slice(before).map((r) => r.body.model))).toEqual(new Set(["claude-opus-5-5"]));
+      expect(events.some((e) => e.type === "status" && e.text.includes("Specialists run on Opus"))).toBe(true);
+    }
+  });
+
   it("sends a quick file ask to Sonnet without a triage call", async () => {
     const before = mock.requests.length;
     const triaged = mock.triage.length;
-    await run({ prompt: "Build a value case in Excel: 140 FTEs at 95k" });
+    await run({ prompt: "Make an Excel workbook of a 5-day close calendar" });
     expect(mock.triage.length).toBe(triaged);
     expect(mock.requests[before].body.model).toBe("claude-sonnet-5-5");
   });

@@ -25,7 +25,7 @@ import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
 import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerToolDefs, runLedgerTool } from "./ledger.js";
 import { CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, QUICK_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
-import { estimateCost, higher, modelFor, routingEnabled, ruleRoute, tierForStep, tierName, triage, type Tier } from "./router.js";
+import { estimateCost, higher, highStakes, modelFor, routingEnabled, ruleRoute, tierForStep, tierName, triage, type Route, type Tier } from "./router.js";
 
 export type Emit = (e: VoltEvent) => void;
 
@@ -156,6 +156,8 @@ interface LoopOptions {
   registry: SourceRegistry;
   /** Offer the VOLT Ledger tools (lead only, and only when the ledger service is configured). */
   ledger?: boolean;
+  /** The tier for specialists this agent consults (Opus for high-stakes finance work or the Opus switch). */
+  specialistTier?: Tier;
 }
 
 /**
@@ -278,7 +280,7 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
     }
 
     // Execute every tool call of this turn concurrently; reply with all results in one message.
-    const results = await Promise.all(toolUses.map((tu) => executeTool(catalog, lane, tu, emit, signal, opts.registry)));
+    const results = await Promise.all(toolUses.map((tu) => executeTool(catalog, lane, tu, emit, signal, opts.registry, opts.specialistTier)));
     messages.push({ role: "user", content: searchCapNote ? [...results, { type: "text", text: searchCapNote }] : results });
   }
   emit({ type: "error", lane, message: `Stopped after ${MAX_TURNS} turns.` });
@@ -305,6 +307,7 @@ async function executeTool(
   emit: Emit,
   signal: AbortSignal,
   registry: SourceRegistry,
+  specialistTier?: Tier,
 ): Promise<Anthropic.Beta.BetaToolResultBlockParam> {
   const name = tu.name as ToolName;
   emit({ type: "tool_call", lane, callId: tu.id, name, input: tu.input });
@@ -345,7 +348,7 @@ async function executeTool(
     if (registry.consults >= MAX_CONSULTS) return fail(`Consult limit reached (${MAX_CONSULTS} specialists per run). Do not consult more: write the answer from the work you already have.`);
     registry.consults++;
     try {
-      const text = await runSpecialist(catalog, agent, brief, tu.id, lane, emit, signal, registry);
+      const text = await runSpecialist(catalog, agent, brief, tu.id, lane, emit, signal, registry, specialistTier);
       emit({ type: "tool_result", lane, callId: tu.id, name, summary: `${agent.name} delivered ${text.length.toLocaleString()} chars` });
       return { type: "tool_result", tool_use_id: tu.id, content: `## ${agent.name} (${agent.layer})\n\n${text.slice(0, MAX_CONSULT_CHARS)}` };
     } catch (err) {
@@ -375,6 +378,7 @@ async function runSpecialist(
   emit: Emit,
   signal: AbortSignal,
   registry: SourceRegistry,
+  tier: Tier = tierForStep("specialist"),
 ): Promise<string> {
   emit({ type: "agent_start", lane, parentLane, agentId: agent.id, name: agent.name, layer: agent.layer, icon: agent.icon, brief });
   try {
@@ -384,7 +388,8 @@ async function runSpecialist(
       system: specialistSystem(catalog, agent),
       messages: [{ role: "user", content: brief }],
       tools: CONSULTED_TOOLS,
-      model: modelFor(tierForStep("specialist")),
+      // A brief in high-stakes finance work runs on Opus even when the lead's run was routed lower.
+      model: modelFor(highStakes(brief) ? "opus" : tier),
       effort: SPECIALIST_EFFORT,
       emit,
       signal,
@@ -447,7 +452,7 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
       system: specialistSystem(catalog, agent),
       messages: session.messages,
       tools: SPECIALIST_TOOLS,
-      model: modelFor(tierForStep("direct_agent")),
+      model: modelFor(req.opus || highStakes(req.prompt) ? "opus" : tierForStep("direct_agent")),
       effort: SPECIALIST_EFFORT,
       emit,
       signal,
@@ -460,7 +465,7 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
   // A file or a calculation from given figures: Rudra answers alone, without the specialist bench or the partner rewrite.
   const quick = quickAsk(req.prompt);
   if (quick) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Quick request: building it directly with the VOLT analytics tools" });
-  const leadTier = await routeLead(req.prompt, quick, session, emit, signal);
+  const leadTier = await routeLead(req, quick, session, emit, signal);
   session.messages.push({ role: "user", content: `${withTemplate(req)}${quick ? `\n\n${QUICK_GUIDE}` : registry.tier === "QUICK" ? "" : `\n\nResearch depth: ${registry.tier}. State it in Scope and method.`}` });
   const lead: LoopOptions = {
     catalog,
@@ -474,6 +479,7 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
     signal,
     registry,
     ledger: true,
+    specialistTier: req.opus || highStakes(req.prompt) ? "opus" : tierForStep("specialist"),
   };
   const draft = await runAgentLoop(lead);
   // A quick ask still gets the ledger check, but not the full-deliverable depth review.
@@ -485,11 +491,18 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
  * Chooses the lead's model. A quick file or calculation goes to Sonnet without triage; anything else is classified
  * by one Haiku call (the code rule if that fails). A conversation's lead never moves down a tier.
  */
-async function routeLead(prompt: string, quick: boolean, session: Session, emit: Emit, signal: AbortSignal): Promise<Tier> {
+async function routeLead(req: RunInput, quick: boolean, session: Session, emit: Emit, signal: AbortSignal): Promise<Tier> {
   if (!routingEnabled()) return "opus";
-  const { route, usage } = quick
-    ? { route: { tier: tierForStep("quick"), reason: "a quick file or calculation", by: "rule" as const }, usage: undefined }
-    : await triage(prompt, ruleRoute(wantsDeliverable(prompt)), signal);
+  const prompt = req.prompt;
+  // The Opus switch and high-stakes finance work skip triage: they always run on Opus.
+  const forced: Route | null = req.opus
+    ? { tier: "opus", reason: "the Opus switch is on", by: "rule" }
+    : highStakes(prompt)
+      ? { tier: "opus", reason: "high-stakes finance work (CoA, GAAP, business case or consolidation)", by: "rule" }
+      : quick
+        ? { tier: tierForStep("quick"), reason: "a quick file or calculation", by: "rule" }
+        : null;
+  const { route, usage } = forced ? { route: forced, usage: undefined } : await triage(prompt, ruleRoute(wantsDeliverable(prompt)), signal);
   if (usage) {
     const counts = { inputTokens: usage.inputTokens, outputTokens: usage.outputTokens, cacheReadTokens: 0 };
     emit({ type: "usage", lane: ORCHESTRATOR_LANE, ...counts, model: usage.model, costUsd: estimateCost(usage.model, counts) });
@@ -498,7 +511,8 @@ async function routeLead(prompt: string, quick: boolean, session: Session, emit:
   session.leadTier = tier;
   const kept = tier !== route.tier ? `; kept on ${tierName(tier)} for this conversation` : "";
   const how = route.by === "triage" ? "Haiku triage" : "routing rule";
-  emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Model: ${tierName(route.tier)} for the lead (${how}: ${route.reason})${kept}. Specialists run on ${tierName(tierForStep("specialist"))}.` });
+  const specialists = req.opus || highStakes(prompt) ? "Opus" : `${tierName(tierForStep("specialist"))} (Opus for high-stakes finance briefs)`;
+  emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Model: ${tierName(route.tier)} for the lead (${how}: ${route.reason})${kept}. Specialists run on ${specialists}.` });
   return tier;
 }
 
@@ -565,7 +579,8 @@ function intakeText(catalog: Catalog, wf: WorkflowDef, answers: Record<string, s
 async function runWorkflow(catalog: Catalog, wf: WorkflowDef, req: RunInput, session: Session, emit: Emit, signal: AbortSignal, registry: SourceRegistry) {
   const context = withTemplate(req, `${req.prompt}${intakeText(catalog, wf, req.intake)}`);
   const outputs: { phase: string; agent: AgentDef; text: string }[] = [];
-  if (routingEnabled()) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Model: ${tierName(tierForStep("workflow_phase"))} for each phase, ${tierName(tierForStep("synthesis"))} for the synthesis.` });
+  const phaseTier: Tier = req.opus || highStakes(context) ? "opus" : tierForStep("workflow_phase");
+  if (routingEnabled()) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Model: ${tierName(phaseTier)} for each phase, ${tierName(tierForStep("synthesis"))} for the synthesis.` });
 
   for (const [index, phase] of wf.phases.entries()) {
     emit({ type: "phase_start", index, name: phase.name, agents: phase.agents });
@@ -583,7 +598,7 @@ Client request:
 ${context}${prior}
 
 Deliver your ${phase.name} contribution from the ${agent.name} perspective. Build on earlier phases rather than repeating them.`;
-        const text = await runSpecialist(catalog, agent, brief, `${wf.id}:${index}:${agentId}`, ORCHESTRATOR_LANE, emit, signal, registry);
+        const text = await runSpecialist(catalog, agent, brief, `${wf.id}:${index}:${agentId}`, ORCHESTRATOR_LANE, emit, signal, registry, phaseTier);
         outputs.push({ phase: phase.name, agent, text });
       }),
     );
