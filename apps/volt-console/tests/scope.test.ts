@@ -11,7 +11,7 @@ describe("chat scope questions", () => {
     }
   });
 
-  it("offers every file deliverable create_file can make for the chat", () => {
+  it("offers chat, HTML, PowerPoint, Word and Excel as the deliverable", () => {
     const deliverable = SCOPE_QUESTIONS.find((q) => q.key === "deliverable")!;
     expect(Object.keys(deliverable.options)).toEqual(["chat", "html", "pptx", "docx", "xlsx"]);
     expect(scopeBrief({ deliverable: "xlsx" })).toContain("an Excel workbook made with create_file");
