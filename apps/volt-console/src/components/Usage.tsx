@@ -1,5 +1,5 @@
 import type { Run } from "../runState";
-import { chatUsage, compact, usageTotals } from "../usage";
+import { chatUsage, compact, usageTotals, usd } from "../usage";
 
 interface Props {
   history: Run[];
@@ -20,7 +20,7 @@ export function Usage({ history, onOpenChat }: Props) {
       <div>
         <h1 className="page-title">Token usage</h1>
         <p className="page-sub">
-          Tokens used by each chat, counted from the runs saved in this browser (the last 30; see History). The Anthropic Console shows the account's full usage and cost.
+          Tokens used by each chat, counted from the runs saved in this browser (the last 30; see History). Cost is an estimate at list price for the model that served each step; the Anthropic Console shows the actual bill.
         </p>
       </div>
       {chats.length === 0 ? (
@@ -35,6 +35,7 @@ export function Usage({ history, onOpenChat }: Props) {
               ["Output tokens", compact(totals.output)],
               ["Cached input", compact(totals.cacheRead)],
               ["Input + output", compact(totals.total)],
+              ["Est. cost", usd(totals.cost)],
             ].map(([label, value]) => (
               <div key={label} className="card stat">
                 <span className="micro">{label}</span>
@@ -42,6 +43,10 @@ export function Usage({ history, onOpenChat }: Props) {
               </div>
             ))}
           </div>
+
+          {totals.models.length > 0 && (
+            <p className="page-sub">By model: {totals.models.map((m) => `${m.model} ${compact(m.tokens)} tokens, ${usd(m.cost)}`).join(" · ")}</p>
+          )}
 
           <div className="card usage-table">
             <div className="usage-head micro">
@@ -59,7 +64,7 @@ export function Usage({ history, onOpenChat }: Props) {
                     {c.title}
                     <small className="muted">
                       {when(c.startedAt)}
-                      {c.demo ? " · demo (no tokens)" : ""}
+                      {c.demo ? " · demo (no tokens)" : c.cost > 0 ? ` · est. ${usd(c.cost)}` : ""}
                     </small>
                   </span>
                   <span className="num">{c.runs.length}</span>
