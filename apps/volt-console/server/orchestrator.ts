@@ -25,6 +25,7 @@ import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
 import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerToolDefs, runLedgerTool } from "./ledger.js";
 import { CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, QUICK_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
+import { scopeBrief } from "../shared/scope.js";
 
 export type Emit = (e: VoltEvent) => void;
 
@@ -33,9 +34,10 @@ export interface RunInput extends RunRequest {
   template?: { id: string; name: string; guide: string };
 }
 
-/** The user's request, with the selected template's formatting guide attached. */
+/** The user's request, with its attached files, the chat's scope answers and the selected template's formatting guide. */
 export function withTemplate(req: RunInput, text = req.prompt): string {
-  const files = attachmentsBlock(req.attachments);
+  const scope = req.scope ? scopeBrief(req.scope) : "";
+  const files = `${attachmentsBlock(req.attachments)}${scope ? `\n\n${scope}` : ""}`;
   if (!req.template) return `${text}${files}`;
   return `${text}${files}
 

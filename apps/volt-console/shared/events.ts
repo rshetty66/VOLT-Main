@@ -1,4 +1,5 @@
 /** Event protocol streamed from the orchestrator to the UI (Server-Sent Events). */
+import type { Scope } from "./scope";
 
 export type RunMode = "live" | "demo";
 
@@ -39,6 +40,8 @@ export interface RunRequest {
   demo?: boolean;
   /** Uploaded template whose formatting guide the agents apply (see shared/templates.ts). */
   templateId?: string;
+  /** The chat's answers to the scope questions (see shared/scope.ts), sent with every message. */
+  scope?: Partial<Scope>;
   /** Files the user attached, already read to text by POST /api/attachments/extract. */
   attachments?: { name: string; text: string }[];
 }

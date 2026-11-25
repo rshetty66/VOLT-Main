@@ -104,6 +104,13 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 }
 .chip.click { cursor: pointer; }
 .chip.click:hover { border-color: var(--line-strong); }
+.chip.on { background: var(--accent); color: var(--on-light); border-color: var(--accent); }
+.scope-card { display: grid; gap: 10px; margin-bottom: 10px; }
+.scope-row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; align-items: start; }
+.scope-label { font-size: 12px; color: var(--muted); padding-top: 3px; }
+.scope-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.scope-options .chip { padding: 4px 10px; font-size: 13px; }
+@media (max-width: 560px) { .scope-row { grid-template-columns: 1fr; gap: 4px; } }
 .badge { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-strong); }
 .badge.live { background: var(--accent); color: var(--on-light); border-color: var(--accent); }
 .badge.full { background: var(--heading); color: var(--on-light); border-color: var(--heading); }

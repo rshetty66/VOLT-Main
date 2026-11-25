@@ -47,6 +47,7 @@ import { quickAsk } from "./deliverable.js";
 import { startHeartbeat } from "./sse.js";
 import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requestUser, requireToken, sameOriginWrites, securityConfig } from "./security.js";
 import { ledgerCoaExport, ledgerDataRequirementsExport, ledgerEnabled, ledgerPeople } from "./ledger.js";
+import { scopeSchema } from "../shared/scope.js";
 
 const catalog = loadCatalog();
 const security = securityConfig();
@@ -350,6 +351,7 @@ const RunBody = z.object({
   agentId: z.string().optional(),
   demo: z.boolean().optional(),
   templateId: z.string().max(32).optional(),
+  scope: scopeSchema.optional(),
   attachments: z
     .array(z.object({ name: z.string().max(200), text: z.string().max(ATTACH_MAX_CHARS_FILE + 200), uploadId: z.string().regex(/^[0-9a-f-]{36}$/).optional() }))
     .max(ATTACH_MAX_FILES)
