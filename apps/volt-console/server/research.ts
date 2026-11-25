@@ -19,6 +19,8 @@ export class SourceRegistry {
   consults = 0;
   /** Web searches made so far in this run (each one is billed), for the search cap. */
   webSearches = 0;
+  /** The project whose knowledge base the agents may search (search_knowledge), when it has documents. */
+  knowledgeProject?: string;
 
   constructor(prompt: string) {
     this.tier = classifyDepth(prompt);

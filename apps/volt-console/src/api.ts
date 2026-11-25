@@ -1,5 +1,6 @@
 import type { CatalogResponse, RunRequest, VoltEvent } from "../shared/events";
 import type { TemplateProfile, TemplateSummary } from "../shared/templates";
+import { activeProject } from "./projects";
 
 export const listTemplates = () => getJSON<TemplateSummary[]>("/api/templates");
 export const getTemplate = (id: string) => getJSON<TemplateProfile>(`/api/templates/${encodeURIComponent(id)}`);
@@ -36,17 +37,25 @@ export async function extractAttachment(file: File): Promise<{ name: string; tex
   return body;
 }
 
-export interface UploadMeta { id: string; name: string; ext: string; bytes: number; chars: number; truncated: boolean; createdAt: number; uses: number }
+export interface UploadMeta { id: string; name: string; ext: string; bytes: number; chars: number; truncated: boolean; createdAt: number; uses: number; projectId?: string; url?: string }
 
-/** Reads an attached file and keeps it in the uploads library; returns its text and library id. */
+/** Reads a file and keeps it in the active project's knowledge base (the uploads library); returns its text and library id. */
 export async function uploadAttachment(file: File): Promise<{ id: string; name: string; text: string; chars: number; truncated: boolean }> {
-  const r = await fetch("/api/uploads", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name) }, body: file });
+  const r = await fetch("/api/uploads", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name), "X-Project-Id": activeProject() }, body: file });
   const body = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(body.error ?? (r.status === 413 ? "That file is too large (4 MB limit)." : `Could not read that file (${r.status})`));
+  if (!r.ok) throw new Error(body.error ?? (r.status === 413 ? "That file is too large." : `Could not read that file (${r.status})`));
   return body;
 }
+/** Fetches a web page or PDF once and keeps it in the active project's knowledge base. */
+export async function addUrlSource(url: string): Promise<UploadMeta> {
+  const r = await fetch("/api/uploads/url", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ url, projectId: activeProject() }) });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.error ?? `Could not add that link (${r.status})`);
+  return body;
+}
+/** The active project's uploads (its knowledge base), newest first. */
 export async function listUploads(): Promise<UploadMeta[]> {
-  const r = await fetch("/api/uploads");
+  const r = await fetch(`/api/uploads?projectId=${encodeURIComponent(activeProject())}`);
   return r.ok ? r.json() : [];
 }
 export async function getUpload(id: string): Promise<UploadMeta & { text: string }> {
