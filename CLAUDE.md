@@ -25,8 +25,11 @@ These rules apply in every session that opens this project, until Rakesh changes
 
 - Planner (`.claude/agents/planner.md`, Opus, extra-high effort): planning, decomposition, hard reasoning and final
   verification only. It thinks; it does not do routine work.
-- Workers (`.claude/agents/worker.md`, Haiku, lowest effort that passes verification): reading, searching, drafting,
-  routine coding, extraction, formatting.
+- Workers (`.claude/agents/worker.md`, Haiku, lowest effort that passes verification): reading, searching,
+  classification, extraction, formatting, short snippets.
+- Sonnet is the default for everything between: routine coding, drafting, analysis, data work. Spawn the worker with
+  the model set to Sonnet for these. Opus is never used for work Sonnet does well.
+- Split a step into a Haiku classify or extract part and a Sonnet execute part when that is cheaper.
 - Every worker gets one goal, the exact inputs and the done criteria (tests where code is involved). No vague tasks.
 - No single agent does a large task end to end: split it, route each part to the cheapest model that passes, and
   have the planner review the combined result.

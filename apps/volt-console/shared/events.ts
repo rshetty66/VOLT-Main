@@ -17,7 +17,8 @@ export type VoltEvent =
   | { type: "agent_start"; lane: string; parentLane: string; agentId: string; name: string; layer: string; icon: string; brief: string }
   | { type: "agent_end"; lane: string; agentId: string; ok: boolean }
   | { type: "fallback"; lane: string; from: string; to: string }
-  | { type: "usage"; lane: string; inputTokens: number; outputTokens: number; cacheReadTokens: number }
+  /** One model call's tokens. `model` is the model that served it and `costUsd` an estimate at list price (router.ts). */
+  | { type: "usage"; lane: string; inputTokens: number; outputTokens: number; cacheReadTokens: number; cacheWriteTokens?: number; model?: string; costUsd?: number }
   | { type: "error"; lane: string; message: string }
   | { type: "done"; sessionId: string };
 
