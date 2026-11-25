@@ -65,8 +65,8 @@ copy changed values into `apps/volt-console/server/export/deckTheme.ts`.
 
 ## Fonts
 
-Headings use Cardo and body text uses Inter. If the viewer lacks them, PowerPoint substitutes and line breaks move.
-Install both (free, Google Fonts) or set `fonts` in `theme.json` to Georgia and Arial and rebuild.
+Headings use Georgia and body text uses Arial, which every Windows and Mac PC has, so line breaks do not move.
+The reference used Cardo and Inter; to use them, set `fonts` in `theme.json`, rebuild, and install both on every viewing PC.
 
 ## Files
 
@@ -83,4 +83,5 @@ Install both (free, Google Fonts) or set `fonts` in `theme.json` to Georgia and 
 
 ## Change log
 
+- 2026-11-25: Fonts switched from Cardo and Inter to Georgia and Arial (Rakesh).
 - 2026-11-25: First version. 17 layouts, waterfall and status tags, VOLT export aligned to the same design system.

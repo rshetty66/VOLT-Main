@@ -38,7 +38,7 @@
   },
   {
    "layout": "KPI Dashboard",
-   "title": "Production work absorbs most finance capacity, and the close takes nine days",
+   "title": "Most finance capacity goes on production, and the close takes nine days",
    "cells": [
     {
      "heading": "9 days",
@@ -218,7 +218,7 @@
   },
   {
    "layout": "Data Architecture Flow",
-   "title": "Step 3: extend the data domains and products that risk has already designed",
+   "title": "Step 3: extend the domains and products that risk has already designed",
    "placeholders": {
     "40": "{built} Built: designed, in use    {mapped} On the GRM map: not designed    {new} New: what finance adds"
    },
@@ -312,7 +312,7 @@
   },
   {
    "layout": "Process Flow",
-   "title": "In the AI-enabled close, people review exceptions instead of matching every line",
+   "title": "In the AI-enabled close, people review exceptions, not every line",
    "cells": [
     {
      "heading": "Ingest",
@@ -396,7 +396,7 @@
   },
   {
    "layout": "Recommendations and Decisions",
-   "title": "Funding wave 1 now keeps the close and controls benefits on a year-2 payback",
+   "title": "Funding wave 1 now keeps close and controls benefits on a year-2 payback",
    "bullets": [
     "**Start with close and controls:** highest value and lowest build effort in the scoring.",
     "**Extend the risk data domains** rather than build a separate finance store.",
