@@ -1,0 +1,417 @@
+{
+ "governing_thought": "Enterprise AI can take finance from reporting the past to steering the future, if wave 1 funds close, controls and the data foundation first. (Illustrative.)",
+ "slides": [
+  {
+   "layout": "Cover",
+   "type": "cover",
+   "title": "Finance transformation enabled by enterprise AI",
+   "subtitle": "Steering committee: decisions for wave 1. Illustrative content.",
+   "placeholders": {
+    "13": "Prepared for: CFO and finance steering committee",
+    "14": "Demonstration deck"
+   },
+   "notes": "Demonstration deck for the consulting template. Every figure is illustrative."
+  },
+  {
+   "layout": "Executive Summary",
+   "title": "AI moves finance effort from compiling numbers to explaining them, starting with the close",
+   "placeholders": {
+    "13": "Decision today: fund wave 1 (close and controls) and the data foundation it needs. All figures are illustrative."
+   },
+   "bullets": [
+    "**Finance spends most of its time producing numbers.** In this illustration, 60% of effort goes to data gathering and reconciliation.",
+    "**Three AI use-case families** cover close, planning and controls; close and controls are ready first.",
+    "**The data foundation exists in part.** Risk has already built half the domains finance needs.",
+    "**Wave 1 pays back in year 2** in the illustrative business case."
+   ],
+   "source": "Source: illustrative data for demonstration; not client results.",
+   "notes": "The whole story on one page."
+  },
+  {
+   "layout": "Section Divider",
+   "type": "section",
+   "title": "Where finance stands today",
+   "subtitle": "Effort sits in production, not insight",
+   "placeholders": {
+    "13": "01"
+   }
+  },
+  {
+   "layout": "KPI Dashboard",
+   "title": "Most finance capacity goes on production, and the close takes nine days",
+   "cells": [
+    {
+     "heading": "9 days",
+     "bullets": [
+      "**Days to close**",
+      "Illustrative baseline"
+     ]
+    },
+    {
+     "heading": "60%",
+     "bullets": [
+      "**Effort on data and reconciliation**",
+      "Illustrative baseline"
+     ]
+    },
+    {
+     "heading": "1,200",
+     "bullets": [
+      "**Manual journals / month**",
+      "Illustrative baseline"
+     ]
+    },
+    {
+     "heading": "3 weeks",
+     "bullets": [
+      "**Forecast cycle**",
+      "Illustrative baseline"
+     ]
+    }
+   ],
+   "bullets": [
+    "Each KPI is a candidate measure for the business case; replace the illustrative values with a two-close time survey."
+   ],
+   "source": "Source: illustrative data for demonstration; not client results.",
+   "notes": "KPI tiles: value, label, basis."
+  },
+  {
+   "layout": "Current vs Future",
+   "title": "AI shifts the finance team from preparing numbers to challenging them",
+   "columns": [
+    {
+     "heading": "Today",
+     "bullets": [
+      "Analysts gather data from many systems by hand",
+      "Reconciliations matched line by line",
+      "Variance commentary written from scratch each month",
+      "Controls tested on samples after the close"
+     ]
+    },
+    {
+     "heading": "Target",
+     "bullets": [
+      "Data lands once in governed domains",
+      "Matching automated; people review exceptions",
+      "AI drafts commentary; analysts edit and sign",
+      "Controls monitored continuously, every entry"
+     ]
+    }
+   ],
+   "source": "Source: illustrative operating-model comparison.",
+   "notes": "Current versus future state."
+  },
+  {
+   "layout": "Three Pillars",
+   "title": "Three use-case families cover where finance spends its time",
+   "cells": [
+    {
+     "heading": "Close and report",
+     "bullets": [
+      "Auto-match reconciliations",
+      "Journal anomaly flags",
+      "Drafted flux commentary"
+     ]
+    },
+    {
+     "heading": "Plan and forecast",
+     "bullets": [
+      "Driver-based forecasts",
+      "Scenario runs in hours",
+      "Narrative for each variance"
+     ]
+    },
+    {
+     "heading": "Control and comply",
+     "bullets": [
+      "Continuous control monitoring",
+      "Policy question answering",
+      "Audit evidence packs"
+     ]
+    }
+   ],
+   "source": "Source: illustrative use-case catalogue.",
+   "notes": "Three pillars."
+  },
+  {
+   "layout": "Prioritisation Matrix",
+   "title": "Close and controls score highest on value and ease, so they lead wave 1",
+   "cells": [
+    {
+     "heading": "Plan next",
+     "bullets": [
+      "Driver-based forecasting",
+      "Scenario modelling"
+     ]
+    },
+    {
+     "heading": "Do first",
+     "bullets": [
+      "Reconciliation auto-match",
+      "Journal anomaly flags",
+      "Control monitoring"
+     ]
+    },
+    {
+     "heading": "Deprioritise",
+     "bullets": [
+      "Fully autonomous close"
+     ]
+    },
+    {
+     "heading": "Quick wins",
+     "bullets": [
+      "Policy question answering",
+      "Drafted flux commentary"
+     ]
+    }
+   ],
+   "placeholders": {
+    "40": "Value",
+    "41": "Ease of delivery"
+   },
+   "bullets": [
+    "**Top right** is wave 1: high value, low build effort.",
+    "**Top left** needs the data foundation first.",
+    "Placement is illustrative; score with the use-case owners."
+   ],
+   "source": "Source: illustrative scoring.",
+   "notes": "Quadrants in reading order: top left, top right, bottom left, bottom right."
+  },
+  {
+   "layout": "Chart with Takeaways",
+   "title": "Wave 1 releases an illustrative USD 4.0M a year, most of it from the close",
+   "chart": {
+    "type": "waterfall",
+    "categories": [
+     "Reconciliation",
+     "Journals",
+     "Commentary",
+     "Controls",
+     "Run cost",
+     "Net benefit"
+    ],
+    "values": [
+     1.8,
+     0.9,
+     0.7,
+     1.0,
+     -0.4,
+     4.0
+    ],
+    "totals": [
+     5
+    ],
+    "number_format": "0.0",
+    "font_size": 11
+   },
+   "placeholders": {
+    "10": "Key takeaways",
+    "11": [
+     "**Reconciliation** is the largest lever in this illustration.",
+     "**Run cost** of the AI services is netted off.",
+     "All values illustrative, USD M a year."
+    ]
+   },
+   "source": "Source: illustrative business case; not client results.",
+   "notes": "Benefits bridge, built as a native waterfall."
+  },
+  {
+   "layout": "Data Architecture Flow",
+   "title": "Step 3: extend the domains and products that risk has already designed",
+   "placeholders": {
+    "40": "{built} Built: designed, in use    {mapped} On the GRM map: not designed    {new} New: what finance adds"
+   },
+   "cells": [
+    {
+     "heading": "Sources + Bronze",
+     "bullets": [
+      "Risk source systems (10+ systems, 3 platforms)",
+      "{new} General ledger",
+      "{new} Legacy GL predecessor",
+      "{new} Reconciliation platform",
+      "{new} Target platforms"
+     ]
+    },
+    {
+     "heading": "Silver data domains",
+     "bullets": [
+      "Deposits",
+      "Mortgages",
+      "Auto lending",
+      "Lines of credit",
+      "Term loans",
+      "Retail customer",
+      "Credit cards",
+      "Product catalog",
+      "Credit bureau",
+      "Business organisation"
+     ]
+    },
+    {
+     "bullets": [
+      "Finance",
+      "Liquidity risk",
+      "Credit risk",
+      "Wholesale funding",
+      "General ledger",
+      "Exposures & positions",
+      "Journals & adjustments",
+      "Controls & policy",
+      "Targets & eligibility",
+      "Accounting structures"
+     ]
+    },
+    {
+     "heading": "Gold data products",
+     "bullets": [
+      "Retail Customer Activity & Risk (RCAR)",
+      "Small Business Client Activity & Risk",
+      "Credit Portfolio",
+      "Financial Statement / Ratios",
+      "Liquidity Position",
+      "Regulatory Evidence",
+      "{new} Adjusted position: account & entity",
+      "{new} Itemised adjustment record",
+      "{new} Adjustment taxonomy & reason codes",
+      "{new} Variance & threshold register"
+     ]
+    },
+    {
+     "heading": "Use case families",
+     "bullets": [
+      "**Finance**",
+      "Month-end close & reconciliation",
+      "Statutory & external reporting",
+      "Management reporting",
+      "**Risk**",
+      "Capital allocation & RWA",
+      "Expected credit loss provisioning",
+      "Regulatory reporting & aggregation",
+      "**Treasury**",
+      "Liquidity forecasting & monitoring",
+      "ILST & stress testing",
+      "Funding & balance sheet"
+     ]
+    },
+    {
+     "heading": "Key takeaway",
+     "bullets": [
+      "**10 of 20**",
+      "Silver domains already designed",
+      "**2**",
+      "Gold products already live",
+      "**4 + 4**",
+      "New domains and products, all in the adjustments layer",
+      "We add to that layer, not replace it."
+     ]
+    }
+   ],
+   "source": "Source: client architecture slide for the finance data strategy. Status tags only where its text states them; confirm the rest against the original.",
+   "notes": "The original slide colours every item. Its extracted text states the status of the four finance sources and the four adjustment products only, so the other items are left untagged."
+  },
+  {
+   "layout": "Process Flow",
+   "title": "In the AI-enabled close, people review exceptions, not every line",
+   "cells": [
+    {
+     "heading": "Ingest",
+     "bullets": [
+      "Sub-ledgers land in governed domains"
+     ]
+    },
+    {
+     "heading": "Match",
+     "bullets": [
+      "AI auto-matches; exceptions queued"
+     ]
+    },
+    {
+     "heading": "Adjust",
+     "bullets": [
+      "Itemised adjustments with reason codes"
+     ]
+    },
+    {
+     "heading": "Explain",
+     "bullets": [
+      "AI drafts flux commentary"
+     ]
+    },
+    {
+     "heading": "Review",
+     "bullets": [
+      "Controller reviews and signs"
+     ]
+    },
+    {
+     "heading": "Report",
+     "bullets": [
+      "Board pack from one source"
+     ]
+    }
+   ],
+   "bullets": [
+    "**Controls:** every AI output is logged, reviewable and reversible; a named owner signs each step.",
+    "**Enablers:** governed data domains, an adjustments layer, and model risk sign-off for each AI service."
+   ],
+   "source": "Source: illustrative target operating model.",
+   "notes": "Six steps, left to right."
+  },
+  {
+   "layout": "Roadmap",
+   "title": "Three waves over 18 months build the foundation first, then scale AI across finance",
+   "cells": [
+    {
+     "heading": "Months 0-3",
+     "bullets": [
+      "Mobilise; baseline KPIs",
+      "Model risk approach agreed"
+     ]
+    },
+    {
+     "heading": "Months 3-9",
+     "bullets": [
+      "Wave 1: close and controls",
+      "Adjustments layer live"
+     ]
+    },
+    {
+     "heading": "Months 9-15",
+     "bullets": [
+      "Wave 2: planning and forecasting",
+      "Driver models in use"
+     ]
+    },
+    {
+     "heading": "Months 15-18",
+     "bullets": [
+      "Scale and hand over",
+      "Benefits tracked monthly"
+     ]
+    }
+   ],
+   "source": "Source: illustrative plan; dates relative to programme start.",
+   "notes": "Roadmap, four phases."
+  },
+  {
+   "layout": "Recommendations and Decisions",
+   "title": "Funding wave 1 now keeps close and controls benefits on a year-2 payback",
+   "bullets": [
+    "**Start with close and controls:** highest value and lowest build effort in the scoring.",
+    "**Extend the risk data domains** rather than build a separate finance store.",
+    "**Govern AI like any other control:** owner, log and review for each service."
+   ],
+   "placeholders": {
+    "10": "Decisions required",
+    "11": [
+     "Approve wave 1 funding (CFO).",
+     "Name the close and controls owners (Financial Controller).",
+     "Confirm the data foundation scope with Risk (CDO)."
+    ]
+   },
+   "source": "Source: illustrative recommendations for demonstration.",
+   "notes": "Close on the decisions."
+  }
+ ]
+}

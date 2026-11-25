@@ -1,0 +1,60 @@
+{
+  "name": "VOLT Consulting",
+  "brand": {
+    "wordmark": "VOLT",
+    "footer": "VOLT"
+  },
+  "slide": {
+    "width_in": 13.333,
+    "height_in": 7.5
+  },
+  "grid": {
+    "margin_in": 0.6,
+    "gutter_in": 0.25,
+    "title_top_in": 0.4,
+    "title_height_in": 1.0,
+    "content_top_in": 1.6,
+    "content_bottom_in": 6.6,
+    "source_top_in": 6.7,
+    "footer_top_in": 7.08
+  },
+  "colors": {
+    "dk1": "10193A",
+    "lt1": "FFFFFF",
+    "dk2": "121A5D",
+    "lt2": "E9E9E9",
+    "accent1": "0B6AE9",
+    "accent2": "121A5D",
+    "accent3": "7FA7F0",
+    "accent4": "0097A7",
+    "accent5": "E3A92B",
+    "accent6": "D6457F",
+    "hlink": "0B6AE9",
+    "folHlink": "121A5D"
+  },
+  "fonts": {
+    "heading": "Georgia",
+    "body": "Arial"
+  },
+  "type_pt": {
+    "cover_title": 40,
+    "section_title": 40,
+    "title": 26,
+    "panel_title": 24,
+    "heading": 18,
+    "stat": 32,
+    "body": 14,
+    "small": 12,
+    "dense": 10,
+    "source": 10,
+    "footer": 9
+  },
+  "status": {
+    "built": "accent4",
+    "mapped": "accent5",
+    "new": "accent6",
+    "green": "accent4",
+    "amber": "accent5",
+    "red": "accent6"
+  }
+}
