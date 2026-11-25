@@ -3,7 +3,7 @@ import type { ExportImage, ExportRequest } from "../../shared/export.js";
 import { contentsOf, markdownBlocks, plain, type Run } from "./blocks.js";
 import { toneFor, type Tone } from "../../shared/brand.js";
 import type { ExportStyle } from "./style.js";
-import { chartBlocks, type ChartSpec } from "../../shared/viz.js";
+import { chartBlocks, processBlocks, type ChartSpec, type ProcessSpec } from "../../shared/viz.js";
 import { DECK, MUTED } from "./deckTheme.js";
 
 type Slide = ReturnType<PptxGenJS["addSlide"]>;
@@ -30,6 +30,7 @@ export type Exhibit =
   | { kind: "chart"; spec: ChartSpec }
   | { kind: "kpi"; spec: ChartSpec }
   | { kind: "heatmap"; spec: ChartSpec }
+  | { kind: "process"; spec: ProcessSpec }
   | { kind: "picture"; img: ExportImage };
 
 export interface PlannedSlide {
@@ -95,14 +96,17 @@ function colWidths(all: string[][], wIn: number, pt: number): number[] {
 
 // ── planning ─────────────────────────────────────────────────────────────────────────────────────────────
 
-const NATIVE_CHARTS = new Set<ChartSpec["type"]>(["bar", "hbar", "stacked", "line", "donut"]);
+const NATIVE_CHARTS = new Set<ChartSpec["type"]>(["bar", "hbar", "stacked", "line", "donut", "combo", "waterfall"]);
 const SOURCE_RE = /^\s*\**\s*sources?\s*:/i;
 
-function exhibitFor(ref: string, specs: (ChartSpec | null)[], images: Map<string, ExportImage>): Exhibit | null {
+function exhibitFor(ref: string, specs: (ChartSpec | null)[], procs: (ProcessSpec | null)[], images: Map<string, ExportImage>): Exhibit | null {
+  const proc = ref.startsWith("proc-") ? procs[Number(ref.slice(5))] : null;
+  if (proc) return { kind: "process", spec: proc };
   const spec = ref.startsWith("viz-") ? specs[Number(ref.slice(4))] : null;
   if (spec?.type === "kpi") return { kind: "kpi", spec };
   if (spec?.type === "heatmap") return { kind: "heatmap", spec };
-  if (spec && NATIVE_CHARTS.has(spec.type) && !spec.target && spec.highlight === undefined) return { kind: "chart", spec };
+  // Every chart type is drawn natively, so the picture is only a fallback for a block that did not parse.
+  if (spec && NATIVE_CHARTS.has(spec.type)) return { kind: "chart", spec };
   const img = images.get(ref);
   return img ? { kind: "picture", img } : null;
 }
@@ -118,6 +122,7 @@ interface Section {
 
 function sectionsOf(req: ExportRequest): Section[] {
   const specs = chartBlocks(req.markdown);
+  const procs = processBlocks(req.markdown);
   const images = new Map((req.images ?? []).map((i) => [i.ref, i]));
   const out: Section[] = [];
   let cur: Section = { title: "Summary", paras: [], exhibits: [], sources: [], chartSources: [] };
@@ -152,12 +157,15 @@ function sectionsOf(req: ExportRequest): Section[] {
         cur.exhibits.push({ kind: "table", header: b.header, rows: b.rows });
         break;
       case "image": {
-        const ex = exhibitFor(b.ref, specs, images);
+        const ex = exhibitFor(b.ref, specs, procs, images);
         if (!ex) break;
         cur.exhibits.push(ex);
-        if (ex.kind === "chart" || ex.kind === "kpi" || ex.kind === "heatmap") {
+        if (ex.kind === "chart" || ex.kind === "kpi" || ex.kind === "heatmap" || ex.kind === "process") {
           if (ex.spec.note && !cur.paras.some((p) => plain(p.runs) === ex.spec.note)) cur.paras.push({ runs: [{ text: ex.spec.note }] });
           if (ex.spec.source && !cur.chartSources.length) cur.chartSources.push(`Source: ${ex.spec.source}`);
+          // A horizontal or stacked bar cannot carry a native reference line, so its target is stated in the text.
+          const cs = ex.kind === "chart" && (ex.spec.type === "hbar" || ex.spec.type === "stacked") ? ex.spec : undefined;
+          if (cs?.target) cur.paras.push({ runs: [{ text: `${cs.target.label ?? "Target"}: ${cs.target.value.toLocaleString("en-US")}${cs.unit ? ` ${cs.unit}` : ""}` }] });
         }
         break;
       }
@@ -229,7 +237,7 @@ export function planDeck(req: ExportRequest): PlannedSlide[] {
     let place: PlannedSlide["place"];
     let textPt: number | undefined;
     const first = sec.exhibits[0];
-    const wide = (first.kind === "table" && first.header.length >= 5) || (first.kind === "heatmap" && first.spec.labels.length >= 6);
+    const wide = (first.kind === "table" && first.header.length >= 5) || (first.kind === "heatmap" && first.spec.labels.length >= 6) || first.kind === "process";
     if (paras.length) {
       const tries: [PlannedSlide["place"], number, number][] =
         first.kind === "kpi" ? [["below", CW, 1.5]] : wide ? [["strip", CW, 1.0], ["below", CW, 1.2]] : [["panel", PANEL_W - 0.6, body - 1.6], ["strip", CW, 1.0]];
@@ -357,6 +365,115 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
     return slide;
   };
 
+  const fmt = (v: number) => v.toLocaleString("en-US", { maximumFractionDigits: 2 });
+  // pptxgenjs takes a multi-type chart's options in the data argument (its typings disagree).
+  const addMulti = (slide: Slide, multi: PptxGenJS.IChartMulti[], opts: PptxGenJS.IChartOpts) => slide.addChart(multi, opts as unknown as unknown[]);
+  const hline = (slide: Slide, x1: number, x2: number, y: number, color: string, dash?: "dash", arrow?: boolean) =>
+    slide.addShape(pptx.ShapeType.line, { x: Math.min(x1, x2), y, w: Math.abs(x2 - x1), h: 0, flipH: x2 < x1, line: { color, width: 1.25, dashType: dash ?? "solid", ...(arrow ? { endArrowType: "triangle" } : {}) } });
+  const vline = (slide: Slide, x: number, y1: number, y2: number, color: string, arrow?: boolean) =>
+    slide.addShape(pptx.ShapeType.line, { x, y: Math.min(y1, y2), w: 0, h: Math.abs(y2 - y1), flipV: y2 < y1, line: { color, width: 1.25, ...(arrow ? { endArrowType: "triangle" } : {}) } });
+
+  /** A bridge drawn with shapes (PowerPoint charts have no waterfall that every viewer opens): first and last bars are totals. */
+  const waterfall = (slide: Slide, spec: ChartSpec, x: number, y: number, w: number, h: number) => {
+    const v = spec.series[0].values;
+    const n = v.length;
+    type Bar = { lo: number; hi: number; end: number; tone: "total" | "up" | "down"; label: string };
+    const bars: Bar[] = [];
+    let level = v[0];
+    bars.push({ lo: Math.min(0, v[0]), hi: Math.max(0, v[0]), end: v[0], tone: "total", label: fmt(v[0]) });
+    for (let i = 1; i < n - 1; i++) {
+      const next = level + v[i];
+      bars.push({ lo: Math.min(level, next), hi: Math.max(level, next), end: next, tone: v[i] >= 0 ? "up" : "down", label: `${v[i] >= 0 ? "+" : ""}${fmt(v[i])}` });
+      level = next;
+    }
+    bars.push({ lo: Math.min(0, v[n - 1]), hi: Math.max(0, v[n - 1]), end: v[n - 1], tone: "total", label: fmt(v[n - 1]) });
+    const edges = [...bars.flatMap((b) => [b.lo, b.hi]), ...(spec.target ? [spec.target.value] : [])];
+    const lo = Math.min(0, ...edges), hi = Math.max(0, ...edges);
+    slide.addText(spec.title + (spec.unit ? ` (${spec.unit})` : ""), { x, y, w, h: 0.35, fontFace: head, fontSize: 14, color: titleInk, align: "center", margin: 0 });
+    const top = y + 0.75, axis = y + h - 0.6;
+    const at = (val: number) => axis - ((val - lo) / (hi - lo || 1)) * (axis - top);
+    // A target's label sits right of the bars, where no bar or value label can cover it.
+    const tagW = spec.target ? 1.1 : 0;
+    const slot = (w - tagW) / n, bw = slot * 0.6;
+    const fill = { total: C.dk2, up: accent, down: C.accent6 };
+    hline(slide, x, x + w - tagW, at(0), "AEB8CA");
+    bars.forEach((b, i) => {
+      const bx = x + i * slot + (slot - bw) / 2;
+      const y1 = at(b.hi), y2 = at(b.lo);
+      slide.addShape(pptx.ShapeType.rect, { x: bx, y: y1, w: bw, h: Math.max(0.02, y2 - y1), fill: { color: fill[b.tone] }, line: { color: fill[b.tone] } });
+      slide.addText(b.label, { x: bx - 0.2, y: y1 - 0.3, w: bw + 0.4, h: 0.28, fontFace: font, fontSize: 10, bold: true, color: ink, align: "center", valign: "bottom", margin: 0 });
+      slide.addText(spec.labels[i], { x: x + i * slot + 0.02, y: axis + 0.06, w: slot - 0.04, h: 0.54, fontFace: font, fontSize: 10, color: ink, align: "center", valign: "top", margin: 0 });
+      if (i < n - 1) hline(slide, bx + bw, bx + slot, at(b.end), "AEB8CA", "dash");
+    });
+    if (spec.target) {
+      const ty = at(spec.target.value);
+      hline(slide, x, x + w - tagW + 0.05, ty, C.accent6, "dash");
+      slide.addText(spec.target.label ?? `Target ${fmt(spec.target.value)}`, { x: x + w - tagW + 0.1, y: ty - 0.3, w: tagW - 0.1, h: 0.6, fontFace: font, fontSize: 10, bold: true, color: C.accent6, valign: "middle", margin: 0 });
+    }
+  };
+
+  /** A swimlane process map from shapes: lanes are rows, stages columns, links elbow arrows between steps. */
+  const processMap = (slide: Slide, spec: ProcessSpec, x: number, y: number, w: number, h: number) => {
+    const labelW = Math.min(1.35, w * 0.12), headH = 0.25, legendH = 0.27;
+    const colW = (w - labelW) / spec.stages.length;
+    const cells = new Map<string, number[]>();
+    spec.steps.forEach((st, i) => cells.set(`${st.lane}:${st.stage}`, [...(cells.get(`${st.lane}:${st.stage}`) ?? []), i]));
+    const units = spec.lanes.map((_, l) => Math.max(1, ...spec.stages.map((_, s) => cells.get(`${l}:${s}`)?.length ?? 0)));
+    const unitH = (h - headH - legendH) / units.reduce((a, b) => a + b, 0);
+    const laneY = units.map((_, l) => y + headH + units.slice(0, l).reduce((a, b) => a + b, 0) * unitH);
+    spec.stages.forEach((st, s) => slide.addText(st, { x: x + labelW + s * colW, y, w: colW, h: headH, fontFace: font, fontSize: 11, bold: true, color: titleInk, align: "center", valign: "middle", margin: 0 }));
+    spec.lanes.forEach((lane, l) => {
+      slide.addShape(pptx.ShapeType.rect, { x, y: laneY[l], w, h: units[l] * unitH, fill: { color: l % 2 ? "FFFFFF" : "F4F6FA" }, line: { color: "D5DAE3", width: 0.5 } });
+      slide.addText(lane, { x: x + 0.08, y: laneY[l], w: labelW - 0.12, h: units[l] * unitH, fontFace: font, fontSize: 10, bold: true, color: ink, valign: "middle", margin: 0 });
+    });
+    // Step boxes: the k-th step of a cell sits k units down its lane.
+    const pad = 0.04;
+    const boxes = spec.steps.map((st, i) => {
+      const k = cells.get(`${st.lane}:${st.stage}`)!.indexOf(i);
+      return { x: x + labelW + st.stage * colW + pad, y: laneY[st.lane] + k * unitH + pad, w: colW - 2 * pad, h: unitH - 2 * pad };
+    });
+    const linkInk = "5B6275";
+    for (const l of spec.links) {
+      const a = boxes[l.from], b = boxes[l.to];
+      if (spec.steps[l.from].stage === spec.steps[l.to].stage) {
+        const cx = a.x + a.w / 2;
+        if (b.y > a.y) vline(slide, cx, a.y + a.h, b.y, linkInk, true);
+        else vline(slide, cx, a.y, b.y + b.h, linkInk, true);
+        continue;
+      }
+      const sx = a.x + a.w, sy = a.y + a.h / 2, tx = b.x, ty = b.y + b.h / 2;
+      if (tx <= sx) {
+        hline(slide, a.x, b.x + b.w, sy, linkInk);
+        continue;
+      }
+      // Out to the gutter just before the target's column, along it, then into the target.
+      const gx = tx - pad - 0.02;
+      if (Math.abs(sy - ty) < 0.01) hline(slide, sx, tx, sy, linkInk, undefined, true);
+      else {
+        hline(slide, sx, gx, sy, linkInk);
+        vline(slide, gx, sy, ty, linkInk);
+        hline(slide, gx, tx, ty, linkInk, undefined, true);
+      }
+    }
+    const tone = { automated: C.accent4, manual: MUTED, new: accent } as const;
+    // One size for every step, the largest at which all names fit.
+    const pt = Math.min(...spec.steps.map((st, i) => fitPt([{ runs: [{ text: st.name }] }], boxes[i].w - 0.14, boxes[i].h - 0.04, 11, 9) ?? 9));
+    spec.steps.forEach((st, i) => {
+      const bx = boxes[i];
+      const border = st.issue ? C.accent6 : st.status ? tone[st.status] : "AEB8CA";
+      slide.addText(st.name, { x: bx.x, y: bx.y, w: bx.w, h: bx.h, shape: pptx.ShapeType.roundRect, rectRadius: 0.06, fill: { color: "FFFFFF" }, line: { color: border, width: st.issue ? 2 : 1.25 }, fontFace: font, fontSize: pt, bold: true, color: ink, valign: "middle", margin: [6, 3, 1, 1] });
+      // The step number rides on the box's corner, so it costs the name no width.
+      slide.addText(String(i + 1), { x: bx.x - 0.12, y: bx.y - 0.1, w: 0.22, h: 0.22, shape: pptx.ShapeType.ellipse, fill: { color: border }, line: { color: "FFFFFF", width: 0.75 }, fontFace: font, fontSize: 9, bold: true, color: "FFFFFF", align: "center", valign: "middle", margin: 0 });
+    });
+    const key: TextProps[] = [];
+    const used = new Set(spec.steps.map((st) => st.status));
+    for (const [k, label] of [["new", "New"], ["automated", "Automated"], ["manual", "Manual"]] as const) {
+      if (used.has(k)) key.push({ text: "\u25A0 ", options: { color: tone[k] } }, { text: `${label}    `, options: { color: ink } });
+    }
+    if (spec.steps.some((st) => st.issue)) key.push({ text: "\u25A0 ", options: { color: C.accent6 } }, { text: "Issue or risk", options: { color: ink } });
+    if (key.length) slide.addText(key, { x, y: y + h - legendH + 0.05, w, h: legendH - 0.05, fontFace: font, fontSize: 10, valign: "middle", margin: 0 });
+  };
+
   const box = (slide: Slide, ex: Exhibit, x: number, y: number, w: number, h: number) => {
     switch (ex.kind) {
       case "table": {
@@ -376,23 +493,58 @@ export async function writePptx(req: ExportRequest, s: ExportStyle): Promise<Uin
       }
       case "chart": {
         const spec = ex.spec;
-        const kind = ({ bar: "bar", hbar: "bar", stacked: "bar", line: "line", donut: "doughnut" } as const)[spec.type as "bar"];
-        const data = spec.series.slice(0, spec.type === "donut" ? 1 : undefined).map((d) => ({ name: d.name, labels: spec.labels, values: d.values }));
-        slide.addChart(kind, data, {
+        if (spec.type === "waterfall") {
+          waterfall(slide, spec, x, y, w, h);
+          break;
+        }
+        const one = spec.series.length === 1 && spec.type !== "donut";
+        const hl = spec.highlight;
+        // One series reads as one colour (pptxgenjs would otherwise colour each bar differently); a highlighted bar
+        // keeps the accent and the rest step back.
+        const colors =
+          one && hl !== undefined && (spec.type === "bar" || spec.type === "hbar") ? spec.labels.map((_, i) => (i === hl ? series[0] : "AEB8CA"))
+          : one ? [series[0]] : spec.type === "stacked" ? stackColors : series;
+        const opts = {
           x, y, w, h,
           showTitle: true, title: spec.title + (spec.unit ? ` (${spec.unit})` : ""), titleFontFace: head, titleFontSize: 14, titleColor: titleInk,
-          // One series reads as one colour; pptxgenjs would otherwise colour each bar differently.
-          chartColors: spec.series.length === 1 && spec.type !== "donut" ? [series[0]] : spec.type === "stacked" ? stackColors : series,
-          showLegend: spec.series.length > 1 || spec.type === "donut", legendPos: "b", legendFontFace: font, legendFontSize: 11,
+          chartColors: colors,
+          showLegend: spec.series.length > 1 || spec.type === "donut" || (!!spec.target && spec.type !== "hbar" && spec.type !== "stacked"), legendPos: "b", legendFontFace: font, legendFontSize: 11,
           showValue: spec.type !== "donut", showPercent: spec.type === "donut", dataLabelFormatCode: "General", valAxisLabelFormatCode: "General", dataLabelFontSize: 10, dataLabelColor: spec.type === "stacked" ? "FFFFFF" : ink, dataLabelFontFace: font,
           catAxisLabelFontFace: font, catAxisLabelFontSize: 11, catAxisLabelColor: ink, valAxisLabelFontFace: font, valAxisLabelFontSize: 10, valAxisLabelColor: MUTED,
-          valAxisHidden: spec.type !== "line", valGridLine: { style: "none" }, catGridLine: { style: "none" },
+          valAxisHidden: spec.type !== "line" && spec.type !== "combo", valGridLine: { style: "none" }, catGridLine: { style: "none" },
           ...(spec.type === "hbar" ? { barDir: "bar", catAxisOrientation: "maxMin" } : spec.type === "stacked" ? { barDir: "col", barGrouping: "stacked" } : { barDir: "col" }),
           ...(spec.type === "donut" ? { holeSize: 60 } : {}),
-          ...(spec.type === "line" ? { lineSize: 3, lineDataSymbolSize: 7 } : { barGapWidthPct: 60 }),
-        } as PptxGenJS.IChartOpts);
+          ...(spec.type === "line" ? { lineSize: 3, lineDataSymbolSize: 7, dataLabelPosition: "t" } : { barGapWidthPct: 60 }),
+        } as PptxGenJS.IChartOpts;
+        const rows = (list: ChartSpec["series"]) => list.map((d) => ({ name: d.name, labels: spec.labels, values: d.values }));
+        const targetLine = spec.target && (spec.type === "bar" || spec.type === "line" || spec.type === "combo")
+          ? { type: "line" as const, data: [{ name: spec.target.label ?? "Target", labels: spec.labels, values: spec.labels.map(() => spec.target!.value) }],
+              options: { chartColors: [C.accent6], lineSize: 2, lineDash: "dash", lineDataSymbol: "none", showValue: false } as PptxGenJS.IChartOpts }
+          : null;
+        if (spec.type === "combo") {
+          // Bars on the left axis, the line on the right one.
+          const multi = [
+            { type: "bar" as const, data: rows([spec.series[0]]), options: { chartColors: [series[0]], barDir: "col", barGapWidthPct: 60 } as PptxGenJS.IChartOpts },
+            { type: "line" as const, data: rows([spec.series[1]]), options: { chartColors: [C.dk2], lineSize: 3, lineDataSymbolSize: 7, dataLabelPosition: "t", secondaryValAxis: true, secondaryCatAxis: true } as PptxGenJS.IChartOpts },
+            ...(targetLine ? [targetLine] : []),
+          ];
+          const axis = { valAxisLabelFontFace: font, valAxisLabelFontSize: 10, valAxisLabelColor: MUTED, valGridLine: { style: "none" as const } };
+          addMulti(slide, multi, { ...opts, showLegend: true,
+            valAxes: [{ ...axis, showValAxisTitle: !!spec.unit, valAxisTitle: spec.unit ?? "" }, { ...axis, showValAxisTitle: !!spec.unit2, valAxisTitle: spec.unit2 ?? "" }],
+            catAxes: [{ catAxisLabelFontFace: font, catAxisLabelFontSize: 11, catAxisLabelColor: ink }, { catAxisHidden: true }],
+          } as PptxGenJS.IChartOpts);
+        } else if (targetLine) {
+          const main = spec.type === "line" ? ("line" as const) : ("bar" as const);
+          addMulti(slide, [{ type: main, data: rows(spec.series), options: { chartColors: colors, ...(spec.type === "line" ? { lineSize: 3, dataLabelPosition: "t" } : { barDir: "col", barGapWidthPct: 60 }) } as PptxGenJS.IChartOpts }, targetLine], opts);
+        } else {
+          const kind = ({ bar: "bar", hbar: "bar", stacked: "bar", line: "line", donut: "doughnut" } as const)[spec.type as "bar"];
+          slide.addChart(kind, rows(spec.series.slice(0, spec.type === "donut" ? 1 : undefined)), opts);
+        }
         break;
       }
+      case "process":
+        processMap(slide, ex.spec, x, y, w, h);
+        break;
       case "kpi": {
         const spec = ex.spec;
         const n = spec.labels.length;
