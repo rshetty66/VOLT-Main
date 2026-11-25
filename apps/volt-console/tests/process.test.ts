@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { parseProcessSpec, processBlocks, countVisuals } from "../shared/viz";
 import { processSvg } from "../src/charts/specProcess";
 import { DARK, LIGHT } from "../src/charts/palette";
-import { splitPages, toneTables, voltHtml } from "../src/htmlTemplate";
+import { kpiStrip, referenceLayout, splitPages, toneTables, voltHtml } from "../src/htmlTemplate";
 import { markdownBlocks } from "../server/export/blocks";
 
 const flow = {
@@ -65,6 +65,25 @@ describe("VOLT HTML template", () => {
     expect(html).toContain("Close &lt;plan&gt;");
     expect(html).not.toMatch(/<script[^>]+src=|<link[^>]+href=/);
     expect(html).toContain("prefers-reduced-motion");
+  });
+
+  it("follows the reference layout: bold-lead lists become cards, So what and Source lines get their own blocks", () => {
+    const out = referenceLayout("<ol>\n<li><strong>Intercompany, Q1.</strong> removes 3 days</li>\n<li><strong>Recs, Q2.</strong> removes 1.5</li>\n</ol><ul><li>plain</li><li><strong>B</strong> x</li></ul><p><strong>So what:</strong> Start now.</p><p>Source: close calendar</p>");
+    expect(out).toContain('<div class="cards"><div class="card"><span class="no">01</span><b>Intercompany, Q1</b><p>Removes 3 days</p></div>');
+    expect(out).toContain("<ul><li>plain</li>");
+    expect(out).toContain('<aside class="sowhat" aria-label="So what"><b>So what</b><p>Start now.</p></aside>');
+    expect(out).toContain('<p class="src">Source: close calendar</p>');
+    expect(referenceLayout('<figure class="chart">a</figure><figure class="chart">b</figure>')).toMatch(/^<div class="figs">/);
+    expect(voltHtml({ title: "T", pages: splitPages("<p>A</p><h2>Plan</h2><p>Lede.</p><p>B</p>") })).toContain('<p class="lede">Lede.</p><p>B</p>');
+  });
+
+  it("draws a KPI chart as a strip of tiles, with the change coloured by which way is better", () => {
+    const html = kpiStrip({ type: "kpi", title: "Close <scorecard>", unit: "days", labels: ["Close cycle", "Cost"], series: [{ name: "Now", values: [11, 120] }, { name: "Prior", values: [12, 100] }], better: "down", trends: [[14, 11], [90, 120]] });
+    expect(html.match(/class="kpi"/g)).toHaveLength(2);
+    expect(html).toContain('<span class="d good">-1 (-8.3%) vs Prior</span>');
+    expect(html).toContain('<span class="d bad">+20 (+20%) vs Prior</span>');
+    expect(html).toContain("Close &lt;scorecard&gt;");
+    expect(html).toContain("<polyline");
   });
 
   it("colour-codes risk and status cells, and leaves other columns alone", () => {
