@@ -583,7 +583,7 @@ export function madeFile(messages: Anthropic.Beta.BetaMessageParam[]): boolean {
   for (let i = messages.length - 1; i >= 0; i--) {
     const m = messages[i];
     if (m.role === "user" && (typeof m.content === "string" || m.content.some((b) => b.type === "text"))) return false;
-    if (m.role === "assistant" && Array.isArray(m.content) && m.content.some((b) => b.type === "tool_use" && b.name === "create_file")) return true;
+    if (m.role === "assistant" && Array.isArray(m.content) && m.content.some((b) => b.type === "tool_use" && (b.name === "create_file" || b.name === "build_accounting_hub"))) return true;
   }
   return false;
 }

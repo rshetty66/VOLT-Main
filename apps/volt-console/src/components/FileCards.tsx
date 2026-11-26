@@ -15,7 +15,7 @@ export function runFiles(run: Run): { id: string; spec: FileSpec }[] {
   const items: ActivityItem[] = [...run.activity, ...run.laneOrder.flatMap((id) => run.lanes[id]?.activity ?? [])];
   const results: ExportTable[] = chartTables(chartableResults(run));
   return items
-    .filter((it) => it.kind === "tool" && it.text === "create_file" && !it.isError && !it.pending && it.data)
+    .filter((it) => it.kind === "tool" && (it.text === "create_file" || it.text === "build_accounting_hub") && !it.isError && !it.pending && it.data)
     .map((it) => {
       const spec = it.data as FileSpec;
       const data = spec.format === "xlsx" || spec.format === "csv" ? [...(spec.tables ?? []), ...results] : spec.tables;
@@ -24,6 +24,7 @@ export function runFiles(run: Run): { id: string; spec: FileSpec }[] {
 }
 
 function detail(s: FileSpec): string {
+  if (s.hub) return "5 tabs · interactive diagrams";
   const sections = (s.markdown.match(/^##\s/gm) ?? []).length;
   const visuals = (s.markdown.match(/^```(chart|process|architecture|mermaid)\b/gm) ?? []).length;
   const sheets = s.tables?.length ?? 0;
@@ -40,7 +41,7 @@ type CompanionFormat = (typeof COMPANION_FORMATS)[number];
 
 /** The deliverable a card downloads. An HTML page also carries the run's other Office files, as links in its header. */
 export function cardDeliverable(spec: FileSpec, all: FileSpec[], templateId?: string): Deliverable {
-  const own = (s: FileSpec): Deliverable => ({ title: s.title, subtitle: s.subtitle, markdown: s.markdown, tables: s.tables, templateId: s.templateId || templateId });
+  const own = (s: FileSpec): Deliverable => ({ title: s.title, subtitle: s.subtitle, markdown: s.markdown, tables: s.tables, templateId: s.templateId || templateId, hub: s.hub });
   if (spec.format !== "html") return own(spec);
   const companions = all.filter((s): s is FileSpec & { format: CompanionFormat } => (COMPANION_FORMATS as readonly string[]).includes(s.format)).map((s) => ({ format: s.format, deliverable: own(s) }));
   return { ...own(spec), companions };

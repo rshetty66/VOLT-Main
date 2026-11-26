@@ -62,7 +62,7 @@ Reply with one line only: SONNET or OPUS, a colon, then a reason of at most twel
  * lead and specialists alike, until a live A/B test shows Sonnet matches.
  */
 const HIGH_STAKES =
-  /\b(chart of accounts|coa|multi-?gaap|gaap|ifrs\s?\d*|asc\s?\d{3}|cecl|ecl|expected credit loss|business case|value case|npv|irr|consolidat\w*|intercompany|eliminations?|hedge accounting|revenue recognition|lease accounting|purchase price allocation)\b/i;
+  /\b(chart of accounts|coa|multi-?gaap|gaap|ifrs\s?\d*|asc\s?\d{3}|cecl|ecl|expected credit loss|business case|value case|npv|irr|consolidat\w*|intercompany|eliminations?|hedge accounting|revenue recognition|lease accounting|purchase price allocation|accounting hub|sub-?ledger|master accounting flow)\b/i;
 export const highStakes = (text: string) => HIGH_STAKES.test(text);
 
 /** The chat's scope answers force Opus for a file deliverable or Deep depth; returns the reason, or null. */
