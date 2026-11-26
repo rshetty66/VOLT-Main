@@ -7,6 +7,7 @@ import { RunVisuals } from "../charts/RunVisuals";
 import { DownloadMenu } from "./DownloadMenu";
 import { addMemory } from "../projects";
 import { FileCards } from "./FileCards";
+import { PROMPT_IDEAS } from "../promptIdeas";
 import { runDeliverable } from "../exports";
 import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
 import { SCOPE_QUESTIONS, defaultScope, scopeLabel, type Scope } from "../../shared/scope";
@@ -137,6 +138,31 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               </button>
             ))}
           </div>
+          <details className="section prompt-ideas">
+            <summary>More prompt ideas</summary>
+            <div className="section-body stack">
+              {PROMPT_IDEAS.map((g) => (
+                <div key={g.group}>
+                  <div className="muted" style={{ marginBottom: 6 }}>{g.group}</div>
+                  <div className="examples">
+                    {g.ideas.map((idea) => (
+                      <button
+                        key={idea}
+                        className="btn ghost card"
+                        title="Put this idea in the message box to edit it"
+                        onClick={() => {
+                          setPrompt(idea);
+                          promptBox.current?.focus();
+                        }}
+                      >
+                        {idea}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </details>
         </div>
       )}
 
