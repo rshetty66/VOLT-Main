@@ -3,7 +3,7 @@ import type { Run } from "../runState";
 import type { Palette } from "./palette";
 import { BenchmarkChart, MaturityChart, ValueCaseChart } from "./Charts";
 import { ChartFrame } from "./Visual";
-import { chartableResults, type ChartableResult } from "./results";
+import type { ChartableResult } from "./results";
 
 /** Chart renderer and file name for one tool result; shared by the Results strip and the downloads. */
 export function chartFor(r: ChartableResult): { name: string; render: (p: Palette) => ReactElement } {
@@ -17,13 +17,16 @@ export function chartFor(r: ChartableResult): { name: string; render: (p: Palett
   }
 }
 
-/** Results strip under a run: charts drawn from the deterministic tools' data (0 model tokens). */
+/**
+ * The KPI scorecard under a run: the chat's chosen KPIs against their built-in benchmarks (0 model tokens). Shown only
+ * when the user picked a KPI that has a benchmark; charts for metrics the agents looked up on their own are left out.
+ */
 export function RunVisuals({ run }: { run: Run }) {
-  const results = chartableResults(run);
+  const results = run.scorecard ?? [];
   if (!results.length) return null;
   return (
-    <section className="run-visuals" aria-label="Results">
-      <div className="micro">Results · drawn from the analytics tools</div>
+    <section className="run-visuals" aria-label="KPI scorecard">
+      <div className="micro">KPI scorecard · your chosen KPIs against the built-in APQC sample benchmarks</div>
       <div className="visual-grid">
         {results.map((r) => {
           const c = chartFor(r);

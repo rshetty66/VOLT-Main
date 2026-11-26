@@ -1,5 +1,6 @@
 import type { Run } from "../runState";
-import { CAD_PER_USD, cad, chatUsage, compact, modelName, modelsLine, modelsOf, usageTotals } from "../usage";
+import { fxNote } from "../../shared/fx";
+import { cad, usdCadRate, chatUsage, compact, modelName, modelsLine, modelsOf, usageTotals } from "../usage";
 
 interface Props {
   history: Run[];
@@ -46,7 +47,7 @@ export function Usage({ history, onOpenChat }: Props) {
 
           {totals.models.length > 0 && (
             <p className="page-sub">
-              By model: {totals.models.map((m) => `${modelName(m.model)} ${compact(m.tokens)} tokens, ${cad(m.cost)}`).join(" · ")}. Estimated at list price, at {CAD_PER_USD} CAD per USD.
+              By model: {totals.models.map((m) => `${modelName(m.model)} ${compact(m.tokens)} tokens, ${cad(m.cost)}`).join(" · ")}. Estimated at list price, at {fxNote(usdCadRate())}.
             </p>
           )}
 

@@ -22,6 +22,8 @@ import { Analytics } from "./components/Analytics";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
 import { TemplateContext } from "./exports";
+import { setUsdCadRate } from "./usage";
+import { kpiScorecard } from "./charts/results";
 
 export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads" | "ledger" | "projects";
 
@@ -48,7 +50,7 @@ export function App() {
   const load = useCallback(() => {
     setLoadError("");
     setNeedsSignIn(false);
-    fetchCatalog().then(setCatalog, (e) => (e instanceof UnauthorizedError ? (setAuthMode(e.auth), setNeedsSignIn(true)) : setLoadError(String(e))));
+    fetchCatalog().then((c) => (setUsdCadRate(c.fx), setCatalog(c)), (e) => (e instanceof UnauthorizedError ? (setAuthMode(e.auth), setNeedsSignIn(true)) : setLoadError(String(e))));
     listTemplates().then(setTemplates, () => setTemplates([]));
     // Chats saved in this browser by earlier versions move to the server once, then the project list loads.
     void migrateBrowserHistory()
@@ -122,7 +124,7 @@ export function App() {
   const start = useCallback(
     async (req: RunRequest, title: string, kind: RunKind) => {
       const sessionKey = req.workflowId ? `workflow:${crypto.randomUUID()}` : req.agentId && req.agentId !== "rudra" ? `agent:${req.agentId}` : "rudra";
-      const run = { ...newRun(req.prompt, title, kind), attachments: req.attachments?.map((a) => a.name), projectId };
+      const run = { ...newRun(req.prompt, title, kind), attachments: req.attachments?.map((a) => a.name), scorecard: kpiScorecard(req.scope?.kpis, catalog?.benchmarks ?? []), projectId };
       const controller = new AbortController();
       controllers.current.set(run.id, controller);
       setRuns((rs) => [...rs, run]);
@@ -146,7 +148,7 @@ export function App() {
         controllers.current.delete(run.id);
       }
     },
-    [forceDemo, forceOpus, activeTemplate, projectId],
+    [forceDemo, forceOpus, activeTemplate, projectId, catalog],
   );
 
   /** A new chat: the screen is cleared and the next question starts a fresh conversation. Earlier chats stay in History. */

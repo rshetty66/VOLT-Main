@@ -1,3 +1,4 @@
+import { FALLBACK_FX, type FxRate } from "../shared/fx";
 import type { ModelUse, Run } from "./runState";
 
 /** One chat: the runs that share a conversation (follow-ups carry the same session; New chat starts another). */
@@ -113,13 +114,16 @@ export function compact(n: number): string {
 }
 
 /**
- * Costs are estimated in USD at Anthropic's list prices (server/router.ts) and shown in Canadian dollars at this
- * assumed rate. An estimate only: the Anthropic Console shows the actual bill, in USD.
+ * Costs are estimated in USD at Anthropic's list prices (server/router.ts) and shown in Canadian dollars at the live
+ * Bank of Canada rate the server sends with the catalog (shared/fx.ts). An estimate only: the Anthropic Console shows
+ * the actual bill, in USD.
  */
-export const CAD_PER_USD = 1.38;
+let fx: FxRate = FALLBACK_FX;
+export const usdCadRate = () => fx;
+export const setUsdCadRate = (rate: FxRate | undefined) => void (fx = rate ?? FALLBACK_FX);
 
 /** USD in, "CA$0.58" out, or "<CA$0.01" for a small non-zero cost. */
 export const cad = (usd: number) => {
-  const v = usd * CAD_PER_USD;
+  const v = usd * fx.cadPerUsd;
   return v > 0 && v < 0.01 ? "<CA$0.01" : `CA$${v.toFixed(2)}`;
 };

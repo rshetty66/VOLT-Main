@@ -1,78 +1,117 @@
 /**
- * Scope questions asked once at the start of each chat, before VOLT does any work, so the answer is aimed at one
- * client type, one outcome, one reporting basis and one deliverable instead of drifting across all of them.
+ * The intake: asked once at the start of a chat, before VOLT does any work, in up to three short rounds that follow
+ * the discovery order (the goal, how success is measured, what comes back). A lookup or a quick ask skips it
+ * (shared/asks.ts).
  *
- * Each question is a short single choice with a default, so the client can accept the defaults in one click or skip
- * the step. The answers travel with every message in the chat and are added to the brief as one scope block.
+ * Nothing is preselected, so no default steers the answer, and most questions take several answers. Every round can
+ * be skipped, and "Not sure, recommend" lets VOLT pick and say why. The answers travel with every message in the chat
+ * and are added to the brief as one scope block.
  */
 import { z } from "zod";
 
-export const SCOPE_QUESTIONS = [
-  {
-    key: "client_type",
-    label: "Client type",
-    options: { bank: "Bank", insurer: "Insurer", credit_union: "Credit union", pension: "Pension fund", asset_manager: "Asset manager", other: "Other" },
-    fallback: "bank",
-  },
-  {
-    key: "use_case",
-    label: "Outcome",
-    options: { close: "Faster close", segment_profitability: "Segment profitability", fpa: "FP&A", ops_reports: "Ops reports", coa_design: "CoA and ledger design", advisory: "Strategy or advice" },
-    fallback: "close",
-  },
-  {
-    key: "gaap",
-    label: "Reporting basis",
-    options: { ifrs: "IFRS", us_gaap: "US GAAP", ifrs_us_gaap: "IFRS and US GAAP", local: "Local or statutory" },
-    fallback: "ifrs",
-  },
-  {
-    key: "deliverable",
-    label: "Deliverable",
-    options: { chat: "Answer in chat", html: "HTML report", pptx: "PowerPoint deck", docx: "Word document", xlsx: "Excel workbook" },
-    fallback: "chat",
-  },
-  {
-    key: "depth",
-    label: "Depth",
-    options: { quick: "Quick answer", standard: "Standard", deep: "Deep dive with evidence" },
-    fallback: "standard",
-  },
+export const RECOMMEND = "recommend";
+
+/** Outcomes, grouped for the intake card. Up to MAX_OUTCOMES may be picked. */
+export const OUTCOME_GROUPS = [
+  { label: "Close and report", options: { close: "Faster close", close_quality: "Fewer late adjustments", recs: "Automate reconciliations", reg: "Regulatory and statutory reporting" } },
+  { label: "Performance", options: { segment_profitability: "Segment and product profitability", fpa: "Better forecasting (FP&A)", cost: "Lower cost of finance", ops_reports: "Ops and management reports" } },
+  { label: "Foundations", options: { coa_design: "CoA and ledger design", multi_gaap: "Multi-GAAP treatments", lineage: "GL-to-instrument lineage", controls: "Controls and audit readiness" } },
+  { label: "Transformation", options: { tom: "Target operating model", erp_epm: "ERP or EPM selection", ai: "AI and automation in finance", advisory: "Business case and roadmap" } },
 ] as const;
 
-type Q = (typeof SCOPE_QUESTIONS)[number];
-export type Scope = { [K in Q["key"]]: keyof Extract<Q, { key: K }>["options"] };
+export const CLIENT_TYPES: Record<string, string> = { bank: "Bank", insurer: "Insurer", credit_union: "Credit union", pension: "Pension fund", asset_manager: "Asset manager", other_fs: "Other FS", outside_fs: "Outside FS" };
+export const BASES: Record<string, string> = { ifrs: "IFRS", us_gaap: "US GAAP", local: "Local or statutory", regulatory: "Regulatory returns", [RECOMMEND]: "Not sure, recommend" };
+export const DELIVERABLES: Record<string, string> = { chat: "Answer in chat", html: "HTML report", deck: "HTML slide deck", pptx: "PowerPoint deck", docx: "Word document", xlsx: "Excel workbook" };
+export const DEPTHS: Record<string, string> = { quick: "Quick answer", standard: "Standard", deep: "Deep dive with evidence", [RECOMMEND]: "Not sure, recommend" };
 
-const option = (q: Q) => z.enum(Object.keys(q.options) as [string, ...string[]]);
-export const scopeSchema = z.object(Object.fromEntries(SCOPE_QUESTIONS.map((q) => [q.key, option(q).optional()]))).strict();
+export const MAX_OUTCOMES = 3;
+export const MAX_KPIS = 12;
 
-/** The default answer to every question. */
-export const defaultScope = (): Scope => Object.fromEntries(SCOPE_QUESTIONS.map((q) => [q.key, q.fallback])) as Scope;
+export const OUTCOMES: Record<string, string> = Object.assign({ [RECOMMEND]: "Not sure, recommend" }, ...OUTCOME_GROUPS.map((g) => g.options));
 
-/** "Bank · Faster close · IFRS · HTML report · Standard", for the chip that shows the chat's scope. */
-export function scopeLabel(scope: Partial<Scope>): string {
-  return SCOPE_QUESTIONS.flatMap((q) => {
-    const v = scope[q.key] as string | undefined;
-    return v ? [(q.options as Record<string, string>)[v]] : [];
-  }).join(" · ");
+const keys = (o: object) => z.enum(Object.keys(o) as [string, ...string[]]);
+const short = (n: number) => z.string().trim().max(n);
+
+/** One success measure: today, the target and the date, each optional ("unknown" is a blank). */
+export const kpiSchema = z
+  .object({
+    id: short(80).min(1),
+    name: short(80).min(1),
+    unit: short(24).optional(),
+    /** The apqc_benchmark key, when the KPI has a built-in benchmark (shared/kpis.ts). */
+    benchmark: short(60).optional(),
+    baseline: short(40).optional(),
+    target: short(40).optional(),
+    by: short(20).optional(),
+  })
+  .strict();
+export type Kpi = z.infer<typeof kpiSchema>;
+
+export const scopeSchema = z
+  .object({
+    client_type: keys(CLIENT_TYPES).optional(),
+    outcomes: z.array(keys(OUTCOMES)).max(MAX_OUTCOMES).optional(),
+    problem: short(300).optional(),
+    kpis: z.array(kpiSchema).max(MAX_KPIS).optional(),
+    basis: z.array(keys(BASES)).max(Object.keys(BASES).length).optional(),
+    deliverables: z.array(keys(DELIVERABLES)).max(Object.keys(DELIVERABLES).length).optional(),
+    depth: keys(DEPTHS).optional(),
+  })
+  .strict();
+
+export type Scope = z.infer<typeof scopeSchema>;
+
+const names = (list: readonly string[] | undefined, labels: Record<string, string>) => (list ?? []).map((k) => labels[k]).filter(Boolean);
+const more = (list: string[]) => (list.length > 1 ? `${list[0]} +${list.length - 1}` : list[0]);
+
+/** "Bank · Faster close +1 · 3 KPIs · IFRS · HTML report", for the chip that shows the chat's scope. */
+export function scopeLabel(scope: Scope): string {
+  const kpis = scope.kpis?.length ?? 0;
+  return [
+    scope.client_type && CLIENT_TYPES[scope.client_type],
+    more(names(scope.outcomes, OUTCOMES)),
+    kpis ? `${kpis} KPI${kpis === 1 ? "" : "s"}` : undefined,
+    more(names(scope.basis, BASES)),
+    more(names(scope.deliverables, DELIVERABLES)),
+  ]
+    .filter(Boolean)
+    .join(" · ");
 }
 
-const DEPTH: Record<Scope["depth"], string> = {
+/** "Days to close the books (days): today 11, target 5 by 2027-Q2", with "unknown" for any blank. */
+export function kpiLine(k: Kpi): string {
+  const unit = k.unit ? ` (${k.unit})` : "";
+  return `${k.name}${unit}: today ${k.baseline || "unknown"}, target ${k.target || "unknown"}${k.by ? ` by ${k.by}` : ""}`;
+}
+
+const DEPTH: Record<string, string> = {
   quick: "Keep the answer short: the direct answer and the few points that matter, no appendices.",
   standard: "Give a complete but focused answer.",
   deep: "Go deep: cite the evidence for each claim and show the working.",
+  [RECOMMEND]: "Pick the depth the request needs and say which in one line.",
 };
 
-const FILE: Partial<Record<Scope["deliverable"], string>> = { html: "an HTML report", pptx: "a PowerPoint deck", docx: "a Word document", xlsx: "an Excel workbook" };
+const FILE: Record<string, string> = { html: "an HTML report", deck: "an HTML slide deck", pptx: "a PowerPoint deck", docx: "a Word document", xlsx: "an Excel workbook" };
 
 /** The scope block added to the brief. Stay inside it; it replaces the questions it answers. */
-export function scopeBrief(scope: Partial<Scope>): string {
-  const lines = SCOPE_QUESTIONS.flatMap((q) => {
-    const v = scope[q.key] as string | undefined;
-    return v ? [`- ${q.label}: ${(q.options as Record<string, string>)[v]}`] : [];
-  });
+export function scopeBrief(scope: Scope): string {
+  const lines: string[] = [];
+  if (scope.client_type) lines.push(`- Client type: ${CLIENT_TYPES[scope.client_type]}`);
+  const outcomes = scope.outcomes ?? [];
+  if (outcomes.includes(RECOMMEND)) lines.push("- Outcome: not set by the client; recommend the outcome that fits the request and say why in one line");
+  else if (outcomes.length) lines.push(`- Outcomes: ${names(outcomes, OUTCOMES).join("; ")}`);
+  if (scope.problem) lines.push(`- What is not working today (client's words): ${scope.problem}`);
+  if (scope.kpis?.length) lines.push(`- Success measures:\n${scope.kpis.map((k) => `  - ${kpiLine(k)}`).join("\n")}`);
+  const basis = scope.basis ?? [];
+  if (basis.length) lines.push(`- Reporting basis: ${basis.includes(RECOMMEND) ? "not set; recommend the basis that fits and say why" : names(basis, BASES).join(", ")}`);
+  const files = (scope.deliverables ?? []).flatMap((d) => (FILE[d] ? [FILE[d]] : []));
+  if (scope.deliverables?.length) lines.push(`- Deliverable: ${names(scope.deliverables, DELIVERABLES).join(", ")}`);
+  if (scope.depth) lines.push(`- Depth: ${DEPTHS[scope.depth]}`);
   if (!lines.length) return "";
+  const kpiRule = scope.kpis?.length
+    ? " Tie the answer to the success measures: say how each one moves and by when. A blank figure is unknown: say so and how to measure it, and never invent a baseline or a target. For a measure with a built-in benchmark, call apqc_benchmark with the client's figure when it is known."
+    : "";
   const depth = scope.depth ? ` ${DEPTH[scope.depth]}` : "";
-  const file = scope.deliverable && FILE[scope.deliverable] ? ` When the message asks for work, deliver the result as ${FILE[scope.deliverable]} made with create_file.` : "";
-  return `## Scope the client set for this chat\n${lines.join("\n")}\nKeep the work inside this scope and do not ask again for anything it answers. If the request clearly falls outside it, say so in one line and go on with the request. The scope is context, not the task: a direct question or a lookup gets a direct answer to what it asks, never a deliverable on the outcome above.${depth}${file}`;
+  const file = files.length ? ` When the message asks for work, deliver the result as ${files.join(" and ")} made with create_file.` : "";
+  return `## Scope the client set for this chat\n${lines.join("\n")}\nKeep the work inside this scope and do not ask again for anything it answers. If the request clearly falls outside it, say so in one line and go on with the request. The scope is context, not the task: a direct question or a lookup gets a direct answer to what it asks, never a deliverable on the outcomes above.${kpiRule}${depth}${file}`;
 }

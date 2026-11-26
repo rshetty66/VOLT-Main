@@ -7,6 +7,7 @@ import { countVisuals } from "../shared/viz.js";
 import fs from "node:fs";
 import path from "node:path";
 import { PLUGIN_DIR, loadSkillBody } from "./catalog.js";
+import { directAsk, quickAsk } from "../shared/asks.js";
 
 const FRONTMATTER = /^---[\s\S]*?---\s*/;
 
@@ -149,32 +150,8 @@ export function wantsDeliverable(prompt: string): boolean {
   return p.length >= 120 || /\b(plan|assess|assessment|design|business case|roadmap|strategy|recommend|diagnos\w*|benchmark|options|proposal|transform\w*|readiness|architecture|approach|case for)\b/i.test(p);
 }
 
-/**
- * A quick ask: a file or a calculation from figures the user gives ("Build a value case in Excel: 140 FTEs ..."). Rudra
- * answers it alone with the analytics tools and create_file, in one to three minutes, instead of briefing a bench of
- * specialists and writing a full deliverable. Asks for an assessment, strategy, roadmap or design keep the full path.
- */
-export function quickAsk(prompt: string): boolean {
-  const p = prompt.trim();
-  if (!p || p.startsWith("/") || p.length > 300) return false;
-  const fileOrCalc = /\b(excel|xlsx|spreadsheet|workbook|csv|pptx|powerpoint|deck|slides?|word|docx|pdf|file|value case|npv|irr|payback|calculate|compute|financial model)\b/i.test(p);
-  const study = /\b(assess\w*|diagnos\w*|roadmap|strategy|target operating|operating model|architecture|options|recommend\w*|readiness|transform\w*)\b/i.test(p);
-  return fileOrCalc && !study;
-}
-
-const LOOKUP = /(^|[\n.;:,?!]\s*)(please\s+|can you\s+|could you\s+)?(list|show|find|which|what|when|where|who|how many|how much|give me|tell me|cite|extract|look up|is there|are there)\b/i;
-const STUDY = /\b(assess\w*|diagnos\w*|roadmap|strategy|target operating|operating model|architecture|options|recommend\w*|readiness|transform\w*|business case|plan for|improve|reduce|cut|should (we|i)|how (do|can|should) we|best way)\b/i;
-
-/**
- * A direct question: a lookup, a list or a fact ("list the quarterly results documents on the TD page I added, with
- * their dates"). Rudra answers it alone, in chat, from the knowledge base and tools, without the specialist bench, the
- * deliverable sections or the partner rewrite. Asks for advice, a plan or a design keep the full path.
- */
-export function directAsk(prompt: string): boolean {
-  const p = prompt.trim();
-  if (!p || p.startsWith("/") || p.length > 400) return false;
-  return LOOKUP.test(p) && !STUDY.test(p) && !quickAsk(p);
-}
+// The quick-ask and lookup classifiers live in shared/asks.ts, so the console can skip its intake questions for them.
+export { directAsk, quickAsk };
 
 export const DIRECT_GUIDE = `Direct question: answer exactly what was asked, in chat, without consulting specialists and without a client deliverable (no executive summary, business case, roadmap, options or numbered sections), whatever the chat's scope says the outcome is. If the question is about the project's knowledge base, search it and use only the documents that answer it: leave out documents about other companies, clients or topics, and do not use the web when the user says to use only the knowledge base. When the answer is a list, give a table with one row per item and its source key. Say in one line what the sources do not show. Start with a "# " title that names the answer, and stay under 300 words unless the list itself is longer.`;
 

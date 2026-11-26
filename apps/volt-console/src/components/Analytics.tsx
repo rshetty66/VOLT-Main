@@ -107,7 +107,7 @@ function ValueCaseTool() {
       <input className="input" inputMode="decimal" value={f[k]} onChange={(e) => setF({ ...f, [k]: e.target.value })} />
     </label>
   );
-  const money = (n: number) => n.toLocaleString(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 });
+  const money = (n: number) => n.toLocaleString(undefined, { style: "currency", currency: "CAD", maximumFractionDigits: 0 });
 
   return (
     <div className="card stack">

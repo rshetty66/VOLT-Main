@@ -3,8 +3,10 @@
  * deliverables come from code rather than from the model's arithmetic.
  *
  * Benchmark values are ported from rudra/tools/benchmarks.py (APQC Open
- * Standards Benchmarking, built-in sample set).
+ * Standards Benchmarking, built-in sample set). The sample set is in US dollars; benchmarks() restates money figures
+ * in Canadian dollars at the live Bank of Canada rate (server/fx.ts), which is the only form VOLT shows or charts.
  */
+import { fxRate } from "./fx.js";
 
 export interface Benchmark {
   key: string;
@@ -18,6 +20,7 @@ export interface Benchmark {
   lowerIsBetter: boolean;
 }
 
+/** The sample set as published, in USD. Read through benchmarks(), which shows money in CAD. */
 export const BENCHMARKS: Benchmark[] = [
   { key: "total_cost_finance_pct_revenue", metric: "Total Cost to Perform Finance Function (% of Revenue)", pcf: "9.0", top25: 0.6, median: 1.0, bottom25: 1.8, unit: "% of revenue", lowerIsBetter: true },
   { key: "finance_ftes_per_billion", metric: "Finance FTEs per $1B Revenue", pcf: "9.0", top25: 40, median: 70, bottom25: 120, unit: "FTEs", lowerIsBetter: true },
@@ -32,6 +35,21 @@ export const BENCHMARKS: Benchmark[] = [
   { key: "accounts_receivable_cost_pct_revenue", metric: "AR Cost as % of Revenue", pcf: "9.2", top25: 0.02, median: 0.05, bottom25: 0.12, unit: "% of revenue", lowerIsBetter: true },
   { key: "intercompany_transactions_pct_automated", metric: "Intercompany Transactions % Automated", pcf: "9.11", top25: 90, median: 60, bottom25: 30, unit: "%", lowerIsBetter: false },
 ];
+
+/**
+ * The benchmarks with money in CAD at the given rate: per-item costs multiply by it, and "per USD 1B of revenue" becomes
+ * "per CAD 1B of revenue" (divide by it). Ratios, days and counts do not change.
+ */
+export function benchmarks(cadPerUsd = fxRate().cadPerUsd): Benchmark[] {
+  const conv = (b: Benchmark, f: (v: number) => number, extra: Partial<Benchmark>): Benchmark => ({ ...b, top25: f(b.top25), median: f(b.median), bottom25: f(b.bottom25), ...extra });
+  return BENCHMARKS.map((b) =>
+    b.unit === "USD"
+      ? conv(b, (v) => round(v * cadPerUsd), { unit: "CAD" })
+      : b.key === "finance_ftes_per_billion"
+        ? conv(b, (v) => Math.round((v / cadPerUsd) * 10) / 10, { metric: "Finance FTEs per CAD 1B Revenue" })
+        : b,
+  );
+}
 
 export const PCF_CATEGORIES: Record<string, string> = {
   "9.0": "Manage Financial Resources",
@@ -50,9 +68,10 @@ export const PCF_CATEGORIES: Record<string, string> = {
 
 export function findBenchmark(metric: string): Benchmark | undefined {
   const q = metric.toLowerCase().trim().replace(/\s+/g, "_");
+  const all = benchmarks();
   return (
-    BENCHMARKS.find((b) => b.key === q) ??
-    BENCHMARKS.find((b) => b.key.includes(q) || b.metric.toLowerCase().includes(metric.toLowerCase()))
+    all.find((b) => b.key === q) ??
+    all.find((b) => b.key.includes(q) || b.metric.toLowerCase().includes(metric.toLowerCase()))
   );
 }
 

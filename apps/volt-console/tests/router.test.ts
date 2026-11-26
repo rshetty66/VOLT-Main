@@ -59,9 +59,9 @@ describe("model router", () => {
   });
 
   it("forces Opus when the scope asks for a file deliverable or Deep depth", () => {
-    expect(scopeOpusReason({ deliverable: "pptx" })).toBe("the scope asks for a pptx deliverable");
-    expect(scopeOpusReason({ deliverable: "chat", depth: "deep" })).toBe("the scope asks for Deep depth");
-    expect([scopeOpusReason({ deliverable: "chat", depth: "standard" }), scopeOpusReason({}), scopeOpusReason(undefined)]).toEqual([null, null, null]);
+    expect(scopeOpusReason({ deliverables: ["chat", "pptx"] })).toBe("the scope asks for a pptx deliverable");
+    expect(scopeOpusReason({ deliverables: ["chat"], depth: "deep" })).toBe("the scope asks for Deep depth");
+    expect([scopeOpusReason({ deliverables: ["chat"], depth: "standard" }), scopeOpusReason({}), scopeOpusReason(undefined)]).toEqual([null, null, null]);
   });
 
   it("asks triage to pick Opus when unsure", async () => {

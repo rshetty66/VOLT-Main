@@ -105,12 +105,42 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .chip.click { cursor: pointer; }
 .chip.click:hover { border-color: var(--line-strong); }
 .chip.on { background: var(--accent); color: var(--on-light); border-color: var(--accent); }
-.scope-card { display: grid; gap: 10px; margin-bottom: 10px; }
-.scope-row { display: grid; grid-template-columns: 120px 1fr; gap: 8px; align-items: start; }
-.scope-label { font-size: 12px; color: var(--muted); padding-top: 3px; }
-.scope-options { display: flex; flex-wrap: wrap; gap: 6px; }
-.scope-options .chip { padding: 4px 10px; font-size: 13px; }
-@media (max-width: 560px) { .scope-row { grid-template-columns: 1fr; gap: 4px; } }
+.intake-card { position: relative; overflow: hidden; display: grid; gap: 4px; margin-bottom: 10px; padding: 18px; border-color: var(--border); background: linear-gradient(180deg, var(--surface), #171b29); }
+.intake-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 2px; background: linear-gradient(90deg, var(--accent), var(--gold)); }
+.intake-card h2 { margin: 2px 0 0; font-size: 19px; line-height: 1.3; font-weight: 650; color: var(--heading); }
+.intake-step { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.intake-dots { display: flex; gap: 6px; }
+.intake-dots i { width: 26px; height: 4px; border-radius: 2px; background: var(--line-strong); }
+.intake-dots i.on { background: var(--accent); }
+.intake-dots i.done { background: var(--gold); }
+.intake-why { margin: 0 0 4px; color: var(--muted); font-size: 12.5px; }
+.intake-q { display: block; margin-top: 14px; }
+.intake-ql { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 8px; }
+.intake-ql b { font-weight: 600; color: var(--heading); }
+.intake-ql span, .intake-hint { font-size: 12px; color: var(--muted); }
+.intake-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; margin-bottom: 8px; }
+.intake-group { border: 1px solid var(--line); border-radius: 10px; padding: 10px; }
+.intake-gt { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--gold); margin-bottom: 8px; }
+.intake-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip.intake-chip { padding: 5px 11px; font-size: 13px; border-radius: 999px; background: transparent; border-color: var(--line-strong); color: var(--body); }
+.chip.intake-chip.on { background: rgba(0, 229, 255, 0.12); border-color: var(--accent); color: var(--primary); }
+.chip.intake-chip.rec { border-style: dashed; }
+.intake-table-wrap { overflow-x: auto; }
+.intake-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.intake-table th { text-align: left; font-weight: 500; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 6px; }
+.intake-table td { padding: 6px; border-top: 1px solid var(--line); vertical-align: middle; }
+.intake-table .input { min-width: 64px; padding: 5px 8px; font-family: var(--mono); font-size: 12.5px; }
+.intake-unit, .intake-bm { font-size: 11px; color: var(--muted); }
+.intake-bm.on { color: var(--accent); }
+.intake-brief { display: grid; margin: 10px 0 0; }
+.intake-brief > div { display: grid; grid-template-columns: 120px 1fr; gap: 10px; padding: 8px 0; border-top: 1px solid var(--line); }
+.intake-brief dt { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
+.intake-brief dd { margin: 0; color: var(--heading); }
+.intake-actions { justify-content: flex-end; margin-top: 16px; }
+.intake-hint { flex: 1; min-width: 160px; }
+@media (max-width: 560px) { .intake-brief > div { grid-template-columns: 1fr; gap: 2px; } .intake-card h2 { font-size: 17px; } }
+@media (prefers-reduced-motion: no-preference) { .intake-card h2 { animation: intake-in 0.25s ease; } }
+@keyframes intake-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .badge { font-size: 10px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-strong); }
 .badge.live { background: var(--accent); color: var(--on-light); border-color: var(--accent); }
 .badge.full { background: var(--heading); color: var(--on-light); border-color: var(--heading); }

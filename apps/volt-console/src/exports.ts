@@ -7,7 +7,7 @@ import { strToU8, zipSync } from "fflate";
 import { evidenceGates, registryJsonl, sectionOf, sourceRegisterMarkdown, type SourceRecord, type Tier } from "../shared/research";
 import type { Run } from "./runState";
 import { chartFor } from "./charts/RunVisuals";
-import { chartableResults, exportCharts, type ChartableResult } from "./charts/results";
+import { chartableResults, type ChartableResult } from "./charts/results";
 import { chartSvg } from "./charts/Visual";
 import { renderMermaid } from "./charts/mermaid";
 import { isArchitecture, isChart, isMermaid, isProcess } from "./charts/mermaidBlock";
@@ -68,8 +68,8 @@ export function runDeliverable(run: Run, includeLanes: boolean, templateId?: str
     subtitle: new Date(run.startedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
     // The source register is appended from the run's record, so every key in the text resolves in every format.
     markdown: run.text + (run.sources.length > 1 ? sourceRegisterMarkdown(run.sources) : "") + appendix,
-    // The appendix gets each distinct chart once; the Excel sheets keep the data of every call.
-    charts: exportCharts(charts),
+    // The appendix charts only the chosen KPIs (the scorecard); the Excel sheets keep the data of every tool call.
+    charts: run.scorecard ?? [],
     tables: chartTables(charts),
     templateId,
     research: {

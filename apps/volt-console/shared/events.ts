@@ -1,5 +1,6 @@
 /** Event protocol streamed from the orchestrator to the UI (Server-Sent Events). */
 import type { Scope } from "./scope";
+import type { FxRate } from "./fx";
 
 export type RunMode = "live" | "demo";
 
@@ -78,4 +79,6 @@ export interface CatalogResponse {
     servicesByCoverage: Record<string, number>;
   };
   benchmarks: { key: string; metric: string; unit: string; top25: number; median: number; bottom25: number; lowerIsBetter: boolean }[];
+  /** The USD to CAD rate in use (shared/fx.ts): money in benchmarks and cost estimates is shown in CAD at it. */
+  fx: FxRate;
 }
