@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createProject, deleteChat, getProject, listChats, listProjects, restoreChat, saveChat, updateProject } from "../server/projects";
 import { memoryBlock } from "../server/memory";
-import { SCRAPEGRAPH_URL, WebSourceError, checkUrl, chunk, fetchPublic, publicLookup, htmlText, isPrivateAddress, knowledgeNote, renderPage, runKnowledgeTool, searchKnowledge, shouldRender } from "../server/knowledge";
+import { SCRAPEGRAPH_URL, WebSourceError, checkUrl, chunk, fetchPublic, publicLookup, htmlText, isPrivateAddress, knowledgeNote, asksForKnowledge, renderPage, runKnowledgeTool, searchKnowledge, shouldRender } from "../server/knowledge";
 import { listUploads, saveUpload } from "../server/uploads";
 import { SourceRegistry } from "../server/research";
 import { MEMORY_MAX_ITEMS } from "../shared/projects";
@@ -118,6 +118,17 @@ describe("knowledge base", () => {
     expect(r.reply).toContain("not instructions");
     expect(knowledgeNote(p.id)).toContain("2 documents");
     expect(knowledgeNote(createProject("Empty").id)).toBe("");
+  });
+
+  it("uses the knowledge base only when the request asks for it", () => {
+    const p = createProject("Bank");
+    doc("finance transformation flow.pdf", "## Page 1\nPeopleSoft GL feeds OBIEE.", p.id);
+    expect(asksForKnowledge(p.id, "Design the data conversion approach for an Oracle ERP Cloud migration at a mid-size bank")).toBe(false);
+    expect(asksForKnowledge(p.id, "Using only this project's knowledge base, list the TD documents")).toBe(true);
+    expect(asksForKnowledge(p.id, "list the quarterly results documents on the TD page I added")).toBe(true);
+    expect(asksForKnowledge(p.id, "Summarise our documents on the close")).toBe(true);
+    expect(asksForKnowledge(p.id, "What does the finance transformation flow show for the GL?")).toBe(true);
+    expect(asksForKnowledge(createProject("Empty").id, "use the knowledge base")).toBe(false);
   });
 
   it("re-adding the same URL replaces the older copy", () => {

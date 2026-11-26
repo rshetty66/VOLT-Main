@@ -22,7 +22,7 @@ import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuid
 import { SourceRegistry, WEB_RESEARCH_GUIDE, registerWebBlock, sourceForTool, webCitationKeys } from "./research.js";
 import { evidenceGates } from "../shared/research.js";
 import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
-import { KNOWLEDGE_TOOL, knowledgeNote, knowledgeToolDef, runKnowledgeTool } from "./knowledge.js";
+import { KNOWLEDGE_TOOL, asksForKnowledge, knowledgeNote, knowledgeToolDef, runKnowledgeTool } from "./knowledge.js";
 import { memoryBlock } from "./memory.js";
 import { listUploads } from "./uploads.js";
 import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerToolDefs, runLedgerTool } from "./ledger.js";
@@ -41,7 +41,7 @@ export interface RunInput extends RunRequest {
 /** The user's request, with its attached files, the chat's scope answers and the selected template's formatting guide. */
 export function withTemplate(req: RunInput, text = req.prompt): string {
   const scope = req.scope ? scopeBrief(req.scope) : "";
-  const files = `${attachmentsBlock(req.attachments)}${scope ? `\n\n${scope}` : ""}${memoryBlock(req.projectId)}${knowledgeNote(req.projectId)}`;
+  const files = `${attachmentsBlock(req.attachments)}${scope ? `\n\n${scope}` : ""}${memoryBlock(req.projectId)}${asksForKnowledge(req.projectId, req.prompt) ? knowledgeNote(req.projectId) : ""}`;
   if (!req.template) return `${text}${files}`;
   return `${text}${files}
 
@@ -443,7 +443,8 @@ export function getSession(id?: string): Session {
 
 export async function runLive(catalog: Catalog, input: RunInput, session: Session, emit: Emit, signal: AbortSignal) {
   const registry = new SourceRegistry(input.prompt);
-  if (input.projectId && listUploads(input.projectId).length) registry.knowledgeProject = input.projectId;
+  // The knowledge base is used only when the request asks for it; otherwise sources come from the tools and the web.
+  if (input.projectId && asksForKnowledge(input.projectId, input.prompt)) registry.knowledgeProject = input.projectId;
   // Each attached file is client data in the source register, so the answer can cite it.
   const req: RunInput = { ...input, attachments: registerAttachments(registry, input.attachments) };
   emit({ type: "research", tier: registry.tier });

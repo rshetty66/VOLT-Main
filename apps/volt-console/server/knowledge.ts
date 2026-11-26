@@ -163,6 +163,24 @@ export function runKnowledgeTool(projectId: string, input: unknown, registry: So
   };
 }
 
+const KB_ASK = /\b(knowledge[- ]?base|kb|project'?s? (documents?|docs|files?|uploads?|knowledge|sources?)|(our|my|client'?s?|these|those|uploaded|attached|saved) (documents?|docs|files?|uploads?|pdfs?|sources?|trial balance)|(i|we) (have )?(added|uploaded|attached|saved|shared)|(from|in|using) the (documents?|docs|files?|uploads?|pdfs?))\b/i;
+
+/**
+ * Whether a request asks for the project's knowledge base: it names it, the client's or uploaded documents, something
+ * "I added", or a document by its name. Otherwise the agents do not see the knowledge base at all, so documents from
+ * other clients and engagements (a PeopleSoft flow, another bank's results) cannot leak into an unrelated answer.
+ */
+export function asksForKnowledge(projectId: string | undefined, prompt: string): boolean {
+  const docs = projectId ? listUploads(projectId) : [];
+  if (!docs.length) return false;
+  if (KB_ASK.test(prompt)) return true;
+  const p = prompt.toLowerCase();
+  return docs.some((d) => {
+    const stem = d.name.replace(/\s*\([^)]*\)\s*$/, "").replace(/\.[a-z0-9]{2,4}$/i, "").trim().toLowerCase();
+    return stem.length >= 6 && p.includes(stem);
+  });
+}
+
 /** The note added to each request in a project with documents, so the agents know the knowledge base is there. */
 export function knowledgeNote(projectId: string | undefined): string {
   const docs = projectId ? listUploads(projectId) : [];
