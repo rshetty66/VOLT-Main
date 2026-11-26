@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { chatUsage, compact, usageTotals, usd } from "../src/usage";
+import { cad, chatUsage, compact, modelName, modelsLine, usageTotals } from "../src/usage";
 import { newRun, type Run } from "../src/runState";
 
 const run = (over: Partial<Run> & { in?: number; out?: number; cache?: number } = {}): Run => {
@@ -54,6 +54,13 @@ describe("token usage per chat", () => {
     expect(totals.cost).toBeCloseTo(0.4);
     expect(totals.models.map((m) => m.model)).toEqual(["claude-opus-5-5", "claude-sonnet-5-5", "claude-haiku-5-5"]);
     expect(totals.models[0]).toEqual({ model: "claude-opus-5-5", tokens: 11000, cost: 0.27 });
-    expect([usd(0), usd(0.004), usd(1.234)]).toEqual(["$0.00", "<$0.01", "$1.23"]);
+    expect([cad(0), cad(0.004), cad(1)]).toEqual(["CA$0.00", "<CA$0.01", "CA$1.38"]);
+    expect(chats.find((c) => c.id === "a")!.models.map((m) => m.model)).toEqual(["claude-opus-5-5", "claude-haiku-5-5"]);
+  });
+
+  it("names the models each chat used, in plain words", () => {
+    expect([modelName("claude-opus-5-5"), modelName("claude-haiku-5-5"), modelName("claude-sonnet-5"), modelName("gpt-x")]).toEqual(["Opus 5.5", "Haiku 5.5", "Sonnet 5", "gpt-x"]);
+    expect(modelsLine([{ model: "claude-opus-5-5", tokens: 12300, cost: 0.2 }, { model: "claude-haiku-5-5", tokens: 90, cost: 0 }])).toBe("Opus 5.5 12.3K · Haiku 5.5 90");
+    expect(chatUsage([run({ sessionId: "old" })])[0].models).toEqual([]);
   });
 });
