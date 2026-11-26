@@ -107,6 +107,7 @@ app.get("/api/catalog", (_req, res) => {
     source: catalog.source,
     mode,
     model: MODEL,
+    routing: routingEnabled(),
     agents: catalog.agents.map(({ systemPrompt: _p, ...a }) => a),
     workflows: catalog.workflows,
     services: catalog.services,
