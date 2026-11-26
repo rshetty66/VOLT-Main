@@ -43,7 +43,7 @@ import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
 import { AttachmentError, extractAttachment, limitText } from "./attachments.js";
 import { listUploads, originalPath, readUpload, removeUpload, saveUpload } from "./uploads.js";
 import { createProject, deleteChat, isProjectId, listChats, listProjects, restoreChat, saveChat, updateProject } from "./projects.js";
-import { WEB_MAX_BYTES, WebSourceError, fetchPublic, htmlText } from "./knowledge.js";
+import { WEB_MAX_BYTES, WebSourceError, checkUrl, fetchPublic, htmlText, renderPage, renderingEnabled, shouldRender } from "./knowledge.js";
 import { DEFAULT_PROJECT_ID, MEMORY_KINDS } from "../shared/projects.js";
 import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../shared/attachments.js";
 import { runBudgetMs } from "./budget.js";
@@ -219,14 +219,23 @@ app.post("/api/uploads/url", express.json({ limit: "8kb" }), async (req, res) =>
   const body = z.object({ url: z.string().min(4).max(2000), projectId: z.string().optional() }).safeParse(req.body);
   if (!body.success) return void res.status(400).json({ error: "Send a URL." });
   try {
-    const got = await fetchPublic(body.data.url);
+    // A site that refuses the plain fetch gets one rendered try when ScrapeGraph is set up (see renderPage).
+    const got = await fetchPublic(body.data.url).catch(async (err) => {
+      if (!shouldRender(err)) throw err;
+      const page = await renderPage(body.data.url);
+      return { bytes: new TextEncoder().encode(page.text), type: "text/markdown", url: checkUrl(body.data.url).toString(), page };
+    });
     const host = new URL(got.url).hostname;
     let extracted;
-    if (got.type.includes("pdf") || /\.pdf$/i.test(new URL(got.url).pathname)) {
+    if ("page" in got) {
+      extracted = { ...limitText("", got.page.text, KB_MAX_CHARS), name: `${(got.page.title || got.url).slice(0, 150)} (${host})` };
+    } else if (got.type.includes("pdf") || /\.pdf$/i.test(new URL(got.url).pathname)) {
       const file = decodeURIComponent(new URL(got.url).pathname.split("/").pop() || "page").replace(/\.pdf$/i, "");
       extracted = { ...(await extractAttachment(`${file}.pdf`, got.bytes, KB_MAX_CHARS)), name: `${file} (${host})` };
     } else if (/text\/html|xhtml/.test(got.type) || !got.type) {
-      const page = htmlText(new TextDecoder("utf-8").decode(got.bytes));
+      let page = htmlText(new TextDecoder("utf-8").decode(got.bytes));
+      // A page built by JavaScript has no text in its HTML: render it when ScrapeGraph is set up.
+      if (page.text.length < 40 && renderingEnabled()) page = await renderPage(got.url);
       if (page.text.length < 40) return void res.status(422).json({ error: "No readable text was found on that page (it may need a browser to render)." });
       extracted = { ...limitText("", page.text, KB_MAX_CHARS), name: `${(page.title || got.url).slice(0, 150)} (${host})` };
     } else if (/text\/plain|text\/csv|json/.test(got.type)) {

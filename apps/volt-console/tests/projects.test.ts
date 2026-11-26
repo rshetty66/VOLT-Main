@@ -4,7 +4,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { createProject, deleteChat, getProject, listChats, listProjects, restoreChat, saveChat, updateProject } from "../server/projects";
 import { memoryBlock } from "../server/memory";
-import { checkUrl, chunk, fetchPublic, publicLookup, htmlText, isPrivateAddress, knowledgeNote, runKnowledgeTool, searchKnowledge } from "../server/knowledge";
+import { SCRAPEGRAPH_URL, WebSourceError, checkUrl, chunk, fetchPublic, publicLookup, htmlText, isPrivateAddress, knowledgeNote, renderPage, runKnowledgeTool, searchKnowledge, shouldRender } from "../server/knowledge";
 import { listUploads, saveUpload } from "../server/uploads";
 import { SourceRegistry } from "../server/research";
 import { MEMORY_MAX_ITEMS } from "../shared/projects";
@@ -149,5 +149,52 @@ describe("web sources by URL", () => {
     expect(page.text).toContain("Insurance contracts\nCSM is released over coverage.");
     expect(page.text).toContain("Year 2026");
     expect(page.text).not.toMatch(/alert|Menu/);
+  });
+});
+
+describe("rendered fallback (ScrapeGraph)", () => {
+  const ok = (body: unknown) => (async () => new Response(JSON.stringify(body), { status: 200 })) as unknown as typeof fetch;
+  afterEach(() => {
+    delete process.env.SCRAPEGRAPH_API_KEY;
+  });
+
+  it("is off without a key, and only retries the statuses a browser can get past", () => {
+    expect(shouldRender(new WebSourceError("x", 403))).toBe(false);
+    process.env.SCRAPEGRAPH_API_KEY = "test-key";
+    for (const s of [401, 403, 429, 503]) expect(shouldRender(new WebSourceError("x", s))).toBe(true);
+    for (const s of [404, 500]) expect(shouldRender(new WebSourceError("x", s))).toBe(false);
+    expect(shouldRender(new WebSourceError("That address is on a private or internal network"))).toBe(false);
+    expect(shouldRender(new Error("x"))).toBe(false);
+  });
+
+  it("sends one JS-rendered markdown request and reads the title and text", async () => {
+    process.env.SCRAPEGRAPH_API_KEY = "test-key";
+    let sent: { url: string; init: RequestInit } | undefined;
+    const fetcher = (async (url: string, init: RequestInit) => {
+      sent = { url, init };
+      return new Response(JSON.stringify({ id: "1", results: { markdown: { data: ["# OSFI Guideline B-20\n\nResidential mortgage underwriting practices and procedures."] } } }), { status: 200 });
+    }) as unknown as typeof fetch;
+    const page = await renderPage("https://www.osfi-bsif.gc.ca/en/guidance", fetcher);
+    expect(page.title).toBe("OSFI Guideline B-20");
+    expect(page.text).toContain("Residential mortgage underwriting");
+    expect(sent?.url).toBe(SCRAPEGRAPH_URL);
+    expect((sent?.init.headers as Record<string, string>)["SGAI-APIKEY"]).toBe("test-key");
+    expect(JSON.parse(String(sent?.init.body))).toEqual({ url: "https://www.osfi-bsif.gc.ca/en/guidance", formats: [{ type: "markdown" }], fetchConfig: { mode: "js", timeout: 30000 } });
+  });
+
+  it("applies the same URL checks and never sends an internal address", async () => {
+    process.env.SCRAPEGRAPH_API_KEY = "test-key";
+    let called = false;
+    const fetcher = (async () => ((called = true), new Response("{}"))) as unknown as typeof fetch;
+    await expect(renderPage("http://169.254.169.254/latest", fetcher)).rejects.toThrow(/private or internal/);
+    expect(called).toBe(false);
+  });
+
+  it("reports a service error or an empty page as a readable error", async () => {
+    process.env.SCRAPEGRAPH_API_KEY = "test-key";
+    await expect(renderPage("https://example.com/", (async () => new Response("{}", { status: 402 })) as unknown as typeof fetch)).rejects.toThrow(/answered 402/);
+    await expect(renderPage("https://example.com/", ok({ results: { markdown: { data: [""] } } }))).rejects.toThrow(/No readable text/);
+    delete process.env.SCRAPEGRAPH_API_KEY;
+    await expect(renderPage("https://example.com/", ok({}))).rejects.toThrow(/not set up/);
   });
 });
