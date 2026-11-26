@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { benchmarkLayout, checksLayout, linearScale, maturityLayout, niceTicks, valueCaseLayout } from "../src/charts/layout";
-import { chartableResults, exportCharts, type ChartableResult } from "../src/charts/results";
+import { chartableResults, kpiScorecard, type ChartableResult } from "../src/charts/results";
 import { isMermaid } from "../src/charts/mermaidBlock";
 import { compareToBenchmark, buildValueCase, scoreMaturity, type BenchmarkComparison } from "../server/analytics";
 import { newRun, applyEvent } from "../src/runState";
@@ -144,20 +144,28 @@ describe("download sizing", () => {
   });
 });
 
-describe("charts for a download", () => {
-  const bench = (id: string, key: string): ChartableResult => ({ id, kind: "benchmark", data: { benchmark: { key, metric: key, top25: 4, median: 6, bottom25: 10, unit: "days", lowerIsBetter: true } } });
-  const maturity = (id: string): ChartableResult => ({ id, kind: "maturity", data: { overall: 2, overallLevel: "x", dimensions: [], priorityGaps: [] } });
-  const vc = (id: string, npv: number, payback: number | null): ChartableResult => ({ id, kind: "valueCase", data: { oneTimeInvestment: 1, steadyStateAnnualSaving: 1, npv, irrPct: null, paybackYears: payback, yearly: [] } });
+describe("KPI scorecard", () => {
+  const benchmarks = [
+    { key: "days_to_close", metric: "Days to Close the Books", top25: 4, median: 6.5, bottom25: 10, unit: "days", lowerIsBetter: true },
+    { key: "dso", metric: "DSO", top25: 30, median: 40, bottom25: 55, unit: "days", lowerIsBetter: true },
+  ];
 
-  it("keeps one chart per benchmark metric and one maturity chart, in order", () => {
-    const out = exportCharts([bench("1", "close"), bench("2", "cost"), bench("3", "close"), maturity("4"), bench("5", "cost"), maturity("6")]);
-    expect(out.map((r) => r.id)).toEqual(["1", "2", "4"]);
+  it("charts only the chosen KPIs that have a built-in benchmark, with the client's figure", () => {
+    const out = kpiScorecard(
+      [
+        { id: "days_to_close", name: "Days to close", benchmark: "days_to_close", baseline: "11", target: "5" },
+        { id: "recs", name: "Reconciliations auto-matched" },
+        { id: "custom:cti", name: "Cost-to-income ratio", baseline: "58%" },
+      ],
+      benchmarks,
+    );
+    expect(out.map((r) => r.id)).toEqual(["kpi-days_to_close"]);
+    expect(out[0].data).toMatchObject({ benchmark: { key: "days_to_close" }, clientValue: 11 });
   });
 
-  it("keeps up to three value cases that differ, and drops an identical repeat", () => {
-    const out = exportCharts([vc("a", 15_400_000, 1.78), vc("b", 15_400_000, 1.78), vc("c", 8_000_000, 2.4), vc("d", 1_700_000, 3.9), vc("e", -200_000, null)]);
-    expect(out.map((r) => r.id)).toEqual(["a", "c", "d"]);
+  it("leaves the client figure blank when it is unknown or not a number, and draws nothing with no KPIs", () => {
+    const k = (baseline?: string) => kpiScorecard([{ id: "dso", name: "DSO", benchmark: "dso", baseline }], benchmarks)[0].data;
+    expect([k(undefined), k("about 40ish")].map((d) => (d as { clientValue?: number }).clientValue)).toEqual([undefined, undefined]);
+    expect(kpiScorecard(undefined, benchmarks)).toEqual([]);
   });
-
-  it("returns nothing for no results", () => expect(exportCharts([])).toEqual([]));
 });

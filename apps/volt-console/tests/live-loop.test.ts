@@ -165,7 +165,7 @@ describe("live agent loop (mocked Messages API)", () => {
   });
 
   it("puts the lead on Opus without triage when the scope asks for a file or Deep depth", async () => {
-    for (const scope of [{ deliverable: "docx" as const }, { depth: "deep" as const }]) {
+    for (const scope of [{ deliverables: ["docx"] }, { depth: "deep" }]) {
       const before = mock.requests.length;
       const triaged = mock.triage.length;
       const events = await run({ prompt: "TRIAGE-SONNET 12 day close on SAP", scope });

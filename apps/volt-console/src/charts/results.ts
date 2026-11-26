@@ -1,4 +1,6 @@
 import type { ActivityItem, Run } from "../runState";
+import type { Kpi } from "../../shared/scope";
+import type { CatalogResponse } from "../../shared/events";
 
 /** Tool results the console can chart, in the order they happened (Rudra first, then each specialist lane). */
 export type ChartableResult =
@@ -43,32 +45,16 @@ export function chartableResults(run: Run): ChartableResult[] {
   return out;
 }
 
-const MAX_VALUE_CASES = 3;
-
 /**
- * The charts worth putting in a download's appendix. An agent may call the same tool several times (the same benchmark
- * from three workstreams, a value case for each scenario), and the console shows every call, but a document should not
- * repeat itself: one chart per benchmark metric, one maturity chart, and up to three value cases that differ.
+ * The KPI scorecard: one benchmark chart for each chosen KPI that has a built-in benchmark, with the client's figure
+ * when it is a number. KPIs without a benchmark, and metrics the user did not pick, get no chart.
  */
-export function exportCharts(results: ChartableResult[]): ChartableResult[] {
-  const seenMetric = new Set<string>();
-  const seenCase = new Set<string>();
-  let maturity = false;
-  return results.filter((r) => {
-    if (r.kind === "benchmark") {
-      const key = r.data.benchmark.key || r.data.benchmark.metric;
-      if (seenMetric.has(key)) return false;
-      seenMetric.add(key);
-      return true;
-    }
-    if (r.kind === "maturity") {
-      if (maturity) return false;
-      maturity = true;
-      return true;
-    }
-    const key = `${Math.round(r.data.npv)}|${r.data.paybackYears}`;
-    if (seenCase.has(key) || seenCase.size >= MAX_VALUE_CASES) return false;
-    seenCase.add(key);
-    return true;
+export function kpiScorecard(kpis: Kpi[] | undefined, benchmarks: CatalogResponse["benchmarks"]): ChartableResult[] {
+  return (kpis ?? []).flatMap((k) => {
+    const benchmark = benchmarks.find((b) => b.key === k.benchmark);
+    if (!benchmark) return [];
+    const v = Number((k.baseline ?? "").replace(/[,\s%]|CAD|\$/gi, ""));
+    const clientValue = k.baseline && Number.isFinite(v) ? v : undefined;
+    return [{ id: `kpi-${k.id}`, kind: "benchmark" as const, data: { benchmark, clientValue } }];
   });
 }

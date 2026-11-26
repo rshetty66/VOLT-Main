@@ -66,10 +66,10 @@ const HIGH_STAKES =
 export const highStakes = (text: string) => HIGH_STAKES.test(text);
 
 /** The chat's scope answers force Opus for a file deliverable or Deep depth; returns the reason, or null. */
-export function scopeOpusReason(scope?: { deliverable?: string; depth?: string }): string | null {
+export function scopeOpusReason(scope?: { deliverables?: string[]; depth?: string }): string | null {
   if (scope?.depth === "deep") return "the scope asks for Deep depth";
-  if (scope?.deliverable && scope.deliverable !== "chat") return `the scope asks for a ${scope.deliverable} deliverable`;
-  return null;
+  const file = scope?.deliverables?.find((d) => d !== "chat");
+  return file ? `the scope asks for a ${file} deliverable` : null;
 }
 
 /** The rule used when triage is off or fails: the same signal the partner review uses for a client deliverable. */

@@ -31,7 +31,8 @@ import express from "express";
 import { z } from "zod";
 import { loadCatalog, loadSkillBody, rankSkills } from "./catalog.js";
 import { runLocalTool, schemas, type ToolName } from "./tools.js";
-import { BENCHMARKS } from "./analytics.js";
+import { benchmarks } from "./analytics.js";
+import { fxRate, startFx } from "./fx.js";
 import { ModelLedger, routingEnabled } from "./router.js";
 import { MODEL, errorMessage, getSession, intakeFor, runLive, type Emit, type RunInput } from "./orchestrator.js";
 import { runDemo } from "./demo.js";
@@ -113,7 +114,8 @@ app.get("/api/catalog", (_req, res) => {
     layerColors: catalog.layerColors,
     skills: catalog.skills.map(({ industry: _i, ...s }) => s),
     health: catalog.health,
-    benchmarks: BENCHMARKS.map(({ pcf: _p, ...b }) => b),
+    benchmarks: benchmarks().map(({ pcf: _p, ...b }) => b),
+    fx: fxRate(),
   };
   res.json(body);
 });
@@ -547,7 +549,10 @@ if (process.env.NODE_ENV === "production") {
 export default app;
 
 const port = Number(process.env.PORT ?? 8787);
+// The live USD to CAD rate (server/fx.ts): read when the server starts serving.
+if (process.env.VERCEL) startFx();
 if (!process.env.VERCEL) app.listen(port, security.host, () => {
+  startFx();
   console.log(`VOLT Agentic Console API on http://${security.host}:${port} (${mode} mode, model ${MODEL}${security.token ? ", access token required" : ""})`);
   console.log(`Catalog: ${catalog.agents.length} agents, ${catalog.workflows.length} workflows, ${catalog.skills.length} skills from ${catalog.source.name}@${catalog.source.commit?.slice(0, 7) ?? "?"}`);
 });

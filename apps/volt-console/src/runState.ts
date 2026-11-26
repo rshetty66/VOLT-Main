@@ -1,3 +1,4 @@
+import type { ChartableResult } from "./charts/results";
 import type { SourceRecord, Tier } from "../shared/research";
 import { ORCHESTRATOR_LANE, type RunKind, type RunMode, type VoltEvent } from "../shared/events";
 
@@ -32,6 +33,11 @@ export interface Run {
   projectId?: string;
   /** Names of the files attached to the request. */
   attachments?: string[];
+  /**
+   * The KPI scorecard: the chat's chosen KPIs that have a built-in benchmark, with the client's figure, fixed when the
+   * run starts. The only charts the console shows under a run and puts in its downloads.
+   */
+  scorecard?: ChartableResult[];
   title: string;
   kind: RunKind;
   mode?: RunMode;
