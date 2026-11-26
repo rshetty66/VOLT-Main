@@ -1,0 +1,254 @@
+{
+  "client": { "name": "Northwind Consumer Finance", "short": "NCF", "type": "consumer_lender" },
+  "branding": { "style": "volt" },
+  "audience": "Client CFO and Controller",
+  "confidentiality": "client_draft",
+  "gl_platform": "Workday Financials",
+  "epm": "OneStream",
+  "data_platform": "lakehouse on AWS (platform to confirm)",
+  "accounts_illustrative": true,
+  "target_date": "late January 2027 [to confirm]",
+  "exclusions": ["SAP", "D365"],
+  "pain_points": [
+    "Accounting rules are applied in three places",
+    "Manual adjustment files every month-end",
+    "Two data paths reconciled by hand",
+    "Loan tags written back to the source systems",
+    "Close evidence assembled from spreadsheets"
+  ],
+  "legacy_logic": ["ETL jobs", "Legacy accounting engine", "Data warehouse", "Manual adjustment files"],
+  "today": {
+    "headline": "Northwind applies accounting rules in three places and reconciles two data paths by hand before every close.",
+    "lede": "Five source systems feed batch ETL, a legacy accounting engine and a SQL data warehouse. Posting rules live in all three, and month-end adjustments arrive as spreadsheets. This view is a hypothesis built from the stated inputs, not the client's own diagram.",
+    "so_what": {
+      "text": "Every rule change has to be made and tested three times, and the GL, the warehouse and securitization reporting can disagree by design. That is the main source of close effort and audit questions.",
+      "trade_off": "Consolidating the rules means rebuilding logic that works today, so the proof of concept must show the hub reproduces legacy results before anything is retired."
+    },
+    "systems": [
+      { "id": "cardcore", "name": "CardCore", "sub": "merchant cards · daily file", "column": "source", "role": "Card processor: accounts, purchases, payments and fees.", "issue": "Sends the same transactions to ETL and the warehouse in two formats." },
+      { "id": "loansys", "name": "LoanSys", "sub": "instalment loans · daily file", "column": "source", "role": "Loan servicing: originations, schedules and repayments.", "issue": "Receives loan tags written back from the warehouse." },
+      { "id": "pay", "name": "Payments switch", "sub": "payments · intraday file", "column": "source", "role": "Customer payments and reversals." },
+      { "id": "coll", "name": "Collections platform", "sub": "delinquency · daily extract", "column": "source", "role": "Delinquency, arrangements and charge-off recommendations." },
+      { "id": "secz", "name": "Securitization servicer", "sub": "pool data · monthly", "column": "source", "role": "Pool and investor data for the securitized receivables." },
+      { "id": "etl", "name": "ETL jobs", "sub": "batch, posting rules inside", "column": "provisioning", "tags": ["custom_logic"], "role": "Nightly jobs that transform source files and derive journal lines.", "issue": "Accounting rules embedded in transformation code, without versioning." },
+      { "id": "files", "name": "Manual adjustment files", "sub": "spreadsheets", "column": "provisioning", "tags": ["manual"], "role": "Month-end adjustments keyed by the accounting team.", "issue": "No maker-checker evidence in the system; lineage stops at the file." },
+      { "id": "mdm", "name": "Reference data hub", "sub": "products, org, calendars", "column": "provisioning", "tags": ["gap"], "role": "Reference capability: mastered product and organisation data.", "issue": "Not in the stated landscape; product mappings appear to be held in code." },
+      { "id": "engine", "name": "Legacy accounting engine", "sub": "posting rules in SQL", "column": "engine", "tags": ["custom_logic"], "role": "Applies posting rules and summarises journals for the GL.", "issue": "Second copy of the posting rules; changes need a developer." },
+      { "id": "ecl", "name": "ECL engine", "sub": "risk model", "column": "engine", "role": "Calculates expected credit loss by account and stage." },
+      { "id": "hdw", "name": "Data warehouse", "sub": "SQL / SSIS", "column": "engine", "tags": ["custom_logic"], "role": "Reporting store for products, balances and securitization.", "issue": "Third copy of accounting logic, used for non-GL reporting." },
+      { "id": "gl", "name": "Workday Financials", "sub": "general ledger", "column": "reporting", "role": "General ledger receiving summarised journals." },
+      { "id": "epm", "name": "OneStream", "sub": "close and consolidation", "column": "reporting", "role": "Close, consolidation and management reporting." },
+      { "id": "bi", "name": "BI reports", "sub": "dashboards", "column": "reporting", "role": "Product and portfolio dashboards from the warehouse." },
+      { "id": "reg", "name": "Regulatory reporting", "sub": "returns", "column": "reporting", "tags": ["manual"], "role": "Regulatory returns assembled from the warehouse and the GL.", "issue": "Manual reconciliation between the warehouse and the GL each quarter." },
+      { "id": "sec", "name": "Securitization hub", "sub": "investor reporting", "column": "reporting", "role": "Investor and trust reporting." },
+      { "id": "fin", "name": "Finance & close", "column": "users", "role": "Accounting, close and financial reporting." },
+      { "id": "risk", "name": "Risk", "column": "users", "role": "Credit risk and ECL." },
+      { "id": "treas", "name": "Treasury & investors", "column": "users", "role": "Funding and investor reporting." }
+    ],
+    "flows": [
+      { "from": "cardcore", "to": "etl", "path": "accounting" },
+      { "from": "loansys", "to": "etl", "path": "accounting" },
+      { "from": "pay", "to": "etl", "path": "accounting" },
+      { "from": "etl", "to": "engine", "path": "accounting" },
+      { "from": "files", "to": "engine", "path": "accounting" },
+      { "from": "engine", "to": "gl", "path": "accounting" },
+      { "from": "epm", "to": "fin", "path": "accounting" },
+      { "from": "cardcore", "to": "hdw", "path": "product" },
+      { "from": "loansys", "to": "hdw", "path": "product" },
+      { "from": "secz", "to": "hdw", "path": "product" },
+      { "from": "coll", "to": "ecl", "path": "product" },
+      { "from": "hdw", "to": "sec", "path": "product" },
+      { "from": "hdw", "to": "bi", "path": "product" },
+      { "from": "hdw", "to": "reg", "path": "product" },
+      { "from": "hdw", "to": "loansys", "path": "product" },
+      { "from": "ecl", "to": "reg", "path": "other" },
+      { "from": "sec", "to": "treas", "path": "product" },
+      { "from": "reg", "to": "risk", "path": "other" },
+      { "from": "bi", "to": "fin", "path": "other" }
+    ],
+    "platforms": ["On-premise SQL Server", "SSIS", "File transfer server", "Workday tenant", "OneStream cloud"],
+    "principles": [
+      { "principle": "Apply the accounting rules once, to the source transactions", "today": "Rules run in the ETL jobs, the legacy engine and the warehouse." },
+      { "principle": "Keep balances reconciled by design, with one golden source", "today": "The GL and the warehouse are reconciled by hand; securitization reads the warehouse." }
+    ]
+  },
+  "target": {
+    "headline": "One accounting hub on the data fabric applies the rules once and feeds Workday and OneStream from a single reconciled source.",
+    "lede": "Sources land once through data contracts, are conformed into the Financial Information Model, and are accounted in the hub under versioned rules. The GL receives journals at the agreed grain, and every other consumer reads the same golden source.",
+    "so_what": {
+      "text": "Rules move from three code bases into one governed accounting matrix, and the warehouse-to-GL reconciliation disappears because both read the same journal lines.",
+      "trade_off": "The hub needs data platform engineering and accounting rule ownership that Northwind does not staff today; the GL-native engine option needs less new skill but leaves non-GL reporting on a separate path."
+    },
+    "ownership": [
+      { "responsibility": "intake", "component": "Fabric ingestion with data contracts", "record": "Raw landing (bronze)", "status": "hypothesis" },
+      { "responsibility": "rules", "component": "Accounting hub rule engine (product to confirm)", "record": "Hub sub-ledger", "status": "decision_required" },
+      { "responsibility": "posting", "component": "Posting adapter to Workday Financials", "record": "Workday Financials", "status": "hypothesis" }
+    ]
+  },
+  "fim": {
+    "headline": "A contract-grain information model lets the GL, risk and securitization read the same facts.",
+    "lede": "The Financial Information Model holds every contract once, with its parties, product, organisation, events, balances and risk measures, so accounting and reporting stop rebuilding them separately.",
+    "so_what": {
+      "text": "Analytical attributes such as ECL stage, vintage and investor code stay in the model instead of becoming GL segments, which keeps the chart of accounts small.",
+      "trade_off": "A contract-grain model is a larger data design effort up front than mapping file to file."
+    }
+  },
+  "maf": {
+    "headline": "The Master Accounting Flow for merchant cards covers 17 events, proven before instalment loans reuse the same method.",
+    "lede": "Each product is walked from onboarding to close. Every event names its trigger, its balanced journal, the controls that apply and the attributes kept but not posted. Event counts are a draft until validated with Product and Finance.",
+    "so_what": {
+      "text": "9 events are manual today and 4 exception paths are modelled explicitly, which is where the close effort and the audit findings concentrate.",
+      "trade_off": "Modelling every event, including exceptions, takes workshop time from Product and Finance before any build starts."
+    },
+    "products": [
+      {
+        "name": "Merchant credit cards",
+        "source": "CardCore",
+        "catalogue": "draft",
+        "open_items": ["Rewards accrual treatment not yet agreed", "Foreign-currency purchases excluded from the proof of concept"],
+        "stages": [
+          { "name": "Onboard", "events": [
+            { "id": "c-open", "name": "Account opened", "trigger": "New account record (account id, product, limit)", "frequency": "Daily", "handled_today": "ETL jobs", "memo": true, "route": "FIM contract created; no journal.", "fim": ["Contract", "Party", "Product"], "attributes": ["channel", "vintage"], "controls": ["C1", "C2"], "treatment": "No accounting entry", "balance": "None", "report": "Portfolio dashboard" },
+            { "id": "c-annfee", "name": "Annual fee charged", "trigger": "Fee transaction (fee code AF, amount)", "frequency": "Monthly", "handled_today": "ETL jobs", "lines": [
+              { "side": "Dr", "account": "Card receivables", "gl_format": "100-11050-2100-MCARD", "factor": 1 },
+              { "side": "Cr", "account": "Card fee income", "gl_format": "100-41010-2100-MCARD", "factor": 1 } ],
+              "route": "Hub sub-ledger, summarised daily to Workday by account and cost centre.", "fim": ["Contract", "Business event", "Balance"], "attributes": ["channel"], "controls": ["C1", "C3", "C5"], "treatment": "Fee income recognised over the fee period [to confirm]", "balance": "Card receivables", "report": "Income statement, fee income" } ] },
+          { "name": "Use", "events": [
+            { "id": "c-purch", "name": "Purchase posted", "trigger": "Authorised and settled purchase (txn id, amount, merchant)", "frequency": "Daily", "handled_today": "ETL jobs and legacy engine", "lines": [
+              { "side": "Dr", "account": "Card receivables", "gl_format": "100-11050-2100-MCARD", "factor": 1 },
+              { "side": "Cr", "account": "Merchant settlement payable", "gl_format": "100-21010-2100-MCARD", "factor": 1 } ],
+              "route": "Hub sub-ledger, summarised daily.", "fim": ["Contract", "Business event", "Balance"], "attributes": ["merchant category"], "controls": ["C1", "C2", "C3", "C9"], "treatment": "Receivable recognised at settlement", "balance": "Card receivables", "report": "Balance sheet, receivables" },
+            { "id": "c-cash", "name": "Cash advance", "trigger": "Cash advance transaction (txn id, amount)", "frequency": "Daily", "handled_today": "ETL jobs", "lines": [
+              { "side": "Dr", "account": "Card receivables", "gl_format": "100-11050-2100-MCARD", "factor": 1 },
+              { "side": "Cr", "account": "Cash clearing", "gl_format": "100-10120-2100-MCARD", "factor": 1 } ],
+              "route": "Hub sub-ledger, summarised daily.", "fim": ["Contract", "Business event"], "attributes": [], "controls": ["C1", "C3"], "treatment": "Receivable recognised at advance", "balance": "Card receivables", "report": "Balance sheet, receivables" },
+            { "id": "c-dup", "name": "Duplicate purchase file rejected", "trigger": "Second file with the same batch id and hash", "frequency": "On occurrence", "handled_today": "Found at reconciliation", "manual": true, "memo": true, "exception": true, "route": "Rejected at ingest and logged; no journal.", "fim": ["Business event"], "attributes": [], "controls": ["C1", "C9", "C16"], "treatment": "No accounting entry; idempotent rejection", "balance": "None", "report": "Interface exception log" } ] },
+          { "name": "Bill", "events": [
+            { "id": "c-int", "name": "Interest accrued", "trigger": "Daily accrual (balance, APR, day count)", "frequency": "Daily", "handled_today": "Legacy engine", "lines": [
+              { "side": "Dr", "account": "Interest receivable", "gl_format": "100-11060-2100-MCARD", "factor": 0.02 },
+              { "side": "Cr", "account": "Card interest income", "gl_format": "100-40010-2100-MCARD", "factor": 0.02 } ],
+              "route": "Hub sub-ledger, summarised daily.", "fim": ["Contract", "Rate & pricing", "Balance"], "attributes": ["FTP rate"], "controls": ["C3", "C6"], "dates": "Effective: accrual date; accounting: open period", "treatment": "Effective interest on the drawn balance", "balance": "Interest receivable", "report": "Income statement, interest income" },
+            { "id": "c-stmt", "name": "Statement cycle closed", "trigger": "Cycle date reached", "frequency": "Monthly", "handled_today": "CardCore", "memo": true, "route": "FIM balance snapshot; no journal.", "fim": ["Balance"], "attributes": ["cycle"], "controls": ["C6"], "treatment": "No accounting entry", "balance": "Statement balance (memo)", "report": "Customer statement" } ] },
+          { "name": "Pay", "events": [
+            { "id": "c-pay", "name": "Payment received", "trigger": "Payment record (payment id, amount, channel)", "frequency": "Intraday", "handled_today": "ETL jobs", "lines": [
+              { "side": "Dr", "account": "Cash clearing", "gl_format": "100-10120-2100-MCARD", "factor": 1 },
+              { "side": "Cr", "account": "Card receivables", "gl_format": "100-11050-2100-MCARD", "factor": 1 } ],
+              "route": "Hub sub-ledger, summarised daily.", "fim": ["Contract", "Business event", "Balance"], "attributes": ["channel"], "controls": ["C1", "C3", "C4"], "treatment": "Receivable reduced", "balance": "Card receivables", "report": "Balance sheet, receivables" },
+            { "id": "c-nsf", "name": "Payment reversed (returned)", "trigger": "Return record linked to the original payment id", "frequency": "On occurrence", "handled_today": "ETL jobs", "exception": true, "lines": [
+              { "side": "Dr", "account": "Card receivables", "gl_format": "100-11050-2100-MCARD", "factor": 1 },
+              { "side": "Cr", "account": "Cash clearing", "gl_format": "100-10120-2100-MCARD", "factor": 1 } ],
+              "route": "Hub sub-ledger; reversal linked to the original line.", "fim": ["Contract", "Business event"], "attributes": [], "controls": ["C3", "C11"], "reversal": "Full reversal of the original payment lines, linked by payment id", "treatment": "Reverse the payment", "balance": "Card receivables", "report": "Balance sheet, receivables" } ] },
+          { "name": "Service", "events": [
+            { "id": "c-waive", "name": "Fee waiver", "trigger": "Service request approved (fee id, reason)", "frequency": "On request", "handled_today": "Manual adjustment file", "manual": true, "lines": [
+              { "side": "Dr", "account": "Card fee income", "gl_format": "100-41010-2100-MCARD", "factor": 1 },
+              { "side": "Cr", "account": "Card receivables", "gl_format": "100-11050-2100-MCARD", "factor": 1 } ],
+              "route": "Governed adjustment in the hub with maker-checker.", "fim": ["Contract", "Business event"], "attributes": ["reason code"], "controls": ["C7", "C10"], "treatment": "Reverse fee income", "balance": "Card receivables", "report": "Income statement, fee income" },
+            { "id": "c-disp", "name": "Back-dated dispute credit", "trigger": "Dispute record with an effective date in a closed period", "frequency": "On occurrence", "handled_today": "Manual adjustment file", "exception": true, "lines": [
+              { "side": "Dr", "account": "Dispute suspense", "gl_format": "100-22050-2100-MCARD", "factor": 1 },
+              { "side": "Cr", "account": "Card receivables", "gl_format": "100-11050-2100-MCARD", "factor": 1 } ],
+              "route": "Hub sub-ledger in the open period, effective date kept.", "fim": ["Contract", "Business event"], "attributes": [], "controls": ["C6", "C11", "C14"], "dates": "Effective: dispute date (closed period); accounting: current open period", "treatment": "Credit the receivable in the open period", "balance": "Card receivables", "report": "Balance sheet, receivables" } ] },
+          { "name": "Delinquency & ECL", "events": [
+            { "id": "c-stage", "name": "Stage 1 to stage 2 transfer", "trigger": "ECL engine stage change (account id, stage)", "frequency": "Monthly", "handled_today": "ECL engine", "memo": true, "route": "FIM risk measure updated; no journal.", "fim": ["Risk measures"], "attributes": ["ECL stage", "PD / LGD"], "controls": ["C4"], "treatment": "No accounting entry; drives the allowance", "balance": "None", "report": "ECL disclosure" },
+            { "id": "c-ecl", "name": "ECL allowance top-up", "trigger": "Monthly ECL result by account", "frequency": "Monthly", "handled_today": "Manual journal from the ECL engine", "manual": true, "variant": "All entities; IFRS 9 primary, US GAAP delta", "lines": [
+              { "ledger": "IFRS", "side": "Dr", "account": "ECL expense", "gl_format": "100-51010-2100-MCARD", "factor": 0.05 },
+              { "ledger": "IFRS", "side": "Cr", "account": "ECL allowance", "gl_format": "100-11090-2100-MCARD", "factor": 0.05 },
+              { "ledger": "US GAAP delta", "side": "Dr", "account": "ECL expense", "gl_format": "900-51010-2100-MCARD", "factor": 0.01 },
+              { "ledger": "US GAAP delta", "side": "Cr", "account": "ECL allowance", "gl_format": "900-11090-2100-MCARD", "factor": 0.01 } ],
+              "route": "Hub sub-ledger per ledger, summarised monthly.", "fim": ["Risk measures", "Balance"], "attributes": ["ECL stage"], "controls": ["C3", "C5", "C7"], "treatment": "IFRS 9 stage-based allowance; CECL lifetime difference in the delta ledger [to confirm]", "balance": "ECL allowance", "report": "Balance sheet, allowance; ECL note" } ] },
+          { "name": "Charge-off & recovery", "events": [
+            { "id": "c-co", "name": "Charge-off", "trigger": "Collections charge-off recommendation approved", "frequency": "Monthly", "handled_today": "Manual adjustment file", "manual": true, "lines": [
+              { "side": "Dr", "account": "ECL allowance", "gl_format": "100-11090-2100-MCARD", "factor": 1 },
+              { "side": "Cr", "account": "Card receivables", "gl_format": "100-11050-2100-MCARD", "factor": 1 } ],
+              "route": "Hub sub-ledger with approval evidence.", "fim": ["Contract", "Balance"], "attributes": ["days past due"], "controls": ["C3", "C10"], "treatment": "Write off against the allowance", "balance": "Card receivables, ECL allowance", "report": "Credit quality note" },
+            { "id": "c-rec", "name": "Recovery received", "trigger": "Recovery payment on a charged-off account", "frequency": "Daily", "handled_today": "ETL jobs", "lines": [
+              { "side": "Dr", "account": "Cash clearing", "gl_format": "100-10120-2100-MCARD", "factor": 1 },
+              { "side": "Cr", "account": "Recoveries", "gl_format": "100-41090-2100-MCARD", "factor": 1 } ],
+              "route": "Hub sub-ledger, summarised daily.", "fim": ["Contract", "Business event"], "attributes": [], "controls": ["C1", "C3"], "treatment": "Recovery recognised in profit or loss", "balance": "Recoveries", "report": "Income statement, recoveries" } ] },
+          { "name": "Securitize", "events": [
+            { "id": "c-sell", "name": "Receivables sold to trust", "trigger": "Monthly pool cut (pool id, accounts, amount)", "frequency": "Monthly", "handled_today": "Data warehouse", "lines": [
+              { "side": "Dr", "account": "Due from securitization trust", "gl_format": "100-11300-2100-MCARD", "factor": 1 },
+              { "side": "Cr", "account": "Card receivables", "gl_format": "100-11050-2100-MCARD", "factor": 1 } ],
+              "route": "Hub sub-ledger; investor code kept in the FIM.", "fim": ["Securitization / pool", "Contract"], "attributes": ["investor code", "series"], "controls": ["C4", "C8"], "treatment": "Derecognition depends on the trust structure [to confirm]", "balance": "Due from trust", "report": "Investor report" } ] },
+          { "name": "Close", "events": [
+            { "id": "c-close", "name": "Account closed", "trigger": "Closure record (account id, reason)", "frequency": "Daily", "handled_today": "CardCore", "memo": true, "route": "FIM contract status updated; no journal.", "fim": ["Contract"], "attributes": [], "controls": ["C4"], "treatment": "No accounting entry", "balance": "None", "report": "Portfolio dashboard" } ] }
+        ]
+      },
+      {
+        "name": "Instalment loans",
+        "source": "LoanSys",
+        "catalogue": "draft",
+        "stages": [
+          { "name": "Originate", "events": [
+            { "id": "l-appr", "name": "Loan approved", "trigger": "Approval record (loan id, amount, term)", "frequency": "Daily", "handled_today": "LoanSys", "memo": true, "route": "FIM contract created; no journal.", "fim": ["Contract", "Party", "Product"], "attributes": ["channel", "vintage"], "controls": ["C1", "C2"], "treatment": "No accounting entry", "balance": "None", "report": "Origination dashboard" },
+            { "id": "l-fee", "name": "Origination fee deferred", "trigger": "Fee charged at booking", "frequency": "Daily", "handled_today": "ETL jobs", "lines": [
+              { "side": "Dr", "account": "Cash clearing", "gl_format": "100-10120-2200-INST", "factor": 0.02 },
+              { "side": "Cr", "account": "Deferred origination fees", "gl_format": "100-23010-2200-INST", "factor": 0.02 } ],
+              "route": "Hub sub-ledger, summarised daily.", "fim": ["Contract", "Business event"], "attributes": [], "controls": ["C3"], "treatment": "Deferred and amortised through effective interest", "balance": "Deferred fees", "report": "Balance sheet, loans" } ] },
+          { "name": "Disburse", "events": [
+            { "id": "l-disb", "name": "Loan disbursed", "trigger": "Disbursement record (loan id, amount)", "frequency": "Daily", "handled_today": "ETL jobs", "lines": [
+              { "side": "Dr", "account": "Loan receivable", "gl_format": "100-12010-2200-INST", "factor": 1 },
+              { "side": "Cr", "account": "Cash clearing", "gl_format": "100-10120-2200-INST", "factor": 1 } ],
+              "route": "Hub sub-ledger, summarised daily.", "fim": ["Contract", "Balance"], "attributes": [], "controls": ["C1", "C3", "C4"], "treatment": "Loan recognised at amortised cost", "balance": "Loan receivable", "report": "Balance sheet, loans" } ] },
+          { "name": "Accrue", "events": [
+            { "id": "l-int", "name": "Interest accrued", "trigger": "Daily accrual (balance, rate)", "frequency": "Daily", "handled_today": "Legacy engine", "lines": [
+              { "side": "Dr", "account": "Loan interest receivable", "gl_format": "100-12060-2200-INST", "factor": 0.01 },
+              { "side": "Cr", "account": "Loan interest income", "gl_format": "100-40020-2200-INST", "factor": 0.01 } ],
+              "route": "Hub sub-ledger, summarised daily.", "fim": ["Contract", "Rate & pricing"], "attributes": ["FTP rate"], "controls": ["C3", "C6"], "treatment": "Effective interest", "balance": "Interest receivable", "report": "Income statement, interest income" },
+            { "id": "l-amort", "name": "Deferred fee amortised", "trigger": "Monthly amortisation schedule", "frequency": "Monthly", "handled_today": "Manual adjustment file", "manual": true, "lines": [
+              { "side": "Dr", "account": "Deferred origination fees", "gl_format": "100-23010-2200-INST", "factor": 0.001 },
+              { "side": "Cr", "account": "Loan interest income", "gl_format": "100-40020-2200-INST", "factor": 0.001 } ],
+              "route": "Hub sub-ledger, summarised monthly.", "fim": ["Contract"], "attributes": [], "controls": ["C3", "C7"], "treatment": "Part of effective interest income", "balance": "Deferred fees", "report": "Income statement, interest income" } ] },
+          { "name": "Repay", "events": [
+            { "id": "l-inst", "name": "Instalment received", "trigger": "Payment record (loan id, amount)", "frequency": "Daily", "handled_today": "ETL jobs", "lines": [
+              { "side": "Dr", "account": "Cash clearing", "gl_format": "100-10120-2200-INST", "factor": 1 },
+              { "side": "Cr", "account": "Loan receivable", "gl_format": "100-12010-2200-INST", "factor": 0.8 },
+              { "side": "Cr", "account": "Loan interest receivable", "gl_format": "100-12060-2200-INST", "factor": 0.2 } ],
+              "route": "Hub sub-ledger, summarised daily.", "fim": ["Contract", "Balance"], "attributes": [], "controls": ["C1", "C3", "C4"], "treatment": "Split between principal and interest", "balance": "Loan receivable", "report": "Balance sheet, loans" },
+            { "id": "l-late", "name": "Late file re-run", "trigger": "Payment file received after the cut-off and re-run", "frequency": "On occurrence", "handled_today": "Manual re-run", "manual": true, "memo": true, "exception": true, "route": "Replayed events matched to originals; no new journal.", "fim": ["Business event"], "attributes": [], "controls": ["C6", "C9", "C11"], "treatment": "No duplicate entry; late events post to the open period", "balance": "None", "report": "Interface exception log" } ] },
+          { "name": "Modify", "events": [
+            { "id": "l-mod", "name": "Payment holiday granted", "trigger": "Modification record (loan id, new schedule)", "frequency": "On request", "handled_today": "Manual adjustment file", "manual": true, "memo": true, "route": "FIM schedule updated; modification gain or loss assessed [to confirm].", "fim": ["Contract"], "attributes": ["forbearance flag"], "controls": ["C7"], "treatment": "Modification assessment under IFRS 9 [to confirm]", "balance": "None", "report": "Forbearance report" } ] },
+          { "name": "Delinquency & ECL", "events": [
+            { "id": "l-ecl", "name": "ECL allowance top-up", "trigger": "Monthly ECL result by loan", "frequency": "Monthly", "handled_today": "Manual journal", "manual": true, "lines": [
+              { "side": "Dr", "account": "ECL expense", "gl_format": "100-51010-2200-INST", "factor": 0.03 },
+              { "side": "Cr", "account": "ECL allowance", "gl_format": "100-12090-2200-INST", "factor": 0.03 } ],
+              "route": "Hub sub-ledger, summarised monthly.", "fim": ["Risk measures"], "attributes": ["ECL stage", "PD / LGD"], "controls": ["C3", "C5"], "treatment": "IFRS 9 stage-based allowance", "balance": "ECL allowance", "report": "ECL note" } ] },
+          { "name": "Write-off & close", "events": [
+            { "id": "l-wo", "name": "Loan written off", "trigger": "Write-off approval", "frequency": "Monthly", "handled_today": "Manual adjustment file", "manual": true, "lines": [
+              { "side": "Dr", "account": "ECL allowance", "gl_format": "100-12090-2200-INST", "factor": 1 },
+              { "side": "Cr", "account": "Loan receivable", "gl_format": "100-12010-2200-INST", "factor": 1 } ],
+              "route": "Hub sub-ledger with approval evidence.", "fim": ["Contract", "Balance"], "attributes": ["days past due"], "controls": ["C3", "C10"], "treatment": "Write off against the allowance", "balance": "Loan receivable", "report": "Credit quality note" },
+            { "id": "l-close", "name": "Loan repaid and closed", "trigger": "Zero balance and closure", "frequency": "Daily", "handled_today": "LoanSys", "memo": true, "route": "FIM contract closed; no journal.", "fim": ["Contract"], "attributes": [], "controls": ["C4"], "treatment": "No accounting entry", "balance": "None", "report": "Portfolio dashboard" } ] }
+        ]
+      }
+    ]
+  },
+  "migration": {
+    "headline": "A proof of concept on merchant cards, then three waves and a four-stage parallel run, retires the legacy rules safely.",
+    "lede": "Each wave runs in shadow and parallel against the legacy results before cutover. Durations, thresholds and savings stay to be sized until the proof of concept gives a baseline.",
+    "so_what": {
+      "text": "The parallel run turns retirement of three code bases into a measured decision: each component is switched off only when its exit thresholds hold.",
+      "trade_off": "Running legacy and hub side by side doubles the run effort for the parallel period."
+    },
+    "waves": [
+      { "id": "W0", "name": "Proof of concept: merchant cards", "scope": "CardCore events through the hub to a Workday test tenant, with drill-back.", "exit": "Hub reproduces one month of legacy card journals within the agreed thresholds.", "duration": "[to size]" },
+      { "id": "W1", "name": "Cards and payments", "scope": "CardCore and the payments switch in production shadow and parallel.", "exit": "Two closes inside the exit thresholds." },
+      { "id": "W2", "name": "Instalment loans", "scope": "LoanSys events reusing the card method.", "exit": "Two closes inside the exit thresholds." },
+      { "id": "W3", "name": "Collections, ECL and securitization", "scope": "Collections, ECL results and securitization reporting from the golden source.", "exit": "Investor and regulatory reports agree to the GL by design." },
+      { "id": "W4", "name": "Decommission", "scope": "Retire the ETL posting logic, the legacy engine and the warehouse accounting.", "exit": "Legacy jobs off and archived; run cost released." }
+    ],
+    "legacy": [
+      { "component": "ETL jobs", "disposition": "Retire", "target": "Fabric ingestion with data contracts", "note": "Posting logic removed; transport replaced" },
+      { "component": "Legacy accounting engine", "disposition": "Replace", "target": "Accounting hub rule engine" },
+      { "component": "Data warehouse (accounting logic)", "disposition": "Consolidate", "target": "Golden source on the fabric", "note": "Reporting marts kept until W3" },
+      { "component": "Manual adjustment files", "disposition": "Retire", "target": "Governed adjustments in the hub" },
+      { "component": "Close and consolidation", "disposition": "Retain", "target": "OneStream, repointed to the hub drill-back" }
+    ]
+  },
+  "confirm": [
+    { "area": "architecture", "item": "Confirm the current-state landscape with Northwind's architecture team; this view is a hypothesis." },
+    { "area": "architecture", "item": "Choose the accounting hub rule engine product and the data platform." },
+    { "area": "accounting_policy", "item": "Agree the securitization derecognition treatment and the rewards accrual policy." },
+    { "area": "accounting_policy", "item": "Agree the GL posting grain with Finance and Technology." },
+    { "area": "business_case", "item": "Obtain the run-cost baseline before any saving is shown." }
+  ]
+}
