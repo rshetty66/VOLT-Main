@@ -176,7 +176,12 @@ export function knowledgeNote(projectId: string | undefined): string {
 export const WEB_MAX_BYTES = 25 * 1024 * 1024;
 const WEB_TIMEOUT_MS = 15_000;
 
-export class WebSourceError extends Error {}
+export class WebSourceError extends Error {
+  /** The site's HTTP status, when the site answered with an error. */
+  constructor(message: string, readonly status?: number) {
+    super(message);
+  }
+}
 
 /** True for loopback, private, link-local, carrier-grade NAT, multicast, reserved and metadata addresses. */
 export function isPrivateAddress(ip: string): boolean {
@@ -238,7 +243,7 @@ export async function fetchPublic(raw: string, redirects = 3): Promise<{ bytes: 
   }
   if (status !== 200) {
     res.resume();
-    throw new WebSourceError(`The site answered ${status}, so the page could not be added.`);
+    throw new WebSourceError(`The site answered ${status}, so the page could not be added.`, status);
   }
   const parts: Buffer[] = [];
   let size = 0;
@@ -280,5 +285,44 @@ export function htmlText(html: string): { title: string; text: string } {
     .map((l) => l.replace(/[ \t ]+/g, " ").trim())
     .filter(Boolean)
     .join("\n");
+  return { title, text };
+}
+
+// ── Rendered fallback (ScrapeGraph) ──────────────────────────────────────────
+// Used only when SCRAPEGRAPH_API_KEY is set, and only for a page the plain fetch above could not read: a page built by
+// JavaScript (no readable text) or a site that refuses bots (401, 403, 429, 503). The same URL checks apply first.
+// The URL goes to ScrapeGraph, so only public pages reach it; the knowledge base accepts nothing else.
+// Cost: 1 credit per page (markdown); failed calls are free.
+
+export const SCRAPEGRAPH_URL = "https://v2-api.scrapegraphai.com/api/scrape";
+const RENDER_STATUSES = new Set([401, 403, 429, 503]);
+
+export const renderingEnabled = () => Boolean(process.env.SCRAPEGRAPH_API_KEY?.trim());
+
+/** True when a failed plain fetch is worth one rendered try. */
+export const shouldRender = (err: unknown) => renderingEnabled() && err instanceof WebSourceError && err.status !== undefined && RENDER_STATUSES.has(err.status);
+
+/** A public page rendered in a browser by ScrapeGraph, as its title (first heading) and markdown text. */
+export async function renderPage(raw: string, fetcher: typeof fetch = fetch): Promise<{ title: string; text: string }> {
+  const key = process.env.SCRAPEGRAPH_API_KEY?.trim();
+  if (!key) throw new WebSourceError("Rendering is not set up (SCRAPEGRAPH_API_KEY).");
+  const u = checkUrl(raw);
+  let res: Response;
+  try {
+    res = await fetcher(SCRAPEGRAPH_URL, {
+      method: "POST",
+      headers: { "content-type": "application/json", "SGAI-APIKEY": key },
+      body: JSON.stringify({ url: u.toString(), formats: [{ type: "markdown" }], fetchConfig: { mode: "js", timeout: 30_000 } }),
+      signal: AbortSignal.timeout(45_000),
+    });
+  } catch (err) {
+    throw new WebSourceError(`The page could not be rendered (${(err as Error).message}).`);
+  }
+  if (!res.ok) throw new WebSourceError(`The rendering service answered ${res.status}, so the page could not be added.`);
+  const body = (await res.json().catch(() => ({}))) as { results?: { markdown?: { data?: unknown } } };
+  const data = body.results?.markdown?.data;
+  const text = (Array.isArray(data) ? data.filter((d): d is string => typeof d === "string").join("\n") : "").trim().slice(0, WEB_MAX_BYTES);
+  if (text.length < 40) throw new WebSourceError("No readable text was found on that page, even after rendering it.");
+  const title = text.match(/^#{1,2}\s+(.+)$/m)?.[1].trim() ?? "";
   return { title, text };
 }
