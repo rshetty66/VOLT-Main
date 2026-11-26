@@ -1,3 +1,4 @@
+import { toast } from "../ui";
 import { useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 import { evidenceGates } from "../../shared/research";
@@ -18,13 +19,16 @@ import { AgentPicker } from "./AgentPicker";
 import { ATTACH_EXTENSIONS, ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../../shared/attachments";
 
 const EXAMPLES = [
-  "Our month-end close takes 12 days on SAP S/4HANA and DSO is 55. Build a plan to reach a 5-day close.",
-  "We are a Canadian bank preparing our OSFI BCAR submission. Where are the biggest capital reporting risks?",
-  "Design the Day 1 finance readiness plan for a $2B acquisition with a 12-month TSA.",
-  "Build a value case: 140 finance FTEs at $115K loaded cost, 25% automation, $6M one-time investment.",
+  { tag: "Close and cash", icon: "◷", text: "Our month-end close takes 12 days on SAP S/4HANA and DSO is 55. Build a plan to reach a 5-day close." },
+  { tag: "Regulatory", icon: "⚖", text: "We are a Canadian bank preparing our OSFI BCAR submission. Where are the biggest capital reporting risks?" },
+  { tag: "M&A", icon: "⇄", text: "Design the Day 1 finance readiness plan for a $2B acquisition with a 12-month TSA." },
+  { tag: "Value case", icon: "Σ", text: "Build a value case: 140 finance FTEs at $115K loaded cost, 25% automation, $6M one-time investment." },
 ];
 
 interface Props {
+  /** The latest saved chats, shown on the empty home screen. */
+  recent?: Run[];
+  onOpenRecent?: (run: Run) => void;
   catalog: CatalogResponse;
   runs: Run[];
   target: string;
@@ -35,7 +39,7 @@ interface Props {
   onOpenAgent: (id: string) => void;
 }
 
-export function Console({ catalog, runs, target, setTarget, live, onStart, onStop, onOpenAgent }: Props) {
+export function Console({ catalog, runs, target, setTarget, live, onStart, onStop, onOpenAgent, recent = [], onOpenRecent }: Props) {
   const [prompt, setPrompt] = useState("");
   const [files, setFiles] = useState<{ name: string; text: string; chars: number; truncated: boolean; id?: string }[]>([]);
   const [reading, setReading] = useState(0);
@@ -128,21 +132,35 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               <b>Demo mode.</b> Routing, benchmarks and workflow steps are real; the written analysis is simulated.
             </div>
           )}
-          <div className="examples">
+          <div className="starters">
             {EXAMPLES.map((e) => (
               <button
-                key={e}
-                className="btn ghost card"
+                key={e.tag}
+                className="starter"
                 title="Put this example in the message box to edit it"
                 onClick={() => {
-                  setPrompt(e);
+                  setPrompt(e.text);
                   promptBox.current?.focus();
                 }}
               >
-                {e}
+                <span className="starter-tag">
+                  <span aria-hidden="true">{e.icon}</span> {e.tag}
+                </span>
+                <span>{e.text}</span>
               </button>
             ))}
           </div>
+          {recent.length > 0 && (
+            <div className="stack" style={{ gap: 6 }}>
+              <div className="micro">Pick up where you left off</div>
+              {recent.map((r) => (
+                <button key={r.id} className="recent" onClick={() => onOpenRecent?.(r)}>
+                  <span className="recent-title">{r.prompt}</span>
+                  <span className="muted">{new Date(r.startedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
+                </button>
+              ))}
+            </div>
+          )}
           <details className="section prompt-ideas">
             <summary>More prompt ideas</summary>
             <div className="section-body stack">
@@ -297,8 +315,9 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
     if (!text) return;
     try {
       window.dispatchEvent(new CustomEvent("volt:project", { detail: await addMemory(text) }));
+      toast("Saved to project memory");
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : String(e));
+      toast(e instanceof Error ? e.message : String(e), "error");
     }
   };
   // When a run finishes, bring its end into view above the pinned message box.

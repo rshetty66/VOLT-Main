@@ -1,3 +1,4 @@
+import { confirmDialog, toast } from "./ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../shared/events";
 import { fetchCatalog, listTemplates, streamRun, UnauthorizedError } from "./api";
@@ -30,6 +31,14 @@ export type View = "console" | "workflows" | "agents" | "skills" | "services" | 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
   const [loadError, setLoadError] = useState("");
+  const [theme, setTheme] = useState<"dark" | "light">(() => (localStorage.getItem("volt.theme") === "light" ? "light" : "dark"));
+  const [present, setPresent] = useState(() => localStorage.getItem("volt.present") === "on");
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.dataset.present = present ? "on" : "off";
+    localStorage.setItem("volt.theme", theme);
+    localStorage.setItem("volt.present", present ? "on" : "off");
+  }, [theme, present]);
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const [authMode, setAuthMode] = useState<"token" | "username">("token");
   const [view, setView] = useState<View>("console");
@@ -151,10 +160,16 @@ export function App() {
     [forceDemo, forceOpus, activeTemplate, projectId, catalog],
   );
 
+  const openRun = (run: Run) => {
+    saved.current.set(run.id, `${run.state}:${run.text.length}:${run.finishedAt ?? 0}`);
+    setRuns((rs) => (rs.some((r) => r.id === run.id) ? rs : [...rs, run]));
+    setView("console");
+  };
+
   /** A new chat: the screen is cleared and the next question starts a fresh conversation. Earlier chats stay in History. */
-  const newChat = () => {
+  const newChat = async (): Promise<boolean> => {
     const working = runs.some((r) => r.state === "running");
-    if (working && !window.confirm("A run is still working. Stop it and start a new chat?")) return false;
+    if (working && !(await confirmDialog("A run is still working. Stop it and start a new chat?", "Stop and start"))) return false;
     controllers.current.forEach((c) => c.abort());
     sessions.current.clear();
     setRuns([]);
@@ -173,10 +188,10 @@ export function App() {
         setProjects((ps) => [...ps, p]);
         id = p.id;
       } catch (e) {
-        return void window.alert(e instanceof Error ? e.message : String(e));
+        return void toast(e instanceof Error ? e.message : String(e), "error");
       }
     }
-    if (id === projectId || !newChat()) return;
+    if (id === projectId || !(await newChat())) return;
     setActiveProject(id);
     setProjectId(id);
   };
@@ -188,7 +203,18 @@ export function App() {
 
   if (needsSignIn) return <SignIn mode={authMode} onSignedIn={load} />;
   if (loadError) return <div className="empty">Could not load the VOLT catalog: {loadError}</div>;
-  if (!catalog) return <div className="empty"><span className="spinner" /> Loading VOLT capabilities…</div>;
+  if (!catalog)
+    return (
+      <div className="skeleton-page" role="status" aria-label="Loading VOLT capabilities">
+        <div className="skeleton" style={{ height: 36, width: 220 }} />
+        <div className="skeleton" style={{ height: 18, width: "60%" }} />
+        <div className="skeleton-grid">
+          {[0, 1, 2, 3].map((n) => (
+            <div key={n} className="skeleton" style={{ height: 96 }} />
+          ))}
+        </div>
+      </div>
+    );
 
   const live = catalog.mode === "live" && !forceDemo;
   const nav: [View, string, number | string][] = [
@@ -219,12 +245,12 @@ export function App() {
           {live ? (catalog.routing ? "Auto" : catalog.model) : "offline simulator"}
         </span>
         {catalog.mode === "live" && (
-          <label className="row body" style={{ fontSize: 12 }}>
+          <label className="row body admin-only" style={{ fontSize: 12 }}>
             <input type="checkbox" checked={forceDemo} onChange={(e) => setForceDemo(e.target.checked)} /> demo
           </label>
         )}
         {live && (
-          <label className="row body" style={{ fontSize: 12 }} title="Run every step on Opus instead of letting VOLT pick the model. A chat that has used Opus stays on Opus.">
+          <label className="row body admin-only" style={{ fontSize: 12 }} title="Run every step on Opus instead of letting VOLT pick the model. A chat that has used Opus stays on Opus.">
             <input type="checkbox" checked={forceOpus} onChange={(e) => setForceOpus(e.target.checked)} /> Opus
           </label>
         )}
@@ -250,12 +276,18 @@ export function App() {
             ))}
           </select>
         </label>
+        <button className="btn ghost sm" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Switch between the dark and light theme" aria-pressed={theme === "light"}>
+          {theme === "dark" ? "Light theme" : "Dark theme"}
+        </button>
+        <button className="btn ghost sm" onClick={() => setPresent(!present)} title="Hide cost, tokens, model names and admin screens before showing the console to a client" aria-pressed={present}>
+          {present ? "Exit presentation" : "Presentation mode"}
+        </button>
       </header>
       <nav className="nav">
         <button className="btn primary new-chat" onClick={newChat}>
           + New chat
         </button>
-        {nav.map(([id, label, count], i) => (
+        {nav.filter(([id]) => !(present && (id === "usage" || id === "health" || id === "ledger"))).map(([id, label, count], i) => (
           <div key={id} style={{ display: "contents" }}>
             {i === 1 && <div className="sep" />}
             <button className={view === id ? "active" : ""} onClick={() => setView(id)}>
@@ -274,7 +306,7 @@ export function App() {
       <TemplateContext.Provider value={activeTemplate}>
       <main className="main">
         {view === "console" && (
-          <Console catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} />
+          <Console recent={history.slice(0, 3)} onOpenRecent={openRun} catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} />
         )}
         {view === "workflows" && <Workflows catalog={catalog} onLaunch={start} onOpenAgent={setOpenAgent} />}
         {view === "agents" && <Agents catalog={catalog} onOpen={setOpenAgent} />}
@@ -287,11 +319,7 @@ export function App() {
             projectId={projectId}
             projectName={projects.find((p) => p.id === projectId)?.name ?? "General"}
             history={history}
-            onOpen={(run) => {
-              saved.current.set(run.id, `${run.state}:${run.text.length}:${run.finishedAt ?? 0}`);
-              setRuns((rs) => (rs.some((r) => r.id === run.id) ? rs : [...rs, run]));
-              setView("console");
-            }}
+            onOpen={openRun}
             onDeleted={(id) => {
               setHistory((h) => h.filter((r) => r.id !== id));
               setRuns((rs) => rs.filter((r) => r.id !== id));
