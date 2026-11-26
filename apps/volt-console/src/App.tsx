@@ -1,7 +1,7 @@
 import { confirmDialog, toast } from "./ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../shared/events";
-import { fetchCatalog, listTemplates, streamRun, UnauthorizedError } from "./api";
+import { fetchCatalog, listTemplates, listUploads, streamRun, UnauthorizedError } from "./api";
 import { SignIn } from "./components/SignIn";
 import { History } from "./components/History";
 import { Uploads } from "./components/Uploads";
@@ -23,7 +23,9 @@ import { Analytics } from "./components/Analytics";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
 import { TemplateContext } from "./exports";
-import { setUsdCadRate } from "./usage";
+import { cad, chatUsage, setUsdCadRate, usageTotals } from "./usage";
+import { Icon, Ring } from "./components/Icon";
+import { setupProgress, setupSteps } from "./setup";
 import { kpiScorecard } from "./charts/results";
 
 export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads" | "ledger" | "projects";
@@ -39,6 +41,8 @@ export function App() {
     localStorage.setItem("volt.theme", theme);
     localStorage.setItem("volt.present", present ? "on" : "off");
   }, [theme, present]);
+  const [uploadCount, setUploadCount] = useState(0);
+  const [bannerOff, setBannerOff] = useState(() => sessionStorage.getItem("volt.banner") === "off");
   const [needsSignIn, setNeedsSignIn] = useState(false);
   const [authMode, setAuthMode] = useState<"token" | "username">("token");
   const [view, setView] = useState<View>("console");
@@ -68,6 +72,10 @@ export function App() {
       .then(setProjects, () => setProjects([]));
   }, []);
   useEffect(load, [load]);
+  useEffect(() => {
+    if (!catalog) return;
+    listUploads().then((u) => setUploadCount(u.length), () => setUploadCount(0));
+  }, [catalog, projectId, view]);
   // Download names carry the project as the client (see the naming convention in shared/export.ts).
   useEffect(() => setFileClient(projects.find((p) => p.id === projectId)?.name ?? ""), [projects, projectId]);
 
@@ -217,30 +225,66 @@ export function App() {
     );
 
   const live = catalog.mode === "live" && !forceDemo;
-  const nav: [View, string, number | string][] = [
-    ["console", "Agent Console", runs.length || ""],
-    ["workflows", "Workflows", catalog.workflows.length],
-    ["agents", "Agents", catalog.agents.length],
-    ["skills", "Skill Finder", catalog.skills.length],
-    ["services", "Services", catalog.services.length],
-    ["templates", "Templates", templates.length || ""],
-    ["analytics", "Analytics", catalog.benchmarks.length],
-    ["projects", "Project memory", projects.find((p) => p.id === projectId)?.memory.length || ""],
-    ["history", "Chats", history.length || ""],
-    ["uploads", "Knowledge base", ""],
-    ["ledger", "Ledger review", ""],
-    ["usage", "Token usage", ""],
-    ["health", "Capability Health", catalog.health.missingSkills.length],
+  const memoryCount = projects.find((p) => p.id === projectId)?.memory.length ?? 0;
+  const steps = setupSteps({ uploads: uploadCount, memory: memoryCount, templates: templates.length, chats: history.length + runs.length });
+  const progress = setupProgress(steps);
+  const spend = usageTotals(chatUsage([...history, ...runs.filter((r) => !history.some((h) => h.id === r.id))])).cost;
+  const missing = catalog.health.missingSkills.length;
+  // [view, rail label, full name, count shown in the tooltip]
+  const nav: [View, string, string, number | string][] = [
+    ["console", "Console", "Agent Console", runs.length || ""],
+    ["workflows", "Workflows", "Workflows", catalog.workflows.length],
+    ["agents", "Agents", "Agents", catalog.agents.length],
+    ["skills", "Skills", "Skill Finder", catalog.skills.length],
+    ["services", "Services", "Services", catalog.services.length],
+    ["templates", "Templates", "Templates", templates.length || ""],
+    ["analytics", "Analytics", "Analytics", catalog.benchmarks.length],
+    ["projects", "Memory", "Project memory", memoryCount || ""],
+    ["history", "Chats", "Chats", history.length || ""],
+    ["uploads", "Knowledge", "Knowledge base", uploadCount || ""],
+    ["ledger", "Ledger", "Ledger review", ""],
+    ["usage", "Usage", "Token usage", ""],
+    ["health", "Health", "Capability Health", missing],
   ];
+  const banner = !present && !bannerOff ? (!live ? { text: "VOLT is in demo mode: routing is real, the written analysis is simulated.", cta: "", go: undefined } : missing > 0 ? { text: `${missing} skills that agents refer to are not shipped in this build.`, cta: "Review", go: () => setView("health") } : null) : null;
 
   return (
     <div className="app">
       <header className="topbar">
+        {banner && (
+          <div className="banner" role="status">
+            <Icon name="warn" size={16} />
+            <span>{banner.text}</span>
+            {banner.go && (
+              <button className="btn dark sm" onClick={banner.go}>
+                {banner.cta}
+              </button>
+            )}
+            <button className="banner-x" aria-label="Dismiss" onClick={() => (sessionStorage.setItem("volt.banner", "off"), setBannerOff(true))}>
+              ×
+            </button>
+          </div>
+        )}
         <div className="brand">
           <img className="brand-mark" src="/brand/volt-mark.png" alt="VOLT" />
-          <span>Agentic Console · Vision, Orchestrate, Launch, Transform</span>
         </div>
-        <span className={`badge ${live ? "live" : ""}`}>{live ? "Live" : "Demo"}</span>
+        <div className="pills">
+          <span className="pill admin-only" title="Estimated spend on the chats saved in this project and this session, at list price">
+            <Icon name="coin" size={16} /> {cad(spend)}
+          </span>
+          {progress.done < progress.total && (
+            <button className="pill" title="Setup progress: open the checklist" onClick={() => (setView("console"), window.dispatchEvent(new Event("volt:setup-open")))}>
+              <Ring done={progress.done} total={progress.total} /> ({progress.done}/{progress.total})
+            </button>
+          )}
+          <button className="pill icon" aria-label="Find a skill" title="Skill Finder" onClick={() => setView("skills")}>
+            <Icon name="search" size={16} />
+          </button>
+          <button className="pill icon plus" aria-label="New chat" title="New chat" onClick={newChat}>
+            <Icon name="plus" size={18} />
+          </button>
+        </div>
+        <span className={`badge admin-only ${live ? "live" : ""}`}>{live ? "Live" : "Demo"}</span>
         <span className="usage" title={live && catalog.routing ? `VOLT picks the model for each step: Haiku triages, Sonnet answers quick asks and specialist work, Opus leads deliverables. Default tier: ${catalog.model}.` : undefined}>
           {live ? (catalog.routing ? "Auto" : catalog.model) : "offline simulator"}
         </span>
@@ -277,28 +321,22 @@ export function App() {
           </select>
         </label>
         <button className="btn ghost sm" onClick={() => setTheme(theme === "dark" ? "light" : "dark")} title="Switch between the dark and light theme" aria-pressed={theme === "light"}>
-          {theme === "dark" ? "Light theme" : "Dark theme"}
+          {theme === "dark" ? "Light" : "Dark"}
         </button>
         <button className="btn ghost sm" onClick={() => setPresent(!present)} title="Hide cost, tokens, model names and admin screens before showing the console to a client" aria-pressed={present}>
-          {present ? "Exit presentation" : "Presentation mode"}
+          {present ? "Exit presentation" : "Present"}
         </button>
       </header>
-      <nav className="nav">
-        <button className="btn primary new-chat" onClick={newChat}>
-          + New chat
-        </button>
-        {nav.filter(([id]) => !(present && (id === "usage" || id === "health" || id === "ledger"))).map(([id, label, count], i) => (
+      <nav className="nav rail" aria-label="Main">
+        {nav.filter(([id]) => !(present && (id === "usage" || id === "health" || id === "ledger"))).map(([id, label, full, count], i) => (
           <div key={id} style={{ display: "contents" }}>
-            {i === 1 && <div className="sep" />}
-            <button className={view === id ? "active" : ""} onClick={() => setView(id)}>
-              {label}{" "}
-              {id === "health" && Number(count) > 0 ? (
-                <span className="count warn" title={`${count} skills are referenced by agents but not shipped in the package. Agents fall back to their system prompt for these.`}>
-                  {count}
-                </span>
-              ) : (
-                <span className="count">{count}</span>
-              )}
+            {(i === 1 || i === 8) && <div className="sep" />}
+            <button className={view === id ? "active" : ""} onClick={() => setView(id)} title={count !== "" ? `${full} (${count})` : full} aria-label={full}>
+              <span className="rail-icon">
+                <Icon name={id} />
+                {id === "health" && Number(count) > 0 && <span className="rail-badge" aria-label={`${count} gaps`} />}
+              </span>
+              <span className="rail-label">{label}</span>
             </button>
           </div>
         ))}
@@ -306,7 +344,7 @@ export function App() {
       <TemplateContext.Provider value={activeTemplate}>
       <main className="main">
         {view === "console" && (
-          <Console recent={history.slice(0, 3)} onOpenRecent={openRun} catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} />
+          <Console setup={steps} onNavigate={(v) => setView(v as View)} recent={history.slice(0, 3)} onOpenRecent={openRun} catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} />
         )}
         {view === "workflows" && <Workflows catalog={catalog} onLaunch={start} onOpenAgent={setOpenAgent} />}
         {view === "agents" && <Agents catalog={catalog} onOpen={setOpenAgent} />}

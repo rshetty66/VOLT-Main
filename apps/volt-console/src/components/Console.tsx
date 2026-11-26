@@ -16,6 +16,8 @@ import { scopeLabel, type Scope } from "../../shared/scope";
 import { directAsk, quickAsk } from "../../shared/asks";
 import { IntakeCard } from "./IntakeCard";
 import { AgentPicker } from "./AgentPicker";
+import { GetStarted } from "./GetStarted";
+import type { SetupStep } from "../setup";
 import { ATTACH_EXTENSIONS, ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../../shared/attachments";
 
 const EXAMPLES = [
@@ -26,6 +28,9 @@ const EXAMPLES = [
 ];
 
 interface Props {
+  /** Setup checklist for the empty home screen, and where its steps lead. */
+  setup?: SetupStep[];
+  onNavigate?: (view: string) => void;
   /** The latest saved chats, shown on the empty home screen. */
   recent?: Run[];
   onOpenRecent?: (run: Run) => void;
@@ -39,7 +44,7 @@ interface Props {
   onOpenAgent: (id: string) => void;
 }
 
-export function Console({ catalog, runs, target, setTarget, live, onStart, onStop, onOpenAgent, recent = [], onOpenRecent }: Props) {
+export function Console({ catalog, runs, target, setTarget, live, onStart, onStop, onOpenAgent, recent = [], onOpenRecent, setup, onNavigate }: Props) {
   const [prompt, setPrompt] = useState("");
   const [files, setFiles] = useState<{ name: string; text: string; chars: number; truncated: boolean; id?: string }[]>([]);
   const [reading, setReading] = useState(0);
@@ -127,10 +132,14 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
             Describe a client situation in your own words. VOLT puts the right finance specialists on it and returns a written answer with
             charts and benchmarks, ready to download as Word, PowerPoint or Excel. Before a piece of work starts, it asks up to three short rounds of questions: the result you want, how you will measure it, and what you need back. Simple questions get a direct answer.
           </p>
-          {!live && (
-            <div className="card body">
-              <b>Demo mode.</b> Routing, benchmarks and workflow steps are real; the written analysis is simulated.
-            </div>
+          {setup && setup.some((s) => !s.done) && (
+            <GetStarted
+              steps={setup}
+              onGo={(s) => {
+                if (s.view) onNavigate?.(s.view);
+                else promptBox.current?.focus();
+              }}
+            />
           )}
           <div className="starters">
             {EXAMPLES.map((e) => (
@@ -192,7 +201,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
       {runs.map((run) => (
         <RunView key={run.id} run={run} onStop={() => onStop(run.id)} />
       ))}
-      <div className="composer">
+      <div className={`composer ${runs.length === 0 ? "home" : ""}`}>
         {scoping && (
           <IntakeCard
             key={scoping.pending ? "start" : "edit"}
