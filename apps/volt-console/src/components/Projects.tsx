@@ -68,7 +68,11 @@ export function Projects({ projects, projectId, onChange }: Props) {
         {error && <div className="upload-error" role="alert">{error}</div>}
       </div>
       {project.memory.length === 0 ? (
-        <div className="card empty">No memory yet. Add the facts every chat should know, or use "Save to memory" on an answer.</div>
+        <div className="card empty-state">
+          <b>No memory yet</b>
+          <p>Project memory holds the facts every chat in this project should know, so you do not repeat them.</p>
+          <p className="muted">Examples: "IFRS is the primary ledger; US GAAP via difference ledgers." "Fiscal year ends 31 October." Add one above, or select text in an answer and use Save to memory.</p>
+        </div>
       ) : (
         project.memory.map((m) => (
           <div key={m.id} className="card history-item">

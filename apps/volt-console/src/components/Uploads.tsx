@@ -1,3 +1,4 @@
+import { confirmDialog, toast } from "../ui";
 import { useEffect, useRef, useState } from "react";
 import { addUrlSource, deleteUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
 
@@ -82,7 +83,11 @@ export function Uploads({ projectName }: { projectName: string }) {
                   Download
                 </a>
               )}
-              <button className="btn ghost sm" onClick={() => window.confirm(`Remove ${u.name} from the knowledge base?`) && void deleteUpload(u.id).then(load)}>
+              <button className="btn ghost sm" onClick={async () => {
+                if (!(await confirmDialog(`Remove ${u.name} from the knowledge base?`, "Remove"))) return;
+                await deleteUpload(u.id).then(load);
+                toast(`Removed ${u.name}`);
+              }}>
                 Remove
               </button>
             </div>

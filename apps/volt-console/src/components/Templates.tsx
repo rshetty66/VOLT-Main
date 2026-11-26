@@ -1,3 +1,4 @@
+import { confirmDialog, toast } from "../ui";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import type { CellStyle, TemplateKind, TemplateProfile, TemplateSummary, TextStyle } from "../../shared/templates";
 import { TEMPLATE_EXTENSIONS } from "../../shared/templates";
@@ -44,7 +45,11 @@ export function Templates({ templates, refresh, activeTemplate, setActiveTemplat
         }}
       />
       {templates.length === 0 ? (
-        <div className="empty">No templates yet. Upload a .docx, .xlsx or .pptx file to start.</div>
+        <div className="card empty-state">
+          <b>No templates yet</b>
+          <p>A template teaches VOLT a client's look: theme colours, fonts, slide layouts and number formats. Every deliverable then comes back in the client's own format.</p>
+          <p className="muted">Example: upload the client's board-deck .pptx, then pick it in the Template menu above before you run.</p>
+        </div>
       ) : (
         <div className="grid">
           {templates.map((t) => (
@@ -194,7 +199,7 @@ function TemplateDetail({ id, onBack, refresh, activeTemplate, setActiveTemplate
           <button
             className="btn ghost"
             onClick={async () => {
-              if (!window.confirm(`Delete the template "${p.name}"?`)) return;
+              if (!(await confirmDialog(`Delete the template "${p.name}"?`, "Delete"))) return;
               await deleteTemplate(p.id);
               if (active) setActiveTemplate("");
               await refresh();

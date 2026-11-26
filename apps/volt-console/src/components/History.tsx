@@ -1,3 +1,4 @@
+import { confirmDialog, toast } from "../ui";
 import { useEffect, useState } from "react";
 import type { Run } from "../runState";
 import { deleteChat, listChats, restoreChat } from "../projects";
@@ -34,10 +35,11 @@ export function History({ projectId, projectName, history, onOpen, onDeleted, on
     onOpen(r);
   };
   const remove = async (r: Run) => {
-    if (!window.confirm("Delete this chat for good? Archived chats are kept; this one will not be.")) return;
+    if (!(await confirmDialog("Delete this chat for good? Archived chats are kept; this one will not be.", "Delete"))) return;
     await deleteChat(r.id);
     if (tab === "archived") setArchived((a) => a?.filter((x) => x.id !== r.id) ?? null);
     onDeleted(r.id);
+    toast("Chat deleted");
   };
 
   return (
