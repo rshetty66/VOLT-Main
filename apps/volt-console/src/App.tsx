@@ -340,6 +340,20 @@ export function App() {
             </button>
           </div>
         ))}
+        <div className="rail-foot">
+          <div className="rail-mode" title={live ? "Connected to the live models" : "Demo mode: routing is real, the written analysis is simulated"}>
+            <strong>{live ? "Live" : "Demo"}</strong>
+            <span>mode</span>
+          </div>
+          <button onClick={() => { setView("console"); localStorage.setItem("volt.setup.open", "yes"); window.dispatchEvent(new Event("volt:setup-open")); }} title="Help: reopen the Get started checklist" aria-label="Help: reopen the Get started checklist">
+            <span className="rail-icon"><Icon name="help" />{steps.some((s) => !s.done) && <span className="rail-badge blue" />}</span>
+            <span className="rail-label">Help</span>
+          </button>
+          <div className="rail-avatar" title="Signed in" aria-label="Signed in">
+            <Icon name="user" size={18} />
+            <span className="presence" />
+          </div>
+        </div>
       </nav>
       <TemplateContext.Provider value={activeTemplate}>
       <main className="main">
