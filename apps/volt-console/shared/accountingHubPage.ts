@@ -373,6 +373,9 @@ function brandVars(c: HubContent): string {
     const p = c.branding.primary ?? "#1A5FB4";
     return `--bg:#F5F6F8;--panel:#FFFFFF;--panel2:#EEF1F5;--line:#D3D9E2;--ink:#1A1E2E;--muted:#5B6478;--accent:${p};--acct:${c.branding.secondary ?? "#B07A00"};--prod:#C2185B;--risk:#E65100;--red:#D32F2F;--gold:#B07A00;--tint:rgba(0,0,0,.04)`;
   }
+  if (c.branding.style === "boardroom") {
+    return `--bg:#FBF8F1;--panel:#FFFFFF;--panel2:#F3EEE2;--line:#D9D2C1;--ink:#14213D;--muted:#5C6273;--accent:${c.branding.primary ?? "#1F3A68"};--acct:${c.branding.secondary ?? "#8C6D1F"};--prod:#7A1F3D;--risk:#B4441B;--red:#B3261E;--gold:#8C6D1F;--tint:rgba(20,33,61,.04)`;
+  }
   return "--bg:#0A0D14;--panel:#121726;--panel2:#1A1E2E;--line:#2C344A;--ink:#E8ECF4;--muted:#9AA3B5;--accent:#00E5FF;--acct:#D4AF37;--prod:#E0607E;--risk:#FF5722;--red:#FF4D4F;--gold:#D4AF37;--tint:rgba(255,255,255,.04)";
 }
 
@@ -537,7 +540,7 @@ export function hubPage(c: HubContent): string {
   ];
   const LEVEL = { source_to_hub: "Source events to hub", hub_to_gl: "Hub to GL", gl_to_report: "GL to reporting" };
   const num = (n: number, unit: string) => unit === "count" ? n.toLocaleString("en-CA") : n.toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const brandLine = c.branding.style === "client_light" ? `<b>${esc(c.branding.logo_text || name)}</b>` : "<b>VOLT</b> | " + esc(name);
+  const brandLine = c.branding.style !== "volt" ? `<b>${esc(c.branding.logo_text || name)}</b>` : "<b>VOLT</b> | " + esc(name);
   const data = {
     systems: Object.fromEntries(c.today.systems.map((s) => [s.id, { name: s.name, role: s.role, issue: s.issue, status: s.status, source: s.source }])),
     ev: EV_LABEL,

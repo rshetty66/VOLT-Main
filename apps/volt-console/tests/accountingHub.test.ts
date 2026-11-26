@@ -39,6 +39,14 @@ describe("Accounting Hub page", () => {
     expect(hubPage(approved)).toContain("a Canadian digital bank (client anonymised)");
   });
 
+  it("draws the boardroom style from tokens, with the client name in place of VOLT", () => {
+    const html = hubPage({ ...sample(), branding: { style: "boardroom" } });
+    expect(html).toContain("--bg:#FBF8F1");
+    expect(html).toContain("--accent:#1F3A68");
+    expect(html).not.toContain("<b>VOLT</b>");
+    expect(fails({ ...sample(), branding: { style: "boardroom" } })).toEqual([]);
+  });
+
   it("rejects an unbalanced journal, per ledger", () => {
     const c = sample();
     const ecl = c.maf.products[0].stages.flatMap((s) => s.events).find((e) => e.id === "c-ecl")!;

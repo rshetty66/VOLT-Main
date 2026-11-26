@@ -84,7 +84,7 @@ const product = z.object({
 export const hubSchema = z.object({
   client: z.object({ name: s(60), short: z.string().max(20).optional(), type: z.enum(CLIENT_TYPES) }),
   branding: z.object({
-    style: z.enum(["volt", "client_light"]).default("volt"),
+    style: z.enum(["volt", "client_light", "boardroom"]).default("volt"),
     primary: hex.optional(),
     secondary: hex.optional(),
     logo_text: z.string().max(30).optional(),
