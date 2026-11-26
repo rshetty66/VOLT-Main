@@ -159,7 +159,7 @@ describe("export route", () => {
   it("returns the file with a download name", async () => {
     const r = await fetch(`${base}/api/export`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(req("docx")) });
     expect(r.status).toBe(200);
-    expect(r.headers.get("content-disposition")).toMatch(/attachment; filename="volt-five-day-close-plan-\d{4}-\d{2}-\d{2}\.docx"/);
+    expect(r.headers.get("content-disposition")).toMatch(/attachment; filename="VOLT_Five-Day-Close-Plan_\d{4}-\d{2}-\d{2}_v1\.docx"/);
     const bytes = new Uint8Array(await r.arrayBuffer());
     expect(bytes[0]).toBe(0x50); // PK zip
   });

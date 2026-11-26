@@ -8,6 +8,7 @@ import { LedgerReview } from "./components/LedgerReview";
 import { Usage } from "./components/Usage";
 import { mergeHistory } from "./history";
 import { Projects } from "./components/Projects";
+import { setFileClient } from "./download";
 import { createProject, listChats, listProjects, loadActiveProject, migrateBrowserHistory, saveChat, setActiveProject } from "./projects";
 import type { Project } from "../shared/projects";
 import type { TemplateSummary } from "../shared/templates";
@@ -56,6 +57,8 @@ export function App() {
       .then(setProjects, () => setProjects([]));
   }, []);
   useEffect(load, [load]);
+  // Download names carry the project as the client (see the naming convention in shared/export.ts).
+  useEffect(() => setFileClient(projects.find((p) => p.id === projectId)?.name ?? ""), [projects, projectId]);
 
   // "Save to memory" on an answer updates the project list (see RunView).
   useEffect(() => {

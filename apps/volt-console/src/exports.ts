@@ -2,7 +2,7 @@ import { createContext, createElement, type ReactElement } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import type { ExportFormat, ExportImage, ExportRequest, ExportTable } from "../shared/export";
-import { EXPORT_MIME, exportFileName } from "../shared/export";
+import { EXPORT_MIME } from "../shared/export";
 import { strToU8, zipSync } from "fflate";
 import { evidenceGates, registryJsonl, sectionOf, sourceRegisterMarkdown, type SourceRecord, type Tier } from "../shared/research";
 import type { Run } from "./runState";
@@ -17,7 +17,7 @@ import { specSvg } from "./charts/specChart";
 import { DARK, LIGHT } from "./charts/palette";
 import { kpiStrip, splitPages, toneTables, voltHtml } from "./htmlTemplate";
 import { archBlocks, chartBlocks, processBlocks, type ChartSpec, type ProcessSpec } from "../shared/viz";
-import { downloadBlob, downloadText, svgSize, svgToPng } from "./download";
+import { downloadBlob, downloadText, svgSize, svgToPng, voltFileName } from "./download";
 import { csvText } from "../shared/files";
 
 /** The template selected in the top bar; downloads follow its fonts and colours. */
@@ -43,6 +43,17 @@ export function mermaidSources(markdown: string): string[] {
   return [...markdown.matchAll(/^```mermaid[^\n]*\n([\s\S]*?)^```/gm)].map((m) => m[1].replace(/\n$/, ""));
 }
 
+/**
+ * A deliverable's title: its first "# " heading, else the first line of the request with at least two words (a stray
+ * "s" typed above the question is not a title), whitespace collapsed and cut at a word near 120 characters.
+ */
+export function deliverableTitle(text: string, request: string): string {
+  const heading = /^#[ \t]+(\S.*)$/m.exec(text)?.[1].trim();
+  const line = request.split("\n").map((l) => l.replace(/\s+/g, " ").trim()).find((l) => l.split(" ").length >= 2) ?? request.replace(/\s+/g, " ").trim();
+  const t = heading || line;
+  return t.length <= 120 ? t : t.slice(0, 120).replace(/\s+\S*$/, "");
+}
+
 /** A run's deliverable: Rudra's answer, optionally followed by each specialist's notes. */
 export function runDeliverable(run: Run, includeLanes: boolean, templateId?: string): Deliverable {
   const lanes = run.laneOrder.map((id) => run.lanes[id]).filter((l) => l?.text.trim());
@@ -50,7 +61,7 @@ export function runDeliverable(run: Run, includeLanes: boolean, templateId?: str
   const charts = chartableResults(run);
   return {
     // The cover is client-facing: the deliverable's own title (its first "#" heading), else the request; the date, and no run internals.
-    title: (/^#\s+(.+)$/m.exec(run.text)?.[1].trim() ?? (run.kind === "workflow" && run.title ? `${run.title}: ${run.prompt}` : run.prompt)).slice(0, 120),
+    title: deliverableTitle(run.text, run.kind === "workflow" && run.title ? `${run.title}: ${run.prompt}` : run.prompt),
     subtitle: new Date(run.startedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
     // The source register is appended from the run's record, so every key in the text resolves in every format.
     markdown: run.text + (run.sources.length > 1 ? sourceRegisterMarkdown(run.sources) : "") + appendix,
@@ -214,7 +225,7 @@ async function companionLinks(d: Deliverable) {
     (d.companions ?? []).map(async ({ format, deliverable }) => {
       try {
         const blob = await exportBlob(format, deliverable);
-        return { label: COMPANION_LABEL[format], name: exportFileName(deliverable.title, format), href: `data:${EXPORT_MIME[format]};base64,${await base64(blob)}` };
+        return { label: COMPANION_LABEL[format], name: voltFileName(deliverable.title, format, deliverable.markdown), href: `data:${EXPORT_MIME[format]};base64,${await base64(blob)}` };
       } catch {
         return null;
       }
@@ -247,17 +258,20 @@ export function researchBundle(d: Deliverable, asOf = new Date()): Uint8Array {
 
 /** Download a deliverable as Word, PowerPoint, Excel, Markdown, HTML, an HTML slide deck or a research bundle. */
 export async function downloadDeliverable(format: DownloadFormat, d: Deliverable) {
+  const name = (ext: string) => voltFileName(d.title, ext, d.markdown);
   if (format === "md") {
     const head = [`# ${d.title}`, d.subtitle ? `\n_${d.subtitle}_` : "", ""].join("\n");
-    return downloadText(exportFileName(d.title, "md"), `${head}\n${d.markdown}\n`, "text/markdown");
+    return downloadText(name("md"), `${head}\n${d.markdown}\n`, "text/markdown");
   }
-  if (format === "zip") return downloadBlob(exportFileName(d.title, "zip"), new Blob([researchBundle(d) as BlobPart], { type: "application/zip" }));
-  if (format === "html") return downloadText(exportFileName(d.title, "html"), await htmlDocument(d), "text/html");
-  if (format === "slides") return downloadText(exportFileName(d.title, "slides.html"), await deckDocument(d), "text/html");
+  if (format === "zip") return downloadBlob(name("zip"), new Blob([researchBundle(d) as BlobPart], { type: "application/zip" }));
+  if (format === "html") return downloadText(name("html"), await htmlDocument(d), "text/html");
+  // A deck names itself apart from the web page of the same deliverable (VOLT_<Client>_<Title>-Slides_<date>_v<N>.html).
+  if (format === "slides") return downloadText(voltFileName(`${d.title} slides`, "html", d.markdown), await deckDocument(d), "text/html");
   if (format === "csv") return downloadCsv(d);
-  if (format === "pdf") return printPdf(await htmlDocument(d));
+  // The print dialog offers the page title as the PDF name, so the title carries the file name.
+  if (format === "pdf") return printPdf((await htmlDocument(d)).replace(/<title>[^<]*<\/title>/, `<title>${name("pdf").replace(/\.pdf$/, "")}</title>`));
 
-  downloadBlob(exportFileName(d.title, format), await exportBlob(format, d));
+  downloadBlob(name(format), await exportBlob(format, d));
 }
 
 /** A Word, PowerPoint or Excel file from the server's writers, with the charts and diagrams rendered to PNG here. */
@@ -284,7 +298,7 @@ async function exportBlob(format: ExportFormat, d: Deliverable): Promise<Blob> {
 function downloadCsv(d: Deliverable) {
   const tables = d.tables ?? [];
   if (!tables.length) throw new Error("There is no table data to save as CSV.");
-  if (tables.length === 1) return downloadText(exportFileName(d.title, "csv"), csvText(tables[0]), "text/csv");
+  if (tables.length === 1) return downloadText(voltFileName(d.title, "csv", d.markdown), csvText(tables[0]), "text/csv");
   const used = new Set<string>();
   const files = Object.fromEntries(
     tables.map((t, i) => {
@@ -294,7 +308,7 @@ function downloadCsv(d: Deliverable) {
       return [`${name}.csv`, strToU8(csvText(t))];
     }),
   );
-  downloadBlob(exportFileName(d.title, "zip"), new Blob([zipSync(files) as BlobPart], { type: "application/zip" }));
+  downloadBlob(voltFileName(d.title, "zip", d.markdown), new Blob([zipSync(files) as BlobPart], { type: "application/zip" }));
 }
 
 /**

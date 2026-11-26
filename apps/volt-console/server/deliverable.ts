@@ -145,7 +145,7 @@ export function assessDepth(markdown: string): DepthReport {
 /** Whether a request calls for a full client deliverable rather than a short answer or a command. */
 export function wantsDeliverable(prompt: string): boolean {
   const p = prompt.trim();
-  if (!p || p.startsWith("/")) return false;
+  if (!p || p.startsWith("/") || directAsk(p)) return false;
   return p.length >= 120 || /\b(plan|assess|assessment|design|business case|roadmap|strategy|recommend|diagnos\w*|benchmark|options|proposal|transform\w*|readiness|architecture|approach|case for)\b/i.test(p);
 }
 
@@ -161,6 +161,22 @@ export function quickAsk(prompt: string): boolean {
   const study = /\b(assess\w*|diagnos\w*|roadmap|strategy|target operating|operating model|architecture|options|recommend\w*|readiness|transform\w*)\b/i.test(p);
   return fileOrCalc && !study;
 }
+
+const LOOKUP = /(^|[\n.;:,?!]\s*)(please\s+|can you\s+|could you\s+)?(list|show|find|which|what|when|where|who|how many|how much|give me|tell me|cite|extract|look up|is there|are there)\b/i;
+const STUDY = /\b(assess\w*|diagnos\w*|roadmap|strategy|target operating|operating model|architecture|options|recommend\w*|readiness|transform\w*|business case|plan for|improve|reduce|cut|should (we|i)|how (do|can|should) we|best way)\b/i;
+
+/**
+ * A direct question: a lookup, a list or a fact ("list the quarterly results documents on the TD page I added, with
+ * their dates"). Rudra answers it alone, in chat, from the knowledge base and tools, without the specialist bench, the
+ * deliverable sections or the partner rewrite. Asks for advice, a plan or a design keep the full path.
+ */
+export function directAsk(prompt: string): boolean {
+  const p = prompt.trim();
+  if (!p || p.startsWith("/") || p.length > 400) return false;
+  return LOOKUP.test(p) && !STUDY.test(p) && !quickAsk(p);
+}
+
+export const DIRECT_GUIDE = `Direct question: answer exactly what was asked, in chat, without consulting specialists and without a client deliverable (no executive summary, business case, roadmap, options or numbered sections), whatever the chat's scope says the outcome is. If the question is about the project's knowledge base, search it and use only the documents that answer it: leave out documents about other companies, clients or topics, and do not use the web when the user says to use only the knowledge base. When the answer is a list, give a table with one row per item and its source key. Say in one line what the sources do not show. Start with a "# " title that names the answer, and stay under 300 words unless the list itself is longer.`;
 
 export const QUICK_GUIDE = `Quick request: answer it yourself, without consulting specialists. Get every figure from the analytics tools. If a file is asked for, make it with create_file: the tool results of this run (value case, benchmarks, maturity) are added to an Excel or CSV file as data sheets automatically, so do not retype them; add only the inputs and assumptions table. Then reply in under 200 words: the headline result, the key figures and what the file holds.`;
 

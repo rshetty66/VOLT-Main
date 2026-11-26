@@ -271,11 +271,25 @@ const decode = (s: string) =>
     return ENTITIES[e.toLowerCase()] ?? m;
   });
 
-/** Readable text and title of an HTML page: scripts, styles, navigation and markup dropped, block breaks kept. */
-export function htmlText(html: string): { title: string; text: string } {
+const DOC_LINK = /<a\b[^>]*?\bhref\s*=\s*["']([^"']+\.(?:pdf|xlsx?|csv|docx?|pptx?)(?:[?#][^"']*)?)["'][^>]*>([\s\S]*?)<\/a>/gi;
+
+/**
+ * Readable text and title of an HTML page: scripts, styles, navigation and markup dropped, block breaks kept. A link
+ * to a document (PDF, Excel, Word, PowerPoint, CSV) keeps its address after its text, so a page that lists reports
+ * (an investor relations page) can be answered with the documents it links to; relative links resolve against `base`.
+ */
+export function htmlText(html: string, base?: string): { title: string; text: string } {
   const title = decode((html.match(/<title[^>]*>([\s\S]*?)<\/title>/i)?.[1] ?? "").replace(/\s+/g, " ").trim());
+  const absolute = (href: string) => {
+    try {
+      return new URL(decode(href), base).toString();
+    } catch {
+      return decode(href);
+    }
+  };
   const body = html
     .replace(/<!--[\s\S]*?-->/g, " ")
+    .replace(DOC_LINK, (_m, href: string, label: string) => ` ${label} (${absolute(href)}) `)
     .replace(/<(script|style|noscript|svg|head|nav|footer|form|template)\b[\s\S]*?<\/\1>/gi, " ")
     .replace(/<(br|\/p|\/div|\/h[1-6]|\/li|\/tr|\/table|\/section|\/article|\/blockquote)\b[^>]*>/gi, "\n")
     .replace(/<\/t[dh]>/gi, "\t")

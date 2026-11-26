@@ -1,3 +1,4 @@
+import { fileBase, localDate } from "../shared/export";
 /** Browser downloads: a Blob through a temporary object URL, the same pattern as the Templates view. */
 export function downloadBlob(filename: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
@@ -61,10 +62,37 @@ export function errorText(e: unknown): string {
   return isStaleChunk(e) ? STALE_PAGE : String((e as Error)?.message ?? e);
 }
 
-export function slug(s: string) {
-  return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "volt";
+/** The client in download names: the open project's name, set by the app when the project changes. */
+let fileClient = "";
+export function setFileClient(name: string) {
+  fileClient = name;
 }
 
-export function datedName(title: string, ext: string) {
-  return `volt-${slug(title)}-${new Date().toISOString().slice(0, 10)}.${ext}`;
+const VERSIONS = "volt.fileVersions";
+const hash = (s: string) => {
+  let h = 5381;
+  for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+};
+
+/**
+ * The file name for a download, after the convention in shared/export.ts. The version is per content: the same
+ * deliverable saved again (or in another format) keeps its number, a changed one on the same day gets the next.
+ * Counted in this browser only, and v1 when storage is unavailable.
+ */
+export function voltFileName(title: string, ext: string, content = "", date = new Date()): string {
+  const base = fileBase(title, fileClient, date);
+  let version = 1;
+  try {
+    const all = JSON.parse(localStorage.getItem(VERSIONS) ?? "{}") as Record<string, string[]>;
+    for (const k of Object.keys(all)) if (!k.endsWith(localDate(date))) delete all[k];
+    const seen = (all[base] ??= []);
+    const h = hash(content);
+    if (!seen.includes(h)) seen.push(h);
+    version = seen.indexOf(h) + 1;
+    localStorage.setItem(VERSIONS, JSON.stringify(all));
+  } catch {
+    /* private window or blocked storage: v1 */
+  }
+  return `${base}_v${version}.${ext}`;
 }
