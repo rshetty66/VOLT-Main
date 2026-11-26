@@ -14,7 +14,15 @@ export interface ChatUsage {
   total: number;
   /** Estimated USD at list price; runs saved before model routing count as 0. */
   cost: number;
+  /** Models this chat used, largest cost first. */
+  models: ModelRow[];
   demo: boolean;
+}
+
+export interface ModelRow {
+  model: string;
+  tokens: number;
+  cost: number;
 }
 
 export interface UsageTotals {
@@ -26,8 +34,28 @@ export interface UsageTotals {
   total: number;
   cost: number;
   /** Tokens and estimated cost per model, largest cost first. */
-  models: { model: string; tokens: number; cost: number }[];
+  models: ModelRow[];
 }
+
+/** Adds up the per-model use of some runs, largest cost first (then most tokens). */
+export function modelsOf(runs: Run[]): ModelRow[] {
+  const models = new Map<string, ModelUse>();
+  for (const r of runs)
+    for (const [model, u] of Object.entries(r.usage.models ?? {})) {
+      const m = models.get(model) ?? { tokens: 0, cost: 0 };
+      models.set(model, { tokens: m.tokens + u.tokens, cost: m.cost + u.cost });
+    }
+  return [...models.entries()].map(([model, u]) => ({ model, ...u })).sort((a, b) => b.cost - a.cost || b.tokens - a.tokens);
+}
+
+/** "claude-sonnet-5-5" -> "Sonnet 5.5"; an unknown id is shown as it is. */
+export function modelName(id: string): string {
+  const m = /^claude-(haiku|sonnet|opus|fable|mythos)-(\d+)(?:-(\d+))?/.exec(id);
+  return m ? `${m[1][0].toUpperCase()}${m[1].slice(1)} ${m[2]}${m[3] ? `.${m[3]}` : ""}` : id;
+}
+
+/** "Opus 5.5 12.3K · Sonnet 5.5 40K · Haiku 5.5 90": which models a run or chat used, with their tokens. */
+export const modelsLine = (rows: ModelRow[]) => rows.map((m) => `${modelName(m.model)} ${compact(m.tokens)}`).join(" · ");
 
 const clip = (s: string, n: number) => (s.length > n ? `${s.slice(0, n - 3).trimEnd()}...` : s);
 
@@ -55,6 +83,7 @@ export function chatUsage(runs: Run[]): ChatUsage[] {
         cacheRead: sum((r) => r.usage.cacheRead),
         total: input + output,
         cost: sum((r) => r.usage.cost ?? 0),
+        models: modelsOf(sorted),
         demo: sorted.every((r) => r.mode === "demo"),
       };
     })
@@ -63,12 +92,6 @@ export function chatUsage(runs: Run[]): ChatUsage[] {
 
 export function usageTotals(chats: ChatUsage[]): UsageTotals {
   const sum = (pick: (c: ChatUsage) => number) => chats.reduce((n, c) => n + pick(c), 0);
-  const models = new Map<string, ModelUse>();
-  for (const r of chats.flatMap((c) => c.runs))
-    for (const [model, u] of Object.entries(r.usage.models ?? {})) {
-      const m = models.get(model) ?? { tokens: 0, cost: 0 };
-      models.set(model, { tokens: m.tokens + u.tokens, cost: m.cost + u.cost });
-    }
   return {
     chats: chats.length,
     runs: sum((c) => c.runs.length),
@@ -77,7 +100,7 @@ export function usageTotals(chats: ChatUsage[]): UsageTotals {
     cacheRead: sum((c) => c.cacheRead),
     total: sum((c) => c.total),
     cost: sum((c) => c.cost),
-    models: [...models.entries()].map(([model, u]) => ({ model, ...u })).sort((a, b) => b.cost - a.cost),
+    models: modelsOf(chats.flatMap((c) => c.runs)),
   };
 }
 
@@ -89,5 +112,14 @@ export function compact(n: number): string {
   return String(n);
 }
 
-/** "$0.42", or "<$0.01" for a small non-zero cost. */
-export const usd = (v: number) => (v > 0 && v < 0.01 ? "<$0.01" : `$${v.toFixed(2)}`);
+/**
+ * Costs are estimated in USD at Anthropic's list prices (server/router.ts) and shown in Canadian dollars at this
+ * assumed rate. An estimate only: the Anthropic Console shows the actual bill, in USD.
+ */
+export const CAD_PER_USD = 1.38;
+
+/** USD in, "CA$0.58" out, or "<CA$0.01" for a small non-zero cost. */
+export const cad = (usd: number) => {
+  const v = usd * CAD_PER_USD;
+  return v > 0 && v < 0.01 ? "<CA$0.01" : `CA$${v.toFixed(2)}`;
+};

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 import { evidenceGates } from "../../shared/research";
 import { summariseWork, type Run } from "../runState";
+import { cad, modelName, modelsLine, modelsOf } from "../usage";
 import { Markdown } from "./Markdown";
 import { RunVisuals } from "../charts/RunVisuals";
 import { DownloadMenu } from "./DownloadMenu";
@@ -325,6 +326,8 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
   // Each specialist's finished workstream, readable while the lead is still writing the summary.
   const readySections = run.laneOrder.map((id) => run.lanes[id]).filter((l) => l && l.state === "done" && l.text.trim());
   const elapsed = Math.round(((run.finishedAt ?? Date.now()) - run.startedAt) / 1000);
+  // Which models answered this message (Haiku triage, Sonnet, Opus), from the run's usage events.
+  const models = modelsOf([run]);
   // Text selected in this answer is offered as the memory item; otherwise the user types it.
   const saveToMemory = async () => {
     const sel = window.getSelection();
@@ -353,8 +356,9 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
           {run.prompt}
           {run.attachments?.length ? <div className="muted" style={{ fontSize: 12, fontWeight: 400 }}>Attached: {run.attachments.join(", ")}</div> : null}
         </div>
-        <span className="usage">
+        <span className="usage" title={models.length ? models.map((m) => `${modelName(m.model)}: ${m.tokens.toLocaleString()} tokens, est. ${cad(m.cost)}`).join("\n") : undefined}>
           {elapsed}s{run.mode === "demo" ? " · demo" : ""}
+          {models.length > 0 && ` · ${modelsLine(models)} · est. ${cad(run.usage.cost ?? 0)}`}
         </span>
         {run.state === "running" && (
           <button className="btn sm" onClick={onStop}>
