@@ -63,7 +63,7 @@ export function toneTables(html: string): string {
 }
 
 /** The answer first: the summary page's opening paragraph becomes the "So what" panel. */
-function withSoWhat(html: string): string {
+export function withSoWhat(html: string): string {
   return html.replace(/^\s*<p>([\s\S]*?)<\/p>/, (_m, p: string) => `<aside class="sowhat" aria-label="So what"><b>So what</b><p>${p}</p></aside>`);
 }
 
@@ -114,7 +114,7 @@ export function kpiStrip(spec: ChartSpec): string {
   return `<figure class="kpis" aria-label="${esc(spec.title || "Key figures")}">${spec.title ? `<figcaption>${esc(spec.title)}</figcaption>` : ""}<div class="kgrid">${tiles.join("")}</div>${spec.source ? `<p class="src">Source: ${esc(spec.source)}</p>` : ""}</figure>`;
 }
 
-const CSS = `
+export const CSS = `
 :root{--bg:#0a0d14;--p1:#151a28;--p2:#1d2335;--p3:#262d44;--bd:#323a55;--tx:#eef1f7;--mu:#b3bad0;--dim:#8e96ae;
 --cyan:#00e5ff;--gold:#d4af37;--orange:#ff5722;--good:#2fd49a;--bad:#ff8a65;--ease:cubic-bezier(.16,1,.3,1)}
 *{box-sizing:border-box}
@@ -221,7 +221,7 @@ footer{border-top:1px solid var(--bd);padding:14px 28px;color:var(--mu);font-siz
 `;
 
 /** Tabs, chart reveal and the process walkthrough. Plain ES2017, no dependencies; the page reads fine without it. */
-const SCRIPT = `
+export const SCRIPT = `
 (function(){
   document.documentElement.classList.add('js');
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -300,7 +300,7 @@ const SCRIPT = `
 `;
 
 /** A section title without the writer's own "2." numbering: the tab already numbers it. */
-const plain = (t: string) => t.replace(/^\s*\d+[.)]\s+/, "");
+export const plain = (t: string) => t.replace(/^\s*\d+[.)]\s+/, "");
 /** A tab names its section in a few words: "Findings", not the whole takeaway headline. */
 export const tabLabel = (t: string) => plain(t).split(/:\s/)[0];
 

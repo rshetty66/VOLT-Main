@@ -342,7 +342,7 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
           </button>
         )}
         {run.state !== "running" && run.text.trim() && (
-          <DownloadMenu formats={["docx", "pptx", "xlsx", "md", "html", ...(run.tier ? (["zip"] as const) : [])]} build={(lanes) => runDeliverable(run, lanes)} option={run.laneOrder.length ? "Include specialist notes as an appendix" : undefined} />
+          <DownloadMenu formats={["docx", "pptx", "xlsx", "md", "html", "slides", ...(run.tier ? (["zip"] as const) : [])]} build={(lanes) => runDeliverable(run, lanes)} option={run.laneOrder.length ? "Include specialist notes as an appendix" : undefined} />
         )}
       </div>
       <div className="run-body single">

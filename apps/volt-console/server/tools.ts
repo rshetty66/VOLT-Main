@@ -68,13 +68,13 @@ export const schemas = {
     template_id: z.string().describe("Template id from list_templates."),
   }),
   create_file: z.object({
-    format: z.enum(FILE_FORMATS).describe("docx Word report, pptx deck, xlsx workbook, csv data, html interactive page, pdf report, md markdown."),
+    format: z.enum(FILE_FORMATS).describe("docx Word report, pptx deck, xlsx workbook, csv data, html interactive page, slides HTML slide deck to present in a browser, pdf report, md markdown."),
     title: z.string().trim().min(1).max(160).describe("An action title: the answer in one line, not a topic (e.g. 'Close can fall from 9 to 5 days by Q3')."),
     subtitle: z.string().max(300).optional(),
     markdown: z
       .string()
       .max(200_000)
-      .describe("The content as markdown: '##' sections, tables, and ```chart / ```process / ```architecture / ```mermaid blocks, which become native charts and diagrams. For pptx each '##' is a slide."),
+      .describe("The content as markdown: '##' sections, tables, and ```chart / ```process / ```architecture / ```mermaid blocks, which become native charts and diagrams. For pptx and slides each '##' is a slide; in slides a paragraph starting 'Notes:' becomes speaker notes."),
     tables: z
       .array(
         z.object({
