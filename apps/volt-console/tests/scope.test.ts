@@ -15,6 +15,8 @@ describe("chat scope questions", () => {
     const deliverable = SCOPE_QUESTIONS.find((q) => q.key === "deliverable")!;
     expect(Object.keys(deliverable.options)).toEqual(["chat", "html", "pptx", "docx", "xlsx"]);
     expect(scopeBrief({ deliverable: "xlsx" })).toContain("an Excel workbook made with create_file");
+    // The default outcome frames the work; it must not turn a lookup into a close deliverable.
+    expect(scopeBrief({ use_case: "close" })).toContain("a direct question or a lookup gets a direct answer");
   });
 
   it("accepts the defaults and rejects an unknown answer or field", () => {

@@ -121,11 +121,26 @@ describe("demo routing diagram", () => {
 
 describe("download sizing", () => {
   it("reads px size from width/height, and falls back to the viewBox for width=100%", async () => {
-    const { svgSize, datedName } = await import("../src/download");
+    const { svgSize, voltFileName } = await import("../src/download");
     expect(svgSize('<svg width="640" height="128" viewBox="0 0 640 128">')).toEqual({ width: 640, height: 128 });
     expect(svgSize('<svg id="m" width="100%" style="max-width: 1357px;" viewBox="0 0 1357.5 318.75">')).toEqual({ width: 1357.5, height: 318.75 });
     expect(svgSize('<svg viewBox="-8 -8 500 300">')).toEqual({ width: 500, height: 300 });
-    expect(datedName("Close / SAP: plan", "docx")).toMatch(/^volt-close-sap-plan-\d{4}-\d{2}-\d{2}\.docx$/);
+    expect(voltFileName("Close / SAP: plan", "docx")).toMatch(/^VOLT_Close-SAP-Plan_\d{4}-\d{2}-\d{2}_v1\.docx$/);
+  });
+
+  it("names downloads VOLT_<Client>_<Deliverable>_<date>_v<N>, with a new version only when the content changes", async () => {
+    const store = new Map<string, string>();
+    globalThis.localStorage = { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => void store.set(k, v) } as Storage;
+    const { setFileClient, voltFileName } = await import("../src/download");
+    const day = new Date(2026, 10, 26, 22, 30);
+    setFileClient("TD Bank");
+    expect(voltFileName("5-day close plan", "pptx", "draft one", day)).toBe("VOLT_TD-Bank_5-Day-Close-Plan_2026-11-26_v1.pptx");
+    expect(voltFileName("5-day close plan", "xlsx", "draft one", day)).toBe("VOLT_TD-Bank_5-Day-Close-Plan_2026-11-26_v1.xlsx");
+    expect(voltFileName("5-day close plan", "pptx", "draft two", day)).toBe("VOLT_TD-Bank_5-Day-Close-Plan_2026-11-26_v2.pptx");
+    setFileClient("General");
+    expect(voltFileName("5-day close plan", "pptx", "draft one", day)).toBe("VOLT_5-Day-Close-Plan_2026-11-26_v1.pptx");
+    // @ts-expect-error: back to no storage
+    delete globalThis.localStorage;
   });
 });
 

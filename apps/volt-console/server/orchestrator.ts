@@ -18,7 +18,7 @@ import { lateForRewrite, runBudgetMs } from "./budget.js";
 import crypto from "node:crypto";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
-import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, QUICK_GUIDE, quickAsk, wantsDeliverable } from "./deliverable.js";
+import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, DIRECT_GUIDE, directAsk, QUICK_GUIDE, quickAsk, wantsDeliverable } from "./deliverable.js";
 import { SourceRegistry, WEB_RESEARCH_GUIDE, registerWebBlock, sourceForTool, webCitationKeys } from "./research.js";
 import { evidenceGates } from "../shared/research.js";
 import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
@@ -479,15 +479,19 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
 
   // A file or a calculation from given figures: Rudra answers alone, without the specialist bench or the partner rewrite.
   const quick = quickAsk(req.prompt);
+  // A lookup or a list: answered directly, never escalated into a deliverable by the scope or the depth review.
+  const direct = !quick && directAsk(req.prompt);
   if (quick) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Quick request: building it directly with the VOLT analytics tools" });
-  const leadTier = await routeLead(req, quick, session, emit, signal);
-  session.messages.push({ role: "user", content: `${withTemplate(req)}${quick ? `\n\n${QUICK_GUIDE}` : registry.tier === "QUICK" ? "" : `\n\nResearch depth: ${registry.tier}. State it in Scope and method.`}` });
+  if (direct) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Direct question: answering it in chat, without a full deliverable" });
+  const leadTier = await routeLead(req, quick || direct, session, emit, signal);
+  const guide = quick ? `\n\n${QUICK_GUIDE}` : direct ? `\n\n${DIRECT_GUIDE}` : registry.tier === "QUICK" ? "" : `\n\nResearch depth: ${registry.tier}. State it in Scope and method.`;
+  session.messages.push({ role: "user", content: `${withTemplate(req)}${guide}` });
   const lead: LoopOptions = {
     catalog,
     lane: ORCHESTRATOR_LANE,
     system: orchestratorSystem(catalog),
     messages: session.messages,
-    tools: quick ? QUICK_TOOLS : ORCHESTRATOR_TOOLS,
+    tools: quick || direct ? QUICK_TOOLS : ORCHESTRATOR_TOOLS,
     model: modelFor(leadTier),
     effort: ORCHESTRATOR_EFFORT,
     emit,
@@ -497,8 +501,8 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
     specialistTier: req.opus || highStakes(req.prompt) ? "opus" : tierForStep("specialist"),
   };
   const draft = await runAgentLoop(lead);
-  // A quick ask still gets the ledger check, but not the full-deliverable depth review.
-  if (quick) await reviewDraft(lead, draft, "");
+  // A quick or direct ask still gets the ledger check, but not the full-deliverable depth review.
+  if (quick || direct) await reviewDraft(lead, draft, "");
   else await reviewDraft(lead, draft, req.prompt);
 }
 
@@ -518,7 +522,7 @@ async function routeLead(req: RunInput, quick: boolean, session: Session, emit: 
       : scoped
         ? { tier: "opus", reason: scoped, by: "rule" }
         : quick
-        ? { tier: tierForStep("quick"), reason: "a quick file or calculation", by: "rule" }
+        ? { tier: tierForStep("quick"), reason: "a quick file, calculation or direct question", by: "rule" }
         : null;
   const { route, usage } = forced ? { route: forced, usage: undefined } : await triage(prompt, ruleRoute(wantsDeliverable(prompt)), signal);
   if (usage) {
