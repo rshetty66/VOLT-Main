@@ -334,3 +334,20 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
   .dot.running { animation: none; }
   .spinner { animation-duration: 2.4s; }
 }
+
+/* Health count is a problem count, not a catalogue size. */
+.nav .count.warn { color: var(--on-light); background: var(--orange); border-radius: 8px; padding: 0 6px; font-weight: 600; }
+/* A finished answer scrolls to rest above the pinned message box. */
+.run { scroll-margin-bottom: 220px; }
+
+/* Agent picker */
+.picker { position: relative; }
+.picker-btn { display: inline-flex; align-items: center; gap: 8px; max-width: 100%; text-align: left; }
+.picker-pop { position: absolute; z-index: 20; bottom: calc(100% + 6px); left: 0; width: min(380px, 90vw); max-height: 360px; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 8px 30px rgba(0, 0, 0, 0.6); }
+.picker-pop .input { border-radius: 10px 10px 0 0; border-width: 0 0 1px; }
+.picker-list { overflow-y: auto; padding: 4px; }
+.picker-group { padding: 8px 8px 2px; font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.picker-opt { display: block; width: 100%; padding: 6px 8px; border: 0; border-radius: 6px; background: none; color: var(--heading); text-align: left; cursor: pointer; font: inherit; font-size: 13px; }
+.picker-opt:hover, .picker-opt.on { background: rgba(0, 229, 255, 0.12); }
+.picker-opt:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.picker-empty { padding: 12px; color: var(--muted); font-size: 13px; }

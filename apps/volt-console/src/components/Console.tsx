@@ -14,6 +14,7 @@ import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../ap
 import { scopeLabel, type Scope } from "../../shared/scope";
 import { directAsk, quickAsk } from "../../shared/asks";
 import { IntakeCard } from "./IntakeCard";
+import { AgentPicker } from "./AgentPicker";
 import { ATTACH_EXTENSIONS, ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../../shared/attachments";
 
 const EXAMPLES = [
@@ -194,20 +195,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
         <div className="card">
           <div className="row">
             <span className="micro">Talk to</span>
-            <select className="select" style={{ width: "auto", maxWidth: "100%" }} value={target} onChange={(e) => setTarget(e.target.value)}>
-              <option value="rudra">All specialists (Rudra leads)</option>
-              {[...new Set(catalog.agents.map((a) => a.layer))].map((layer) => (
-                <optgroup key={layer} label={layer}>
-                  {catalog.agents
-                    .filter((a) => a.layer === layer && a.id !== "rudra")
-                    .map((a) => (
-                      <option key={a.id} value={a.id}>
-                        {a.name}
-                      </option>
-                    ))}
-                </optgroup>
-              ))}
-            </select>
+            <AgentPicker agents={catalog.agents} value={target} onChange={setTarget} />
             {scope && (
               <button className="chip click" title="Change the scope for this chat" onClick={() => setScoping({ draft: scope })}>
                 Scope: {scopeLabel(scope)}
@@ -313,6 +301,12 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
       window.alert(e instanceof Error ? e.message : String(e));
     }
   };
+  // When a run finishes, bring its end into view above the pinned message box.
+  const wasRunning = useRef(run.state === "running");
+  useEffect(() => {
+    if (wasRunning.current && run.state !== "running") document.getElementById(`run-${run.id}`)?.scrollIntoView({ block: "end", behavior: "smooth" });
+    wasRunning.current = run.state === "running";
+  }, [run.state, run.id]);
   const [, tick] = useState(0);
   useEffect(() => {
     if (run.state !== "running") return;
@@ -416,5 +410,5 @@ function workLine(w: ReturnType<typeof summariseWork>, running: boolean): string
   }
   if (w.toolCalls > 0) parts.push(plural(w.toolCalls, "tool call"));
   if (w.failed > 0) parts.push(`${w.failed} failed`);
-  return parts.join(" · ") || "Working";
+  return parts.join(" · ") || (running ? "Working" : "Answered directly");
 }

@@ -67,6 +67,8 @@ export interface CatalogResponse {
   source: { name: string; commit?: string; ref?: string; built_utc?: string };
   mode: RunMode;
   model: string;
+  /** True when VOLT picks the model per step (VOLT_ROUTING is not off). */
+  routing?: boolean;
   agents: CatalogAgent[];
   workflows: { id: string; name: string; icon: string; description: string; agents: string[]; phases: { name: string; agents: string[] }[] }[];
   services: { code: string; name: string; practice: string; subPractice: string; description: string; agents: string[]; workflows: string[]; skills: string[]; coverage: string }[];

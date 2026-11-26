@@ -215,7 +215,9 @@ export function App() {
           <span>Agentic Console · Vision, Orchestrate, Launch, Transform</span>
         </div>
         <span className={`badge ${live ? "live" : ""}`}>{live ? "Live" : "Demo"}</span>
-        <span className="usage">{live ? catalog.model : "offline simulator"}</span>
+        <span className="usage" title={live && catalog.routing ? `VOLT picks the model for each step: Haiku triages, Sonnet answers quick asks and specialist work, Opus leads deliverables. Default tier: ${catalog.model}.` : undefined}>
+          {live ? (catalog.routing ? "Auto" : catalog.model) : "offline simulator"}
+        </span>
         {catalog.mode === "live" && (
           <label className="row body" style={{ fontSize: 12 }}>
             <input type="checkbox" checked={forceDemo} onChange={(e) => setForceDemo(e.target.checked)} /> demo
@@ -257,7 +259,14 @@ export function App() {
           <div key={id} style={{ display: "contents" }}>
             {i === 1 && <div className="sep" />}
             <button className={view === id ? "active" : ""} onClick={() => setView(id)}>
-              {label} <span className="count">{count}</span>
+              {label}{" "}
+              {id === "health" && Number(count) > 0 ? (
+                <span className="count warn" title={`${count} skills are referenced by agents but not shipped in the package. Agents fall back to their system prompt for these.`}>
+                  {count}
+                </span>
+              ) : (
+                <span className="count">{count}</span>
+              )}
             </button>
           </div>
         ))}
