@@ -34,6 +34,7 @@ import { runLocalTool, schemas, type ToolName } from "./tools.js";
 import { benchmarks } from "./analytics.js";
 import { fxRate, startFx } from "./fx.js";
 import { ModelLedger, routingEnabled } from "./router.js";
+import { availableProviders } from "./providers.js";
 import { MODEL, errorMessage, getSession, intakeFor, runLive, type Emit, type RunInput } from "./orchestrator.js";
 import { runDemo } from "./demo.js";
 import { commandPrompt, commandStatus, loadRudraCommands, matchCommand } from "./commands.js";
@@ -108,6 +109,7 @@ app.get("/api/catalog", (_req, res) => {
     mode,
     model: MODEL,
     routing: routingEnabled(),
+    engines: availableProviders(),
     agents: catalog.agents.map(({ systemPrompt: _p, ...a }) => a),
     workflows: catalog.workflows,
     services: catalog.services,
@@ -450,6 +452,7 @@ const RunBody = z.object({
   agentId: z.string().optional(),
   demo: z.boolean().optional(),
   opus: z.boolean().optional(),
+  engine: z.enum(["claude", "auto", "gpt", "grok"]).optional(),
   templateId: z.string().max(32).optional(),
   scope: scopeSchema.optional(),
   projectId: z.string().regex(/^(general|[0-9a-f-]{36})$/).optional(),

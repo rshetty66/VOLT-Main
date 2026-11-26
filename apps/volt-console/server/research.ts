@@ -21,6 +21,8 @@ export class SourceRegistry {
   webSearches = 0;
   /** The project whose knowledge base the agents may search (search_knowledge), when it has documents. */
   knowledgeProject?: string;
+  /** Which provider the specialists run on (see providers.ts); the lead always runs on Claude. */
+  engine?: "claude" | "auto" | "gpt" | "grok";
 
   constructor(prompt: string) {
     this.tier = classifyDepth(prompt);

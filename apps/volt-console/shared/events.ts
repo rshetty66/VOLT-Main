@@ -42,6 +42,8 @@ export interface RunRequest {
   demo?: boolean;
   /** Run every step on the Opus-tier model (the "Opus" switch): overrides the router for this run and the rest of the chat. */
   opus?: boolean;
+  /** Which provider the specialist workstreams run on: Claude (default), Auto (cross-provider), GPT or Grok. The lead always runs on Claude. */
+  engine?: "claude" | "auto" | "gpt" | "grok";
   /** Uploaded template whose formatting guide the agents apply (see shared/templates.ts). */
   templateId?: string;
   /** The chat's answers to the scope questions (see shared/scope.ts), sent with every message. */
@@ -69,6 +71,8 @@ export interface CatalogResponse {
   model: string;
   /** True when VOLT picks the model per step (VOLT_ROUTING is not off). */
   routing?: boolean;
+  /** Non-Claude providers with an API key on the server; the engine selector offers only these. */
+  engines?: { gpt: boolean; grok: boolean };
   agents: CatalogAgent[];
   workflows: { id: string; name: string; icon: string; description: string; agents: string[]; phases: { name: string; agents: string[] }[] }[];
   services: { code: string; name: string; practice: string; subPractice: string; description: string; agents: string[]; workflows: string[]; skills: string[]; coverage: string }[];
