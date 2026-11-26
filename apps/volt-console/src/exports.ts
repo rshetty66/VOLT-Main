@@ -19,6 +19,7 @@ import { kpiStrip, splitPages, toneTables, voltHtml } from "./htmlTemplate";
 import { archBlocks, chartBlocks, processBlocks, type ChartSpec, type ProcessSpec } from "../shared/viz";
 import { downloadBlob, downloadText, svgSize, svgToPng, voltFileName } from "./download";
 import { csvText } from "../shared/files";
+import type { HubContent } from "../shared/accountingHub";
 
 /** The template selected in the top bar; downloads follow its fonts and colours. */
 export const TemplateContext = createContext("");
@@ -35,6 +36,8 @@ export interface Deliverable {
   /** Files made with this one (a run's deck and workbook), carried inside the HTML page as download links. */
   companions?: { format: ExportFormat; deliverable: Deliverable }[];
   /** What the research engine recorded for this run; it makes the research bundle. */
+  /** An Accounting Hub page, drawn by its own builder (loaded on demand). */
+  hub?: HubContent;
   research?: { query: string; tier?: Tier; mode?: string; startedAt: string; sources: SourceRecord[]; log: string[] };
 }
 
@@ -264,6 +267,7 @@ export async function downloadDeliverable(format: DownloadFormat, d: Deliverable
     return downloadText(name("md"), `${head}\n${d.markdown}\n`, "text/markdown");
   }
   if (format === "zip") return downloadBlob(name("zip"), new Blob([researchBundle(d) as BlobPart], { type: "application/zip" }));
+  if (format === "html" && d.hub) return downloadText(voltFileName(d.title, "html", JSON.stringify(d.hub)), (await import("../shared/accountingHubPage")).hubPage(d.hub), "text/html");
   if (format === "html") return downloadText(name("html"), await htmlDocument(d), "text/html");
   // A deck names itself apart from the web page of the same deliverable (VOLT_<Client>_<Title>-Slides_<date>_v<N>.html).
   if (format === "slides") return downloadText(voltFileName(`${d.title} slides`, "html", d.markdown), await deckDocument(d), "text/html");

@@ -1,5 +1,5 @@
 import type { Run } from "../runState";
-import { chatUsage, compact, usageTotals, usd } from "../usage";
+import { CAD_PER_USD, cad, chatUsage, compact, modelName, modelsLine, modelsOf, usageTotals } from "../usage";
 
 interface Props {
   history: Run[];
@@ -35,7 +35,7 @@ export function Usage({ history, onOpenChat }: Props) {
               ["Output tokens", compact(totals.output)],
               ["Cached input", compact(totals.cacheRead)],
               ["Input + output", compact(totals.total)],
-              ["Est. cost", usd(totals.cost)],
+              ["Est. cost (CAD)", cad(totals.cost)],
             ].map(([label, value]) => (
               <div key={label} className="card stat">
                 <span className="micro">{label}</span>
@@ -45,7 +45,9 @@ export function Usage({ history, onOpenChat }: Props) {
           </div>
 
           {totals.models.length > 0 && (
-            <p className="page-sub">By model: {totals.models.map((m) => `${m.model} ${compact(m.tokens)} tokens, ${usd(m.cost)}`).join(" · ")}</p>
+            <p className="page-sub">
+              By model: {totals.models.map((m) => `${modelName(m.model)} ${compact(m.tokens)} tokens, ${cad(m.cost)}`).join(" · ")}. Estimated at list price, at {CAD_PER_USD} CAD per USD.
+            </p>
           )}
 
           <div className="card usage-table">
@@ -64,8 +66,9 @@ export function Usage({ history, onOpenChat }: Props) {
                     {c.title}
                     <small className="muted">
                       {when(c.startedAt)}
-                      {c.demo ? " · demo (no tokens)" : c.cost > 0 ? ` · est. ${usd(c.cost)}` : ""}
+                      {c.demo ? " · demo (no tokens)" : c.cost > 0 ? ` · est. ${cad(c.cost)}` : ""}
                     </small>
+                    {c.models.length > 0 && <small className="muted">Models: {modelsLine(c.models)}</small>}
                   </span>
                   <span className="num">{c.runs.length}</span>
                   <span className="num">{n(c.input)}</span>
@@ -79,7 +82,10 @@ export function Usage({ history, onOpenChat }: Props) {
                 <div className="usage-runs">
                   {c.runs.map((r) => (
                     <div key={r.id} className="usage-run">
-                      <span>{r.prompt.replace(/\s+/g, " ").slice(0, 110)}</span>
+                      <span>
+                        {r.prompt.replace(/\s+/g, " ").slice(0, 110)}
+                        {r.usage.models && <small className="muted"> · {modelsLine(modelsOf([r]))}</small>}
+                      </span>
                       <span className="num muted">{secs(r)}s</span>
                       <span className="num">{n(r.usage.input)}</span>
                       <span className="num">{n(r.usage.output)}</span>

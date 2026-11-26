@@ -4,6 +4,7 @@
  * as a download card in the chat.
  */
 import type { ExportTable } from "./export.js";
+import type { HubContent } from "./accountingHub.js";
 
 export const FILE_FORMATS = ["docx", "pptx", "xlsx", "csv", "html", "slides", "pdf", "md"] as const;
 export type FileFormat = (typeof FILE_FORMATS)[number];
@@ -26,6 +27,8 @@ export interface FileSpec {
   markdown: string;
   tables?: ExportTable[];
   templateId?: string;
+  /** An Accounting Hub page: drawn from this content instead of the markdown. */
+  hub?: HubContent;
 }
 
 /**

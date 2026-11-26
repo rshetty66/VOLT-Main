@@ -12,6 +12,8 @@ import { type Catalog, loadSkillBody, rankAgents, rankSkills } from "./catalog.j
 import { BENCHMARKS, appraiseInvestment, buildValueCase, compareToBenchmark, MATURITY_DIMENSIONS, scoreMaturity } from "./analytics.js";
 import { templateStore } from "./templates.js";
 import { FILE_FORMATS, FILE_LABEL, type FileSpec } from "../shared/files.js";
+import { checkHub, hubSchema } from "../shared/accountingHub.js";
+import { hubPage, hubTitle } from "../shared/accountingHubPage.js";
 
 export const schemas = {
   find_agents: z.object({
@@ -88,6 +90,9 @@ export const schemas = {
       .describe("Data sheets for xlsx (one sheet each) and csv (one file each). A text cell starting with '=' is an Excel formula, e.g. '=SUM(B2:B5)'."),
     template_id: z.string().max(80).optional().describe("Uploaded client template to style the file with (from list_templates)."),
   }),
+  build_accounting_hub: z.object({
+    content: z.record(z.string(), z.unknown()).describe("The page content, with the fields listed in the accounting-hub-page skill."),
+  }),
 } as const;
 
 export type ToolName = keyof typeof schemas;
@@ -110,6 +115,8 @@ const descriptions: Record<ToolName, string> = {
   list_templates: "List the client Word, Excel and PowerPoint templates uploaded to VOLT, with their ids and brand fonts.",
   create_file:
     "Make a file the user can download from the chat: a Word report, PowerPoint deck, Excel workbook (with formulas), CSV, interactive web page or PDF. Use it whenever the user asks for a file, model, deck, report or export. Write consulting-grade content: an action title, the answer first (situation, complication, resolution), numbered exhibits each with a source line.",
+  build_accounting_hub:
+    "Build the five-tab Accounting Hub page (current state, target accounting hub, financial information model, master accounting flow by product lifecycle, migration and parallel run) for a financial services client, as an interactive web page download. Load the accounting-hub-page skill first for the method and the content fields. Returns every check failure to fix, or the page.",
   get_template:
     "Get the formatting guide of an uploaded template: theme colours and fonts, styles, page setup, slide layouts or workbook formats. Use it whenever a deliverable must match a client template.",
 };
@@ -140,14 +147,15 @@ export const ORCHESTRATOR_TOOLS: ToolName[] = [
   "list_templates",
   "get_template",
   "create_file",
+  "build_accounting_hub",
 ];
 
 /** Rudra on a quick ask (see quickAsk): its own tools without the specialist bench. */
 export const QUICK_TOOLS: ToolName[] = ORCHESTRATOR_TOOLS.filter((t) => t !== "consult_agent" && t !== "find_agents");
 
 /** A specialist talking to the user directly can make files; one consulted by Rudra cannot (Rudra makes the one file). */
-export const SPECIALIST_TOOLS: ToolName[] = ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template", "create_file"];
-export const CONSULTED_TOOLS: ToolName[] = SPECIALIST_TOOLS.filter((t) => t !== "create_file");
+export const SPECIALIST_TOOLS: ToolName[] = ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template", "create_file", "build_accounting_hub"];
+export const CONSULTED_TOOLS: ToolName[] = SPECIALIST_TOOLS.filter((t) => t !== "create_file" && t !== "build_accounting_hub");
 
 /** `reply`, when set, is what the model reads back instead of the data (a made file is not echoed to it). */
 export type LocalResult = { ok: true; data: unknown; summary: string; reply?: string } | { ok: false; error: string };
@@ -249,6 +257,16 @@ export function runLocalTool(catalog: Catalog, name: Exclude<ToolName, "consult_
       const spec: FileSpec = { format: f.format, title: f.title, subtitle: f.subtitle, markdown: f.markdown, tables: f.tables, templateId: f.template_id };
       const label = `${FILE_LABEL[f.format]}: ${f.title}`;
       return { ok: true, data: spec, summary: label, reply: `${label} is ready as a download card in the chat. Do not repeat its content; summarise it in two or three lines.` };
+    }
+    case "build_accounting_hub": {
+      const parsed = hubSchema.safeParse((input as z.infer<typeof schemas.build_accounting_hub>).content);
+      if (!parsed.success) return { ok: false, error: `Fix the content and call again:\n${parsed.error.issues.map((i) => `- ${i.path.join(".")}: ${i.message}`).join("\n")}` };
+      const hub = parsed.data;
+      const failures = checkHub(hub, hubPage(hub));
+      if (failures.length) return { ok: false, error: `The page failed ${failures.length} check${failures.length > 1 ? "s" : ""}. Fix every one and call again:\n${failures.map((f) => `- ${f}`).join("\n")}` };
+      const spec: FileSpec = { format: "html", title: hubTitle(hub), markdown: "", hub };
+      const review = hub.confirm.map((c) => `- ${c.area.replace(/_/g, " ")}: ${c.item}`).join("\n");
+      return { ok: true, data: spec, summary: `Accounting Hub page: ${hub.client.name}`, reply: `The page passed every check and is ready as a download card in the chat. Summarise it in two or three lines, then list these review items for the person to resolve before any client-facing use:\n${review}` };
     }
   }
 }
