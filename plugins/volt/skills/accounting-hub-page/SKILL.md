@@ -35,7 +35,8 @@ architecture-review aid, not an implementation specification.
 
 ```
 CLIENT_NAME, CLIENT_TYPE      consumer lender | retail bank | credit union | wealth / asset manager | insurer | other
-BRANDING                      VOLT (default) | client light: primary hex, secondary hex, logo text
+BRANDING                      VOLT (default, dark) | client light: primary hex, secondary hex, logo text |
+                              boardroom (ivory and navy, print-friendly; primary and secondary optional)
 AUDIENCE, CONFIDENTIALITY     client CFO / Controller | internal team | steering committee; client draft | internal
 SOURCE_SYSTEMS                name, products, how data leaves it (file / API / CDC), one per line
 GL_PLATFORM                   name only this GL on the page
@@ -110,7 +111,7 @@ Respect exclusions everywhere. The page never names a consulting firm.
 ### Content fields (`build_accounting_hub` input `content`)
 
 - `client` {name, short, type: consumer_lender | retail_bank | credit_union | wealth_asset_manager | insurer | other};
-  `branding` {style: volt | client_light, primary, secondary, logo_text}; `audience`; `confidentiality`
+  `branding` {style: volt | client_light | boardroom, primary, secondary, logo_text}; `audience`; `confidentiality`
   (client_draft | internal); `gl_platform`; `epm`; `data_platform`; `current_state_source`; `accounts_illustrative`;
   `target_date`; `exclusions` []; `pain_points` []; `legacy_logic` [] (one item per component);
   `evidence` [{id S1.., name, date, section, kind: policy | client_document | interview | public | other}];
