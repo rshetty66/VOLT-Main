@@ -47,7 +47,7 @@ import { WEB_MAX_BYTES, WebSourceError, checkUrl, fetchPublic, htmlText, renderP
 import { DEFAULT_PROJECT_ID, MEMORY_KINDS } from "../shared/projects.js";
 import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../shared/attachments.js";
 import { runBudgetMs } from "./budget.js";
-import { quickAsk } from "./deliverable.js";
+import { directAsk, quickAsk } from "./deliverable.js";
 import { startHeartbeat } from "./sse.js";
 import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requestUser, requireToken, sameOriginWrites, securityConfig } from "./security.js";
 import { ledgerCoaExport, ledgerDataRequirementsExport, ledgerEnabled, ledgerPeople } from "./ledger.js";
@@ -233,7 +233,7 @@ app.post("/api/uploads/url", express.json({ limit: "8kb" }), async (req, res) =>
       const file = decodeURIComponent(new URL(got.url).pathname.split("/").pop() || "page").replace(/\.pdf$/i, "");
       extracted = { ...(await extractAttachment(`${file}.pdf`, got.bytes, KB_MAX_CHARS)), name: `${file} (${host})` };
     } else if (/text\/html|xhtml/.test(got.type) || !got.type) {
-      let page = htmlText(new TextDecoder("utf-8").decode(got.bytes));
+      let page = htmlText(new TextDecoder("utf-8").decode(got.bytes), got.url);
       // A page built by JavaScript has no text in its HTML: render it when ScrapeGraph is set up.
       if (page.text.length < 40 && renderingEnabled()) page = await renderPage(got.url);
       if (page.text.length < 40) return void res.status(422).json({ error: "No readable text was found on that page (it may need a browser to render)." });
@@ -497,7 +497,7 @@ app.post("/api/run", async (req, res) => {
   const runId = crypto.randomUUID();
   const startedAt = Date.now();
   // One line per run start and end in the host's logs, so a slow or cut-off run can be traced (no prompt text is logged).
-  console.log(`[run] start ${runId} ${kind} ${runMode} quick=${kind === "orchestrate" && quickAsk(body.prompt)} budget=${budget / 1000}s commit=${COMMIT}`);
+  console.log(`[run] start ${runId} ${kind} ${runMode} quick=${kind === "orchestrate" && quickAsk(body.prompt)} direct=${kind === "orchestrate" && directAsk(body.prompt)} budget=${budget / 1000}s commit=${COMMIT}`);
   res.on("close", () => console.log(`[run] end ${runId} after ${Math.round((Date.now() - startedAt) / 1000)}s${controller.signal.aborted ? " (stopped or cut off)" : ""} models: ${models.summary()}`));
   emit({ type: "run_start", runId, sessionId: session.id, mode: runMode, model: runMode === "live" ? MODEL : "simulator", kind, title });
   if (runMode === "demo" && body.attachments?.length) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Attached files are read in live mode only; this demo run ignores them" });

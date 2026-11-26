@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DEPTH_STANDARD, assessDepth, deliverableStandards, deliverableStructure, leadDeliverableGuide, specialistDeliverableGuide, strengthenPrompt, wantsDeliverable } from "../server/deliverable";
+import { DEPTH_STANDARD, assessDepth, deliverableStandards, deliverableStructure, leadDeliverableGuide, specialistDeliverableGuide, strengthenPrompt, wantsDeliverable, directAsk } from "../server/deliverable";
 
 describe("client deliverable guide", () => {
   it("reads the section list from run-client-deliverable.md", () => {
@@ -146,6 +146,18 @@ describe("depth check", () => {
     expect(wantsDeliverable("We are a Canadian bank with 40 entities on SAP and want to know where the capital reporting risks are across the group this year")).toBe(true);
     expect(wantsDeliverable("What is DSO?")).toBe(false);
     expect(wantsDeliverable("/compare Oracle and SAP")).toBe(false);
+  });
+
+  it("answers a lookup directly instead of escalating it into a deliverable", () => {
+    const td = "s\nlist the quarterly results documents on the TD investor relations page I added, with their dates, and cite each one by its source key";
+    expect(directAsk(td)).toBe(true);
+    expect(wantsDeliverable(td)).toBe(false);
+    expect(directAsk("Using only this project's knowledge base, list the quarterly results documents on the TD page I added, with their dates")).toBe(true);
+    expect(directAsk("Which entities in the trial balance have a suspense balance?")).toBe(true);
+    expect(directAsk("What should we do to cut the close from 12 days to 5?")).toBe(false);
+    expect(directAsk("Build a plan to cut the close from 12 days to 5")).toBe(false);
+    expect(directAsk("Give me a CSV of the APQC close benchmarks")).toBe(false);
+    expect(directAsk("/compare Oracle and SAP")).toBe(false);
   });
 
   it("sends the gaps back in the rewrite instruction", () => {

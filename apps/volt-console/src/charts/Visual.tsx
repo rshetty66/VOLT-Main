@@ -5,7 +5,7 @@ import { parseArchSpec, parseChartSpec, parseProcessSpec } from "../../shared/vi
 import { processSvg } from "./specProcess";
 import { archSvg } from "./specArch";
 import { specSvg } from "./specChart";
-import { datedName, downloadBlob, downloadText, svgToPng } from "../download";
+import { voltFileName, downloadBlob, downloadText, svgToPng } from "../download";
 import { chartGif } from "./gif";
 
 /** Light-palette SVG markup for a chart, used by every download. */
@@ -19,10 +19,10 @@ export function DownloadButtons({ name, svg, gif }: { name: string; svg: () => P
   const run = async (kind: "svg" | "png" | "gif") => {
     setBusy(true);
     try {
-      if (kind === "gif" && gif) return downloadBlob(datedName(name, "gif"), await gif());
+      if (kind === "gif" && gif) return downloadBlob(voltFileName(name, "gif"), await gif());
       const markup = await svg();
-      if (kind === "svg") downloadText(datedName(name, "svg"), markup, "image/svg+xml");
-      else downloadBlob(datedName(name, "png"), await svgToPng(markup, 2));
+      if (kind === "svg") downloadText(voltFileName(name, "svg", markup), markup, "image/svg+xml");
+      else downloadBlob(voltFileName(name, "png", markup), await svgToPng(markup, 2));
     } finally {
       setBusy(false);
     }

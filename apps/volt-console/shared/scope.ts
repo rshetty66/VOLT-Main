@@ -73,6 +73,6 @@ export function scopeBrief(scope: Partial<Scope>): string {
   });
   if (!lines.length) return "";
   const depth = scope.depth ? ` ${DEPTH[scope.depth]}` : "";
-  const file = scope.deliverable && FILE[scope.deliverable] ? ` Deliver the result as ${FILE[scope.deliverable]} made with create_file.` : "";
-  return `## Scope the client set for this chat\n${lines.join("\n")}\nKeep the work inside this scope and do not ask again for anything it answers. If the request clearly falls outside it, say so in one line and go on with the request.${depth}${file}`;
+  const file = scope.deliverable && FILE[scope.deliverable] ? ` When the message asks for work, deliver the result as ${FILE[scope.deliverable]} made with create_file.` : "";
+  return `## Scope the client set for this chat\n${lines.join("\n")}\nKeep the work inside this scope and do not ask again for anything it answers. If the request clearly falls outside it, say so in one line and go on with the request. The scope is context, not the task: a direct question or a lookup gets a direct answer to what it asks, never a deliverable on the outcome above.${depth}${file}`;
 }

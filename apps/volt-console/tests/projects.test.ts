@@ -150,6 +150,12 @@ describe("web sources by URL", () => {
     expect(page.text).toContain("Year 2026");
     expect(page.text).not.toMatch(/alert|Menu/);
   });
+
+  it("keeps the address of each document a page links to", () => {
+    const page = htmlText('<main><h2>Q3 2026</h2><ul><li><a href="/pdf/2026-q3-report.pdf">Report to Shareholders</a> Aug 27, 2026</li><li><a href="/about">About</a></li></ul></main>', "https://www.example-bank.com/investors/");
+    expect(page.text).toContain("Report to Shareholders (https://www.example-bank.com/pdf/2026-q3-report.pdf) Aug 27, 2026");
+    expect(page.text).not.toContain("/about");
+  });
 });
 
 describe("rendered fallback (ScrapeGraph)", () => {

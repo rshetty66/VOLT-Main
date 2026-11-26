@@ -186,3 +186,12 @@ describe("the run's research record", () => {
     expect(text("analysis/search-log.md")).toContain("apqc_benchmark");
   });
 });
+
+describe("deliverable title", () => {
+  it("uses the answer's own heading, else the first real line of the request", async () => {
+    const { deliverableTitle } = await import("../src/exports");
+    expect(deliverableTitle("# TD quarterly results documents\n\nbody", "anything")).toBe("TD quarterly results documents");
+    expect(deliverableTitle("## 1. Executive summary\n#\nx", "s\nlist the quarterly results documents on the TD page")).toBe("list the quarterly results documents on the TD page");
+    expect(deliverableTitle("", "word ".repeat(40)).length).toBeLessThanOrEqual(120);
+  });
+});
