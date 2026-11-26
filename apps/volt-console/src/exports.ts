@@ -23,7 +23,7 @@ import { csvText } from "../shared/files";
 /** The template selected in the top bar; downloads follow its fonts and colours. */
 export const TemplateContext = createContext("");
 
-export type DownloadFormat = ExportFormat | "md" | "html" | "zip" | "csv" | "pdf";
+export type DownloadFormat = ExportFormat | "md" | "html" | "slides" | "zip" | "csv" | "pdf";
 
 export interface Deliverable {
   title: string;
@@ -141,6 +141,25 @@ const flowSteps = (spec: ProcessSpec) =>
  * and architectures are inline SVG in the console palette; process flows are interactive.
  */
 export async function htmlDocument(d: Deliverable): Promise<string> {
+  return voltHtml({ title: d.title, subtitle: d.subtitle, pages: await htmlPages(d), files: await companionLinks(d) });
+}
+
+/**
+ * The HTML slide deck (src/htmlDeck.ts): the same pages as the web page, one slide per section, presented with
+ * reveal.js. reveal.js is loaded only when a deck is made, so it stays out of the console's main bundle.
+ */
+export async function deckDocument(d: Deliverable): Promise<string> {
+  const [{ voltDeck }, js, css, notes] = await Promise.all([
+    import("./htmlDeck"),
+    import("reveal.js/dist/reveal.js?raw"),
+    import("reveal.js/dist/reveal.css?raw"),
+    import("reveal.js/plugin/notes/notes.js?raw"),
+  ]);
+  return voltDeck({ title: d.title, subtitle: d.subtitle, pages: await htmlPages(d) }, { js: js.default, css: css.default, notes: notes.default });
+}
+
+/** The deliverable's markdown as house-style HTML pages, split at each "##", with its charts, diagrams and flows inline. */
+async function htmlPages(d: Deliverable) {
   const { renderToStaticMarkup } = await import("react-dom/server");
   const charts = await Promise.all((d.charts ?? []).map((c) => chartFor(c).render(DARK)).map((el) => renderToStaticMarkup(el)));
   const diagrams = await Promise.all(mermaidSources(d.markdown).map((code) => renderMermaid(code, "dark").catch(() => "")));
@@ -184,7 +203,7 @@ export async function htmlDocument(d: Deliverable): Promise<string> {
     }),
   );
   const appendix = charts.length ? `<h2>Appendix: Supporting analysis</h2>${charts.map((svg) => `<figure class="chart">${svg}</figure>`).join("")}` : "";
-  return voltHtml({ title: d.title, subtitle: d.subtitle, pages: splitPages(toneTables(body + appendix)), files: await companionLinks(d) });
+  return splitPages(toneTables(body + appendix));
 }
 
 const COMPANION_LABEL: Record<ExportFormat, string> = { pptx: "PowerPoint", xlsx: "Excel", docx: "Word" };
@@ -226,7 +245,7 @@ export function researchBundle(d: Deliverable, asOf = new Date()): Uint8Array {
   return zipSync(Object.fromEntries(Object.entries(files).map(([k, v]) => [`research/${k}`, strToU8(v)])));
 }
 
-/** Download a deliverable as Word, PowerPoint, Excel, Markdown, HTML or a research bundle. */
+/** Download a deliverable as Word, PowerPoint, Excel, Markdown, HTML, an HTML slide deck or a research bundle. */
 export async function downloadDeliverable(format: DownloadFormat, d: Deliverable) {
   if (format === "md") {
     const head = [`# ${d.title}`, d.subtitle ? `\n_${d.subtitle}_` : "", ""].join("\n");
@@ -234,6 +253,7 @@ export async function downloadDeliverable(format: DownloadFormat, d: Deliverable
   }
   if (format === "zip") return downloadBlob(exportFileName(d.title, "zip"), new Blob([researchBundle(d) as BlobPart], { type: "application/zip" }));
   if (format === "html") return downloadText(exportFileName(d.title, "html"), await htmlDocument(d), "text/html");
+  if (format === "slides") return downloadText(exportFileName(d.title, "slides.html"), await deckDocument(d), "text/html");
   if (format === "csv") return downloadCsv(d);
   if (format === "pdf") return printPdf(await htmlDocument(d));
 

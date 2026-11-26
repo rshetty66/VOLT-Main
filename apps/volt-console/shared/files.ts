@@ -5,7 +5,7 @@
  */
 import type { ExportTable } from "./export.js";
 
-export const FILE_FORMATS = ["docx", "pptx", "xlsx", "csv", "html", "pdf", "md"] as const;
+export const FILE_FORMATS = ["docx", "pptx", "xlsx", "csv", "html", "slides", "pdf", "md"] as const;
 export type FileFormat = (typeof FILE_FORMATS)[number];
 
 export const FILE_LABEL: Record<FileFormat, string> = {
@@ -14,6 +14,7 @@ export const FILE_LABEL: Record<FileFormat, string> = {
   xlsx: "Excel workbook",
   csv: "CSV data",
   html: "Interactive web page",
+  slides: "HTML slide deck",
   pdf: "PDF report",
   md: "Markdown",
 };

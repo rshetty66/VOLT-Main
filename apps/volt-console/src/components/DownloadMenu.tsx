@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState } from "react";
 import { TemplateContext, downloadDeliverable, type Deliverable, type DownloadFormat } from "../exports";
 import { errorText } from "../download";
 
-const LABEL: Record<DownloadFormat, string> = { docx: "Word (.docx)", pptx: "PowerPoint (.pptx)", xlsx: "Excel (.xlsx)", md: "Markdown (.md)", html: "Web page (.html)", zip: "Research bundle (.zip)", csv: "CSV data (.csv)", pdf: "PDF (print)" };
+const LABEL: Record<DownloadFormat, string> = { docx: "Word (.docx)", pptx: "PowerPoint (.pptx)", xlsx: "Excel (.xlsx)", md: "Markdown (.md)", html: "Web page (.html)", slides: "Slide deck (.html)", zip: "Research bundle (.zip)", csv: "CSV data (.csv)", pdf: "PDF (print)" };
 
 /**
  * "Download" button with a format menu. `build` assembles the deliverable when a format is chosen, so the
@@ -10,7 +10,7 @@ const LABEL: Record<DownloadFormat, string> = { docx: "Word (.docx)", pptx: "Pow
  */
 export function DownloadMenu({
   build,
-  formats = ["docx", "pptx", "xlsx", "md", "html"],
+  formats = ["docx", "pptx", "xlsx", "md", "html", "slides"],
   option,
   label = "Download",
 }: {

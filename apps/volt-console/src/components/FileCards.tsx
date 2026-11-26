@@ -28,7 +28,7 @@ function detail(s: FileSpec): string {
   const visuals = (s.markdown.match(/^```(chart|process|architecture|mermaid)\b/gm) ?? []).length;
   const sheets = s.tables?.length ?? 0;
   const parts = [
-    sections ? `${sections} ${s.format === "pptx" ? "slide" : "section"}${sections === 1 ? "" : "s"}` : "",
+    sections ? `${sections} ${s.format === "pptx" || s.format === "slides" ? "slide" : "section"}${sections === 1 ? "" : "s"}` : "",
     visuals ? `${visuals} exhibit${visuals === 1 ? "" : "s"}` : "",
     sheets ? `${sheets} ${s.format === "csv" ? "table" : "data sheet"}${sheets === 1 ? "" : "s"}` : "",
   ];
@@ -66,7 +66,7 @@ function FileCard({ spec, all }: { spec: FileSpec; all: FileSpec[] }) {
       <svg className="file-icon" viewBox="0 0 40 48" aria-hidden="true">
         <path d="M6 2h20l10 10v32a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" fill="none" stroke="currentColor" strokeWidth="1.5" />
         <path d="M26 2v10h10" fill="none" stroke="currentColor" strokeWidth="1.5" />
-        <text x="20" y="36" textAnchor="middle">{spec.format.toUpperCase()}</text>
+        <text x="20" y="36" textAnchor="middle">{spec.format === "slides" ? "DECK" : spec.format.toUpperCase()}</text>
       </svg>
       <div className="file-meta">
         <div className="file-title">{spec.title}</div>
