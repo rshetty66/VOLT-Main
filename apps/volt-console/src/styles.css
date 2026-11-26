@@ -393,3 +393,74 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .toast { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 12px; background: var(--elevated); border: 1px solid var(--line-strong); border-left: 3px solid var(--accent); border-radius: 8px; color: var(--heading); box-shadow: 0 6px 24px rgba(0, 0, 0, 0.4); }
 .toast.error { border-left-color: var(--orange); }
 .confirm { position: fixed; z-index: 41; top: 30%; left: 50%; transform: translateX(-50%); width: min(420px, 92vw); display: grid; gap: 16px; }
+
+/* ── Rail navigation, status pills, banner and setup checklist ─────────────── */
+:root { --rail: 84px; --panel: var(--surface-2); --banner-bg: linear-gradient(90deg, #2e2810, #8a7414 50%, #2e2810); --banner-fg: #fff7d6; --ok-ring: #3fb950; }
+:root[data-theme="light"] { --banner-bg: linear-gradient(90deg, #f6e7a6, #ecd36a 50%, #f6e7a6); --banner-fg: #3b2f00; }
+.app { grid-template-columns: var(--rail) 1fr; }
+.nav.rail { padding: 10px 6px; gap: 2px; align-items: stretch; border-right: 0; }
+.nav.rail button { flex-direction: column; justify-content: center; align-items: center; gap: 4px; padding: 8px 2px; text-align: center; font-size: 11px; line-height: 1.1; color: var(--muted); min-width: 0; }
+.nav.rail button:hover { color: var(--primary); background: var(--tint-05); }
+.nav.rail button.active { color: var(--primary); background: var(--surface); font-weight: 600; }
+.rail-icon { position: relative; display: inline-flex; width: 38px; height: 28px; align-items: center; justify-content: center; border-radius: 8px; }
+.nav.rail button.active .rail-icon { color: var(--accent); }
+.rail-label { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rail-badge { position: absolute; top: 0; right: 2px; width: 9px; height: 9px; border-radius: 50%; background: var(--orange); border: 2px solid var(--void); box-sizing: content-box; }
+.nav.rail .sep { margin: 6px 10px; }
+.main { margin: 0 12px 12px 0; border-radius: 16px; background: var(--panel); border: 1px solid var(--line); }
+
+.banner { order: -1; flex: 0 0 calc(100% + 40px); margin: -10px -20px 2px; padding: 8px 16px; display: flex; align-items: center; justify-content: center; gap: 10px; background: var(--banner-bg); color: var(--banner-fg); font-weight: 500; position: relative; }
+.banner .btn.dark { background: var(--void); color: var(--primary); border-color: var(--line-strong); }
+.banner-x { position: absolute; right: 12px; background: none; border: 0; color: inherit; font-size: 20px; cursor: pointer; line-height: 1; }
+:root[data-present="on"] .banner { display: none; }
+
+.pills { display: flex; align-items: center; gap: 8px; }
+.pill { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 14px; border-radius: 18px; border: 1px solid var(--line); background: var(--surface); color: var(--heading); font-weight: 600; cursor: pointer; }
+.pill:hover { border-color: var(--line-strong); }
+.pill.icon { width: 36px; padding: 0; justify-content: center; }
+.pill.plus { background: var(--elevated); }
+span.pill { cursor: default; }
+
+.btn.light { background: #f1f1f1; color: #111; border-color: #f1f1f1; font-weight: 600; padding: 9px 18px; border-radius: 10px; }
+.btn.light:hover { background: #fff; }
+:root[data-theme="light"] .btn.light { background: #0f1424; color: #fff; border-color: #0f1424; }
+
+.setup { display: grid; gap: 14px; max-width: 560px; }
+.setup-head { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 14px 16px; background: none; border: 1px solid var(--line-strong); border-radius: 12px; color: var(--heading); font-size: 16px; cursor: pointer; }
+.setup-head .flip { transform: rotate(180deg); display: inline-flex; }
+.timeline { list-style: none; margin: 0; padding: 4px 0 0 4px; display: grid; }
+.tl { display: grid; grid-template-columns: 26px 1fr; gap: 12px; position: relative; padding-bottom: 14px; }
+.tl::before { content: ""; position: absolute; left: 12px; top: 26px; bottom: -2px; width: 0; border-left: 2px dashed var(--line-strong); }
+.tl.done::before { border-left: 2px solid #3fb950; }
+.tl:last-child::before { display: none; }
+.tl-dot { width: 26px; height: 26px; border-radius: 50%; border: 2px solid var(--line-strong); display: inline-flex; align-items: center; justify-content: center; background: var(--panel); position: relative; z-index: 1; }
+.tl.done .tl-dot { background: #3fb950; border-color: #3fb950; color: #fff; }
+.tl.current .tl-dot { border-color: var(--heading); }
+.tl-body { padding-top: 2px; border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+.tl:last-child .tl-body { border-bottom: 0; }
+.tl-title { font-size: 17px; font-weight: 650; color: var(--heading); }
+.tl-hint { margin: 4px 0 12px; color: var(--body); max-width: 44ch; }
+.tl.done .tl-row { color: var(--muted); cursor: default; }
+.tl-row { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: 2px 0; background: none; border: 0; color: var(--heading); font-size: 16px; text-align: left; cursor: pointer; }
+
+/* Phones keep the vertical rail, as the reference does; the labels shrink instead of the rail turning into a strip. */
+@media (max-width: 760px) {
+  :root { --rail: 66px; }
+  .app { grid-template-columns: var(--rail) 1fr; grid-template-rows: auto 1fr; }
+  .nav.rail { flex-direction: column; overflow-x: hidden; overflow-y: auto; border-bottom: 0; padding: 8px 4px; }
+  .nav.rail .sep { display: block; }
+  .nav.rail button { font-size: 10px; }
+  .main { margin: 0 6px 6px 0; padding: 14px; }
+  .banner { flex-basis: calc(100% + 32px); margin: -10px -16px 2px; }
+  .topbar .brand { margin-right: 0; }
+}
+/* On the empty home screen the message box sits in the page, below the checklist and starter cards. */
+.composer.home { position: static !important; }
+.rail-icon { height: 26px; }
+.nav.rail button { padding: 6px 2px; }
+:root { --rail: 92px; }
+.composer { background: var(--panel); }
+.nav.rail { scrollbar-width: none; }
+.nav.rail::-webkit-scrollbar { display: none; }
+@media (max-width: 760px) { :root { --rail: 70px; } .nav.rail button { font-size: 9.5px; } }
+@media (max-width: 760px) { .topbar > .usage, .topbar > .badge { display: none; } }
