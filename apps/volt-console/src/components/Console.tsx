@@ -11,6 +11,7 @@ import { addMemory } from "../projects";
 import { FileCards } from "./FileCards";
 import { AgentStage } from "./AgentStage";
 import { runDeliverable } from "../exports";
+import { chatVersions } from "../versions";
 import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
 import { scopeLabel, type Scope } from "../../shared/scope";
 import { directAsk, quickAsk } from "../../shared/asks";
@@ -179,6 +180,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
     setFileError("");
   };
 
+  const versions = chatVersions(runs);
   return (
     <div className="console">
       {runs.length === 0 && (
@@ -220,7 +222,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
       )}
 
       {runs.map((run) => (
-        <RunView key={run.id} run={run} onStop={() => onStop(run.id)} onRegenerate={running ? undefined : () => regenerate(run.prompt)} />
+        <RunView key={run.id} run={run} versions={versions} onStop={() => onStop(run.id)} onRegenerate={running ? undefined : () => regenerate(run.prompt)} />
       ))}
       <div ref={composer} className={`composer ${runs.length === 0 ? "home" : ""}`}>
         {optimizing && (
@@ -401,7 +403,7 @@ function scrollEndIntoView(runId: string) {
   if (by > 0 && by < main.clientHeight) main.scrollBy({ top: by, behavior: "smooth" });
 }
 
-function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; onRegenerate?: () => void }) {
+function RunView({ run, versions = [], onStop, onRegenerate }: { run: Run; versions?: Run[]; onStop: () => void; onRegenerate?: () => void }) {
   const [source, setSource] = useState<Run["sources"][number] | null>(null);
   const work = summariseWork(run);
   const status = runStatus(run);
@@ -450,6 +452,7 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
           {RUN_STATUS_LABEL[status]}
         </span>
         <span className="micro">{run.title}</span>
+        {run.version && versions.length > 1 && <span className="badge version-badge" title={run.version.feedback ? `Rerun after: ${run.version.feedback}` : "First version"}>v{run.version.n}</span>}
         <div className={`prompt${long && !showAll ? " clamped" : ""}`}>
           {run.prompt}
           {run.attachments?.length ? <div className="muted" style={{ fontSize: "var(--fs-3)", fontWeight: 400 }}>Attached: {run.attachments.join(", ")}</div> : null}
@@ -519,7 +522,7 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
               <details key={l.id} className="section">
                 <summary>{l.name}</summary>
                 <div className="section-body">
-                  <Markdown text={l.text} />
+                  <Markdown text={l.text} sources={run.sources} onCite={setSource} />
                 </div>
               </details>
             ))}
@@ -527,7 +530,7 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
         )}
         <RunVisuals run={run} />
         <div className="answer">
-          {run.text ? <Markdown text={run.text} /> : run.state === "running" ? <p className="muted"><span className="spinner" /> Rudra is working…</p> : null}
+          {run.text ? <Markdown text={run.text} sources={run.sources} onCite={setSource} /> : run.state === "running" ? <p className="muted"><span className="spinner" /> Rudra is working…</p> : null}
         </div>
         {run.state !== "running" && run.text.trim() && (
           <div className="answer-foot">
@@ -550,6 +553,7 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
             )}
           </div>
         )}
+        {run.version && versions.length > 1 && run.state !== "running" && <VersionHistory run={run} versions={versions} />}
         <Steps run={run} />
         <FileCards run={run} />
       </div>
@@ -575,6 +579,29 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * The versions of the chat's deliverable, oldest first: each with the feedback that asked for it. Each version keeps its
+ * own Download menu, so an earlier one stays downloadable; a click here scrolls to it.
+ */
+function VersionHistory({ run, versions }: { run: Run; versions: Run[] }) {
+  return (
+    <div className="version-history" aria-label="Versions of this deliverable">
+      <span className="micro">Versions</span>
+      <ol>
+        {versions.map((v) => (
+          <li key={v.id} className={v.id === run.id ? "current" : ""}>
+            <button type="button" className="version-link" disabled={v.id === run.id} onClick={() => document.getElementById(`run-${v.id}`)?.scrollIntoView({ behavior: "smooth", block: "start" })}>
+              v{v.version!.n}
+            </button>
+            <span className="version-what">{v.version!.feedback ? v.version!.feedback : "First answer"}</span>
+            <span className="muted version-when">{new Date(v.startedAt).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}</span>
+          </li>
+        ))}
+      </ol>
+    </div>
   );
 }
 

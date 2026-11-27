@@ -78,10 +78,12 @@ const hash = (s: string) => {
 /**
  * The file name for a download, after the convention in shared/export.ts. The version is per content: the same
  * deliverable saved again (or in another format) keeps its number, a changed one on the same day gets the next.
- * Counted in this browser only, and v1 when storage is unavailable.
+ * Counted in this browser only, and v1 when storage is unavailable. `fixed` (a chat answer's version) skips the count.
  */
-export function voltFileName(title: string, ext: string, content = "", date = new Date()): string {
+export function voltFileName(title: string, ext: string, content = "", date = new Date(), fixed?: number): string {
   const base = fileBase(title, fileClient, date);
+  // A chat answer carries its own version (src/versions.ts), the same in every format and on every device.
+  if (fixed) return `${base}_v${fixed}.${ext}`;
   let version = 1;
   try {
     const all = JSON.parse(localStorage.getItem(VERSIONS) ?? "{}") as Record<string, string[]>;

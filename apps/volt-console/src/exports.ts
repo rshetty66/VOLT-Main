@@ -39,7 +39,12 @@ export interface Deliverable {
   /** An Accounting Hub page, drawn by its own builder (loaded on demand). */
   hub?: HubContent;
   research?: { query: string; tier?: Tier; mode?: string; startedAt: string; sources: SourceRecord[]; log: string[] };
+  /** A chat answer's version and the day it was written: the file name carries these instead of a per-browser count. */
+  version?: { n: number; date: Date };
 }
+
+/** The download name of a deliverable (or of a variant of its title, such as the slide deck). */
+const fileName = (d: Deliverable, ext: string, title = d.title, content = d.markdown) => voltFileName(title, ext, content, d.version?.date, d.version?.n);
 
 /** The ```mermaid blocks of a markdown text, in document order (the server numbers them the same way). */
 export function mermaidSources(markdown: string): string[] {
@@ -64,7 +69,9 @@ export function runDeliverable(run: Run, includeLanes: boolean, templateId?: str
   const charts = chartableResults(run);
   return {
     // The cover is client-facing: the deliverable's own title (its first "#" heading), else the request; the date, and no run internals.
-    title: deliverableTitle(run.text, run.kind === "workflow" && run.title ? `${run.title}: ${run.prompt}` : run.prompt),
+    // A later version keeps v1's name, so every version of a chat's deliverable sorts together.
+    title: run.version?.name ?? deliverableTitle(run.text, run.kind === "workflow" && run.title ? `${run.title}: ${run.prompt}` : run.prompt),
+    version: runFileVersion(run),
     subtitle: new Date(run.startedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
     // The source register is appended from the run's record, so every key in the text resolves in every format.
     markdown: run.text + (run.sources.length > 1 ? sourceRegisterMarkdown(run.sources) : "") + appendix,
@@ -82,6 +89,9 @@ export function runDeliverable(run: Run, includeLanes: boolean, templateId?: str
     },
   };
 }
+
+/** The version a run's downloads carry, dated the day the answer was written. */
+export const runFileVersion = (run: Run): Deliverable["version"] => (run.version ? { n: run.version.n, date: new Date(run.startedAt) } : undefined);
 
 /** Chart data as worksheet tables for Excel. */
 export function chartTables(results: ChartableResult[]): ExportTable[] {
@@ -228,7 +238,7 @@ async function companionLinks(d: Deliverable) {
     (d.companions ?? []).map(async ({ format, deliverable }) => {
       try {
         const blob = await exportBlob(format, deliverable);
-        return { label: COMPANION_LABEL[format], name: voltFileName(deliverable.title, format, deliverable.markdown), href: `data:${EXPORT_MIME[format]};base64,${await base64(blob)}` };
+        return { label: COMPANION_LABEL[format], name: fileName(deliverable, format), href: `data:${EXPORT_MIME[format]};base64,${await base64(blob)}` };
       } catch {
         return null;
       }
@@ -261,16 +271,16 @@ export function researchBundle(d: Deliverable, asOf = new Date()): Uint8Array {
 
 /** Download a deliverable as Word, PowerPoint, Excel, Markdown, HTML, an HTML slide deck or a research bundle. */
 export async function downloadDeliverable(format: DownloadFormat, d: Deliverable) {
-  const name = (ext: string) => voltFileName(d.title, ext, d.markdown);
+  const name = (ext: string) => fileName(d, ext);
   if (format === "md") {
     const head = [`# ${d.title}`, d.subtitle ? `\n_${d.subtitle}_` : "", ""].join("\n");
     return downloadText(name("md"), `${head}\n${d.markdown}\n`, "text/markdown");
   }
   if (format === "zip") return downloadBlob(name("zip"), new Blob([researchBundle(d) as BlobPart], { type: "application/zip" }));
-  if (format === "html" && d.hub) return downloadText(voltFileName(d.title, "html", JSON.stringify(d.hub)), (await import("../shared/accountingHubPage")).hubPage(d.hub), "text/html");
+  if (format === "html" && d.hub) return downloadText(fileName(d, "html", d.title, JSON.stringify(d.hub)), (await import("../shared/accountingHubPage")).hubPage(d.hub), "text/html");
   if (format === "html") return downloadText(name("html"), await htmlDocument(d), "text/html");
   // A deck names itself apart from the web page of the same deliverable (VOLT_<Client>_<Title>-Slides_<date>_v<N>.html).
-  if (format === "slides") return downloadText(voltFileName(`${d.title} slides`, "html", d.markdown), await deckDocument(d), "text/html");
+  if (format === "slides") return downloadText(fileName(d, "html", `${d.title} slides`), await deckDocument(d), "text/html");
   if (format === "csv") return downloadCsv(d);
   // The print dialog offers the page title as the PDF name, so the title carries the file name.
   if (format === "pdf") return printPdf((await htmlDocument(d)).replace(/<title>[^<]*<\/title>/, `<title>${name("pdf").replace(/\.pdf$/, "")}</title>`));
@@ -302,7 +312,7 @@ async function exportBlob(format: ExportFormat, d: Deliverable): Promise<Blob> {
 function downloadCsv(d: Deliverable) {
   const tables = d.tables ?? [];
   if (!tables.length) throw new Error("There is no table data to save as CSV.");
-  if (tables.length === 1) return downloadText(voltFileName(d.title, "csv", d.markdown), csvText(tables[0]), "text/csv");
+  if (tables.length === 1) return downloadText(fileName(d, "csv"), csvText(tables[0]), "text/csv");
   const used = new Set<string>();
   const files = Object.fromEntries(
     tables.map((t, i) => {
@@ -312,7 +322,7 @@ function downloadCsv(d: Deliverable) {
       return [`${name}.csv`, strToU8(csvText(t))];
     }),
   );
-  downloadBlob(voltFileName(d.title, "zip", d.markdown), new Blob([zipSync(files) as BlobPart], { type: "application/zip" }));
+  downloadBlob(fileName(d, "zip"), new Blob([zipSync(files) as BlobPart], { type: "application/zip" }));
 }
 
 /**

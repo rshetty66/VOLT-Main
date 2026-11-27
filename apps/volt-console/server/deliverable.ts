@@ -153,6 +153,19 @@ export function wantsDeliverable(prompt: string): boolean {
 // The quick-ask and lookup classifiers live in shared/asks.ts, so the console can skip its intake questions for them.
 export { directAsk, quickAsk };
 
+/**
+ * How every chat reply is laid out, short answers and follow-ups included. The console renders Markdown as it streams,
+ * so a reply written as wrapped paragraphs reads as a wall of text; these rules make it scannable.
+ */
+export const CHAT_FORMAT = `## Answer layout (every reply, including short answers and follow-ups)
+The console renders Markdown as the reply streams in. Write for scanning, never as wrapped paragraphs:
+- Open with one **bold** sentence that gives the answer.
+- Past about 80 words, use \`##\` and \`###\` headings and short bullets, one idea per bullet.
+- Bold the key figures and decisions (**7 of 17 steps**, **CAD 1.2m**).
+- Use a table whenever three or more items share the same attributes (steps, options, risks, documents).
+- Keep each paragraph to three sentences or fewer.
+- Put source keys at the end of the sentence or bullet they support, together ([S02][S03]); the console shows them as numbered source chips.`;
+
 export const DIRECT_GUIDE = `Direct question: answer exactly what was asked, in chat, without consulting specialists and without a client deliverable (no executive summary, business case, roadmap, options or numbered sections), whatever the chat's scope says the outcome is. If the question is about the project's knowledge base, search it and use only the documents that answer it: leave out documents about other companies, clients or topics, and do not use the web when the user says to use only the knowledge base. When the answer is a list, give a table with one row per item and its source key. Say in one line what the sources do not show. Start with a "# " title that names the answer, and stay under 300 words unless the list itself is longer.`;
 
 export const QUICK_GUIDE = `Quick request: answer it yourself, without consulting specialists. Get every figure from the analytics tools. If a file is asked for, make it with create_file: the tool results of this run (value case, benchmarks, maturity) are added to an Excel or CSV file as data sheets automatically, so do not retype them; add only the inputs and assumptions table. Then reply in under 200 words: the headline result, the key figures and what the file holds.`;

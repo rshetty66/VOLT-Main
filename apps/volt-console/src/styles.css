@@ -224,6 +224,14 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .md pre code { background: none; padding: 0; }
 .md blockquote { margin: 0.75em 0; padding: 6px 12px; border-left: 2px solid var(--border); color: var(--body); }
 .md hr { border: 0; border-top: 1px solid var(--line); }
+/* Inline citations: numbered source chips and evidence tags instead of raw [S02][S03] runs (src/citations.ts). */
+.md sup { line-height: 0; }
+.md .cite { font: 600 var(--fs-1)/1 var(--mono); color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); border: 1px solid color-mix(in srgb, var(--accent) 35%, transparent); border-radius: 4px; padding: 2px 4px; margin-left: 2px; cursor: pointer; vertical-align: super; }
+.md .cite:hover { background: color-mix(in srgb, var(--accent) 24%, transparent); }
+.md .cite.missing { color: var(--muted); background: none; border-style: dashed; cursor: default; }
+.md .evidence-tag { font-size: var(--fs-1); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); border: 1px solid var(--line-strong); border-radius: 4px; padding: 1px 5px; margin-left: 3px; white-space: nowrap; }
+.md strong { color: var(--primary); }
+.md li + li { margin-top: 0.2em; }
 
 /* Drawer */
 .drawer-backdrop { position: fixed; inset: 0; background: rgba(2, 6, 23, 0.6); z-index: 10; }
@@ -636,3 +644,14 @@ button.rail-avatar { cursor: pointer; font: inherit; padding: 0; }
 button.chip { font: inherit; font-size: var(--fs-3); }
 .optimize-card { display: grid; gap: var(--sp-2); margin-bottom: 10px; padding: 18px; border-color: var(--accent); }
 .optimize-card .textarea { min-height: 220px; font-size: var(--fs-4); line-height: 1.5; }
+
+/* Versions of a chat's deliverable (src/versions.ts): v1 is the first answer, each rerun after feedback the next. */
+.version-badge { text-transform: none; color: var(--accent); border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+.version-history { border: 1px solid var(--line); border-radius: 10px; padding: 8px 12px; font-size: var(--fs-3); }
+.version-history ol { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 4px; }
+.version-history li { display: grid; grid-template-columns: 36px minmax(0, 1fr) auto; gap: var(--sp-2); align-items: baseline; color: var(--body); }
+.version-history li.current { color: var(--heading); }
+.version-link { font: 600 var(--fs-3) var(--mono); color: var(--accent); background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+.version-link:disabled { color: var(--heading); cursor: default; }
+.version-what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.version-when { font-size: var(--fs-2); white-space: nowrap; }
