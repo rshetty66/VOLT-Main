@@ -990,7 +990,8 @@
         "skills/orch-fix-defect",
         "skills/orch-pipeline",
         "skills/orch-refine-code",
-        "skills/plan-orchestrate"
+        "skills/plan-orchestrate",
+        "skills/agentic-diagrams"
       ],
       "targets": [
         "claude",
