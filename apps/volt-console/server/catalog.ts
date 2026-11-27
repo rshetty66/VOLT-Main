@@ -8,6 +8,7 @@
  * - data/intake.json      workflow intake questions
  * - skills/<id>/SKILL.md  skill text, loaded lazily
  */
+import { LINT_CHECKS, lintSkill, type LintCheck, type SkillLintSummary } from "../shared/skillLint.js";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -80,6 +81,8 @@ export interface CatalogHealth {
   /** Agent ids referenced by workflows / services that are not in the registry. */
   missingAgents: { agent: string; referencedBy: string[] }[];
   servicesByCoverage: Record<string, number>;
+  /** Pass-or-fail quality checks over the shipped skills (shared/skillLint.ts). */
+  lint?: SkillLintSummary;
 }
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -117,7 +120,23 @@ export function loadCatalog(pluginDir = PLUGIN_DIR): Catalog {
   const skillById = new Map(raw.skills.map((s) => [s.id, s]));
   const workflowById = new Map(raw.workflows.map((w) => [w.id, w]));
   const provided = readJson<Record<string, string>>(pluginDir, "data/provided-elsewhere.json");
-  return { ...raw, agentById, skillById, workflowById, health: checkHealth(raw, agentById, skillById, provided) };
+  const health = checkHealth(raw, agentById, skillById, provided);
+  health.lint = lintSkills(raw.skills, pluginDir);
+  return { ...raw, agentById, skillById, workflowById, health };
+}
+
+/** Runs the skill checks over every shipped SKILL.md. */
+export function lintSkills(skills: { id: string; description: string }[], pluginDir: string): SkillLintSummary {
+  const byCheck = Object.fromEntries(Object.keys(LINT_CHECKS).map((k) => [k, 0])) as Record<LintCheck, number>;
+  const all: { id: string; failed: LintCheck[] }[] = [];
+  for (const sk of skills) {
+    const file = path.join(pluginDir, "skills", sk.id, "SKILL.md");
+    if (!fs.existsSync(file)) continue;
+    const { failed } = lintSkill(fs.readFileSync(file, "utf8"), sk.description);
+    for (const f of failed) byCheck[f]++;
+    all.push({ id: sk.id, failed });
+  }
+  return { checked: all.length, clean: all.filter((a) => a.failed.length === 0).length, byCheck, worst: all.filter((a) => a.failed.length).sort((a, b) => b.failed.length - a.failed.length || a.id.localeCompare(b.id)).slice(0, 15) };
 }
 
 function listResources(skillDir: string): string[] {

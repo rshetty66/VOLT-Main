@@ -31,7 +31,7 @@ export function processSvg(spec: ProcessSpec, p: Palette): string {
   const W = LANE_W + 24 + total * unit;
   const colX = units.map((_, c) => LANE_W + 12 + units.slice(0, c).reduce((x, y) => x + y, 0) * unit);
   const boxW = (i: number) => (units[spec.steps[i].stage] * unit - 12 - (share[i] - 1) * 8) / share[i];
-  const names = spec.steps.map((s, i) => wrapLabel(s.name, boxW(i) - 38, 14, 3));
+  const names = spec.steps.map((s, i) => wrapLabel(s.name, boxW(i) - 38, 14, 6));
   const BOX_H = 34 + Math.max(2, ...names.map((l) => l.length)) * 17;
 
   let y = 32;

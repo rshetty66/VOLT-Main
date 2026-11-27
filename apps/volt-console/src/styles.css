@@ -28,7 +28,7 @@
   --fs-1: 10px; --fs-2: 11px; --fs-3: 12px; --fs-4: 13px; --fs-5: 14px; --fs-6: 16px; --fs-7: 18px; --fs-8: 22px;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
   /* Reading width for prose: about 72 characters a line. */
-  --measure: 72ch;
+  --measure: 80ch;
   color-scheme: dark;
 }
 /* Light theme: set with the Theme button; remembered per browser. */
@@ -180,7 +180,9 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .status-pill.failed .dot.failed { background: var(--orange); border: 0; }
 .run { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .run-head { padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; gap: var(--sp-3); flex-wrap: wrap; align-items: center; }
-.run-head .prompt { flex: 1 1 320px; font-weight: 500; white-space: pre-wrap; }
+.run-head .prompt { flex: 1 1 100%; order: 9; font-weight: 500; white-space: pre-wrap; max-width: var(--measure); }
+.run-head .prompt.clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.run-head .prompt-more { order: 10; flex: 1 1 100%; justify-self: start; background: none; border: 0; color: var(--accent); font: inherit; font-size: var(--fs-3); cursor: pointer; padding: 0; text-align: left; }
 .run-body { padding: 16px; display: grid; gap: var(--sp-4); grid-template-columns: minmax(0, 1fr) 300px; }
 .run-body.single { grid-template-columns: minmax(0, 1fr); }
 @media (max-width: 1000px) { .run-body { grid-template-columns: minmax(0, 1fr); } }
@@ -206,7 +208,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .usage { font-size: var(--fs-2); color: var(--muted); font-family: var(--mono); }
 
 /* Markdown */
-.md { color: var(--heading); line-height: 1.6; overflow-wrap: anywhere; }
+.md { color: var(--heading); font-size: var(--fs-6); line-height: 1.65; overflow-wrap: anywhere; }
 /* Prose keeps a reading measure; tables, code and charts use the full column. */
 .md > :is(p, ul, ol, blockquote, h1, h2, h3, h4) { max-width: var(--measure); }
 .md h1, .md h2, .md h3, .md h4 { color: var(--primary); line-height: 1.25; margin: 1.1em 0 0.5em; }
@@ -280,7 +282,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .visual-grid { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(min(360px, 100%), 1fr)); }
 /* Drawn charts scale to the column; on a phone they keep a legible minimum size and scroll sideways instead of shrinking. */
 .spec-chart .mermaid-svg, .spec-arch .mermaid-svg, .run-visuals .visual { overflow-x: auto; }
-.spec-chart .mermaid-svg svg, .spec-arch .mermaid-svg svg { width: 100%; max-width: 720px; height: auto; }
+.spec-chart .mermaid-svg svg, .spec-arch .mermaid-svg svg { width: 100%; max-width: 860px; height: auto; }
 @media (max-width: 480px) {
   .spec-chart .mermaid-svg svg, .spec-arch .mermaid-svg svg { min-inline-size: 640px; }
   .run-visuals .visual svg { min-inline-size: 560px; }
