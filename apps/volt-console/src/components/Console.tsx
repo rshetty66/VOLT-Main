@@ -15,9 +15,6 @@ import type { Lane } from "../runState";
 import { runDeliverable } from "../exports";
 import { chatVersions } from "../versions";
 import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
-import { scopeLabel, type Scope } from "../../shared/scope";
-import { directAsk, quickAsk } from "../../shared/asks";
-import { IntakeCard } from "./IntakeCard";
 import { shouldOptimize, type Optimized } from "../../shared/optimize";
 import { AgentPicker } from "./AgentPicker";
 import { GetStarted } from "./GetStarted";
@@ -70,34 +67,36 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
     };
   }, []);
   const [library, setLibrary] = useState<UploadMeta[] | null>(null);
-  // The chat's scope: asked once before the first message of each chat, then sent with every message.
-  const [scope, setScope] = useState<Scope | null>(null);
-  const [scoping, setScoping] = useState<{ draft: Scope; pending?: string } | null>(null);
-  // Every message that is not a lookup or a quick ask is rewritten into an executive prompt first; the user confirms it, edits it or sends the original.
-  const [optimizing, setOptimizing] = useState<{ original: string; chosen: Scope | null | undefined; result?: Optimized; text: string } | null>(null);
-  const optimized = useRef("");
-  const optimize = (text: string, chosen: Scope | null | undefined) => {
-    setOptimizing({ original: text, chosen, text: "" });
-    fetch("/api/optimize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: text }) })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((j: { optimized: Optimized | null } | null) => {
-        if (j?.optimized) setOptimizing((o) => (o && o.original === text ? { ...o, result: j.optimized as Optimized, text: (j.optimized as Optimized).prompt } : o));
-        else {
-          // No rewrite available (demo mode or a failed call): send the message as written.
-          setOptimizing(null);
-          optimized.current = text;
-          submit(text, chosen);
-        }
-      })
-      .catch(() => {
-        setOptimizing(null);
-        optimized.current = text;
-        submit(text, chosen);
-      });
+  // A review owns one request. A late response must never replace a new review, even for identical input.
+  const [optimizing, setOptimizing] = useState<{ original: string; text: string; status: "loading" | "ready" | "failed"; result?: Optimized } | null>(null);
+  const review = useRef<AbortController | null>(null);
+  const cancelReview = () => {
+    review.current?.abort();
+    review.current = null;
+    setOptimizing(null);
+  };
+  const optimize = async (original: string) => {
+    review.current?.abort();
+    const request = new AbortController();
+    review.current = request;
+    setOptimizing({ original, text: original, status: "loading" });
+    try {
+      const r = await fetch("/api/optimize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: original }), signal: request.signal });
+      if (!r.ok) throw new Error("Optimizer unavailable");
+      const result: Optimized | undefined = (await r.json())?.optimized;
+      if (!result || typeof result.prompt !== "string" || !result.prompt.trim() || typeof result.ask !== "string" || !Array.isArray(result.assumptions) || !result.assumptions.every((a) => typeof a === "string")) throw new Error("No usable rewrite");
+      if (review.current === request) setOptimizing({ original, text: result.prompt, status: "ready", result });
+    } catch {
+      if (review.current === request) setOptimizing({ original, text: original, status: "failed" });
+    }
   };
   useEffect(() => {
-    if (runs.length === 0) setScope(null);
-  }, [runs.length]);
+    setOptimizing(null);
+    return () => {
+      review.current?.abort();
+      review.current = null;
+    };
+  }, [runs, target, live]);
   const running = runs.some((r) => r.state === "running");
   const targetAgent = catalog.agents.find((a) => a.id === target);
 
@@ -154,6 +153,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   // A starter card or a prompt idea fills the message box for editing; nothing is sent until Run.
   const [ideas, setIdeas] = useState(false);
   const fill = (text: string) => {
+    cancelReview();
     setPrompt(text);
     setIdeas(false);
     requestAnimationFrame(() => {
@@ -162,24 +162,29 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
     });
   };
 
-  // Sends a finished run's message again with the chat's scope, leaving whatever is in the message box alone.
+  // Reruns use the exact previous prompt, leaving the draft and attachments alone.
   const regenerate = (text: string) => {
     const agentMode = target !== "rudra";
-    onStart({ prompt: text, agentId: agentMode ? target : undefined, scope: scope ?? undefined }, agentMode ? targetAgent?.name ?? target : "All specialists", agentMode ? "agent" : "orchestrate");
+    onStart({ prompt: text, agentId: agentMode ? target : undefined }, agentMode ? targetAgent?.name ?? target : "All specialists", agentMode ? "agent" : "orchestrate");
   };
 
-  const submit = (text = prompt, chosen: Scope | null | undefined = scope) => {
-    if (!text.trim() || reading > 0) return;
-    if (live && target === "rudra" && shouldOptimize(text) && text !== optimized.current) return void optimize(text, chosen);
-    // First message of a chat: run the intake before any work starts, unless it is a lookup or a quick ask, which VOLT
-    // answers straight away. Skip sends without a scope: the intake is already open then, so it must not reopen.
-    if (chosen === null && !scoping?.pending && runs.length === 0 && !directAsk(text) && !quickAsk(text)) return void setScoping((s) => ({ draft: s?.draft ?? {}, pending: text }));
-    setScoping(null);
+  const send = (text: string) => {
+    if (!text.trim() || reading > 0 || running) return;
     const agentMode = target !== "rudra";
-    onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined, scope: chosen ?? undefined, attachments: files.length ? files.map(({ name, text, id }) => ({ name, text, uploadId: id })) : undefined }, agentMode ? targetAgent?.name ?? target : "All specialists", agentMode ? "agent" : "orchestrate");
+    onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined, attachments: files.length ? files.map(({ name, text, id }) => ({ name, text, uploadId: id })) : undefined }, agentMode ? targetAgent?.name ?? target : "All specialists", agentMode ? "agent" : "orchestrate");
     setPrompt("");
     setFiles([]);
     setFileError("");
+  };
+  const submit = () => {
+    if (!prompt.trim() || reading > 0 || running || review.current) return;
+    if (live && target === "rudra" && shouldOptimize(prompt)) void optimize(prompt);
+    else send(prompt);
+  };
+  const confirmReview = (text: string) => {
+    if (!review.current || !optimizing || optimizing.status === "loading" || running || reading > 0 || !text.trim()) return;
+    cancelReview();
+    send(text);
   };
 
   const versions = chatVersions(runs);
@@ -229,70 +234,39 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
       <div ref={composer} className={`composer ${runs.length === 0 ? "home" : ""}`}>
         {optimizing && (
           <div className="card optimize-card" role="region" aria-label="Optimized prompt">
-            <div className="micro">Optimized prompt</div>
-            {!optimizing.result ? (
-              <div className="muted" role="status"><span className="spinner" style={{ width: 10, height: 10 }} /> Sharpening your question...</div>
+            <div className="micro">Review your prompt</div>
+            {optimizing.status === "loading" ? (
+              <>
+                <div className="muted" role="status"><span className="spinner" style={{ width: 10, height: 10 }} /> Drafting your prompt and scope. Nothing has been sent to the specialists.</div>
+                <div className="row"><button className="btn ghost" onClick={cancelReview}>Cancel</button></div>
+              </>
             ) : (
               <>
-                <div className="body"><strong>Business ask:</strong> {optimizing.result.ask}</div>
-                {optimizing.result.assumptions.length > 0 && <div className="muted">Assumed: {optimizing.result.assumptions.join("; ")}. Edit below if wrong.</div>}
-                <textarea className="textarea" aria-label="Optimized prompt" rows={12} value={optimizing.text} onChange={(e) => setOptimizing({ ...optimizing, text: e.target.value })} />
+                {optimizing.result ? (
+                  <>
+                    <div className="body"><strong>Business ask:</strong> {optimizing.result.ask}</div>
+                    {optimizing.result.assumptions.length > 0 && <div className="muted">Assumptions: {optimizing.result.assumptions.join("; ")}</div>}
+                    <div className="muted">Edit the scope, assumptions or deliverable below before sending.</div>
+                  </>
+                ) : <div role="alert">We couldn’t optimize this prompt. No run has started. Edit and send your draft, retry, or cancel.</div>}
+                <textarea className="textarea" aria-label={optimizing.result ? "Optimized prompt" : "Original draft"} rows={12} value={optimizing.text} onChange={(e) => setOptimizing({ ...optimizing, text: e.target.value })} />
+                {files.length > 0 && <div className="muted">Attached: {files.map((f) => f.name).join(", ")}</div>}
                 <div className="row">
-                  <button
-                    className="btn primary"
-                    disabled={!optimizing.text.trim()}
-                    onClick={() => {
-                      const { text, chosen } = optimizing;
-                      setOptimizing(null);
-                      optimized.current = text.trim();
-                      submit(text.trim(), chosen);
-                    }}
-                  >
-                    Send optimized
-                  </button>
-                  <button
-                    className="btn"
-                    onClick={() => {
-                      const { original, chosen } = optimizing;
-                      setOptimizing(null);
-                      optimized.current = original;
-                      submit(original, chosen);
-                    }}
-                  >
-                    Send my original
-                  </button>
-                  <button className="btn ghost" onClick={() => setOptimizing(null)}>Cancel</button>
+                  <button className="btn primary" disabled={!optimizing.text.trim() || running || reading > 0} onClick={() => confirmReview(optimizing.text)}>{optimizing.result ? "Send optimized" : "Send draft"}</button>
+                  {optimizing.result ? (
+                    <button className="btn" disabled={running || reading > 0} onClick={() => confirmReview(optimizing.original)}>Send my original</button>
+                  ) : <button className="btn" disabled={!optimizing.text.trim()} onClick={() => { setPrompt(optimizing.text); void optimize(optimizing.text); }}>Retry optimizer</button>}
+                  <button className="btn ghost" onClick={cancelReview}>Cancel</button>
                 </div>
               </>
             )}
           </div>
         )}
-        {scoping && (
-          <IntakeCard
-            key={scoping.pending ? "start" : "edit"}
-            draft={scoping.draft}
-            onChange={(draft) => setScoping({ ...scoping, draft })}
-            starting={Boolean(scoping.pending)}
-            onConfirm={() => {
-              setScope(scoping.draft);
-              if (scoping.pending) submit(scoping.pending, scoping.draft);
-              else setScoping(null);
-            }}
-            onSkip={() => {
-              if (scoping.pending) submit(scoping.pending, undefined);
-              else setScoping(null);
-            }}
-          />
-        )}
+        {!optimizing && (
         <div className="card">
           <div className="row">
             <span className="micro">Talk to</span>
             <AgentPicker agents={catalog.agents} value={target} onChange={setTarget} />
-            {scope && (
-              <button className="chip click" title="Change the scope for this chat" onClick={() => setScoping({ draft: scope })}>
-                Scope: {scopeLabel(scope)}
-              </button>
-            )}
             {target !== "rudra" && (
               <button className="btn ghost sm" onClick={() => onOpenAgent(target)}>
                 About this agent
@@ -384,7 +358,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               </button>
             </div>
           </div>
-        </div>
+        </div>)}
       </div>
     </div>
   );
