@@ -14,6 +14,8 @@ const W = 1160;
 const X0 = 24;
 const X1 = W - 24;
 const NAME_W = 290;
+/** Width of the Key principles and tiles column beside the stack. */
+const SIDE_W = 320;
 const DEPTH = 9;
 /** Space between slabs: the connectors and their labels run here, never across a system's card. */
 const GAP = 40;
@@ -81,16 +83,21 @@ export function archSvg(spec: ArchSpec, p: Palette): string {
   const statuses = [...new Set(spec.layers.flatMap((l) => l.items.map((i) => i.status)))];
   const showLegend = statuses.some((s) => s !== "keep") || spec.flows.length > 0 || spec.layers.some((l) => l.items.some((i) => i.coa?.length));
   // The foot (legend, the list of flows whose label did not fit, the note) is sized once the flows are routed.
-  // The Key Principles box and the design-principle tiles sit under the legend.
-  const pLines = (spec.principles ?? []).map((t) => wrapLabel(t, X1 - X0 - 36, 13, 3));
+  // The Key Principles box and the design-principle tiles sit in a column beside the stack, so the drawing stays
+  // wide on a 16:9 slide instead of growing taller.
+  const side = !!(spec.principles?.length || spec.tiles?.length);
+  const SX = W;
+  const SW = side ? SIDE_W : 0;
+  const TW = W + (side ? SIDE_W + 24 : 0);
+  const pLines = (spec.principles ?? []).map((t) => wrapLabel(t, SW - 36, 13, 4));
   const principlesH = pLines.length ? 40 + pLines.reduce((a, l) => a + l.length * 17 + 4, 0) + 10 : 0;
-  const tileW = spec.tiles?.length ? (X1 - X0 - (spec.tiles.length - 1) * 12) / spec.tiles.length : 0;
-  const tileLines = (spec.tiles ?? []).map((t) => ({ title: wrapLabel(t.title, tileW - 24, 13.5, 2), text: wrapLabel(t.text, tileW - 24, 12, 4) }));
-  const tilesH = tileLines.length ? 22 + Math.max(...tileLines.map((t) => t.title.length * 17 + t.text.length * 15.5)) + 12 : 0;
-  const footOf = (listed: number) => (showLegend ? 30 : 0) + (listed ? 8 + listed * 17 : 0) + (principlesH ? principlesH + 12 : 0) + (tilesH ? tilesH + 10 : 0) + (spec.note ? 24 : 0) + 12;
-  let H = top + stackH + 32 + footOf(spec.flows.length);
+  const tileLines = (spec.tiles ?? []).map((t) => ({ title: wrapLabel(t.title, SW - 24, 13.5, 2), text: wrapLabel(t.text, SW - 24, 12, 4) }));
+  const tileH = tileLines.map((t) => 22 + t.title.length * 17 + t.text.length * 15.5 + 12);
+  const sideBottom = top + (principlesH ? principlesH + 12 : 0) + tileH.reduce((a, h) => a + h + 10, 0) + 12;
+  const footOf = (listed: number) => (showLegend ? 30 : 0) + (listed ? 8 + listed * 17 : 0) + (spec.note ? 24 : 0) + 12;
+  let H = Math.max(top + stackH + 32 + footOf(spec.flows.length), sideBottom);
 
-  const parts: string[] = [`<rect width="${W}" height="${H}" fill="${p.bg}" rx="10"/>`];
+  const parts: string[] = [`<rect width="${TW}" height="${H}" fill="${p.bg}" rx="10"/>`];
   if (spec.title) parts.push(text(X0, 36, spec.title, { size: 17, fill: p.ink, weight: 650 }));
 
   const chips = new Map<string, Chip>();
@@ -290,8 +297,8 @@ export function archSvg(spec: ArchSpec, p: Palette): string {
   });
   if (arrows.length) parts.push(`<g class="va-flows">${arrows.join("")}${tags.join("")}</g>`);
   // Every label sits on the drawing, so only the numbered flows are listed under it (all of them stay in the title).
-  H = top + stackH + 32 + footOf(numbered.length);
-  parts[0] = `<rect width="${W}" height="${H}" fill="${p.bg}" rx="10"/>`;
+  H = Math.max(top + stackH + 32 + footOf(numbered.length), sideBottom);
+  parts[0] = `<rect width="${TW}" height="${H}" fill="${p.bg}" rx="10"/>`;
 
   // Legend and the flow list under the stack.
   let y = top + stackH + 44;
@@ -316,28 +323,27 @@ export function archSvg(spec: ArchSpec, p: Palette): string {
     parts.push(text(X0, y + 10 + no * 17, `(${no + 1}) ${f.from} -> ${f.to}: ${f.label}`, { size: 12.5 }));
   });
   y += 10 + numbered.length * 17;
+  y = top;
   if (principlesH) {
-    parts.push(`<g class="va-principles"><rect x="${X0}" y="${n1(y)}" width="${X1 - X0}" height="${n1(principlesH)}" rx="6" fill="${light ? "#e3eef1" : "#12323b"}" stroke="${light ? "#2c5f6e" : "#2c5f6e"}"/>`, text(X0 + 18, y + 25, "Key principles", { size: 12, fill: light ? "#b8921c" : "#ffb600", weight: 800 }));
+    parts.push(`<g class="va-principles"><rect x="${SX}" y="${n1(y)}" width="${SW}" height="${n1(principlesH)}" rx="6" fill="${light ? "#e3eef1" : "#12323b"}" stroke="${light ? "#2c5f6e" : "#2c5f6e"}"/>`, text(SX + 18, y + 25, "Key principles", { size: 12, fill: light ? "#b8921c" : "#ffb600", weight: 800 }));
     let py = y + 46;
     pLines.forEach((ls) => {
-      ls.forEach((l, k) => parts.push(text(X0 + 18, py + k * 17, l, { size: 13, fill: p.ink })));
+      ls.forEach((l, k) => parts.push(text(SX + 18, py + k * 17, l, { size: 13, fill: p.ink })));
       py += ls.length * 17 + 4;
     });
     parts.push("</g>");
     y += principlesH + 12;
   }
-  if (tilesH) {
-    tileLines.forEach((t, i) => {
-      const x = X0 + i * (tileW + 12);
-      parts.push(`<rect x="${n1(x)}" y="${n1(y)}" width="${n1(tileW)}" height="${n1(tilesH)}" rx="6" fill="${light ? "#f4f6fa" : "#0d1017"}" stroke="${p.grid}"/>`, `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(tileW)}" height="3" rx="1.5" fill="${p.series2}"/>`);
-      t.title.forEach((l, k) => parts.push(text(x + 12, y + 24 + k * 17, l, { size: 13.5, fill: p.ink, weight: 700 })));
-      t.text.forEach((l, k) => parts.push(text(x + 12, y + 26 + t.title.length * 17 + k * 15.5, l, { size: 12 })));
-    });
-    y += tilesH + 10;
-  }
+  tileLines.forEach((t, i) => {
+    const x = SX;
+    parts.push(`<rect x="${n1(x)}" y="${n1(y)}" width="${n1(SW)}" height="${n1(tileH[i])}" rx="6" fill="${light ? "#f4f6fa" : "#0d1017"}" stroke="${p.grid}"/>`, `<rect x="${n1(x)}" y="${n1(y)}" width="${n1(SW)}" height="3" rx="1.5" fill="${p.series2}"/>`);
+    t.title.forEach((l, k) => parts.push(text(x + 12, y + 24 + k * 17, l, { size: 13.5, fill: p.ink, weight: 700 })));
+    t.text.forEach((l, k) => parts.push(text(x + 12, y + 26 + t.title.length * 17 + k * 15.5, l, { size: 12 })));
+    y += tileH[i] + 10;
+  });
   if (spec.note) parts.push(text(X0, H - 14, spec.note, { size: 12 }));
   // The guided walkthrough travels with the drawing; the HTML page and deck play it (src/charts/vizScript.ts).
   const steps = spec.steps?.length ? ` data-steps="${esc(JSON.stringify(spec.steps.map((st) => ({ t: st.title, x: st.text, on: st.on.map((o) => o.toLowerCase()) }))))}"` : "";
   const extra = (spec.groups?.length ? ` data-groups="${esc(JSON.stringify(spec.groups))}"` : "") + (spec.ribbons ? ` data-ribbons="${esc(JSON.stringify(spec.ribbons))}"` : "");
-  return `<svg xmlns="http://www.w3.org/2000/svg" class="va"${steps}${extra} viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(spec.title || "Architecture option")}">${parts.join("")}</svg>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="va"${steps}${extra} viewBox="0 0 ${TW} ${H}" width="${TW}" height="${H}" role="img" aria-label="${esc(spec.title || "Architecture option")}">${parts.join("")}</svg>`;
 }
