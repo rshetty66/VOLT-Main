@@ -10,7 +10,7 @@ export function diagramHtml(spec: DiagramSpec): string {
   return template.replaceAll("__TITLE__", () => title).replace("__SPEC__", () => JSON.stringify(spec).replace(/</g, "\\u003c"));
 }
 
-const EXAMPLES = ["A finance close agent that pulls from the ERP, reconciles, and asks a controller to approve journals over $50k", "RAG assistant for policy questions with retrieval, a guardrail, and human escalation"];
+const EXAMPLES = ["Show how bank statements and cash ledger extracts flow through reconciliation, independent verification and controller review."];
 
 /** Describe a system, get an interactive animated diagram. Runs in a sandboxed frame; exports as HTML or JSON. */
 export function Diagrams() {
@@ -39,7 +39,7 @@ export function Diagrams() {
   return (
     <div className="stack">
       <div>
-        <h2 className="page-title">Visual library</h2>
+        <h2 className="page-title">Diagram builder</h2>
         <p className="page-sub">Describe an agent system or process. VOLT drafts typed nodes, flows and scenarios you can play step by step.</p>
       </div>
       <div className="card" style={{ display: "grid", gap: 8 }}>
