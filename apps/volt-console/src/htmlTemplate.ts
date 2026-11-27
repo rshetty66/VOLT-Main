@@ -62,6 +62,47 @@ export function toneTables(html: string): string {
   });
 }
 
+/** A number cell's value: "1,577,030", "22.95%", "USD 3.5M", "-0.89"; null for text such as "2.36 (Defined)". */
+export function cellNumber(text: string): number | null {
+  const t = text.replace(/<[^>]+>/g, "").replace(/&[a-z]+;/g, " ").trim().replace(/^(?:USD|CAD|EUR|GBP|\$)\s*/i, "").replace(/\u2212/g, "-");
+  const m = /^(-?\d[\d,]*(?:\.\d+)?)\s*(%|[KMB])?$/i.exec(t);
+  if (!m) return null;
+  const k = { k: 1e3, m: 1e6, b: 1e9 }[(m[2] ?? "").toLowerCase() as "k" | "m" | "b"] ?? 1;
+  return parseFloat(m[1].replace(/,/g, "")) * k;
+}
+
+/**
+ * A visual cue on number tables: in a column where most cells are numbers (at least three, not all equal), each
+ * number gets a thin bar scaled to the column's largest absolute value, orange when negative. Text cells are left as
+ * they are, so a total row such as "2.36 (Defined)" does not stop its column getting bars.
+ */
+export function barTables(html: string): string {
+  return html.replace(/<table>([\s\S]*?)<\/table>/g, (table: string) => {
+    const body = /<tbody>([\s\S]*?)<\/tbody>/.exec(table)?.[1];
+    if (!body) return table;
+    const rows = [...body.matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map((r) => [...r[1].matchAll(/<td[^>]*>([\s\S]*?)<\/td>/g)].map((c) => c[1]));
+    const cols = Math.max(0, ...rows.map((r) => r.length));
+    const max: (number | null)[] = [];
+    for (let c = 1; c < cols; c++) {
+      const nums = rows.map((r) => (r[c] === undefined || /class="tone/.test(r[c]) ? null : cellNumber(r[c]))).filter((v): v is number => v !== null);
+      const ok = nums.length >= 3 && nums.length >= rows.length * 0.6 && new Set(nums).size > 1;
+      max[c] = ok ? Math.max(...nums.map(Math.abs)) || null : null;
+    }
+    if (!max.some(Boolean)) return table;
+    return table.replace(/<tbody>[\s\S]*?<\/tbody>/, (tb: string) =>
+      tb.replace(/<tr>([\s\S]*?)<\/tr>/g, (_r: string, cells: string) => {
+        let c = 0;
+        return `<tr>${cells.replace(/<td([^>]*)>([\s\S]*?)<\/td>/g, (m: string, attrs: string, inner: string) => {
+          const top = max[c++];
+          const v = top ? cellNumber(inner) : null;
+          if (v === null || !top) return m;
+          return `<td${attrs}><span class="nb${v < 0 ? " neg" : ""}" style="--w:${Math.round((Math.abs(v) / top) * 100)}%">${inner}</span></td>`;
+        })}</tr>`;
+      }),
+    );
+  });
+}
+
 /** The answer first: the summary page's opening paragraph becomes the "So what" panel. */
 export function withSoWhat(html: string): string {
   return html.replace(/^\s*<p>([\s\S]*?)<\/p>/, (_m, p: string) => `<aside class="sowhat" aria-label="So what"><b>So what</b><p>${p}</p></aside>`);
@@ -170,6 +211,12 @@ table{border-collapse:collapse;inline-size:100%;margin:12px 0 18px;font-size:13.
 th,td{border-bottom:1px solid var(--bd);padding:7px 10px;text-align:left;vertical-align:top}
 th{background:var(--p3);color:var(--tx);font-weight:600}
 tr:last-child td{border-bottom:0}
+.nb{display:inline-block;min-inline-size:100%;padding-block-end:5px;background:linear-gradient(var(--cyan),var(--cyan)) no-repeat left bottom/var(--w) 3px;font-variant-numeric:tabular-nums}
+.nb.neg{background-image:linear-gradient(var(--orange),var(--orange))}
+.page .va-band,.page .vp-step{animation:build .6s var(--ease) both}
+.page .va-band{animation-delay:calc(var(--va-i,0) * 90ms)}
+.page .vp-step{animation-delay:calc(var(--vp-i,0) * 80ms)}
+@keyframes build{from{opacity:0;transform:translateY(10px)}}
 .tone{display:inline-block;padding:1px 9px;border-radius:999px;font-weight:600;font-size:12.5px}
 .tone.high{background:#ff5722;color:#0a0d14}.tone.mid{background:#d4af37;color:#0a0d14}.tone.low{background:#00e5ff;color:#0a0d14}
 code{font-family:ui-monospace,Menlo,Consolas,monospace;background:var(--p2);padding:1px 5px;border-radius:3px;font-size:.92em}
@@ -216,7 +263,7 @@ figure svg{max-inline-size:100%;block-size:auto;display:block}
 .files a:hover{background:var(--gold);color:var(--bg)}
 footer{border-top:1px solid var(--bd);padding:14px 28px;color:var(--mu);font-size:12px;text-align:center}
 @media (max-width:1100px){main{padding:20px 16px}h1,h2.pt{font-size:28px}.top{padding:10px 16px;gap:12px}.cap{grid-template-columns:1fr}}
-@media (prefers-reduced-motion:reduce){.page{animation:none}.js figure.chart svg{clip-path:none!important;transition:opacity .2s}.vp-link.on path{animation:none}}
+@media (prefers-reduced-motion:reduce){.page,.page .va-band,.page .vp-step{animation:none}.js figure.chart svg{clip-path:none!important;transition:opacity .2s}.vp-link.on path{animation:none}}
 @media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.top,.ctl,.dots,.files{display:none!important}.page,.page[hidden]{display:block!important;break-after:page}main{max-inline-size:none;padding:12px}.js figure.chart svg{clip-path:none}figure,.card,.kpi{break-inside:avoid}}
 `;
 
