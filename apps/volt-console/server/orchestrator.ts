@@ -21,6 +21,8 @@ import { independentReview } from "./reviewer.js";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
 import { assessDepth, CHAT_FORMAT, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, DIRECT_GUIDE, directAsk, QUICK_GUIDE, quickAsk, wantsDeliverable } from "./deliverable.js";
+import { CLIENT_OUTPUT, editorialBlocker, wantsLongReport } from "../shared/clientOutput.js";
+import { deliverablePatternGuide } from "./deliverablePatterns.js";
 import { SourceRegistry, WEB_RESEARCH_GUIDE, registerWebBlock, sourceForTool, webCitationKeys } from "./research.js";
 import { evidenceGates } from "../shared/research.js";
 import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
@@ -112,7 +114,7 @@ function rosterText(catalog: Catalog): string {
     .join("\n\n");
 }
 
-function orchestratorSystem(catalog: Catalog): string {
+function orchestratorSystem(catalog: Catalog,request=""): string {
   const rudra = catalog.agentById.get("rudra");
   const workflows = catalog.workflows
     .map((w) => `- ${w.id}: ${w.name} - ${w.description} Phases: ${w.phases.map((p) => p.name).join(" → ")}`)
@@ -130,8 +132,10 @@ You lead a bench of VOLT specialist agents. For any request that spans more than
 Write the final answer as an executive-grade consulting deliverable in Markdown: a one-paragraph answer first, then structured sections and tables. Where a picture clarifies an architecture, process, roadmap or prioritisation, include Mermaid diagrams (up to four) in \`\`\`mermaid code blocks (flowchart, gantt, quadrantChart or pie; short plain labels, no styling); the console draws them and carries them into downloads. State assumptions and data gaps plainly instead of inventing client facts. If a simple question needs no delegation, answer it directly.
 
 ${CHAT_FORMAT}
+${CLIENT_OUTPUT}
 
-${leadDeliverableGuide()}
+${leadDeliverableGuide(undefined,wantsLongReport(request))}
+${deliverablePatternGuide(request)}
 ${ledgerEnabled() ? `\n${GOAL_GUIDE}\n\n${LEDGER_GUIDE}\n` : ""}
 When a request matches one of the VOLT workflows below, mention it by name so the user can launch it as a full multi-phase run.
 
@@ -142,7 +146,7 @@ ${workflows}
 ${rosterText(catalog)}`;
 }
 
-function specialistSystem(catalog: Catalog, agent: AgentDef): string {
+function specialistSystem(catalog: Catalog, agent: AgentDef, request=""): string {
   const shipped = agent.skills.filter((s) => catalog.skillById.has(s));
   return `${agent.systemPrompt}
 
@@ -151,6 +155,8 @@ You are the ${agent.name} agent (${agent.layer}). ${agent.description}
 You have been brought in on a workstream. Answer the brief with a practitioner-grade deliverable in Markdown, typically 700 to 1,000 words, at the depth of a senior practitioner's client workpaper: quantified findings with the arithmetic, options with their trade-offs, risks with mitigations, assumptions and data gaps, and at least two exhibits (tables with a Source line). You may add up to two short Mermaid diagrams (flowchart, gantt, quadrantChart or pie) in \`\`\`mermaid blocks when they clarify a flow or a plan. Lead with the answer. Be explicit about assumptions, risks and the data you would need to firm up the view.
 
 ${CHAT_FORMAT}
+${CLIENT_OUTPUT}
+${deliverablePatternGuide(request)}
 Use tools for numbers (apqc_benchmark, score_maturity, appraise_investment, build_value_case) and the Skill Finder (find_skills, load_skill) for VOLT method packs.\n${PCF_GUIDE}${shipped.length ? `\nYour registered VOLT skills: ${shipped.join(", ")}.` : ""}${specialistDeliverableGuide() ? `\n\n${specialistDeliverableGuide()}` : ""}`;
 }
 
@@ -458,7 +464,7 @@ async function executeTool(
     }
   }
 
-  const r = runLocalTool(catalog, name, parsed.data);
+  const r = runLocalTool(catalog, name, parsed.data,registry.sources);
   if (!r.ok) return fail(r.error);
   emit({ type: "tool_result", lane, callId: tu.id, name, summary: r.summary, data: name === "load_skill" || name === "get_template" ? undefined : r.data });
   const body = r.reply ?? (typeof r.data === "string" ? r.data : JSON.stringify(r.data));
@@ -494,7 +500,7 @@ async function runSpecialist(
     const text = await runAgentLoop({
       catalog,
       lane,
-      system: specialistSystem(catalog, agent),
+      system: specialistSystem(catalog, agent,brief),
       messages: [{ role: "user", content: brief }],
       tools: CONSULTED_TOOLS,
       // A brief in high-stakes finance work runs on Opus even when the lead's run was routed lower.
@@ -565,7 +571,7 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
     await runAgentLoop({
       catalog,
       lane: ORCHESTRATOR_LANE,
-      system: specialistSystem(catalog, agent),
+      system: specialistSystem(catalog, agent,req.prompt),
       messages: session.messages,
       tools: SPECIALIST_TOOLS,
       model: modelFor(req.opus || highStakes(req.prompt) ? "opus" : tierForStep("direct_agent")),
@@ -585,12 +591,12 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
   if (quick) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Quick request: building it directly with the VOLT analytics tools" });
   if (direct) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Direct question: answering it in chat, without a full deliverable" });
   const leadTier = await routeLead(req, quick || direct, session, emit, signal);
-  const guide = quick ? `\n\n${QUICK_GUIDE}` : direct ? `\n\n${DIRECT_GUIDE}` : registry.tier === "QUICK" ? "" : `\n\nResearch depth: ${registry.tier}. State it in Scope and method.`;
+  const guide = quick ? `\n\n${QUICK_GUIDE}` : direct ? `\n\n${DIRECT_GUIDE}` : registry.tier === "QUICK" ? "" : `\n\nInternal research depth: ${registry.tier}. Do not print the research tier in the deliverable.`;
   session.messages.push({ role: "user", content: `${withTemplate(req)}${guide}` });
   const lead: LoopOptions = {
     catalog,
     lane: ORCHESTRATOR_LANE,
-    system: orchestratorSystem(catalog),
+    system: orchestratorSystem(catalog,req.prompt),
     messages: session.messages,
     tools: quick || direct ? QUICK_TOOLS : ORCHESTRATOR_TOOLS,
     model: modelFor(leadTier),
@@ -694,19 +700,21 @@ async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, alw
     : null;
   if (ledger) loop.emit({ type: "status", lane: loop.lane, text: ledgerGap ? `Ledger check: ${ledger.unsupported.length} unsupported figure${ledger.unsupported.length === 1 ? "" : "s"} sent back for correction` : `Ledger check: every figure in ${ledger.sentences} ledger-cited sentence${ledger.sentences === 1 ? "" : "s"} traces to its evidence` });
   const deliverable = always || wantsDeliverable(prompt);
-  if (!deliverable && !ledgerGap) return draft;
+  const editorial=editorialBlocker(draft);
+  if (!deliverable && !ledgerGap && !editorial) return draft;
   const depth = assessDepth(draft);
-  const evidence = deliverable ? evidenceGates(draft, loop.registry.sources, loop.registry.tier).filter((g) => !g.pass) : [];
-  const report = deliverable
-    ? { ...depth, gaps: [...depth.gaps, ...evidence.map((g) => g.detail), ...(ledgerGap ? [ledgerGap] : [])] }
-    : { ...depth, gaps: [ledgerGap as string] };
+  const evidence = deliverable ? evidenceGates(draft, loop.registry.sources, loop.registry.tier,false).filter((g) => !g.pass) : [];
+  const fitGaps=wantsLongReport(prompt)?depth.gaps:[];
+  if(deliverable && /\b(plan|roadmap|recommendations?)\b/i.test(prompt) && !/\b(owner|accountable|responsib\w*|lead|led by)\b/i.test(draft))
+    fitGaps.push("Identify the accountable role for the proposed action, or state who must assign it.");
+  const report={...depth,gaps:[...fitGaps,...evidence.map(g=>g.detail),...[ledgerGap,editorial].filter((s):s is string=>!!s)]};
   if (!report.gaps.length) return draft;
   // A file the user asked for is already built from this draft; a rewrite would replace the chat answer but not the file,
   // and costs minutes more.
   if (!ledgerGap && madeFile(loop.messages)) return draft;
   // A rewrite costs about two minutes, so it is kept for a draft that is too short, has fewer than two visuals, cites sources that do not exist,
   // or misquotes a ledger figure. Smaller gaps are left to the reader's review.
-  if (!ledgerGap && depth.words >= MIN_WORDS && depth.visuals >= 2 && !evidence.some((g) => g.id === "G1")) return draft;
+  if (!editorial && !ledgerGap && !fitGaps.length && depth.words >= MIN_WORDS && depth.visuals >= 2 && !evidence.some((g) => g.id === "G1")) return draft;
   if (lateForRewrite(Date.now() - loop.registry.startedAt, runBudgetMs())) {
     loop.emit({ type: "status", lane: loop.lane, text: `Partner review: ${report.gaps.length} gap${report.gaps.length === 1 ? "" : "s"} found, but the run is near its time limit, so the draft is kept as written` });
     return draft;
@@ -715,7 +723,7 @@ async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, alw
   loop.emit({ type: "text_reset", lane: loop.lane });
   loop.messages.push({
     role: "user",
-    content: deliverable ? strengthenPrompt(report) : `Ledger check: ${ledgerGap}. Rewrite your answer in full with those figures corrected, and return only the corrected answer.`,
+    content: wantsLongReport(prompt) ? strengthenPrompt(report) : `Partner review: ${report.gaps.join("\n")}\nRepair only these issues. Preserve the requested format and length. Return the finished answer, not review notes.`,
   });
   return await runAgentLoop(loop);
 }
@@ -779,14 +787,14 @@ ${context}
 Specialist outputs, by phase:
 ${outputs.map((o) => `### ${o.phase} — ${o.agent.name}\n${o.text.slice(0, 16000)}`).join("\n\n")}
 
-Synthesise the final executive deliverable for the client: an executive summary, the integrated findings by phase, a recommendations table (recommendation, owner workstream, priority, value/risk), key risks and assumptions, and next steps. Number the sections, follow the depth and differentiation standard, and follow the evidence rules (source keys, confidence labels, and the Evidence and method section). Research depth: ${registry.tier}. Write it for the client: do not name the specialists or describe how the work was done, and where they disagreed state the position taken and why. Use the analytics tools for any figures you add.`;
+Deliver the requested artifact, organized around the recipient's needs rather than internal phases. ${CLIENT_OUTPUT} Keep source keys for supported claims. Research depth (internal): ${registry.tier}. Use the analytics tools for any figures you add.`;
   session.messages.push({ role: "user", content: synthesisPrompt });
   emit({ type: "status", lane: ORCHESTRATOR_LANE, text: "Rudra is synthesising the workflow deliverable" });
   session.leadTier = higher(session.leadTier, tierForStep("synthesis"));
   const synthesis: LoopOptions = {
     catalog,
     lane: ORCHESTRATOR_LANE,
-    system: orchestratorSystem(catalog),
+    system: orchestratorSystem(catalog,req.prompt),
     messages: session.messages,
     tools: ["find_skills", "load_skill", "apqc_benchmark", "apqc_pcf", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template"],
     model: modelFor(session.leadTier),

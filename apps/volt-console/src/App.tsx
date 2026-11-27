@@ -16,12 +16,12 @@ import type { TemplateSummary } from "../shared/templates";
 import { applyEvent, newRun, type Run } from "./runState";
 import { Console } from "./components/Console";
 import { Workflows } from "./components/Workflows";
+import { Diagrams } from "./components/Diagrams";
 import { Agents, AgentDrawer } from "./components/Agents";
 import { SkillFinder } from "./components/SkillFinder";
 import { ReferenceNav, isReferenceView, referenceDefault, type ReferenceView } from "./components/ReferenceNav";
 import { Services } from "./components/Services";
 import { Analytics } from "./components/Analytics";
-import { Diagrams } from "./components/Diagrams";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
 import { TemplateContext } from "./exports";
@@ -261,6 +261,7 @@ export function App() {
   const nav: [RailView, string, string, number | string][] = [
     ["console", "Console", "Agent Console", runs.length || ""],
     ["workflows", "Workflows", "Workflows", catalog.workflows.length],
+    ["diagrams", "Diagrams", "Diagrams", ""],
     ["reference", "Reference", "Reference", ""],
     ["services", "Services", "Services", catalog.services.length],
     ["templates", "Templates", "Templates", templates.length || ""],
@@ -269,7 +270,6 @@ export function App() {
     ["history", "Chats", "Chats", history.length || ""],
     ["uploads", "Knowledge", "Knowledge base", uploadCount || ""],
     ["ledger", "Ledger", "Ledger review", ""],
-    ["diagrams", "Diagrams", "Diagram builder", ""],
     ["usage", "Usage", "Token usage", ""],
     ["health", "Health", "Capability Health", missing],
   ];
@@ -416,7 +416,8 @@ export function App() {
         {view === "console" && (
           <Console setup={steps} onNavigate={(v) => setView(v as View)} recent={history.slice(0, 3)} onOpenRecent={openRun} catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} userName={me} />
         )}
-        {view === "workflows" && <Workflows catalog={catalog} live={live} onLaunch={start} onOpenAgent={setOpenAgent} />}
+        {view === "diagrams" && <Diagrams/>}
+        {view === "workflows" && <Workflows key={projectId} projectId={projectId} catalog={catalog} live={live} onLaunch={start} onOpenAgent={setOpenAgent} />}
         {isReferenceView(view) && <ReferenceNav view={view} onSelect={setView} />}
         {view === "agents" && <Agents catalog={catalog} onOpen={setOpenAgent} />}
         {view === "skills" && <SkillFinder catalog={catalog} onOpenAgent={setOpenAgent} />}
@@ -448,7 +449,6 @@ export function App() {
             }}
           />
         )}
-        {view === "diagrams" && <Diagrams />}
         {view === "health" && <Health catalog={catalog} onOpenAgent={setOpenAgent} />}
       </main>
       </TemplateContext.Provider>

@@ -379,12 +379,10 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .picker-empty { padding: 12px; color: var(--muted); font-size: var(--fs-4); }
 
 /* Home: starter cards and recent chats */
-.starters { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-.starter { display: flex; flex-direction: column; gap: var(--sp-2); align-items: flex-start; text-align: left; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--body); cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
-.starter:hover { border-color: var(--accent); transform: translateY(-1px); }
-.starter-tag { font-size: var(--fs-2); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
-.recent-list { display: grid; gap: 2px; }
-.recent { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--heading); text-align: left; cursor: pointer; }
+.recent-list { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 46rem; min-width: 0; gap: 2px; }
+.recent { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; min-width: 0; gap: var(--sp-2); min-height: 29px; padding: 2px var(--sp-2); background: none; border: 0; border-radius: 4px; color: var(--body); text-align: left; cursor: pointer; font: inherit; }
+.recent:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (pointer: coarse), (max-width: 640px) { .recent { min-height: 44px; } }
 .recent time { flex: none; font-size: var(--fs-2); }
 .recent:hover { border-color: var(--line-strong); background: var(--tint-04); }
 .recent-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
@@ -594,15 +592,24 @@ button.rail-avatar { cursor: pointer; font: inherit; padding: 0; }
 /* Home: greeting, then the message box, then starters, recent chats and the setup checklist. */
 .home-greeting { order: -2; margin: var(--sp-5) 0 0; font-size: var(--fs-8); font-weight: 600; color: var(--heading); }
 .composer.home { order: -1; }
-.starters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
-@media (max-width: 1100px) { .starters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .starters { grid-template-columns: 1fr; } }
-.starter { display: grid; align-content: start; gap: var(--sp-1); text-align: left; padding: var(--sp-3) var(--sp-4); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--body); cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+.starters { display: flex; flex-wrap: wrap; gap: 5px; }
+.starter { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 30px; padding: 3px 9px; text-align: left; background: transparent; border: 1px solid var(--line); border-radius: 5px; color: var(--body); font: inherit; cursor: pointer; }
+.phone-only { display: none; }
+@media (max-width: 640px) {
+  .starters { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); max-width: 22rem; gap: 3px; }
+  .starter { justify-content: center; padding: 0 2px; }
+  .starter-icon, .starter-title { display: none; }
+  .phone-only { display: inline; }
+  .starter-short, .recent-title { font-size: 12px; line-height: 1.15; }
+  .recent-list { gap: 0; }
+  .recent { column-gap: 4px; padding: 0 2px; }
+  .recent-full-date { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+@media (pointer: coarse), (max-width: 640px) { .starter { min-height: 44px; } }
 .starter:hover, .starter:focus-visible { border-color: var(--accent); }
-@media (prefers-reduced-motion: no-preference) { .starter:hover { transform: translateY(-1px); } }
-.starter-icon { color: var(--accent); }
-.starter-title { font-weight: 600; color: var(--heading); }
-.starter-text { font-size: var(--fs-3); color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.starter-icon { flex: none; color: var(--accent); }
+@media (min-width: 641px) { .starter-icon { display: flex; } }
+.starter-title { font-size: var(--fs-3); font-weight: 500; line-height: 1.25; }
 .ideas { position: relative; }
 .ideas-pop { position: absolute; bottom: calc(100% + 6px); right: 0; z-index: 30; width: min(520px, 90vw); max-height: 360px; overflow-y: auto; padding: var(--sp-2); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
 .composer.home .ideas-pop { bottom: auto; top: calc(100% + 6px); }
@@ -721,3 +728,33 @@ button.chip { font: inherit; font-size: var(--fs-3); }
   .run-tabs { flex-wrap: wrap; }
   .version-history li { grid-template-columns: 44px minmax(0, 1fr) auto; }
 }
+.gyan-wrap { flex-wrap: wrap; }
+@media(max-width:640px){
+  .gyan .gyan-template-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:3px; }
+  .gyan .gyan-modes { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:2px; }
+  .gyan .gyan-modes .btn,.gyan .gyan-template-list .btn { min-width:0; min-height:44px; white-space:normal; line-height:1.1; padding:3px; }
+}
+.gyan { min-width: 0; }
+.gyan select,.gyan input,.gyan textarea { max-width:100%; }
+.gyan small,.gyan pre { overflow-wrap:anywhere; }
+.gyan pre { max-height:22rem; overflow:auto; white-space:pre-wrap; }
+.gyan-canvas,.gyan-playback { width:100%; height:clamp(300px,48vh,560px); min-width:0; border:1px solid var(--line); border-radius:8px; background:#050505; }
+.gyan-head,.gyan-workbench {display:grid;align-items:start;gap:12px}
+.gyan-head {grid-template-columns:1fr auto}
+.gyan-badge,.gyan-kicker {font:600 11px/1.4 ui-monospace,monospace;letter-spacing:.035em;color:#86d6bd}
+.gyan-badge {border:1px solid #354741;border-radius:20px;padding:5px 10px;background:#000}
+.gyan-workbench {grid-template-columns:minmax(0,1fr) minmax(200px,26%);background:#000;border:1px solid #343434;border-radius:10px;padding:12px;color:#eee}
+.gyan-surface,.gyan-inspector {min-width:0;gap:8px;overflow-wrap:anywhere}
+.gyan-inspector {border-left:1px solid #333;padding-left:12px}
+.gyan-inspector label {display:grid;gap:4px}
+.gyan-story {background:#000;color:#eee;border:1px solid #343434;border-radius:10px;padding:16px;gap:10px}
+.gyan-story h2,.gyan-story h3,.gyan-story p {margin:0}.gyan-story p{max-width:80ch;line-height:1.5}
+.gyan-layers {display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;padding-block:8px}
+.gyan-layer {position:relative;display:flex;flex-direction:column;align-items:flex-start;gap:5px;padding:10px;text-align:left;background:#080808;color:#ddd;border:1px solid #404040;border-radius:6px;font:inherit}
+.gyan-layer:not(:last-child)::after{content:"";position:absolute;left:100%;top:50%;width:10px;border-top:1px solid #888}
+.gyan-layer small,.gyan-caption small{color:#91c9b9;font:11px/1.4 ui-monospace,monospace}.gyan-layer span{font-size:11px;color:#bbb}.gyan-layer[aria-pressed=true]{border-color:#8bdcc3;box-shadow:inset 0 2px #8bdcc3}
+.gyan-caption{border-left:2px solid #82c9b4;background:#0c100f;padding:12px;display:grid;gap:6px}
+@media(max-width:760px){.gyan-layers{grid-template-columns:1fr;gap:5px}.gyan-layer{display:grid;grid-template-columns:7.5rem 1fr;align-items:center;gap:2px 8px}.gyan-layer span{grid-column:2}.gyan-layer:not(:last-child)::after{left:15px;top:100%;height:5px;width:0;border:0;border-left:1px solid #888}.gyan .gyan-modes{display:flex;flex-wrap:wrap}.gyan .gyan-modes .btn{flex:1 1 auto}}
+.gyan-modes .btn[aria-pressed=true] {border-color:#78bcaa}
+.gyan-table {overflow:auto}.gyan-table table {border-collapse:collapse;width:100%}.gyan-table th,.gyan-table td {text-align:left;padding:6px;border-bottom:1px solid var(--line)}.gyan-table caption {text-align:left}.gyan-table code {display:block;overflow-wrap:anywhere;max-width:25ch}
+@media(max-width:760px){.gyan-workbench{grid-template-columns:1fr;padding:8px}.gyan-inspector{border-left:0;border-top:1px solid #333;padding:8px 0 0}.gyan-head{grid-template-columns:1fr}.gyan-badge{justify-self:start}.gyan-table{max-width:100%}}

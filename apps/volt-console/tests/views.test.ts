@@ -47,17 +47,17 @@ describe("taxonomy and lifecycle views", () => {
   });
 
   it("is a visual everywhere the other fenced visuals are", () => {
-    expect(viewBlocks(VIEWS_MD).map((v) => v?.kind)).toEqual(["taxonomy", "lifecycle"]);
-    expect(countVisuals(VIEWS_MD)).toBe(5);
+    expect(viewBlocks(VIEWS_MD).map((v) => v?.kind)).toEqual(["taxonomy", "lifecycle", "fim"]);
+    expect(countVisuals(VIEWS_MD)).toBe(6);
     const refs = markdownBlocks(VIEWS_MD).filter((b) => b.type === "image").map((b) => (b as { ref: string }).ref);
-    expect(refs).toEqual(["proc-0", "view-0", "arch-0", "arch-1", "view-1"]);
+    expect(refs).toEqual(["proc-0", "view-0", "arch-0", "arch-1", "view-1", "view-2"]);
   });
 });
 
 describe("required views of a finance transformation deliverable", () => {
   const catalog = loadCatalog();
-  it("names every missing view, and none when all five are there", () => {
-    expect(missingViews("## 1. Close\nText")).toHaveLength(5);
+  it("names every missing view, and none when all six are there", () => {
+    expect(missingViews("## 1. Close\nText")).toHaveLength(6);
     expect(missingViews(VIEWS_MD)).toEqual([]);
     expect(isFinanceTransformation("Close can fall from 9 to 5 days")).toBe(true);
     expect(isFinanceTransformation("Market entry is worth CAD 4M")).toBe(false);

@@ -94,11 +94,30 @@ const lifecycle = {
   source: "Illustrative [ASSUMPTION]",
 };
 
+const fim = {
+  title: "Finance information model: every mortgage balance traces to its contracts",
+  balance: { account: "13900 Residential mortgages", value: "CAD 4.2bn", status: "ties" },
+  chain: [
+    { level: "Source", items: ["Core banking", "Treasury system"] },
+    { level: "Instrument", items: ["Mortgage contract", "Daily position"] },
+    { level: "Accounting event", items: ["Fee deferral (EIR)", "ECL stage change"] },
+    { level: "GL balance", items: ["13900 Residential mortgages"] },
+    { level: "Report", items: ["Balance sheet", "Segment P&L"] },
+  ],
+  adjustments: [
+    { level: "instrument", name: "EIR fee deferral", value: "-CAD 3.1M" },
+    { level: "gl", name: "ECL management overlay", value: "+CAD 2.0M" },
+  ],
+  keys: ["Entity", "Business line", "Product", "Credit stage"],
+  change: "Lineage reaches the instrument at D+1 instead of stopping at the GL",
+  source: "Illustrative [ASSUMPTION]",
+};
+
 const block = (lang: string, o: unknown) => "```" + lang + "\n" + JSON.stringify(o) + "\n```\n";
 
-export const VIEWS = { process, taxonomy, business, technology, lifecycle };
+export const VIEWS = { process, taxonomy, business, technology, lifecycle, fim };
 
-/** The five views as deliverable markdown, one "##" section each. */
+/** The six views as deliverable markdown, one "##" section each. */
 export const VIEWS_MD = `
 ## Process view: seven close steps move before month-end
 
@@ -114,4 +133,7 @@ ${block("architecture", business)}
 ${block("architecture", technology)}
 ## Product lifecycle: the mortgage changes most at origination and servicing
 
-${block("lifecycle", lifecycle)}`;
+${block("lifecycle", lifecycle)}
+## Finance information model: the mortgage balance ties to its contracts
+
+${block("fim", fim)}`;

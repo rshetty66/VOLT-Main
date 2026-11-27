@@ -16,6 +16,7 @@ import { runDeliverable } from "../exports";
 import { chatVersions } from "../versions";
 import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
 import { shouldOptimize, type Optimized } from "../../shared/optimize";
+import { recentChatLabel } from "../recentChatLabel";
 import { AgentPicker } from "./AgentPicker";
 import { GetStarted } from "./GetStarted";
 import { Icon } from "./Icon";
@@ -196,11 +197,10 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
           <div className="stack home-below">
             <div className="starters">
               {STARTERS.map((st) => (
-                <button key={st.title} className="starter" onClick={() => fill(st.prompt)}>
-                  <span className="starter-icon" aria-hidden="true"><Icon name={st.icon} size={18} /></span>
-                  <span className="micro">{st.category}</span>
+                <button key={st.title} className="starter" onClick={() => fill(st.prompt)} title={st.title}>
+                  <span className="starter-icon" aria-hidden="true"><Icon name={st.icon} size={14} /></span>
                   <span className="starter-title">{st.title}</span>
-                  <span className="starter-text">{st.prompt}</span>
+                  <span className="phone-only starter-short">{st.phoneTitle}</span>
                 </button>
               ))}
             </div>
@@ -209,8 +209,11 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
                 <div className="micro">Recent chats</div>
                 {recent.map((r) => (
                   <button key={r.id} className="recent" onClick={() => onOpenRecent?.(r)}>
-                    <span className="recent-title">{r.prompt}</span>
-                    <time className="muted" dateTime={new Date(r.startedAt).toISOString()}>{new Date(r.startedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</time>
+                    <span className="recent-title">{recentChatLabel(r.prompt)}</span>
+                    <time className="muted" dateTime={new Date(r.startedAt).toISOString()}>
+                      <span className="recent-full-date">{new Date(r.startedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
+                      <span className="phone-only" aria-hidden="true">{new Date(r.startedAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+                    </time>
                   </button>
                 ))}
               </section>
@@ -384,7 +387,7 @@ function RunView({ run, versions = [], onStop, onRegenerate }: { run: Run; versi
   const work = summariseWork(run);
   const status = runStatus(run);
   // The research engine's gates, run on the finished answer against the run's source register.
-  const gates = run.state !== "running" && run.tier && run.text.trim() ? evidenceGates(run.text, run.sources, run.tier) : [];
+  const gates = run.state !== "running" && run.tier && run.text.trim() ? evidenceGates(run.text, run.sources, run.tier,false) : [];
   const openGates = gates.filter((g) => !g.pass);
   const stage = useStageOpen(run.state === "running");
   // Every specialist, shown as a card of key points once its workstream is finished.

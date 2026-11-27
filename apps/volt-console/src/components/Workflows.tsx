@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { GyanStudio } from "./GyanStudio";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 
 type Workflow = CatalogResponse["workflows"][number];
@@ -10,11 +11,13 @@ interface Props {
   onOpenAgent: (id: string) => void;
 }
 
-export function Workflows({ catalog, live, onLaunch, onOpenAgent }: Props) {
+export function Workflows({ catalog, live, onLaunch, onOpenAgent, projectId="general",openStudio=false }: Props & {projectId?:string;openStudio?:boolean}) {
+  const [studio,setStudio]=useState(openStudio);
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Workflow | null>(null);
   const filtered = catalog.workflows.filter((w) => `${w.name} ${w.description} ${w.id}`.toLowerCase().includes(q.toLowerCase()));
 
+  if(studio)return <GyanStudio project={projectId} back={()=>setStudio(false)} />;
   if (selected) return <WorkflowLauncher catalog={catalog} live={live} wf={selected} onBack={() => setSelected(null)} onLaunch={onLaunch} onOpenAgent={onOpenAgent} />;
 
   return (
@@ -26,6 +29,7 @@ export function Workflows({ catalog, live, onLaunch, onOpenAgent }: Props) {
           earlier phases, and Rudra synthesises the final deliverable.
         </p>
       </div>
+      <button className="card interactive card-btn" onClick={()=>setStudio(true)}><strong>Gyan Agents</strong><span className="muted"> · Design, play through and simulate a finance workflow</span></button>
       <input className="input" aria-label="Filter workflows" placeholder="Filter workflows…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="grid">
         {filtered.map((w) => (
