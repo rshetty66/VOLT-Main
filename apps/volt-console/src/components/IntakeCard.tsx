@@ -1,28 +1,61 @@
-import { useState } from "react";
-import { BASES, CLIENT_TYPES, DELIVERABLES, DEPTHS, MAX_KPIS, MAX_OUTCOMES, OUTCOME_GROUPS, OUTCOMES, RECOMMEND, kpiLine, type Kpi, type Scope } from "../../shared/scope";
+import { useState, type ReactNode } from "react";
+import { DELIVERABLES, MAX_KPIS, MAX_OUTCOMES, OUTCOME_GROUPS, OUTCOMES, RECOMMEND, CLIENT_TYPES, type Kpi, type Scope } from "../../shared/scope";
+import { GOAL_TYPES, goalType } from "../../shared/goalTypes";
 import { parseKpiList, suggestKpis, type KpiDef } from "../../shared/kpis";
 
-const ROUNDS = ["The goal", "Measurable success", "What comes back"] as const;
-
 /**
- * The intake: up to three short rounds (the goal, how success is measured, what VOLT hands back), then a one-card
- * brief. Nothing is preselected; most questions take several answers; every round can be skipped.
+ * The intake, kept short: pick what the chat is for, answer up to two questions for that goal (each can be skipped),
+ * and start. Finance transformation adds its outcomes and an optional KPI step. "Skip all" sends the message with no
+ * scope. Nothing is preselected, so no default steers the answer.
  */
 export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { draft: Scope; onChange: (s: Scope) => void; starting: boolean; onConfirm: () => void; onSkip: () => void }) {
-  const [round, setRound] = useState(starting ? 0 : 3);
+  const [step, setStep] = useState<"goal" | "kpis">("goal");
+  const [skipped, setSkipped] = useState<Set<string>>(new Set());
   const [custom, setCustom] = useState("");
   const set = (patch: Partial<Scope>) => onChange({ ...draft, ...patch });
+  const goal = goalType(draft.goal);
+  const ft = draft.goal === "finance_transformation";
   const outcomes = draft.outcomes ?? [];
   const kpis = draft.kpis ?? [];
+  const answers = draft.goal_answers ?? {};
 
-  const toggle = <T extends string>(list: T[] | undefined, key: T, max = Infinity): T[] => {
+  const toggle = (list: string[] | undefined, key: string, multi: boolean, max = Infinity): string[] => {
     const l = list ?? [];
     if (l.includes(key)) return l.filter((k) => k !== key);
-    // "Not sure, recommend" stands alone: picking it clears the rest, and picking anything else clears it.
-    if (key === RECOMMEND) return [key];
+    if (!multi || key === RECOMMEND) return [key];
     const rest = l.filter((k) => k !== RECOMMEND);
     return rest.length < max ? [...rest, key] : rest;
   };
+  const chip = (on: boolean, label: string, onClick: () => void, rec = false) => (
+    <button key={label} type="button" role="checkbox" aria-checked={on} className={`chip click intake-chip${on ? " on" : ""}${rec ? " rec" : ""}`} onClick={onClick}>
+      {label}
+    </button>
+  );
+  const skip = (key: string, clear: () => void) => {
+    clear();
+    setSkipped((s) => new Set(s).add(key));
+  };
+  const unskip = (key: string) => setSkipped((s) => { const n = new Set(s); n.delete(key); return n; });
+
+  /** One question: its label, a Skip button, and its chips; once skipped, a single line with Undo. */
+  const question = (key: string, label: string, note: string, body: ReactNode, clear: () => void) =>
+    skipped.has(key) ? (
+      <div key={key} className="intake-q intake-skipped">
+        <span>{label}</span>
+        <span className="muted">Skipped</span>
+        <button type="button" className="btn ghost sm" onClick={() => unskip(key)}>Answer</button>
+      </div>
+    ) : (
+      <div key={key} className="intake-q">
+        <div className="intake-ql">
+          <b>{label}</b>
+          <span>{note}</span>
+          <button type="button" className="btn ghost sm intake-skip" aria-label={`Skip: ${label}`} onClick={() => skip(key, clear)}>Skip</button>
+        </div>
+        {body}
+      </div>
+    );
+
   const addKpis = (defs: (Pick<KpiDef, "id" | "name"> & Partial<KpiDef>)[]) => {
     const have = new Set(kpis.map((k) => k.id));
     const added = defs.filter((d) => !have.has(d.id)).map(({ id, name, unit, benchmark }): Kpi => ({ id, name, ...(unit ? { unit } : {}), ...(benchmark ? { benchmark } : {}) }));
@@ -34,72 +67,75 @@ export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { d
     setCustom("");
   };
   const suggested = suggestKpis(outcomes.filter((o) => o !== RECOMMEND));
-
-  const chip = (on: boolean, label: string, onClick: () => void, rec = false) => (
-    <button key={label} type="button" role="checkbox" aria-checked={on} className={`chip click intake-chip${on ? " on" : ""}${rec ? " rec" : ""}`} onClick={onClick}>
-      {label}
-    </button>
-  );
-  const many = (labels: Record<string, string>, list: string[] | undefined, apply: (l: string[]) => void) =>
-    Object.entries(labels).map(([k, label]) => chip(Boolean(list?.includes(k)), label, () => apply(toggle(list, k)), k === RECOMMEND));
-
-  const header = round < 3 && (
-    <div className="intake-step">
-      <span className="intake-dots" aria-hidden="true">
-        {ROUNDS.map((r, i) => (
-          <i key={r} className={i < round ? "done" : i === round ? "on" : ""} />
-        ))}
-      </span>
-      <span className="micro">
-        Round {round + 1} of up to 3 · {ROUNDS[round]}
-      </span>
-    </div>
+  const deliverables = question(
+    "deliverables",
+    "Hand back as",
+    "any",
+    <div className="intake-chips">{Object.entries(DELIVERABLES).map(([k, label]) => chip(Boolean(draft.deliverables?.includes(k)), label, () => set({ deliverables: toggle(draft.deliverables, k, true) })))}</div>,
+    () => set({ deliverables: undefined }),
   );
 
   return (
     <div className="card intake-card" role="group" aria-labelledby="intake-title">
-      {header}
-      {round === 0 && (
+      {step === "goal" && (
         <>
-          <h2 id="intake-title">What result do you want, and for whom?</h2>
-          <p className="intake-why">Pick up to {MAX_OUTCOMES} outcomes. Nothing is preselected, so no default steers the answer.</p>
-          <div className="intake-q">
-            <div className="intake-ql">
-              <b>Outcome</b>
-              <span>
-                {outcomes.filter((o) => o !== RECOMMEND).length}/{MAX_OUTCOMES} chosen
-              </span>
-            </div>
-            <div className="intake-groups">
-              {OUTCOME_GROUPS.map((g) => (
-                <div key={g.label} className="intake-group">
-                  <div className="intake-gt">{g.label}</div>
-                  <div className="intake-chips">{many(g.options, outcomes, (l) => set({ outcomes: l.slice(0, MAX_OUTCOMES) }))}</div>
-                </div>
-              ))}
-            </div>
-            <div className="intake-chips">{chip(outcomes.includes(RECOMMEND), OUTCOMES[RECOMMEND], () => set({ outcomes: toggle(outcomes, RECOMMEND) }), true)}</div>
+          <div className="intake-head">
+            <h2 id="intake-title">What is this chat for?</h2>
+            <span className="muted">A few taps, all optional</span>
           </div>
-          <div className="intake-q">
-            <div className="intake-ql">
-              <b>Client</b>
-              <span>one</span>
-            </div>
-            <div className="intake-chips">{Object.entries(CLIENT_TYPES).map(([k, label]) => chip(draft.client_type === k, label, () => set({ client_type: draft.client_type === k ? undefined : k })))}</div>
+          <div className="intake-chips intake-goals" role="radiogroup" aria-label="Goal">
+            {GOAL_TYPES.map((g) => (
+              <button key={g.id} type="button" role="radio" aria-checked={draft.goal === g.id} title={g.hint} className={`chip click intake-chip${draft.goal === g.id ? " on" : ""}`} onClick={() => onChange(draft.goal === g.id ? {} : { goal: g.id, deliverables: draft.deliverables })}>
+                {g.label}
+              </button>
+            ))}
           </div>
-          <label className="intake-q">
-            <div className="intake-ql">
-              <b>What is not working today?</b>
-              <span>optional, one line</span>
-            </div>
-            <input className="input" maxLength={300} value={draft.problem ?? ""} placeholder="For example: 11-day close, manual intercompany, late adjustments from three subledgers" onChange={(e) => set({ problem: e.target.value || undefined })} />
-          </label>
+          {ft && (
+            <>
+              {question(
+                "outcomes",
+                "Outcome",
+                `up to ${MAX_OUTCOMES}`,
+                <>
+                  <div className="intake-groups">
+                    {OUTCOME_GROUPS.map((g) => (
+                      <div key={g.label} className="intake-group">
+                        <div className="intake-gt">{g.label}</div>
+                        <div className="intake-chips">{Object.entries(g.options).map(([k, label]) => chip(outcomes.includes(k), label, () => set({ outcomes: toggle(outcomes, k, true, MAX_OUTCOMES) })))}</div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="intake-chips">{chip(outcomes.includes(RECOMMEND), OUTCOMES[RECOMMEND], () => set({ outcomes: toggle(outcomes, RECOMMEND, true) }), true)}</div>
+                </>,
+                () => set({ outcomes: undefined }),
+              )}
+              {question(
+                "client",
+                "Client",
+                "one",
+                <div className="intake-chips">{Object.entries(CLIENT_TYPES).map(([k, label]) => chip(draft.client_type === k, label, () => set({ client_type: draft.client_type === k ? undefined : k })))}</div>,
+                () => set({ client_type: undefined }),
+              )}
+            </>
+          )}
+          {goal?.questions.map((q) =>
+            question(
+              q.key,
+              q.label,
+              q.multi ? "any" : "one",
+              <div className="intake-chips">{Object.entries(q.options).map(([k, label]) => chip(Boolean(answers[q.key]?.includes(k)), label, () => set({ goal_answers: { ...answers, [q.key]: toggle(answers[q.key], k, q.multi) } }), k === RECOMMEND))}</div>,
+              () => { const { [q.key]: _drop, ...rest } = answers; set({ goal_answers: rest }); },
+            ),
+          )}
+          {goal && deliverables}
         </>
       )}
-      {round === 1 && (
+      {step === "kpis" && (
         <>
-          <h2 id="intake-title">How will you know it worked?</h2>
-          <p className="intake-why">Tap several KPIs at once, or type your own. Leave a figure blank when it is unknown: VOLT says so instead of inventing one.</p>
+          <div className="intake-head">
+            <h2 id="intake-title">How will you know it worked?</h2>
+            <span className="muted">Optional. Blank figures stay unknown: VOLT never invents one.</span>
+          </div>
           <div className="intake-q">
             <div className="intake-ql">
               <b>Suggested KPIs</b>
@@ -107,20 +143,12 @@ export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { d
                 Add all {suggested.length}
               </button>
             </div>
-            <div className="intake-chips">
-              {suggested.map((k) =>
-                chip(
-                  kpis.some((x) => x.id === k.id),
-                  k.name,
-                  () => (kpis.some((x) => x.id === k.id) ? set({ kpis: kpis.filter((x) => x.id !== k.id) }) : addKpis([k])),
-                ),
-              )}
-            </div>
+            <div className="intake-chips">{suggested.map((k) => chip(kpis.some((x) => x.id === k.id), k.name, () => (kpis.some((x) => x.id === k.id) ? set({ kpis: kpis.filter((x) => x.id !== k.id) }) : addKpis([k]))))}</div>
           </div>
           <div className="intake-q">
             <div className="intake-ql">
               <b>Your own KPIs</b>
-              <span>comma separated, adds several at once</span>
+              <span>comma separated</span>
             </div>
             <div className="row" style={{ flexWrap: "nowrap" }}>
               <input className="input" value={custom} aria-label="Your own KPIs" placeholder="For example: Cost-to-income ratio, Days to sign off segment results" onChange={(e) => setCustom(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addCustom())} />
@@ -138,7 +166,6 @@ export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { d
                     <th>Today</th>
                     <th>Target</th>
                     <th>By</th>
-                    <th>Benchmark</th>
                     <th aria-label="Remove" />
                   </tr>
                 </thead>
@@ -154,7 +181,6 @@ export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { d
                           <input className="input" maxLength={f === "by" ? 20 : 40} aria-label={`${k.name} ${f}`} placeholder={f === "by" ? "date" : "unknown"} value={k[f] ?? ""} onChange={(e) => editKpi(k.id, { [f]: e.target.value || undefined })} />
                         </td>
                       ))}
-                      <td className={k.benchmark ? "intake-bm on" : "intake-bm"}>{k.benchmark ? "APQC built-in" : "tracked only"}</td>
                       <td>
                         <button type="button" className="btn ghost sm" aria-label={`Remove ${k.name}`} onClick={() => set({ kpis: kpis.filter((x) => x.id !== k.id) })}>
                           &times;
@@ -168,93 +194,25 @@ export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { d
           )}
         </>
       )}
-      {round === 2 && (
-        <>
-          <h2 id="intake-title">What should VOLT hand back?</h2>
-          <p className="intake-why">Pick any that apply. A file or a deep dive runs on the strongest model.</p>
-          <div className="intake-q">
-            <div className="intake-ql">
-              <b>Reporting basis</b>
-              <span>any</span>
-            </div>
-            <div className="intake-chips">{many(BASES, draft.basis, (l) => set({ basis: l }))}</div>
-          </div>
-          <div className="intake-q">
-            <div className="intake-ql">
-              <b>Deliverable</b>
-              <span>any</span>
-            </div>
-            <div className="intake-chips">{many(DELIVERABLES, draft.deliverables, (l) => set({ deliverables: l }))}</div>
-          </div>
-          <div className="intake-q">
-            <div className="intake-ql">
-              <b>Depth</b>
-              <span>one</span>
-            </div>
-            <div className="intake-chips">{Object.entries(DEPTHS).map(([k, label]) => chip(draft.depth === k, label, () => set({ depth: draft.depth === k ? undefined : k }), k === RECOMMEND))}</div>
-          </div>
-        </>
-      )}
-      {round === 3 && <Brief draft={draft} />}
       <div className="row intake-actions">
-        <span className="intake-hint">{round === 1 ? `${kpis.length} KPI${kpis.length === 1 ? "" : "s"} chosen. You can skip this round.` : round === 0 ? "Only questions that change the answer are asked." : ""}</span>
-        {round > 0 && round < 3 && (
-          <button type="button" className="btn ghost" onClick={() => setRound(round - 1)}>
+        <span className="intake-hint" />
+        {step === "kpis" && (
+          <button type="button" className="btn ghost" onClick={() => setStep("goal")}>
             Back
           </button>
         )}
-        {round === 3 && (
-          <button type="button" className="btn ghost" onClick={() => setRound(0)}>
-            Edit
+        <button type="button" className="btn ghost" onClick={onSkip}>
+          {starting ? "Skip all and send" : "Cancel"}
+        </button>
+        {step === "goal" && ft && (
+          <button type="button" className="btn" onClick={() => setStep("kpis")}>
+            Add KPIs{kpis.length ? ` (${kpis.length})` : ""}
           </button>
         )}
-        {(round === 0 || round === 3) && (
-          <button type="button" className="btn ghost" onClick={onSkip}>
-            {starting ? "Skip and send" : "Cancel"}
-          </button>
-        )}
-        {round < 3 ? (
-          <button type="button" className="btn primary" onClick={() => setRound(round + 1)}>
-            {round === 2 ? "Review the brief" : `Next: ${ROUNDS[round + 1].toLowerCase()}`}
-          </button>
-        ) : (
-          <button type="button" className="btn primary" onClick={onConfirm}>
-            {starting ? "Start" : "Save scope"}
-          </button>
-        )}
+        <button type="button" className="btn primary" onClick={onConfirm}>
+          {starting ? "Start" : "Save scope"}
+        </button>
       </div>
     </div>
-  );
-}
-
-/** The answers as one brief: what VOLT will work to. */
-function Brief({ draft }: { draft: Scope }) {
-  const outcomes = (draft.outcomes ?? []).map((o) => OUTCOMES[o]).filter(Boolean);
-  const rows: [string, string[]][] = [
-    ["Problem", [draft.problem || "Not stated; VOLT takes it from your message"]],
-    ["Success", draft.kpis?.length ? draft.kpis.map(kpiLine) : ["No KPIs chosen; VOLT proposes measures and marks them as suggestions"]],
-    ["Basis", [(draft.basis ?? []).map((b) => BASES[b]).join(", ") || "Not set"]],
-    ["Deliverable", [`${(draft.deliverables ?? []).map((d) => DELIVERABLES[d]).join(", ") || "Answer in chat"}${draft.depth ? ` · ${DEPTHS[draft.depth]}` : ""}`]],
-  ];
-  return (
-    <>
-      <div className="micro">Outcome brief · VOLT works to this</div>
-      <h2 id="intake-title">
-        {outcomes.join(" + ") || "No outcome set"}
-        {draft.client_type ? ` · ${CLIENT_TYPES[draft.client_type]}` : ""}
-      </h2>
-      <dl className="intake-brief">
-        {rows.map(([k, v]) => (
-          <div key={k}>
-            <dt>{k}</dt>
-            <dd>
-              {v.map((line) => (
-                <div key={line}>{line}</div>
-              ))}
-            </dd>
-          </div>
-        ))}
-      </dl>
-    </>
   );
 }
