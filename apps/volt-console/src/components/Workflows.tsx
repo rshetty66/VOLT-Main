@@ -25,10 +25,10 @@ export function Workflows({ catalog, onLaunch, onOpenAgent }: Props) {
           earlier phases, and Rudra synthesises the final deliverable.
         </p>
       </div>
-      <input className="input" placeholder="Filter workflows…" value={q} onChange={(e) => setQ(e.target.value)} />
+      <input className="input" aria-label="Filter workflows" placeholder="Filter workflows…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="grid">
         {filtered.map((w) => (
-          <div key={w.id} className="card interactive stack" style={{ gap: 8 }} onClick={() => setSelected(w)}>
+          <button type="button" key={w.id} className="card interactive stack card-btn" style={{ gap: 8 }} onClick={() => setSelected(w)}>
             <div className="row" style={{ justifyContent: "space-between" }}>
               <b>
                 {w.icon} {w.name}
@@ -48,7 +48,7 @@ export function Workflows({ catalog, onLaunch, onOpenAgent }: Props) {
             <div className="muted" style={{ fontSize: "var(--fs-3)" }}>
               {new Set(w.phases.flatMap((p) => p.agents)).size} agents
             </div>
-          </div>
+          </button>
         ))}
       </div>
     </div>
@@ -86,9 +86,9 @@ function WorkflowLauncher({ catalog, wf, onBack, onLaunch, onOpenAgent }: { cata
               </span>
               <div className="row">
                 {p.agents.map((a) => (
-                  <span key={a} className="chip click" onClick={() => onOpenAgent(a)}>
+                  <button type="button" key={a} className="chip click" onClick={() => onOpenAgent(a)}>
                     {name(a)?.icon} {name(a)?.name ?? a}
-                  </span>
+                  </button>
                 ))}
               </div>
             </div>

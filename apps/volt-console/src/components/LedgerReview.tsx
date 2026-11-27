@@ -1,17 +1,7 @@
 import { useEffect, useState } from "react";
 import { errText } from "../netGuard";
-
-interface Decision { decision: "approve" | "reject" | "amend"; by: string; note: string }
-interface ReviewItem {
-  item_id: string;
-  kind: "mapping" | "policy_gap" | "allocation_rule" | "coa_design" | "coa_decision" | "coa_mapping";
-  ref_id: string;
-  reason: string;
-  proposal: Record<string, unknown>;
-  engagement_lead: Decision | null;
-  client: Decision | null;
-  client_visible: boolean;
-}
+import { confirmDialog, toast } from "../ui";
+import { bulkTargets, confidenceOf, filterQueue, type QueueFilter, type ReviewItem } from "../ledgerQueue";
 
 const KIND: Record<ReviewItem["kind"], string> = {
   mapping: "Mapping", policy_gap: "Policy gap", allocation_rule: "Allocation rule",
@@ -48,7 +38,9 @@ function summary(i: ReviewItem): string {
 export function LedgerReview() {
   const [state, setState] = useState<{ enabled: boolean; reviewer?: string; items: ReviewItem[] } | null>(null);
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState<"open" | "all">("open");
+  const [filter, setFilter] = useState<QueueFilter>({ status: "open", kind: "", confidence: "" });
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [busy, setBusy] = useState(false);
   const [driver, setDriver] = useState({ key: "fte", period: new Date().toISOString().slice(0, 7), line: "Retail", value: "" });
   const [saved, setSaved] = useState("");
   const [designs, setDesigns] = useState<CoaDesign[]>([]);
@@ -62,12 +54,37 @@ export function LedgerReview() {
     void fetch("/api/ledger/coa").then(async (r) => (r.ok ? setDesigns((await r.json()).designs ?? []) : undefined)).catch(() => undefined);
   }, [state]);
 
+  // One decision through the same endpoint as before; the ledger service still refuses anything out of order.
+  const post = async (item: ReviewItem, stage: "engagement_lead" | "client", decision: "approve" | "reject", note: string): Promise<string> => {
+    const r = await fetch("/api/ledger/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ item_id: item.item_id, stage, decision, note }) });
+    const body = await r.json().catch(() => ({}));
+    return !r.ok || body.status === "refused" ? body.data?.message ?? body.error ?? `Not recorded (${r.status})` : "";
+  };
   const decide = async (item: ReviewItem, stage: "engagement_lead" | "client", decision: "approve" | "reject") => {
     setError("");
     const note = decision === "reject" ? window.prompt("Why is this rejected?") ?? "" : "";
-    const r = await fetch("/api/ledger/review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ item_id: item.item_id, stage, decision, note }) });
-    const body = await r.json().catch(() => ({}));
-    if (!r.ok || body.status === "refused") setError(body.data?.message ?? body.error ?? `Not recorded (${r.status})`);
+    const failed = await post(item, stage, decision, note);
+    if (failed) setError(failed);
+    load();
+  };
+  // Bulk decisions: confirm first, then one call per item, so the server-side approval gate applies to each.
+  const decideMany = async (stage: "engagement_lead" | "client", decision: "approve" | "reject") => {
+    const targets = bulkTargets(state?.items ?? [], selected, stage);
+    if (!targets.length) return void toast(stage === "client" ? "None of the selected items is approved by the engagement lead yet." : "The selected items are already decided.", "error");
+    const verb = stage === "client" ? "Record client sign-off for" : decision === "approve" ? "Approve" : "Reject";
+    if (!(await confirmDialog(`${verb} ${targets.length} item${targets.length === 1 ? "" : "s"}?`, verb.split(" ")[0]))) return;
+    const note = decision === "reject" ? window.prompt("Why are these rejected?") ?? "" : "";
+    setBusy(true);
+    setError("");
+    const failures: string[] = [];
+    for (const t of targets) {
+      const failed = await post(t, stage, decision, note);
+      if (failed) failures.push(`${t.item_id}: ${failed}`);
+    }
+    setBusy(false);
+    setSelected(new Set());
+    if (failures.length) setError(failures.join("\n"));
+    else toast(`${targets.length} recorded`);
     load();
   };
 
@@ -88,7 +105,9 @@ export function LedgerReview() {
   if (!state) return <div className="card empty">{error || <><span className="spinner" /> Loading…</>}</div>;
   if (!state.enabled) return <div className="card empty">VOLT Ledger is not connected to this console. Set VOLT_LEDGER_URL (or deploy the volt-ledger service in render.yaml) and VOLT_LEDGER_TOKEN.</div>;
 
-  const items = state.items.filter((i) => filter === "all" || !i.engagement_lead || (i.engagement_lead.decision === "approve" && !i.client));
+  const items = filterQueue(state.items, filter);
+  const allOn = items.length > 0 && items.every((i) => selected.has(i.item_id));
+  const pick = (id: string) => setSelected((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   return (
     <div className="stack">
       <div>
@@ -148,13 +167,32 @@ export function LedgerReview() {
         {saved && <span className="muted">{saved}</span>}
       </div>
 
-      <div className="row" style={{ justifyContent: "space-between" }}>
-        <strong>{items.length} {filter === "open" ? "waiting for a decision" : "items"}</strong>
-        <div className="row">
-          <button className={`btn sm ${filter === "open" ? "" : "ghost"}`} onClick={() => setFilter("open")}>Waiting</button>
-          <button className={`btn sm ${filter === "all" ? "" : "ghost"}`} onClick={() => setFilter("all")}>All</button>
+      <div className="row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+        <strong>{items.length} {filter.status === "open" ? "waiting for a decision" : "items"}</strong>
+        <div className="row" style={{ flexWrap: "wrap" }}>
+          <button className={`btn sm ${filter.status === "open" ? "" : "ghost"}`} onClick={() => setFilter({ ...filter, status: "open" })}>Waiting</button>
+          <button className={`btn sm ${filter.status === "all" ? "" : "ghost"}`} onClick={() => setFilter({ ...filter, status: "all" })}>All</button>
+          <select className="select" style={{ width: "auto" }} aria-label="Filter by type" value={filter.kind} onChange={(e) => setFilter({ ...filter, kind: e.target.value as QueueFilter["kind"] })}>
+            <option value="">All types</option>
+            {Object.entries(KIND).map(([k, label]) => <option key={k} value={k}>{label}</option>)}
+          </select>
+          <select className="select" style={{ width: "auto" }} aria-label="Filter by confidence" value={filter.confidence} onChange={(e) => setFilter({ ...filter, confidence: e.target.value as QueueFilter["confidence"] })}>
+            <option value="">Any confidence</option>
+            <option value="low">Below 70%</option>
+            <option value="high">70% and above</option>
+          </select>
         </div>
       </div>
+      {items.length > 0 && (
+        <div className="card row ledger-bulk" style={{ flexWrap: "wrap" }}>
+          <label className="row body"><input type="checkbox" checked={allOn} onChange={() => setSelected(allOn ? new Set() : new Set(items.map((i) => i.item_id)))} /> Select all shown</label>
+          <span className="muted">{selected.size} selected</span>
+          <button className="btn sm" disabled={busy || !selected.size} onClick={() => void decideMany("engagement_lead", "approve")}>Approve selected</button>
+          <button className="btn ghost sm" disabled={busy || !selected.size} onClick={() => void decideMany("engagement_lead", "reject")}>Reject selected</button>
+          <button className="btn ghost sm" disabled={busy || !selected.size} onClick={() => void decideMany("client", "approve")}>Record client sign-off</button>
+          {busy && <span className="spinner" />}
+        </div>
+      )}
       {error && <div className="card" role="alert">{error}</div>}
       {items.length === 0 ? (
         <div className="card empty">Nothing waiting. Ask the Agent Console to map a trial balance or propose an allocation.</div>
@@ -163,12 +201,19 @@ export function LedgerReview() {
           <div key={i.item_id} className="card stack" style={{ gap: 8 }}>
             <div className="row" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
               <div className="row" style={{ gap: 6 }}>
+                <input type="checkbox" aria-label={`Select ${i.item_id}`} checked={selected.has(i.item_id)} onChange={() => pick(i.item_id)} />
                 <span className="badge">{KIND[i.kind]}</span>
                 <span className="micro">{i.item_id} · {i.ref_id} · {i.reason.replace(/_/g, " ")}</span>
               </div>
               {i.client_visible && <span className="badge live">Client visible</span>}
             </div>
             <div>{summary(i)}</div>
+            {confidenceOf(i) !== undefined && (
+              <div className="confidence" title="The model's confidence in this proposal">
+                <i style={{ width: Math.round(confidenceOf(i)! * 120) }} className={confidenceOf(i)! < 0.7 ? "low" : ""} />
+                <span>{Math.round(confidenceOf(i)! * 100)}% confidence</span>
+              </div>
+            )}
             <div className="row" style={{ flexWrap: "wrap", gap: 8 }}>
               {i.engagement_lead ? (
                 <span className="micro">Engagement lead: {i.engagement_lead.decision} by {i.engagement_lead.by.replace(/^user:/, "")}{i.engagement_lead.note ? ` (${i.engagement_lead.note})` : ""}</span>

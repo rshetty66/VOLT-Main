@@ -127,3 +127,15 @@ export const cad = (usd: number) => {
   const v = usd * fx.cadPerUsd;
   return v > 0 && v < 0.01 ? "<CA$0.01" : `CA$${v.toFixed(2)}`;
 };
+
+/** Estimated cost (USD) and tokens per calendar day, oldest first, for the cost-over-time chart. Days with no runs are skipped. */
+export function costByDay(runs: Run[]): { day: string; cost: number; tokens: number }[] {
+  const days = new Map<string, { cost: number; tokens: number }>();
+  for (const r of runs) {
+    const d = new Date(r.startedAt);
+    const day = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const cur = days.get(day) ?? { cost: 0, tokens: 0 };
+    days.set(day, { cost: cur.cost + (r.usage.cost ?? 0), tokens: cur.tokens + r.usage.input + r.usage.output });
+  }
+  return [...days.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([day, v]) => ({ day, ...v }));
+}
