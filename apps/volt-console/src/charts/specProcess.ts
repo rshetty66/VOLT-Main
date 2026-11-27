@@ -38,7 +38,7 @@ export function processSvg(spec: ProcessSpec, p: Palette): string {
   const boxW = (i: number) => (units[spec.steps[i].stage] * unit - 12 - (share[i] - 1) * 8) / share[i];
   // Names start after the step number, a little further in once numbers have two digits.
   const NX = spec.steps.length > 9 ? 27 : 22;
-  const names = spec.steps.map((s, i) => fitLines(s.name, boxW(i) - NX - 8, NAME, 4));
+  const names = spec.steps.map((s, i) => fitLines(s.name, boxW(i) - NX - 8, NAME, 6));
   // A step citing the APQC PCF shows its hierarchy ID on a line of its own, so every card makes room for it.
   const pcfLine = spec.steps.some((s) => s.pcf) ? 15 : 0;
   const BOX_H = 30 + Math.max(2, ...names.map((l) => l.length)) * LINE + pcfLine;

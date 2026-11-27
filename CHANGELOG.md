@@ -4,9 +4,19 @@
 
 ### Added
 
+- 2026-11-27: Chat always optimizes first, then asks to confirm. Every first-person request that is not a command, lookup or quick ask is rewritten by Sonnet into an executive prompt (business ask, 3 to 5 key questions, persona, output format). You edit it, send it, send your original, or cancel. Live mode only; if the optimizer fails, your message is sent as written. Adds one Sonnet call per message.
+- 2026-11-27: `executive-prompt-optimizer` skill: turns a rough question into a copy-paste executive prompt with the business ask, 3 to 5 mandatory questions and an output format. Repo skill only; not yet wired to a chat `/optimize` command or to routing.
+
+- 2026-11-27: Independent review in chat, on request (Settings checkbox, or words like "have it reviewed"). A separate fresh-context reviewer checks the draft against the ask and hands gaps back to the lead, at most 3 times, then stops and reports what is open. Off by default; adds time and cost only when asked.
+- `uber-agent-skills` skill: how to build, run, measure, evaluate and improve agent skills like production infrastructure, distilled from Uber Engineering's skills article. The description's colons are quoted so it parses as YAML.
+- `volt-release-loop` skill: a self-running release loop for the console (one change per lap, objective gate plus an independent reviewer, loop-state.md memory, stop rules, training mode on for the first three runs).
+- Skill quality checks on the Health page, based on Uber Engineering's skill linter: numbered steps, a way to check each result, an error-recovery section, a body under 500 lines, a useful description, and no bundled tool servers. They are plain text checks that flag skills worth a look, not a quality score. First run over the shipped skills: 6 of 378 pass every check; 361 have no error-recovery section.
+
 - Diagram builder in the console: describe an agent system or process, get an interactive, animated diagram with typed nodes and edges and playable scenarios (Sonnet drafts it; demo mode shows a sample). Downloads as standalone HTML or JSON. Model text is stripped of markup, the frame is sandboxed, and the route is rate limited like runs.
 
 ### Fixed
+
+- Chat output formatting: a long prompt shows three lines with a Show full prompt toggle and uses the full width instead of a narrow column, answer text is 16px with an 80-character line, chart source lines wrap instead of clipping, and swimlane step names can use up to six lines instead of clipping.
 
 - Diagram builder layout: group boxes replaced by a coloured stripe and tag on each node (no overlapping boxes), rows ordered to reduce crossings, long and return flows routed in lanes outside the nodes, flow labels shown on hover or when a step plays, return flows dimmed, and the diagram scales to fill the frame. The renderer HTML-escapes all text, and payloads keep their quotes.
 

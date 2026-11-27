@@ -1,4 +1,5 @@
 import type { CatalogResponse } from "../../shared/events";
+import { LINT_CHECKS, type LintCheck } from "../../shared/skillLint";
 
 /** Integrity checks run on the VOLT package at load time. */
 export function Health({ catalog, onOpenAgent }: { catalog: CatalogResponse; onOpenAgent: (id: string) => void }) {
@@ -58,6 +59,27 @@ export function Health({ catalog, onOpenAgent }: { catalog: CatalogResponse; onO
           </table>
         </div>
       </Section>
+
+      {h.lint && (
+        <Section title={`Skill quality (${h.lint.clean} of ${h.lint.checked} pass every check)`} note="Checks borrowed from Uber's skill linter: skills should have numbered steps, a way to check each result, an error-recovery section, a short body and no bundled tool servers. These are text checks that flag skills worth a look, not a quality score.">
+          <div className="table-wrap">
+            <table className="table">
+              <thead><tr><th>Check</th><th>Skills failing</th></tr></thead>
+              <tbody>
+                {(Object.keys(LINT_CHECKS) as LintCheck[]).map((k) => (
+                  <tr key={k}><td>{LINT_CHECKS[k]}</td><td>{h.lint!.byCheck[k]} of {h.lint!.checked}</td></tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="muted" style={{ fontSize: "var(--fs-3)" }}>Most checks failed:</div>
+          <div className="row">
+            {h.lint.worst.map((w) => (
+              <code key={w.id} className="chip" title={w.failed.map((f) => LINT_CHECKS[f]).join("\n")}>{w.id} ({w.failed.length})</code>
+            ))}
+          </div>
+        </Section>
+      )}
 
       <Section title={`Services with partial or no coverage (${catalog.services.filter((s) => s.coverage !== "full").length})`}>
         <div className="row">
