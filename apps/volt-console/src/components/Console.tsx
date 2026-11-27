@@ -17,6 +17,9 @@ import { directAsk, quickAsk } from "../../shared/asks";
 import { IntakeCard } from "./IntakeCard";
 import { AgentPicker } from "./AgentPicker";
 import { GetStarted } from "./GetStarted";
+import { Icon } from "./Icon";
+import { STARTERS } from "../starters";
+import { PROMPT_IDEAS } from "../promptIdeas";
 import type { SetupStep } from "../setup";
 import { ATTACH_EXTENSIONS, ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../../shared/attachments";
 
@@ -35,9 +38,13 @@ interface Props {
   onStart: (req: RunRequest, title: string, kind: RunKind) => void;
   onStop: (runId: string) => void;
   onOpenAgent: (id: string) => void;
+  /** The signed-in name, for the greeting. */
+  userName?: string | null;
 }
 
-export function Console({ catalog, runs, target, setTarget, live, onStart, onStop, onOpenAgent, recent = [], onOpenRecent, setup, onNavigate }: Props) {
+const greeting = (h = new Date().getHours()) => (h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening");
+
+export function Console({ catalog, runs, target, setTarget, live, onStart, onStop, onOpenAgent, recent = [], onOpenRecent, setup, onNavigate, userName }: Props) {
   const [prompt, setPrompt] = useState("");
   const [files, setFiles] = useState<{ name: string; text: string; chars: number; truncated: boolean; id?: string }[]>([]);
   const [reading, setReading] = useState(0);
@@ -118,6 +125,23 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
     if (fileInput.current) fileInput.current.value = "";
   };
 
+  // A starter card or a prompt idea fills the message box for editing; nothing is sent until Run.
+  const [ideas, setIdeas] = useState(false);
+  const fill = (text: string) => {
+    setPrompt(text);
+    setIdeas(false);
+    requestAnimationFrame(() => {
+      const box = promptBox.current;
+      if (box) (box.focus(), box.setSelectionRange(text.length, text.length));
+    });
+  };
+
+  // Sends a finished run's message again with the chat's scope, leaving whatever is in the message box alone.
+  const regenerate = (text: string) => {
+    const agentMode = target !== "rudra";
+    onStart({ prompt: text, agentId: agentMode ? target : undefined, scope: scope ?? undefined }, agentMode ? targetAgent?.name ?? target : "All specialists", agentMode ? "agent" : "orchestrate");
+  };
+
   const submit = (text = prompt, chosen: Scope | null | undefined = scope) => {
     if (!text.trim() || reading > 0) return;
     // First message of a chat: run the intake before any work starts, unless it is a lookup or a quick ask, which VOLT
@@ -134,32 +158,45 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   return (
     <div className="console">
       {runs.length === 0 && (
-        <div className="stack">
-          {setup && setup.some((s) => !s.done) && (
-            <GetStarted
-              steps={setup}
-              onGo={(s) => {
-                if (s.view) onNavigate?.(s.view);
-                else promptBox.current?.focus();
-              }}
-            />
-          )}
-          {recent.length > 0 && (
-            <div className="stack" style={{ gap: 6 }}>
-              <div className="micro">Pick up where you left off</div>
-              {recent.map((r) => (
-                <button key={r.id} className="recent" onClick={() => onOpenRecent?.(r)}>
-                  <span className="recent-title">{r.prompt}</span>
-                  <span className="muted">{new Date(r.startedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
+        <>
+          <h1 className="home-greeting">{greeting()}{userName ? `, ${userName}` : ""}</h1>
+          <div className="stack home-below">
+            <div className="starters">
+              {STARTERS.map((st) => (
+                <button key={st.title} className="starter" onClick={() => fill(st.prompt)}>
+                  <span className="starter-icon" aria-hidden="true"><Icon name={st.icon} size={18} /></span>
+                  <span className="micro">{st.category}</span>
+                  <span className="starter-title">{st.title}</span>
+                  <span className="starter-text">{st.prompt}</span>
                 </button>
               ))}
             </div>
-          )}
-        </div>
+            {recent.length > 0 && (
+              <div className="stack" style={{ gap: "var(--sp-2)" }}>
+                <div className="micro">Recent chats</div>
+                {recent.map((r) => (
+                  <button key={r.id} className="recent" onClick={() => onOpenRecent?.(r)}>
+                    <span className="recent-title">{r.prompt}</span>
+                    <span className="muted">{new Date(r.startedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {setup && setup.some((s) => !s.done) && (
+              <GetStarted
+                steps={setup}
+                onGo={(s) => {
+                  if (s.view) onNavigate?.(s.view);
+                  else promptBox.current?.focus();
+                }}
+              />
+            )}
+          </div>
+        </>
       )}
 
       {runs.map((run) => (
-        <RunView key={run.id} run={run} onStop={() => onStop(run.id)} />
+        <RunView key={run.id} run={run} onStop={() => onStop(run.id)} onRegenerate={running ? undefined : () => regenerate(run.prompt)} />
       ))}
       <div ref={composer} className={`composer ${runs.length === 0 ? "home" : ""}`}>
         {scoping && (
@@ -248,6 +285,25 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               Ctrl/⌘ + Enter to send{runs.length > 0 ? " · follow-ups keep the conversation" : ""}
             </span>
             <div className="row">
+              <div className="ideas">
+                <button className="btn ghost" aria-haspopup="menu" aria-expanded={ideas} onClick={() => setIdeas((o) => !o)}>
+                  Prompt ideas
+                </button>
+                {ideas && (
+                  <div className="ideas-pop" role="menu" onKeyDown={(e) => e.key === "Escape" && setIdeas(false)}>
+                    {PROMPT_IDEAS.map((g) => (
+                      <div key={g.group} role="group" aria-label={g.group}>
+                        <div className="micro ideas-group">{g.group}</div>
+                        {g.ideas.map((idea) => (
+                          <button key={idea} role="menuitem" className="ideas-item" onClick={() => fill(idea)}>
+                            {idea}
+                          </button>
+                        ))}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
               <input ref={fileInput} type="file" multiple hidden accept={ATTACH_EXTENSIONS.map((e) => `.${e}`).join(",")} onChange={(e) => void attach(e.target.files)} />
               <button className="btn" disabled={running} onClick={openLibrary} title="Reuse a file you uploaded in any chat">
                 From uploads
@@ -281,7 +337,8 @@ function scrollEndIntoView(runId: string) {
   if (by > 0 && by < main.clientHeight) main.scrollBy({ top: by, behavior: "smooth" });
 }
 
-function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
+function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; onRegenerate?: () => void }) {
+  const [source, setSource] = useState<Run["sources"][number] | null>(null);
   const work = summariseWork(run);
   const status = runStatus(run);
   // The research engine's gates, run on the finished answer against the run's source register.
@@ -401,8 +458,51 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
         <div className="answer">
           {run.text ? <Markdown text={run.text} /> : run.state === "running" ? <p className="muted"><span className="spinner" /> Rudra is working…</p> : null}
         </div>
+        {run.state !== "running" && run.text.trim() && (
+          <div className="answer-foot">
+            <button className="btn ghost sm" onClick={() => void navigator.clipboard?.writeText(run.text).then(() => toast("Answer copied"), () => toast("Copy failed", "error"))}>
+              Copy
+            </button>
+            {onRegenerate && (
+              <button className="btn ghost sm" title="Send the same message again with the same scope" onClick={onRegenerate}>
+                Regenerate
+              </button>
+            )}
+            {run.sources.length > 0 && (
+              <div className="source-chips" aria-label="Sources">
+                {run.sources.map((src) => (
+                  <button key={src.key} className="chip click" title={src.title} onClick={() => setSource(src)}>
+                    {src.key} · {src.publisher || src.title.slice(0, 30)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+        <Steps run={run} />
         <FileCards run={run} />
       </div>
+      {source && (
+        <>
+          <div className="drawer-backdrop" onClick={() => setSource(null)} />
+          <aside className="drawer source-drawer" role="dialog" aria-label={`Source ${source.key}`} onKeyDown={(e) => e.key === "Escape" && setSource(null)}>
+            <div className="drawer-head">
+              <span className="micro">Source {source.key}</span>
+              <button className="btn ghost sm" autoFocus onClick={() => setSource(null)}>Close</button>
+            </div>
+            <h2 className="page-title">{source.title}</h2>
+            <dl className="source-meta">
+              <dt>Publisher</dt><dd>{source.publisher || "Not given"}</dd>
+              <dt>Date</dt><dd>{source.date || "Not given"}</dd>
+              <dt>Type</dt><dd>{source.type}</dd>
+              <dt>Authority</dt><dd>{source.authority} of 10</dd>
+            </dl>
+            {source.url && (
+              <a className="btn" href={source.url} target="_blank" rel="noopener noreferrer">Open the source</a>
+            )}
+          </aside>
+        </>
+      )}
     </section>
   );
 }
@@ -446,6 +546,32 @@ function useStageOpen(running: boolean): { open: boolean; toggle: () => void } {
       }
   };
   return { open, toggle };
+}
+
+/** A collapsible timeline of what the run did: each specialist and each tool call, in order. */
+function Steps({ run }: { run: Run }) {
+  const lanes = run.laneOrder.map((id) => run.lanes[id]).filter(Boolean);
+  const steps = [
+    ...run.activity.filter((a) => a.kind !== "status").map((a) => ({ id: a.id, who: "Lead", text: a.text, detail: a.detail, bad: !!a.isError, pending: !!a.pending })),
+    ...lanes.flatMap((l) => [
+      { id: l.id, who: l.name, text: l.state === "running" ? "working" : l.state === "failed" ? "failed" : "finished its workstream", detail: l.brief, bad: l.state === "failed", pending: l.state === "running" },
+      ...l.activity.filter((a) => a.kind === "tool" || a.isError).map((a) => ({ id: `${l.id}:${a.id}`, who: l.name, text: a.text, detail: a.detail, bad: !!a.isError, pending: !!a.pending })),
+    ]),
+  ];
+  if (!steps.length) return null;
+  return (
+    <details className="steps">
+      <summary>Steps ({steps.length})</summary>
+      <ol>
+        {steps.map((st) => (
+          <li key={st.id} className={st.bad ? "bad" : st.pending ? "pending" : ""}>
+            <b>{st.who}</b> {st.text}
+            {st.detail && <span className="muted"> · {st.detail.slice(0, 140)}</span>}
+          </li>
+        ))}
+      </ol>
+    </details>
+  );
 }
 
 /** "Consulting 3 of 6 specialists: Oracle GL, SAP FI" while running; "Consulted 6 specialists · 4 tool calls" when done. */

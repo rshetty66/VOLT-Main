@@ -95,3 +95,31 @@ describe("intake skip", () => {
     expect(directAsk(study) || quickAsk(study)).toBe(false);
   });
 });
+
+describe("goal catalog", () => {
+  it("offers eight goal types, each with at most two questions, and every question can recommend", async () => {
+    const { GOAL_TYPES } = await import("../shared/goalTypes");
+    expect(GOAL_TYPES.map((g) => g.id)).toEqual(["finance_transformation", "market_research", "business_development", "strategy", "accounting", "data_analysis", "technology", "other"]);
+    for (const g of GOAL_TYPES) {
+      expect(g.questions.length, g.id).toBeLessThanOrEqual(2);
+      for (const q of g.questions) expect(q.options[RECOMMEND], `${g.id}.${q.key}`).toBe("Not sure, recommend");
+    }
+  });
+
+  it("accepts answers to the goal's own questions only", () => {
+    expect(scopeSchema.safeParse({ goal: "market_research", goal_answers: { market: ["consulting", "banking"], need: ["players"] } }).success).toBe(true);
+    expect(scopeSchema.safeParse({ goal: "market_research", goal_answers: { market: ["mining"] } }).success).toBe(false);
+    expect(scopeSchema.safeParse({ goal: "market_research", goal_answers: { audience: ["board"] } }).success).toBe(false);
+    expect(scopeSchema.safeParse({ goal: "strategy", goal_answers: { audience: ["board", "cfo"] } }).success).toBe(false);
+    expect(scopeSchema.safeParse({ goal: "astrology" }).success).toBe(false);
+  });
+
+  it("puts the goal and its answers in the scope block, and a skipped question adds nothing", () => {
+    const brief = scopeBrief({ goal: "market_research", goal_answers: { market: ["consulting"], need: [RECOMMEND] } });
+    expect(brief).toContain("- Goal: Market and competitor research");
+    expect(brief).toContain("- Which market: Consulting and advisory");
+    expect(brief).toContain("- What do you need: not set; recommend what fits");
+    expect(scopeBrief({ goal: "other" })).toContain("- Goal: Something else");
+    expect(scopeLabel({ goal: "market_research", deliverables: ["deck"] })).toBe("Market and competitor research · HTML slide deck");
+  });
+});
