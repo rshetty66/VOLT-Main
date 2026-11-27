@@ -6,8 +6,26 @@ disable-model-invocation: true
 
 # Client Deliverable Standards
 
-Every output is client-facing until proven otherwise. These apply to chat replies,
-sections, decks and workbooks alike.
+Every output is client-facing by default. Match the audience and use: a brief should
+enable a decision, a procedure should be executable, a technical design should name
+interfaces and constraints, and a dataset should be usable without reading the chat.
+Keep evidence available for challenge, with material limitations beside the result;
+do not substitute an agent trace or research diary for the requested deliverable.
+
+## Select a deliverable pattern
+
+For a financial plan, scope change, savings review, service redesign, expenditure review,
+fiscal diagnostic, service profile, core service review, options appraisal or board summary,
+operating-model portfolio, RFP response, sourcing case, shock assessment, forecast-vintage
+guide or demand outlook, consult `references/deliverable-patterns.json`. Each entry gives a
+decision question, storyline, signature exhibit and depth checks, plus the original filename
+and PDF page locations for internal reference. When asked for ideas, recommend the smallest
+artifact that supports the decision. Use a second pattern only if it adds a distinct purpose.
+
+These are editorial patterns, not findings, data sources, branded presentation masters or
+permission to use the original firm's client results. Retain the client's own template and
+facts. A summary compresses a completed analysis; a proposal or change order defines work;
+an audit challenges claims rather than repeating them.
 
 ## Lead with the answer, at every level
 
@@ -32,8 +50,9 @@ sections, decks and workbooks alike.
   a guess wearing a decimal.
 - Show the math. A projection carries its assumptions inline or in the exhibit below
   it, so the reader can price your credibility themselves.
-- Every claim of consequence carries a figure. A paragraph of adjectives with no
-  number in it is the paragraph a client skips.
+- Quantify when there is a defensible basis. Never invent a number because a template
+  demands one. Where the evidence is qualitative, state the finding, its basis, and
+  what decision it can and cannot support.
 - Financial cases are stated in the reader's instrument: ROI/ROIC, NPV and IRR,
   payback period, TCO — with the discount rate and horizon named. Sensitivity on the
   one or two assumptions that actually move the answer, not on all of them.

@@ -4,6 +4,7 @@
  *   commands/run-client-deliverable.md, section 3     what it contains, in order (the table of contents)
  */
 import { countVisuals } from "../shared/viz.js";
+import { CLIENT_OUTPUT } from "../shared/clientOutput.js";
 import fs from "node:fs";
 import path from "node:path";
 import { PLUGIN_DIR, loadSkillBody } from "./catalog.js";
@@ -74,12 +75,12 @@ Every figure and every factual claim must be traceable. A fluent answer with no 
 - Cite by source key. Every tool result comes back with a key, such as [S03], and S01 is always the client's own request and intake. Put the key after the sentence it supports: "The close takes 12 days against a 6.5 day median [S02]." Cite only keys the tools returned. A key you made up is a blocker.
 - Never fabricate a source, URL, author, date or statistic. A memory of a paper is not a citation. If nothing supports a claim, tag it [INFERENCE] or [ASSUMPTION] and say what would verify it, or write "No verifiable source found for X". Absence of evidence is not evidence of absence.
 - One source is a flag, not a fact. A claim that matters needs two independent keys, or the tag [SINGLE SOURCE].
-- Tag each finding with its confidence and the date: (Confidence: HIGH, as of 2026-11). Confidence is 0.40 evidence strength + 0.25 source quality + 0.20 recency + 0.15 cross-source agreement; HIGH is 0.80 or more, MEDIUM 0.55 to 0.79, LOW below. Do not put a LOW claim in the executive summary.
+- Express material uncertainty in the client's language and date time-sensitive findings. Do not put low-confidence claims in the executive summary. Confidence scoring belongs in requested working papers.
 - Separate sourced fact ("According to [S04], ...") from your own synthesis ("Across the sources, the pattern suggests ...").
-- Add a sixth section, \`## 6. Evidence and method\`, after Next steps, with these sub-sections: \`### Scope and method\` (state the research depth you were given and what was and was not examined), \`### Evidence map\` (a table: claim, sources, source types, confidence, as-of), \`### Contradictions and tensions\` (each disagreement with the strongest position on both sides, or "none identified"), \`### Gaps and limitations\` (what could not be found and why), and \`### Residue\` (claims that failed the citation or confidence floor, moved here rather than softened). Do not write a source list: the source register is appended from the keys.`;
+- Explain contradictory evidence or limitations wherever they affect a conclusion. Do not append a research diary, claim register or residue section unless the user asks for research working papers.`;
 
 /** The instructions that make the lead agent's final answer a client deliverable. Empty when the plugin files are missing. */
-export function leadDeliverableGuide(pluginDir = PLUGIN_DIR): string {
+export function leadDeliverableGuide(pluginDir = PLUGIN_DIR,longReport=false): string {
   const standards = deliverableStandards(pluginDir);
   const structure = deliverableStructure(pluginDir);
   if (!standards && !structure) return "";
@@ -87,9 +88,10 @@ export function leadDeliverableGuide(pluginDir = PLUGIN_DIR): string {
     "## The final answer is a client deliverable",
     structure ? `The deliverable contains, in this order (from the VOLT Client Deliverable Production workflow):\n\n${structure}` : "",
     CONSOLE_RULES,
-    DEPTH_STANDARD,
+    longReport ? DEPTH_STANDARD : "Use only exhibits that make the answer clearer. Do not pad a deliverable to meet a word count.",
     EVIDENCE_RULES,
     standards ? `### Client deliverable standards\n\n${standards}` : "",
+    CLIENT_OUTPUT,
   ]
     .filter(Boolean)
     .join("\n\n");

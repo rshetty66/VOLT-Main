@@ -4,7 +4,8 @@ import remarkGfm from "remark-gfm";
 import type { ExportFormat, ExportImage, ExportRequest, ExportTable } from "../shared/export";
 import { EXPORT_MIME } from "../shared/export";
 import { strToU8, zipSync } from "fflate";
-import { evidenceGates, registryJsonl, sectionOf, sourceRegisterMarkdown, type SourceRecord, type Tier } from "../shared/research";
+import { evidenceGates, registryJsonl, sectionOf, clientReferences, type SourceRecord, type Tier } from "../shared/research";
+import { cleanTitle } from "../shared/clientOutput";
 import type { Run } from "./runState";
 import { chartFor } from "./charts/RunVisuals";
 import { chartableResults, type ChartableResult } from "./charts/results";
@@ -58,7 +59,7 @@ export function mermaidSources(markdown: string): string[] {
 export function deliverableTitle(text: string, request: string): string {
   const heading = /^#[ \t]+(\S.*)$/m.exec(text)?.[1].trim();
   const line = request.split("\n").map((l) => l.replace(/\s+/g, " ").trim()).find((l) => l.split(" ").length >= 2) ?? request.replace(/\s+/g, " ").trim();
-  const t = heading || line;
+  const t = cleanTitle(heading || line);
   return t.length <= 120 ? t : t.slice(0, 120).replace(/\s+\S*$/, "");
 }
 
@@ -70,11 +71,11 @@ export function runDeliverable(run: Run, includeLanes: boolean, templateId?: str
   return {
     // The cover is client-facing: the deliverable's own title (its first "#" heading), else the request; the date, and no run internals.
     // A later version keeps v1's name, so every version of a chat's deliverable sorts together.
-    title: run.version?.name ?? deliverableTitle(run.text, run.kind === "workflow" && run.title ? `${run.title}: ${run.prompt}` : run.prompt),
+    title: cleanTitle(run.version?.name ?? deliverableTitle(run.text, run.kind === "workflow" && run.title ? `${run.title}: ${run.prompt}` : run.prompt)),
     version: runFileVersion(run),
     subtitle: new Date(run.startedAt).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }),
     // The source register is appended from the run's record, so every key in the text resolves in every format.
-    markdown: run.text + (run.sources.length > 1 ? sourceRegisterMarkdown(run.sources) : "") + appendix,
+    markdown: run.text + appendix + clientReferences(run.text+appendix, run.sources),
     // The appendix charts only the chosen KPIs (the scorecard); the Excel sheets keep the data of every tool call.
     charts: run.scorecard ?? [],
     tables: chartTables(charts),

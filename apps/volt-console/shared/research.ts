@@ -108,7 +108,7 @@ const LIMIT: Record<Tier, number> = { QUICK: 99, STANDARD: 6, DEEP: 3, EXHAUSTIV
  * The evidence gates for a draft against its source registry. QUICK answers are not gated.
  * G1 citation, G2 diversity, G3 contradictions, G4 confidence and residue, G5 method and gaps, G6 deliverable.
  */
-export function evidenceGates(markdown: string, sources: SourceRecord[], tier: Tier): Gate[] {
+export function evidenceGates(markdown: string, sources: SourceRecord[], tier: Tier, workingPapers=true): Gate[] {
   if (tier === "QUICK") return [];
   const known = new Map(sources.map((s) => [s.key, s]));
   const cited = citedKeys(markdown);
@@ -133,12 +133,20 @@ export function evidenceGates(markdown: string, sources: SourceRecord[], tier: T
     gate("G4", "Confidence and residue", labels >= need && !!heading(markdown, /residue/), `${labels} confidence labels; residue section present`, `it needs at least ${need} findings tagged (Confidence: HIGH|MEDIUM|LOW, as of YYYY-MM) and a 'Residue' section for claims that failed the citation or confidence floor (it has ${labels} labels${heading(markdown, /residue/) ? "" : " and no residue section"})`),
     gate("G5", "Method and gaps", !!heading(markdown, /scope and method|method/) && !!heading(markdown, /gaps?( and limitations)?|limitations/), "method and gaps sections present", "it needs a 'Scope and method' section (stating the depth tier) and a 'Gaps and limitations' section"),
     gate("G6", "Deliverable", markdown.trim().length > 0, "the deliverable is not empty", "the deliverable is empty"),
-  ];
+  ].filter(g=>workingPapers||!["G3","G4","G5"].includes(g.id));
 }
 
 // ── The source register ──────────────────────────────────────────────────────
 
 const cell = (s: string) => s.replace(/\|/g, "/").replace(/\s+/g, " ").trim();
+
+/** Ordinary exports resolve only the sources actually cited. Full source metadata stays in the research bundle. */
+export function clientReferences(markdown:string,sources:SourceRecord[]):string {
+  const keys=new Set(citedKeys(markdown));
+  const chosen=sources.filter(s=>keys.has(s.key));
+  if(!chosen.length)return "";
+  return "\n\n## References\n\n"+chosen.map(s=>`- [${s.key}] ${cell(s.title)} (${cell(s.publisher)}, ${cell(s.date)})${s.url ? `: ${s.url}` : ""}`).join("\n");
+}
 
 /** The register as a markdown section, appended to every download so the keys in the text always resolve. */
 export function sourceRegisterMarkdown(sources: SourceRecord[]): string {
