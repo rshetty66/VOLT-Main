@@ -383,8 +383,10 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .starter { display: flex; flex-direction: column; gap: var(--sp-2); align-items: flex-start; text-align: left; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--body); cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
 .starter:hover { border-color: var(--accent); transform: translateY(-1px); }
 .starter-tag { font-size: var(--fs-2); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
-.recent-list { display: grid; gap: 2px; }
-.recent { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--heading); text-align: left; cursor: pointer; }
+.recent-list { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 46rem; min-width: 0; gap: 2px; }
+.recent { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; min-width: 0; gap: var(--sp-2); min-height: 29px; padding: 2px var(--sp-2); background: none; border: 0; border-radius: 4px; color: var(--body); text-align: left; cursor: pointer; font: inherit; }
+.recent:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (pointer: coarse), (max-width: 640px) { .recent { min-height: 44px; } }
 .recent time { flex: none; font-size: var(--fs-2); }
 .recent:hover { border-color: var(--line-strong); background: var(--tint-04); }
 .recent-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

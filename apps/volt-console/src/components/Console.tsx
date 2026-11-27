@@ -16,6 +16,7 @@ import { runDeliverable } from "../exports";
 import { chatVersions } from "../versions";
 import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
 import { shouldOptimize, type Optimized } from "../../shared/optimize";
+import { recentChatLabel } from "../recentChatLabel";
 import { AgentPicker } from "./AgentPicker";
 import { GetStarted } from "./GetStarted";
 import { Icon } from "./Icon";
@@ -209,7 +210,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
                 <div className="micro">Recent chats</div>
                 {recent.map((r) => (
                   <button key={r.id} className="recent" onClick={() => onOpenRecent?.(r)}>
-                    <span className="recent-title">{r.prompt}</span>
+                    <span className="recent-title">{recentChatLabel(r.prompt)}</span>
                     <time className="muted" dateTime={new Date(r.startedAt).toISOString()}>{new Date(r.startedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</time>
                   </button>
                 ))}
