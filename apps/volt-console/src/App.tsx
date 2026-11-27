@@ -27,6 +27,7 @@ import { cad, chatUsage, setUsdCadRate, usageTotals } from "./usage";
 import { Icon, Ring } from "./components/Icon";
 import { setupProgress, setupSteps } from "./setup";
 import { kpiScorecard } from "./charts/results";
+import { errText } from "./netGuard";
 
 export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads" | "ledger" | "projects";
 
@@ -66,7 +67,7 @@ export function App() {
   const load = useCallback(() => {
     setLoadError("");
     setNeedsSignIn(false);
-    fetchCatalog().then((c) => (setUsdCadRate(c.fx), setCatalog(c)), (e) => (e instanceof UnauthorizedError ? (setAuthMode(e.auth), setNeedsSignIn(true)) : setLoadError(String(e))));
+    fetchCatalog().then((c) => (setUsdCadRate(c.fx), setCatalog(c)), (e) => (e instanceof UnauthorizedError ? (setAuthMode(e.auth), setNeedsSignIn(true)) : setLoadError(errText(e))));
     listTemplates().then(setTemplates, () => setTemplates([]));
     // Chats saved in this browser by earlier versions move to the server once, then the project list loads.
     void migrateBrowserHistory()
@@ -161,7 +162,7 @@ export function App() {
         }
       } catch (err) {
         if (!controller.signal.aborted) {
-          update((r) => applyEvent(r, { type: "error", lane: "rudra", message: String(err) }));
+          update((r) => applyEvent(r, { type: "error", lane: "rudra", message: errText(err) }));
         }
         update((r) => ({ ...r, state: controller.signal.aborted ? "stopped" : "done", finishedAt: Date.now() }));
       } finally {

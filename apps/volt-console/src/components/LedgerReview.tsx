@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { errText } from "../netGuard";
 
 interface Decision { decision: "approve" | "reject" | "amend"; by: string; note: string }
 interface ReviewItem {
@@ -55,7 +56,7 @@ export function LedgerReview() {
   const load = () =>
     void fetch("/api/ledger/review")
       .then(async (r) => (r.ok ? setState(await r.json()) : setError((await r.json().catch(() => ({}))).error ?? `Could not load (${r.status})`)))
-      .catch((e) => setError(String(e)));
+      .catch((e) => setError(errText(e)));
   useEffect(load, []);
   useEffect(() => {
     void fetch("/api/ledger/coa").then(async (r) => (r.ok ? setDesigns((await r.json()).designs ?? []) : undefined)).catch(() => undefined);
