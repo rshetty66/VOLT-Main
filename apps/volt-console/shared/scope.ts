@@ -53,7 +53,9 @@ export const scopeSchema = z
   .object({
     /** The kind of work (shared/goalTypes.ts) and the answers to that goal's own questions. */
     goal: z.enum(GOAL_IDS).optional(),
-    goal_answers: z.record(short(40), z.array(short(40)).max(8)).optional(),
+    goal_answers: z.record(short(40), z.array(short(40)).max(12)).optional(),
+    /** Free-text "Other" answers in the client's words, keyed by question ("goal" for Something else). */
+    other: z.record(short(40), short(160)).optional(),
     client_type: keys(CLIENT_TYPES).optional(),
     outcomes: z.array(keys(OUTCOMES)).max(MAX_OUTCOMES).optional(),
     problem: short(300).optional(),
@@ -110,11 +112,14 @@ const FILE: Record<string, string> = { html: "an HTML report", deck: "an HTML sl
 
 /** The scope block added to the brief. Stay inside it; it replaces the questions it answers. */
 export function scopeBrief(scope: Scope): string {
-  const lines: string[] = goalLines(scope.goal, scope.goal_answers);
+  const other = scope.other ?? {};
+  const lines: string[] = goalLines(scope.goal, scope.goal_answers, other);
   if (scope.client_type) lines.push(`- Client type: ${CLIENT_TYPES[scope.client_type]}`);
+  if (other.client?.trim()) lines.push(`- Client (client's words): ${other.client.trim()}`);
   const outcomes = scope.outcomes ?? [];
   if (outcomes.includes(RECOMMEND)) lines.push("- Outcome: not set by the client; recommend the outcome that fits the request and say why in one line");
   else if (outcomes.length) lines.push(`- Outcomes: ${names(outcomes, OUTCOMES).join("; ")}`);
+  if (other.outcomes?.trim()) lines.push(`- Other outcome (client's words): ${other.outcomes.trim()}`);
   if (scope.problem) lines.push(`- What is not working today (client's words): ${scope.problem}`);
   if (scope.kpis?.length) lines.push(`- Success measures:\n${scope.kpis.map((k) => `  - ${kpiLine(k)}`).join("\n")}`);
   const basis = scope.basis ?? [];
