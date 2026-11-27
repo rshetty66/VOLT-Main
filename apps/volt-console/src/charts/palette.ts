@@ -30,7 +30,7 @@ const font = "Inter, system-ui, -apple-system, Segoe UI, sans-serif";
 
 /** Brand colours (shared/brand.ts): quartile bands run from cyan (top) through indigo and gold to orange (bottom). */
 export const DARK: Palette = {
-  bg: "#1a1e2e",
+  bg: "#000000",
   ink: "#e6eaf2",
   muted: "#a9b1c7",
   grid: "rgba(255,255,255,0.12)",
@@ -43,7 +43,7 @@ export const DARK: Palette = {
   notRun: "#6c7694",
   positive: "#2fd49a",
   negInk: "#ff8a65",
-  tile: "#22283b",
+  tile: "#0d1017",
   cats: ["#00e5ff", "#d4af37", "#ff5722", "#8c9eff", "#2fd49a", "#a9b1c7"],
   font,
 };

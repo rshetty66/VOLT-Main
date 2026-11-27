@@ -1,6 +1,7 @@
 import { toneFor } from "../shared/brand";
 import type { ChartSpec } from "../shared/viz";
 import { fmt } from "./charts/specChart";
+import { VIZ_CSS, VIZ_SCRIPT } from "./charts/vizScript";
 
 /**
  * The VOLT HTML deliverable: one self-contained, offline page in the house style. A sticky header carries the VOLT
@@ -156,8 +157,9 @@ export function kpiStrip(spec: ChartSpec): string {
 }
 
 export const CSS = `
-:root{--bg:#0a0d14;--p1:#151a28;--p2:#1d2335;--p3:#262d44;--bd:#323a55;--tx:#eef1f7;--mu:#b3bad0;--dim:#8e96ae;
---cyan:#00e5ff;--gold:#d4af37;--orange:#ff5722;--good:#2fd49a;--bad:#ff8a65;--ease:cubic-bezier(.16,1,.3,1)}
+:root{--bg:#000;--p1:#000;--p2:#0b0d12;--p3:#161a24;--bd:#323a55;--tx:#eef1f7;--mu:#b3bad0;--dim:#8e96ae;
+--cyan:#00e5ff;--gold:#d4af37;--orange:#ff5722;--good:#2fd49a;--bad:#ff8a65;--ease:cubic-bezier(.16,1,.3,1);
+--vv-accent:var(--cyan);--vv-on-accent:var(--bg);--vv-ink:#dce0ea;--vv-muted:var(--mu);--vv-line:var(--bd);--vv-panel:var(--p1);--vv-tip-bg:var(--p2);--vv-bad:var(--bad)}
 *{box-sizing:border-box}
 html{color-scheme:dark}
 body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 Inter,"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;font-variant-numeric:tabular-nums}
@@ -165,7 +167,7 @@ body{margin:0;background:var(--bg);color:var(--tx);font:14px/1.45 Inter,"Segoe U
 a{color:var(--cyan);text-underline-offset:3px}
 button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0}
 :focus-visible{outline:2px solid var(--cyan);outline-offset:2px}
-.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:28px;padding:10px 28px;background:#06080d;border-bottom:1px solid var(--bd);flex-wrap:wrap}
+.top{position:sticky;top:0;z-index:20;display:flex;align-items:center;gap:28px;padding:10px 28px;background:#000;border-bottom:1px solid var(--bd);flex-wrap:wrap}
 .brand{display:flex;align-items:center;gap:10px;white-space:nowrap}
 .mark{inline-size:22px;block-size:22px;border-radius:4px;background:var(--cyan);display:grid;place-items:center;color:var(--bg);font-weight:800;font-size:13px}
 .brand b{letter-spacing:.08em}
@@ -202,7 +204,7 @@ p,li{max-inline-size:84ch}
 .card b{display:block;margin-bottom:4px}
 .card .no{color:var(--gold);font-weight:700;margin-right:6px;float:left}
 .card p{margin:0;color:#cfd4e2;font-size:13px}
-.sowhat{background:#0f2a33;border:1px solid #1d5866;padding:16px 20px;margin:0 0 26px}
+.sowhat{background:#000;border:1px solid #1d5866;padding:16px 20px;margin:0 0 26px}
 .page>.sowhat:not(:first-child){margin:34px 0 12px}
 .sowhat b{display:block;color:var(--cyan);text-transform:uppercase;letter-spacing:.1em;font-size:12px;font-weight:700;margin-bottom:6px}
 .sowhat p{margin:0;font-size:15px;max-inline-size:none}
@@ -228,47 +230,23 @@ figure svg{max-inline-size:100%;block-size:auto;display:block}
 .figs figure{margin:0}
 .js figure.chart svg{clip-path:inset(0 100% 0 0)}
 .js figure.chart.in svg{clip-path:inset(0 0 0 0);transition:clip-path .8s var(--ease)}
-.flow{background:#10141f;border:1px solid var(--bd);padding:10px 10px 0}
-.flow svg{min-inline-size:760px}
-.vp-step{cursor:pointer;transition:opacity .25s}
-.vp-step:hover .vp-card,.vp-step:focus .vp-card{stroke:var(--cyan);stroke-width:2}
-.vp-link{transition:opacity .25s}
-.flow.walk .vp-step,.flow.walk .vp-link{opacity:.28}
-.flow.walk .vp-step.done{opacity:.7}
-.flow.walk .vp-step.on,.flow.walk .vp-link.on{opacity:1}
-.vp-step.on .vp-card{stroke:var(--cyan);stroke-width:2.5}
-.vp-link.on path{stroke:var(--cyan);stroke-width:2.4;stroke-dasharray:6 5;animation:flowdash 1s linear infinite}
-@keyframes flowdash{to{stroke-dashoffset:-22}}
-.cap{display:grid;grid-template-columns:1fr auto;gap:10px 20px;align-items:center;margin:10px -10px 0;padding:12px 14px;background:var(--p1);border-top:1px solid var(--bd)}
-.cap .t{font-weight:700;color:var(--cyan);margin-right:8px}
-.cap .x{color:#dce0ea}
-.ctl{display:flex;gap:6px}
-.ctl button{border:1px solid var(--bd);background:var(--p2);padding:5px 10px;font-size:13px;min-inline-size:36px}
-.ctl button:hover{border-color:var(--mu)}
-.ctl .play{background:var(--cyan);border-color:var(--cyan);color:var(--bg);font-weight:700;min-inline-size:78px}
-.dots{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-.dots button{inline-size:13px;block-size:13px;border-radius:50%;background:var(--p3);border:1px solid #4a5370}
-.dots button.done{background:#0b6f7d;border-color:#0b6f7d}
-.dots button[aria-current=step]{background:var(--cyan);border-color:var(--gold)}
-.sn{font-size:12px;color:var(--mu);margin-left:6px}
-.detail{display:none;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 18px;margin:0 -10px;padding:14px;background:var(--p1);border-top:1px solid var(--bd)}
-.detail.show{display:grid}
-.detail h4{grid-column:1/-1;margin:0;color:var(--tx);font-family:Georgia,serif;font-weight:400;font-size:18px}
-.detail dt{color:var(--gold);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em}
-.detail dd{margin:2px 0 0;color:#dce0ea}
-.detail .issue dd{color:var(--bad);font-weight:600}
-.detail .wide{grid-column:1/-1}
+.flow{background:#000;border:1px solid var(--bd);padding:10px 10px 0}
+.flow{overflow:visible}
+.flow .cap{margin:10px -10px 0}.flow .detail{margin:0 -10px}
+.detail h4{font-family:Georgia,serif;font-weight:400;font-size:15px}
+.dots button[aria-current=step]{border-color:var(--gold)}
 .files{display:flex;flex-wrap:wrap;gap:8px;margin:-8px 0 22px}
 .files a{padding:7px 12px;border:1px solid var(--gold);color:var(--gold);font-size:13px;border-radius:2px;text-decoration:none;white-space:nowrap}
 .files a:hover{background:var(--gold);color:var(--bg)}
 footer{border-top:1px solid var(--bd);padding:14px 28px;color:var(--mu);font-size:12px;text-align:center}
 @media (max-width:1100px){main{padding:20px 16px}h1,h2.pt{font-size:28px}.top{padding:10px 16px;gap:12px}.cap{grid-template-columns:1fr}}
+${VIZ_CSS}
 @media (prefers-reduced-motion:reduce){.page,.page .va-band,.page .vp-step{animation:none}.js figure.chart svg{clip-path:none!important;transition:opacity .2s}.vp-link.on path{animation:none}}
 @media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.top,.ctl,.dots,.files{display:none!important}.page,.page[hidden]{display:block!important;break-after:page}main{max-inline-size:none;padding:12px}.js figure.chart svg{clip-path:none}figure,.card,.kpi{break-inside:avoid}}
 `;
 
 /** Tabs, chart reveal and the process walkthrough. Plain ES2017, no dependencies; the page reads fine without it. */
-export const SCRIPT = `
+export const SCRIPT = `${VIZ_SCRIPT}
 (function(){
   document.documentElement.classList.add('js');
   var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -293,55 +271,14 @@ export const SCRIPT = `
   var start = location.hash && document.getElementById(location.hash.slice(1));
   if (pages.length) show(start && start.classList.contains('page') ? start.id : pages[0].id);
 
+  var viz = window.voltViz;
   $$('.flow').forEach(function(flow){
     var data; try { data = JSON.parse(flow.getAttribute('data-steps') || '[]'); } catch (e) { return; }
-    if (!data.length) return;
-    var steps = $$('.vp-step', flow), links = $$('.vp-link', flow);
-    var cur = -1, timer = 0;
-    var cap = document.createElement('div'); cap.className = 'cap';
-    cap.innerHTML = '<div aria-live="polite"><span class="t"></span><span class="x"></span></div>' +
-      '<div class="ctl"><button type="button" class="first" aria-label="First step">Start</button><button type="button" class="back" aria-label="Previous step">Back</button><button type="button" class="play">Play</button><button type="button" class="next" aria-label="Next step">Next</button></div><div class="dots" role="group" aria-label="Steps"></div>';
-    var detail = document.createElement('dl'); detail.className = 'detail';
-    flow.appendChild(cap); flow.appendChild(detail);
-    var t = cap.querySelector('.t'), x = cap.querySelector('.x'), dots = cap.querySelector('.dots'), play = cap.querySelector('.play');
-    t.textContent = 'Walk through the process'; x.textContent = 'Select a step, or press Play.';
-    data.forEach(function(s, i){ var b = document.createElement('button'); b.type = 'button'; b.setAttribute('aria-label', 'Step ' + (i + 1) + ': ' + s.name); b.addEventListener('click', function(){ stop(); go(i); }); dots.appendChild(b); });
-    var dotEls = $$('button', dots);
-    var sn = document.createElement('span'); sn.className = 'sn'; sn.textContent = data.length + ' steps'; dots.appendChild(sn);
-    function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
-    function row(k, v, cls){ return v ? '<div class="' + (cls || '') + '"><dt>' + k + '</dt><dd>' + esc(v) + '</dd></div>' : ''; }
-    function go(i){
-      cur = Math.max(0, Math.min(data.length - 1, i));
-      var s = data[cur];
-      flow.classList.add('walk');
-      steps.forEach(function(g, j){ g.classList.toggle('on', j === cur); g.classList.toggle('done', j < cur); });
-      links.forEach(function(l){ l.classList.toggle('on', +l.getAttribute('data-to') === cur); });
-      dotEls.forEach(function(d, j){ d.classList.toggle('done', j < cur); if (j === cur) d.setAttribute('aria-current', 'step'); else d.removeAttribute('aria-current'); });
-      sn.textContent = 'Step ' + (cur + 1) + ' / ' + data.length;
-      t.textContent = (cur + 1) + '. ' + s.name; x.textContent = [s.lane, s.stage, s.system].filter(Boolean).join(' | ');
-      detail.innerHTML = '<h4>' + esc(s.name) + '</h4>' + row('Owner', s.owner || s.lane) + row('Stage', s.stage) + row('System', s.system) + row('Control', s.control) + row('Duration', s.duration) + row('Status', s.status) + row('Issue', s.issue, 'issue') + row('Detail', s.detail, 'wide');
-      detail.classList.add('show');
-    }
-    function stop(){ clearInterval(timer); timer = 0; play.textContent = 'Play'; }
-    function toggle(){
-      if (timer) return stop();
-      if (cur >= data.length - 1) cur = -1;
-      go(cur + 1); play.textContent = 'Pause';
-      timer = setInterval(function(){ if (cur >= data.length - 1) return stop(); go(cur + 1); }, reduce ? 3200 : 2200);
-    }
-    play.addEventListener('click', toggle);
-    cap.querySelector('.next').addEventListener('click', function(){ stop(); go(cur + 1); });
-    cap.querySelector('.first').addEventListener('click', function(){ stop(); go(0); });
-    cap.querySelector('.back').addEventListener('click', function(){ stop(); go(cur - 1); });
-    steps.forEach(function(g){
-      var i = +g.getAttribute('data-step');
-      g.addEventListener('click', function(){ stop(); go(i); });
-      g.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); stop(); go(i); } });
-    });
-    flow.addEventListener('keydown', function(e){
-      if (e.target.closest && e.target.closest('.tabs')) return;
-      if (e.key === 'ArrowRight') { stop(); go(cur + 1); } else if (e.key === 'ArrowLeft') { stop(); go(cur - 1); }
-    });
+    viz.flow(flow, data);
+  });
+  $$('figure.chart[data-spec]').forEach(function(fig){
+    var spec; try { spec = JSON.parse(fig.getAttribute('data-spec')); } catch (e) { return; }
+    viz.chart(fig, spec);
   });
 })();
 `;
