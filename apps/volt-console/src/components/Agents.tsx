@@ -23,14 +23,14 @@ export function Agents({ catalog, onOpen }: { catalog: CatalogResponse; onOpen: 
       </div>
       <div className="row" style={{ flexWrap: "nowrap" }}>
         <input className="input" placeholder="Search agents, keywords…" value={q} onChange={(e) => setQ(e.target.value)} />
-        <select className="select" style={{ maxWidth: 260 }} value={layer} onChange={(e) => setLayer(e.target.value)}>
+        <select className="select" aria-label="Filter by layer" style={{ maxWidth: 260 }} value={layer} onChange={(e) => setLayer(e.target.value)}>
           <option value="">All layers</option>
           {layers.map((l) => (
             <option key={l}>{l}</option>
           ))}
         </select>
       </div>
-      <div className="muted" style={{ fontSize: 12 }}>
+      <div className="muted" style={{ fontSize: "var(--fs-3)" }}>
         {agents.length} shown
       </div>
       <div className="grid">
@@ -44,7 +44,7 @@ export function Agents({ catalog, onOpen }: { catalog: CatalogResponse; onOpen: 
             <div className="micro" style={{ margin: "4px 0 6px" }}>
               {a.layer}
             </div>
-            <div className="body" style={{ fontSize: 13 }}>
+            <div className="body" style={{ fontSize: "var(--fs-4)" }}>
               {a.description}
             </div>
           </div>

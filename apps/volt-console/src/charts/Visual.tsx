@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactElement } from "react";
-import { DARK, LIGHT, type Palette } from "./palette";
+import { LIGHT, screenPalette, type Palette } from "./palette";
 import { renderMermaid } from "./mermaid";
 import { parseArchSpec, parseChartSpec, parseProcessSpec } from "../../shared/viz";
 import { processSvg } from "./specProcess";
@@ -36,11 +36,11 @@ export function DownloadButtons({ name, svg, gif }: { name: string; svg: () => P
   );
 }
 
-/** A chart on screen (dark) with SVG and PNG downloads (light). */
+/** A chart on screen (in the console's theme) with SVG and PNG downloads (light). */
 export function ChartFrame({ name, render }: { name: string; render: (p: Palette) => ReactElement }) {
   return (
     <figure className="visual">
-      {render(DARK)}
+      {render(screenPalette())}
       <DownloadButtons name={name} svg={() => chartSvg(render)} />
     </figure>
   );
@@ -50,11 +50,12 @@ export function ChartFrame({ name, render }: { name: string; render: (p: Palette
 export function MermaidDiagram({ code }: { code: string }) {
   const [svg, setSvg] = useState("");
   const [error, setError] = useState("");
+  const mode = screenPalette() === LIGHT ? "default" : "dark";
   useEffect(() => {
     let live = true;
     // Wait for the block to stop changing: agent output streams in, and a half-written diagram does not parse.
     const t = setTimeout(() => {
-      renderMermaid(code, "dark").then(
+      renderMermaid(code, mode).then(
         (s) => live && (setSvg(s), setError("")),
         (e) => live && setError(String(e?.message ?? e)),
       );
@@ -63,13 +64,13 @@ export function MermaidDiagram({ code }: { code: string }) {
       live = false;
       clearTimeout(t);
     };
-  }, [code]);
+  }, [code, mode]);
 
   if (error)
     return (
       <figure className="visual">
         <pre><code>{code}</code></pre>
-        <figcaption className="muted" style={{ fontSize: 11 }}>Diagram could not be drawn: {error.split("\n")[0]}</figcaption>
+        <figcaption className="muted" style={{ fontSize: "var(--fs-2)" }}>Diagram could not be drawn: {error.split("\n")[0]}</figcaption>
       </figure>
     );
   return (
@@ -129,14 +130,14 @@ export function SpecChart({ code }: { code: string }) {
     return waited ? (
       <figure className="visual">
         <pre><code>{code}</code></pre>
-        <figcaption className="muted" style={{ fontSize: 11 }}>Chart could not be drawn: the data is not valid.</figcaption>
+        <figcaption className="muted" style={{ fontSize: "var(--fs-2)" }}>Chart could not be drawn: the data is not valid.</figcaption>
       </figure>
     ) : (
       <span className="muted"><span className="spinner" /> drawing chart</span>
     );
   return (
     <figure className="visual spec-chart">
-      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: specSvg(spec, DARK, { t }) }} />
+      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: specSvg(spec, screenPalette(), { t }) }} />
       <DownloadButtons name={spec.title || "chart"} svg={async () => specSvg(spec, LIGHT)} gif={() => chartGif((f) => specSvg(spec, LIGHT, { t: f }))} />
     </figure>
   );
@@ -157,14 +158,14 @@ export function SpecArchitecture({ code }: { code: string }) {
     return waited ? (
       <figure className="visual">
         <pre><code>{code}</code></pre>
-        <figcaption className="muted" style={{ fontSize: 11 }}>Architecture could not be drawn: the data is not valid.</figcaption>
+        <figcaption className="muted" style={{ fontSize: "var(--fs-2)" }}>Architecture could not be drawn: the data is not valid.</figcaption>
       </figure>
     ) : (
       <span className="muted"><span className="spinner" /> drawing architecture</span>
     );
   return (
     <figure className="visual spec-arch">
-      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: archSvg(spec, DARK) }} />
+      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: archSvg(spec, screenPalette()) }} />
       <DownloadButtons name={spec.title || "architecture"} svg={async () => archSvg(spec, LIGHT)} />
     </figure>
   );
@@ -185,14 +186,14 @@ export function SpecProcess({ code }: { code: string }) {
     return waited ? (
       <figure className="visual">
         <pre><code>{code}</code></pre>
-        <figcaption className="muted" style={{ fontSize: 11 }}>Process flow could not be drawn: the data is not valid.</figcaption>
+        <figcaption className="muted" style={{ fontSize: "var(--fs-2)" }}>Process flow could not be drawn: the data is not valid.</figcaption>
       </figure>
     ) : (
       <span className="muted"><span className="spinner" /> drawing process flow</span>
     );
   return (
     <figure className="visual spec-process">
-      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: processSvg(spec, DARK) }} />
+      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: processSvg(spec, screenPalette()) }} />
       <DownloadButtons name={spec.title || "process"} svg={async () => processSvg(spec, LIGHT)} />
     </figure>
   );
