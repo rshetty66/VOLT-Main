@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { DELIVERABLES, MAX_KPIS, OUTCOMES, OUTCOME_GROUPS, RECOMMEND, scopeBrief, scopeLabel, scopeSchema } from "../shared/scope";
+import { DELIVERABLES, MAX_KPIS, OUTCOMES, OUTCOME_GROUPS, RECOMMEND, scopeBrief, scopeLabel, scopeSchema, scopeUsesKnowledge } from "../shared/scope";
 import { KPI_LIBRARY, parseKpiList, suggestKpis } from "../shared/kpis";
 import { directAsk, quickAsk } from "../shared/asks";
 import { BENCHMARKS } from "../server/analytics";
@@ -123,8 +123,7 @@ describe("goal catalog", () => {
     expect(scopeLabel({ goal: "market_research", deliverables: ["deck"] })).toBe("Market and competitor research · HTML slide deck");
   });
 
-  it("adds the discovery rules only for the discovery goal, and its evidence answer decides the knowledge base", async () => {
-    const { discoveryUsesDocs } = await import("../shared/discovery");
+  it("adds the discovery rules only for the discovery goal, and a documents answer turns the knowledge base on", async () => {
     const brief = scopeBrief({ goal: "discovery", goal_answers: { mode: ["spec"], sources: ["none"] } });
     expect(brief).toContain("- Goal: Shape an idea into a brief");
     expect(brief).toContain("- What back: Specification");
@@ -135,10 +134,12 @@ describe("goal catalog", () => {
     expect(brief).toContain("until the client confirms the brief");
     expect(scopeBrief({ goal: "strategy" })).not.toContain("## Discovery");
     expect(scopeBrief({ goal: "discovery" })).toContain("Pick the evidence the idea needs");
-    expect(discoveryUsesDocs({ goal: "discovery", goal_answers: { sources: ["docs"] } })).toBe(true);
-    expect(discoveryUsesDocs({ goal: "discovery", goal_answers: { sources: ["both"] } })).toBe(true);
-    expect(discoveryUsesDocs({ goal: "discovery", goal_answers: { sources: ["web"] } })).toBe(false);
-    expect(discoveryUsesDocs({ goal: "data_analysis", goal_answers: { data: ["kb"] } })).toBe(false);
-    expect(discoveryUsesDocs(undefined)).toBe(false);
+    expect(scopeUsesKnowledge({ goal: "discovery", goal_answers: { sources: ["docs"] } })).toBe(true);
+    expect(scopeUsesKnowledge({ goal: "discovery", goal_answers: { sources: ["both"] } })).toBe(true);
+    expect(scopeUsesKnowledge({ goal: "discovery", goal_answers: { sources: ["web"] } })).toBe(false);
+    expect(scopeUsesKnowledge({ goal: "data_analysis", goal_answers: { data: ["kb"] } })).toBe(true);
+    expect(scopeUsesKnowledge({ goal: "data_analysis", goal_answers: { data: ["public"] } })).toBe(false);
+    expect(scopeUsesKnowledge({ goal: "market_research", goal_answers: { market: ["banking"] } })).toBe(false);
+    expect(scopeUsesKnowledge(undefined)).toBe(false);
   });
 });

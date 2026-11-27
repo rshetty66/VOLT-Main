@@ -12,12 +12,6 @@ export const DISCOVERY_SOURCES = { docs: "Project documents", web: "Web research
 
 type Answers = Record<string, string[]> | undefined;
 
-/** True when the client picked the project's documents as evidence, so the knowledge base is searched. */
-export function discoveryUsesDocs(scope: { goal?: string; goal_answers?: Answers } | undefined): boolean {
-  const s = scope?.goal === DISCOVERY ? (scope.goal_answers?.sources ?? []) : [];
-  return s.includes("docs") || s.includes("both");
-}
-
 const SOURCE_RULE: Record<string, string> = {
   docs: "Use the project's documents as evidence; do not search the web.",
   web: "Use web research only to answer the decision the client names; if no decision is named, ask which decision it should support before searching.",

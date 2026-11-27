@@ -67,6 +67,14 @@ export const scopeSchema = z
 
 export type Scope = z.infer<typeof scopeSchema>;
 
+/** True when an intake answer picks the project's documents as evidence, so the knowledge base is searched. */
+export function scopeUsesKnowledge(scope: Pick<Scope, "goal" | "goal_answers"> | undefined): boolean {
+  const a = scope?.goal_answers ?? {};
+  if (scope?.goal === DISCOVERY) return (a.sources ?? []).some((s) => s === "docs" || s === "both");
+  if (scope?.goal === "data_analysis") return (a.data ?? []).includes("kb");
+  return false;
+}
+
 const names = (list: readonly string[] | undefined, labels: Record<string, string>) => (list ?? []).map((k) => labels[k]).filter(Boolean);
 const more = (list: string[]) => (list.length > 1 ? `${list[0]} +${list.length - 1}` : list[0]);
 
