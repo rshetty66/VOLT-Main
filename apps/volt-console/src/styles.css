@@ -633,3 +633,5 @@ button.rail-avatar { cursor: pointer; font: inherit; padding: 0; }
 .card-btn { width: 100%; height: 100%; text-align: left; font: inherit; color: inherit; justify-content: flex-start; }
 .card.interactive:hover, .card.interactive:focus-visible { border-color: var(--accent); }
 button.chip { font: inherit; font-size: var(--fs-3); }
+.optimize-card { display: grid; gap: var(--sp-2); margin-bottom: 10px; padding: 18px; border-color: var(--accent); }
+.optimize-card .textarea { min-height: 220px; font-size: var(--fs-4); line-height: 1.5; }

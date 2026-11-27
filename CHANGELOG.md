@@ -4,6 +4,8 @@
 
 ### Added
 
+- 2026-11-27: Chat always optimizes first, then asks to confirm. Every first-person request that is not a command, lookup or quick ask is rewritten by Sonnet into an executive prompt (business ask, 3 to 5 key questions, persona, output format). You edit it, send it, send your original, or cancel. Live mode only; if the optimizer fails, your message is sent as written. Adds one Sonnet call per message.
+
 - 2026-11-27: Independent review in chat, on request (Settings checkbox, or words like "have it reviewed"). A separate fresh-context reviewer checks the draft against the ask and hands gaps back to the lead, at most 3 times, then stops and reports what is open. Off by default; adds time and cost only when asked.
 - `uber-agent-skills` skill: how to build, run, measure, evaluate and improve agent skills like production infrastructure, distilled from Uber Engineering's skills article. The description's colons are quoted so it parses as YAML.
 - `volt-release-loop` skill: a self-running release loop for the console (one change per lap, objective gate plus an independent reviewer, loop-state.md memory, stop rules, training mode on for the first three runs).
