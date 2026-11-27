@@ -43,7 +43,7 @@ import { exportRouter } from "./export/route.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
 import { AttachmentError, extractAttachment, limitText } from "./attachments.js";
-import { listUploads, originalPath, readUpload, removeUpload, saveUpload } from "./uploads.js";
+import { listUploads, originalPath, readUpload, removeUpload, saveUpload, uploadMeta } from "./uploads.js";
 import { createProject, deleteChat, isProjectId, listChats, listProjects, restoreChat, saveChat, updateProject } from "./projects.js";
 import { WEB_MAX_BYTES, WebSourceError, checkUrl, fetchPublic, htmlText, renderPage, renderingEnabled, shouldRender } from "./knowledge.js";
 import { DEFAULT_PROJECT_ID, MEMORY_KINDS } from "../shared/projects.js";
@@ -219,39 +219,66 @@ app.post("/api/uploads", express.raw({ type: () => true, limit: WEB_MAX_BYTES })
   }
 });
 
-// A web page or PDF added to a project's knowledge base by URL: fetched once, read to text, kept like an upload.
+// A web page or PDF added to a project's knowledge base by URL: read to text and kept like an upload. "Refresh" reads it again.
+class UrlSourceError extends Error {
+  constructor(readonly status: number, message: string) {
+    super(message);
+  }
+}
+
+async function readUrlSource(url: string): Promise<{ extracted: Awaited<ReturnType<typeof extractAttachment>>; bytes: Uint8Array; url: string }> {
+  // A site that refuses the plain fetch gets one rendered try when ScrapeGraph is set up (see renderPage).
+  const got = await fetchPublic(url).catch(async (err) => {
+    if (!shouldRender(err)) throw err;
+    const page = await renderPage(url);
+    return { bytes: new TextEncoder().encode(page.text), type: "text/markdown", url: checkUrl(url).toString(), page };
+  });
+  const host = new URL(got.url).hostname;
+  let extracted;
+  if ("page" in got) {
+    extracted = { ...limitText("", got.page.text, KB_MAX_CHARS), name: `${(got.page.title || got.url).slice(0, 150)} (${host})` };
+  } else if (got.type.includes("pdf") || /\.pdf$/i.test(new URL(got.url).pathname)) {
+    const file = decodeURIComponent(new URL(got.url).pathname.split("/").pop() || "page").replace(/\.pdf$/i, "");
+    extracted = { ...(await extractAttachment(`${file}.pdf`, got.bytes, KB_MAX_CHARS)), name: `${file} (${host})` };
+  } else if (/text\/html|xhtml/.test(got.type) || !got.type) {
+    let page = htmlText(new TextDecoder("utf-8").decode(got.bytes), got.url);
+    // A page built by JavaScript has no text in its HTML: render it when ScrapeGraph is set up.
+    if (page.text.length < 40 && renderingEnabled()) page = await renderPage(got.url);
+    if (page.text.length < 40) throw new UrlSourceError(422, "No readable text was found on that page (it may need a browser to render).");
+    extracted = { ...limitText("", page.text, KB_MAX_CHARS), name: `${(page.title || got.url).slice(0, 150)} (${host})` };
+  } else if (/text\/plain|text\/csv|json/.test(got.type)) {
+    extracted = { ...limitText("", new TextDecoder("utf-8").decode(got.bytes).trim(), KB_MAX_CHARS), name: `${got.url.slice(0, 150)}` };
+  } else throw new UrlSourceError(415, `That link returns ${got.type.split(";")[0]}, which VOLT cannot read. Add web pages, PDFs or text.`);
+  return { extracted, bytes: got.bytes, url: got.url };
+}
+
+function urlSourceFailed(res: express.Response, err: unknown) {
+  if (err instanceof UrlSourceError) return void res.status(err.status).json({ error: err.message });
+  if (err instanceof WebSourceError || err instanceof AttachmentError) return void res.status(422).json({ error: err.message });
+  console.error("URL source failed", err);
+  res.status(500).json({ error: "That page could not be read." });
+}
+
 app.post("/api/uploads/url", express.json({ limit: "8kb" }), async (req, res) => {
   const body = z.object({ url: z.string().min(4).max(2000), projectId: z.string().optional() }).safeParse(req.body);
   if (!body.success) return void res.status(400).json({ error: "Send a URL." });
   try {
-    // A site that refuses the plain fetch gets one rendered try when ScrapeGraph is set up (see renderPage).
-    const got = await fetchPublic(body.data.url).catch(async (err) => {
-      if (!shouldRender(err)) throw err;
-      const page = await renderPage(body.data.url);
-      return { bytes: new TextEncoder().encode(page.text), type: "text/markdown", url: checkUrl(body.data.url).toString(), page };
-    });
-    const host = new URL(got.url).hostname;
-    let extracted;
-    if ("page" in got) {
-      extracted = { ...limitText("", got.page.text, KB_MAX_CHARS), name: `${(got.page.title || got.url).slice(0, 150)} (${host})` };
-    } else if (got.type.includes("pdf") || /\.pdf$/i.test(new URL(got.url).pathname)) {
-      const file = decodeURIComponent(new URL(got.url).pathname.split("/").pop() || "page").replace(/\.pdf$/i, "");
-      extracted = { ...(await extractAttachment(`${file}.pdf`, got.bytes, KB_MAX_CHARS)), name: `${file} (${host})` };
-    } else if (/text\/html|xhtml/.test(got.type) || !got.type) {
-      let page = htmlText(new TextDecoder("utf-8").decode(got.bytes), got.url);
-      // A page built by JavaScript has no text in its HTML: render it when ScrapeGraph is set up.
-      if (page.text.length < 40 && renderingEnabled()) page = await renderPage(got.url);
-      if (page.text.length < 40) return void res.status(422).json({ error: "No readable text was found on that page (it may need a browser to render)." });
-      extracted = { ...limitText("", page.text, KB_MAX_CHARS), name: `${(page.title || got.url).slice(0, 150)} (${host})` };
-    } else if (/text\/plain|text\/csv|json/.test(got.type)) {
-      extracted = { ...limitText("", new TextDecoder("utf-8").decode(got.bytes).trim(), KB_MAX_CHARS), name: `${got.url.slice(0, 150)}` };
-    } else return void res.status(415).json({ error: `That link returns ${got.type.split(";")[0]}, which VOLT cannot read. Add web pages, PDFs or text.` });
-    const meta = saveUpload(extracted, got.bytes, { projectId: projectParam(body.data.projectId), url: got.url });
-    res.json(meta);
+    const got = await readUrlSource(body.data.url);
+    res.json(saveUpload(got.extracted, got.bytes, { projectId: projectParam(body.data.projectId), url: got.url }));
   } catch (err) {
-    if (err instanceof WebSourceError || err instanceof AttachmentError) return void res.status(422).json({ error: err.message });
-    console.error("URL source failed", err);
-    res.status(500).json({ error: "That page could not be added." });
+    urlSourceFailed(res, err);
+  }
+});
+
+// Reads a web source again through the same guards. The old copy stays if the read fails.
+app.post("/api/uploads/:id/refresh", async (req, res) => {
+  const meta = uploadMeta(req.params.id);
+  if (!meta?.url) return void res.status(404).json({ error: "That web source is no longer in the knowledge base." });
+  try {
+    const got = await readUrlSource(meta.url);
+    res.json(saveUpload(got.extracted, got.bytes, { projectId: meta.projectId, url: got.url, keep: meta }));
+  } catch (err) {
+    urlSourceFailed(res, err);
   }
 });
 

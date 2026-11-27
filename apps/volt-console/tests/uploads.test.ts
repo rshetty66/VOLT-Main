@@ -5,7 +5,7 @@ import path from "node:path";
 import type { AddressInfo } from "node:net";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AttachmentError, extractAttachment } from "../server/attachments";
-import { listUploads, originalPath, readUpload, removeUpload, saveUpload } from "../server/uploads";
+import { listUploads, originalPath, readUpload, removeUpload, saveUpload, uploadMeta } from "../server/uploads";
 
 const PDF = (text: string) =>
   new TextEncoder().encode(
@@ -85,6 +85,18 @@ describe("uploads library", () => {
     expect(readUpload(a.id)).toBeUndefined();
     expect(removeUpload(a2.id)).toBe(true);
     expect(listUploads()).toEqual([]);
+  });
+
+  it("refreshes a web source in place: same id and added time, new text and a new last-read time", () => {
+    const url = "https://example.com/ifrs17";
+    const first = saveUpload(ex("IFRS 17 (example.com)", "old"), new Uint8Array([1]), { url });
+    expect(first.readAt).toBeTypeOf("number");
+    const again = saveUpload(ex("IFRS 17 (example.com)", "new"), new Uint8Array([2]), { url, keep: { ...first, readAt: 0 } });
+    expect(again).toMatchObject({ id: first.id, createdAt: first.createdAt, url });
+    expect(again.readAt).toBeGreaterThan(0);
+    expect(listUploads()).toHaveLength(1);
+    expect(readUpload(first.id)?.text).toBe("new");
+    expect(uploadMeta("../x")).toBeUndefined();
   });
 
   it("refuses ids that are not library ids (no path traversal) and prunes the oldest beyond the file limit", () => {

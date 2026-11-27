@@ -2,7 +2,7 @@ import { toast } from "../ui";
 import { useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 import { evidenceGates } from "../../shared/research";
-import { summariseWork, type Run } from "../runState";
+import { RUN_STATUS_LABEL, runStatus, summariseWork, type Run } from "../runState";
 import { cad, modelName, modelsLine, modelsOf } from "../usage";
 import { Markdown } from "./Markdown";
 import { RunVisuals } from "../charts/RunVisuals";
@@ -43,6 +43,20 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   const [fileError, setFileError] = useState("");
   const fileInput = useRef<HTMLInputElement>(null);
   const promptBox = useRef<HTMLTextAreaElement>(null);
+  // The pinned message box's height pads the end of the chat, so the last lines of an answer are never hidden under it.
+  const composer = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = composer.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const set = () => document.documentElement.style.setProperty("--composer-h", `${el.offsetHeight}px`);
+    const ro = new ResizeObserver(set);
+    ro.observe(el);
+    set();
+    return () => {
+      ro.disconnect();
+      document.documentElement.style.removeProperty("--composer-h");
+    };
+  }, []);
   const [library, setLibrary] = useState<UploadMeta[] | null>(null);
   // The chat's scope: asked once before the first message of each chat, then sent with every message.
   const [scope, setScope] = useState<Scope | null>(null);
@@ -146,7 +160,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
       {runs.map((run) => (
         <RunView key={run.id} run={run} onStop={() => onStop(run.id)} />
       ))}
-      <div className={`composer ${runs.length === 0 ? "home" : ""}`}>
+      <div ref={composer} className={`composer ${runs.length === 0 ? "home" : ""}`}>
         {scoping && (
           <IntakeCard
             key={scoping.pending ? "start" : "edit"}
@@ -251,8 +265,24 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   );
 }
 
+/**
+ * When a run finishes, brings its end into view just above the pinned message box. It runs after the new-run scroll
+ * settles, and only when the end is within a screen of view, so it never pulls a reader away from a long answer.
+ */
+function scrollEndIntoView(runId: string) {
+  const run = document.getElementById(`run-${runId}`);
+  const main = run?.closest(".main");
+  if (!run || !main) return;
+  const box = document.querySelector(".composer")?.getBoundingClientRect();
+  const pinned = box && getComputedStyle(document.querySelector(".composer")!).position === "sticky";
+  const floor = pinned ? box.top : main.getBoundingClientRect().bottom;
+  const by = run.getBoundingClientRect().bottom + 16 - floor;
+  if (by > 0 && by < main.clientHeight) main.scrollBy({ top: by, behavior: "smooth" });
+}
+
 function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
   const work = summariseWork(run);
+  const status = runStatus(run);
   // The research engine's gates, run on the finished answer against the run's source register.
   const gates = run.state !== "running" && run.tier && run.text.trim() ? evidenceGates(run.text, run.sources, run.tier) : [];
   const openGates = gates.filter((g) => !g.pass);
@@ -277,7 +307,7 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
   // When a run finishes, bring its end into view above the pinned message box.
   const wasRunning = useRef(run.state === "running");
   useEffect(() => {
-    if (wasRunning.current && run.state !== "running") document.getElementById(`run-${run.id}`)?.scrollIntoView({ block: "end", behavior: "smooth" });
+    if (wasRunning.current && run.state !== "running") setTimeout(() => scrollEndIntoView(run.id), 450);
     wasRunning.current = run.state === "running";
   }, [run.state, run.id]);
   const [, tick] = useState(0);
@@ -290,7 +320,10 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
   return (
     <section className="run" id={`run-${run.id}`}>
       <div className="run-head">
-        <span className={`dot ${run.state === "running" ? "running" : "done"}`} />
+        <span className={`status-pill ${status}`} role="status">
+          <span className={`dot ${status === "working" ? "running" : status === "failed" ? "failed" : "done"}`} aria-hidden="true" />
+          {RUN_STATUS_LABEL[status]}
+        </span>
         <span className="micro">{run.title}</span>
         <div className="prompt">
           {run.prompt}
@@ -305,7 +338,6 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
             Stop
           </button>
         )}
-        {run.state === "stopped" && <span className="badge">stopped</span>}
         {run.state !== "running" && run.text.trim() && (
           <button className="btn ghost sm" title="Save a key fact or decision from this answer to the project memory" onClick={() => void saveToMemory()}>
             Save to memory
