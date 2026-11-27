@@ -4,6 +4,7 @@
 
 ### Added
 
+- `uber-agent-skills` skill: how to build, run, measure, evaluate and improve agent skills like production infrastructure, distilled from Uber Engineering's skills article. The description's colons are quoted so it parses as YAML.
 - `volt-release-loop` skill: a self-running release loop for the console (one change per lap, objective gate plus an independent reviewer, loop-state.md memory, stop rules, training mode on for the first three runs).
 - Skill quality checks on the Health page, based on Uber Engineering's skill linter: numbered steps, a way to check each result, an error-recovery section, a body under 500 lines, a useful description, and no bundled tool servers. They are plain text checks that flag skills worth a look, not a quality score. First run over the shipped skills: 6 of 378 pass every check; 361 have no error-recovery section.
 
