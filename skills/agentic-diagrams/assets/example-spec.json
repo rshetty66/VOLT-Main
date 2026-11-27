@@ -1,0 +1,21 @@
+{"title":"Invoice triage agent","nodes":[
+{"id":"u","type":"user","label":"AP clerk","sub":"Uploads invoice"},
+{"id":"gw","type":"gateway","label":"API gateway","sub":"Auth, rate limits"},
+{"id":"ag","type":"agent","label":"Triage agent","sub":"Plans and calls tools","detail":"Orchestrates extraction, matching and approval."},
+{"id":"gr","type":"guardrail","label":"Policy check","sub":"Limits, SoD"},
+{"id":"m","type":"model","label":"LLM","sub":"Extraction"},
+{"id":"t","type":"tool","label":"ERP lookup","sub":"PO and vendor"},
+{"id":"kb","type":"knowledge","label":"Policy KB"},
+{"id":"h","type":"human","label":"Approver","sub":"Over-limit only"},
+{"id":"o","type":"output","label":"Posted entry"}],
+"edges":[{"from":"u","to":"gw","label":"upload"},{"from":"gw","to":"ag"},{"from":"ag","to":"m","kind":"streaming","label":"extract"},{"from":"ag","to":"t","label":"match PO"},{"from":"ag","to":"kb","label":"retrieve"},{"from":"ag","to":"gr"},{"from":"gr","to":"h","kind":"async","label":"escalate"},{"from":"gr","to":"o","label":"pass"},{"from":"h","to":"ag","kind":"event","label":"decision"},{"from":"t","to":"ag","kind":"error","label":"no PO"}],
+"groups":[{"id":"g","label":"Agent runtime","nodes":["ag","m","t","kb"]}],
+"scenarios":[{"name":"Happy path","steps":[
+{"edge":"u>gw","note":"Clerk uploads PDF","payload":{"file":"inv-1042.pdf"}},
+{"edge":"gw>ag","note":"Request authenticated"},
+{"edges":["ag>m","ag>t","ag>kb"],"note":"Parallel: extract, match, retrieve policy","payload":{"vendor":"Acme","total":1840}},
+{"edge":"ag>gr","note":"Validate against limits"},
+{"edge":"gr>o","note":"Within limit, entry posted"}]},
+{"name":"Over limit","steps":[
+{"edge":"u>gw","note":"Upload"},{"edge":"gw>ag","note":"Authenticated"},{"edge":"ag>gr","note":"Amount exceeds limit"},
+{"edge":"gr>h","note":"Escalate to approver"},{"edge":"h>ag","note":"Approver signs off"}]}]}

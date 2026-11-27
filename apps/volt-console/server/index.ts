@@ -11,6 +11,7 @@
  *   GET  /api/templates/:id/original   the uploaded file
  *   DELETE /api/templates/:id
  *   POST /api/export               build a Word, PowerPoint or Excel download from a deliverable
+ *   POST /api/diagrams             description in, validated diagram spec out
  *   GET  /api/healthz
  *   GET  /api/ledger/review        VOLT Ledger review queue (people only; never a model tool)
  *   POST /api/ledger/review        record an engagement-lead or client decision
@@ -51,6 +52,7 @@ import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH
 import { runBudgetMs } from "./budget.js";
 import { directAsk, quickAsk } from "./deliverable.js";
 import { startHeartbeat } from "./sse.js";
+import { generateDiagram } from "./diagrams.js";
 import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requestUser, requireToken, sameOriginWrites, securityConfig } from "./security.js";
 import { ledgerCoaExport, ledgerDataRequirementsExport, ledgerEnabled, ledgerPeople } from "./ledger.js";
 import { scopeSchema } from "../shared/scope.js";
@@ -461,6 +463,18 @@ const RunBody = z.object({
     .max(ATTACH_MAX_FILES)
     .refine((a) => a.reduce((n, f) => n + f.text.length, 0) <= ATTACH_MAX_CHARS_TOTAL, "The attached files are too long in total.")
     .optional(),
+});
+
+app.post("/api/diagrams", express.json({ limit: "8kb" }), async (req, res) => {
+  const description = typeof req.body?.description === "string" ? req.body.description.trim() : "";
+  if (description.length < 10) return void res.status(400).json({ error: "Describe the system in a sentence or two." });
+  const controller = new AbortController();
+  res.on("close", () => controller.abort());
+  try {
+    res.json(await generateDiagram(description, mode === "live", controller.signal));
+  } catch (err) {
+    res.status(502).json({ error: err instanceof Error ? err.message : "Could not build the diagram." });
+  }
 });
 
 app.post("/api/run", async (req, res) => {
