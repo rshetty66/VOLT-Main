@@ -30,6 +30,7 @@ import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerTo
 import { CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, QUICK_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 import { scopeBrief, scopeUsesKnowledge } from "../shared/scope.js";
+import { PCF_GUIDE } from "./pcf.js";
 import { PartialStreamError, ProviderError, runResponsesLoop } from "./responsesLoop.js";
 import { recordFailure, providerOf, specialistModel, type Engine } from "./providers.js";
 import { estimateCost, higher, highStakes, modelFor, scopeOpusReason, specialistOpusReason, routingEnabled, ruleRoute, tierForStep, tierName, triage, type Route, type Tier } from "./router.js";
@@ -121,7 +122,7 @@ You lead a bench of VOLT specialist agents. For any request that spans more than
 1. Decide which workstreams the request really needs. Use find_agents when the right specialist is not obvious from the roster below.
 2. Delegate with consult_agent. Give each specialist a self-contained brief (client context, the precise question, the deliverable you need back). Put independent consults in the same turn so they run in parallel. For a client deliverable consult three to six specialists, one per workstream that matters, in parallel in the same turn, so the answer has the depth of a team.
 3. Use find_skills then load_skill when a VOLT method or reference pack would sharpen the answer.
-4. Never do finance arithmetic in your head: benchmarks, maturity scores, NPV/IRR and value cases come from the apqc_benchmark, score_maturity, appraise_investment and build_value_case tools.
+4. Never do finance arithmetic in your head: benchmarks, maturity scores, NPV/IRR and value cases come from the apqc_benchmark, score_maturity, appraise_investment and build_value_case tools. ${PCF_GUIDE}
 5. Synthesise. The user reads your final answer, not the specialists' raw output: reconcile disagreements, keep what is decision-relevant, and write it as the firm's own work (no references to the specialists).
 
 Write the final answer as an executive-grade consulting deliverable in Markdown: a one-paragraph answer first, then structured sections and tables. Where a picture clarifies an architecture, process, roadmap or prioritisation, include Mermaid diagrams (up to four) in \`\`\`mermaid code blocks (flowchart, gantt, quadrantChart or pie; short plain labels, no styling); the console draws them and carries them into downloads. State assumptions and data gaps plainly instead of inventing client facts. If a simple question needs no delegation, answer it directly.
@@ -144,7 +145,7 @@ function specialistSystem(catalog: Catalog, agent: AgentDef): string {
 ## Working inside VOLT
 You are the ${agent.name} agent (${agent.layer}). ${agent.description}
 You have been brought in on a workstream. Answer the brief with a practitioner-grade deliverable in Markdown, typically 700 to 1,000 words, at the depth of a senior practitioner's client workpaper: quantified findings with the arithmetic, options with their trade-offs, risks with mitigations, assumptions and data gaps, and at least two exhibits (tables with a Source line). You may add up to two short Mermaid diagrams (flowchart, gantt, quadrantChart or pie) in \`\`\`mermaid blocks when they clarify a flow or a plan. Lead with the answer. Be explicit about assumptions, risks and the data you would need to firm up the view.
-Use tools for numbers (apqc_benchmark, score_maturity, appraise_investment, build_value_case) and the Skill Finder (find_skills, load_skill) for VOLT method packs.${shipped.length ? `\nYour registered VOLT skills: ${shipped.join(", ")}.` : ""}${specialistDeliverableGuide() ? `\n\n${specialistDeliverableGuide()}` : ""}`;
+Use tools for numbers (apqc_benchmark, score_maturity, appraise_investment, build_value_case) and the Skill Finder (find_skills, load_skill) for VOLT method packs.\n${PCF_GUIDE}${shipped.length ? `\nYour registered VOLT skills: ${shipped.join(", ")}.` : ""}${specialistDeliverableGuide() ? `\n\n${specialistDeliverableGuide()}` : ""}`;
 }
 
 // ── Streaming tool loop ──────────────────────────────────────────────────────
@@ -740,7 +741,7 @@ Synthesise the final executive deliverable for the client: an executive summary,
     lane: ORCHESTRATOR_LANE,
     system: orchestratorSystem(catalog),
     messages: session.messages,
-    tools: ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template"],
+    tools: ["find_skills", "load_skill", "apqc_benchmark", "apqc_pcf", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template"],
     model: modelFor(session.leadTier),
     effort: ORCHESTRATOR_EFFORT,
     emit,
