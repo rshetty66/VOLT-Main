@@ -1,7 +1,7 @@
 import { confirmDialog, toast } from "./ui";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../shared/events";
-import { fetchCatalog, listTemplates, listUploads, streamRun, UnauthorizedError } from "./api";
+import { fetchCatalog, fetchMe, listTemplates, listUploads, signOut, streamRun, UnauthorizedError, type AuthMode } from "./api";
 import { SignIn } from "./components/SignIn";
 import { History } from "./components/History";
 import { Uploads } from "./components/Uploads";
@@ -46,7 +46,8 @@ export function App() {
   const [uploadCount, setUploadCount] = useState(0);
   const [bannerOff, setBannerOff] = useState(() => sessionStorage.getItem("volt.banner") === "off");
   const [needsSignIn, setNeedsSignIn] = useState(false);
-  const [authMode, setAuthMode] = useState<"token" | "username">("token");
+  const [authMode, setAuthMode] = useState<AuthMode>("token");
+  const [me, setMe] = useState<string | null>(null);
   const [view, setView] = useState<View>("console");
   const [runs, setRuns] = useState<Run[]>([]);
   const [history, setHistory] = useState<Run[]>([]);
@@ -82,6 +83,7 @@ export function App() {
   const load = useCallback(() => {
     setLoadError("");
     setNeedsSignIn(false);
+    void fetchMe().then((m) => setMe(m.username), () => setMe(null));
     fetchCatalog().then((c) => (setUsdCadRate(c.fx), setCatalog(c)), (e) => (e instanceof UnauthorizedError ? (setAuthMode(e.auth), setNeedsSignIn(true)) : setLoadError(errText(e))));
     listTemplates().then(setTemplates, () => setTemplates([]));
     // Chats saved in this browser by earlier versions move to the server once, then the project list loads.
@@ -385,10 +387,21 @@ export function App() {
             <span className="rail-icon"><Icon name="help" />{steps.some((s) => !s.done) && <span className="rail-badge blue" />}</span>
             <span className="rail-label">Help</span>
           </button>
-          <div className="rail-avatar" title="Signed in" aria-label="Signed in">
-            <Icon name="user" size={18} />
-            <span className="presence" />
-          </div>
+          {me ? (
+            <button className="rail-avatar" title={`Signed in as ${me}. Click to sign out.`} aria-label={`Signed in as ${me}. Sign out`} onClick={async () => {
+              if (!(await confirmDialog(`Sign out ${me}?`, "Sign out"))) return;
+              await signOut();
+              load();
+            }}>
+              <span aria-hidden="true" style={{ fontWeight: 700 }}>{me.slice(0, 1).toUpperCase()}</span>
+              <span className="presence" />
+            </button>
+          ) : (
+            <div className="rail-avatar" title="Signed in" aria-label="Signed in">
+              <Icon name="user" size={18} />
+              <span className="presence" />
+            </div>
+          )}
         </div>
       </nav>
       <TemplateContext.Provider value={activeTemplate}>
