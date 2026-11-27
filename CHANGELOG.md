@@ -4,6 +4,8 @@
 
 ### Added
 
+- `volt-release-loop` skill: a self-running release loop for the console (one change per lap, objective gate plus an independent reviewer, loop-state.md memory, stop rules, training mode on for the first three runs).
+
 - Diagram builder in the console: describe an agent system or process, get an interactive, animated diagram with typed nodes and edges and playable scenarios (Sonnet drafts it; demo mode shows a sample). Downloads as standalone HTML or JSON. Model text is stripped of markup, the frame is sandboxed, and the route is rate limited like runs.
 
 ### Fixed
