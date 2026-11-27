@@ -2,7 +2,7 @@
 :root {
   --void: #000000;
   --surface: #000000; /* Rakesh 2026-11-27: every background black in the dark theme */
-  --elevated: #0d0f14;
+  --elevated: var(--void);
   --border: #3a4262;
   --muted: #8c95ae; /* 5.5:1 on --surface, 4.6:1 on --elevated */
   --body: #a9b1c7;
@@ -19,13 +19,10 @@
   --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --surface-2: #000000;
-  --tint-02: rgba(255, 255, 255, 0.02);
-  --tint-04: rgba(255, 255, 255, 0.04);
-  --tint-05: rgba(255, 255, 255, 0.05);
-  --tint-06: rgba(255, 255, 255, 0.06);
-  --tint-08: rgba(255, 255, 255, 0.08);
+  --tint-02: var(--void); --tint-04: var(--void); --tint-05: var(--void); --tint-06: var(--void); --tint-08: var(--void);
   /* One type scale and one spacing scale for every page. */
-  --fs-1: 10px; --fs-2: 11px; --fs-3: 12px; --fs-4: 13px; --fs-5: 14px; --fs-6: 16px; --fs-7: 18px; --fs-8: 22px;
+  /* Compact by 1.5px; labels, metadata and prose never drop below 12px. */
+  --fs-1: 12px; --fs-2: 12px; --fs-3: 12px; --fs-4: 12px; --fs-5: 12.5px; --fs-6: 14.5px; --fs-7: 16.5px; --fs-8: 20.5px;
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 20px; --sp-6: 24px; --sp-7: 32px; --sp-8: 48px;
   /* Reading width for prose: about 72 characters a line. */
   --measure: 80ch;
@@ -386,7 +383,9 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .starter { display: flex; flex-direction: column; gap: var(--sp-2); align-items: flex-start; text-align: left; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--body); cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
 .starter:hover { border-color: var(--accent); transform: translateY(-1px); }
 .starter-tag { font-size: var(--fs-2); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
-.recent { display: flex; justify-content: space-between; gap: var(--sp-3); padding: 8px 12px; background: none; border: 1px solid var(--line); border-radius: 8px; color: var(--heading); text-align: left; cursor: pointer; }
+.recent-list { display: grid; gap: 2px; }
+.recent { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--heading); text-align: left; cursor: pointer; }
+.recent time { flex: none; font-size: var(--fs-2); }
 .recent:hover { border-color: var(--line-strong); background: var(--tint-04); }
 .recent-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
 
@@ -404,7 +403,7 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .confirm { position: fixed; z-index: 41; top: 30%; left: 50%; transform: translateX(-50%); width: min(420px, 92vw); display: grid; gap: var(--sp-4); }
 
 /* ── Rail navigation, status pills, banner and setup checklist ─────────────── */
-:root { --rail: 84px; --panel: var(--surface-2); --banner-bg: linear-gradient(90deg, #2e2810, #8a7414 50%, #2e2810); --banner-fg: #fff7d6; --ok-ring: #3fb950; }
+:root { --rail: 84px; --panel: var(--surface-2); --banner-bg: var(--void); --banner-fg: #fff7d6; --ok-ring: #3fb950; }
 :root[data-theme="light"] { --banner-bg: linear-gradient(90deg, #f6e7a6, #ecd36a 50%, #f6e7a6); --banner-fg: #3b2f00; }
 .app { grid-template-columns: var(--rail) 1fr; }
 .nav.rail { padding: 10px 6px; gap: 2px; align-items: stretch; border-right: 0; }
@@ -490,7 +489,6 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 html, body, #root { height: 100%; }
 @supports (height: 100dvh) { html, body, #root, .app { height: 100dvh; } }
 .app { padding-left: env(safe-area-inset-left); padding-right: env(safe-area-inset-right); padding-bottom: env(safe-area-inset-bottom); }
-@media (max-width: 760px) { input, select, textarea, .input, .select { font-size: var(--fs-6); } }
 /* Landscape phones (about 390px tall): compact rail, no wasted rows. */
 @media (max-height: 500px) and (orientation: landscape) {
   :root { --rail: 72px; }
@@ -645,7 +643,8 @@ button.rail-avatar { cursor: pointer; font: inherit; padding: 0; }
 button.chip { font: inherit; font-size: var(--fs-3); }
 /* Compact run view: one-line prompt, agent flow beside specialist cards while it runs, tabs once it is done, and the
    full answer in a panel over the run. Black and small in the dark theme so a run fits the screen. */
-:root:not([data-theme="light"]) .run { --surface: #000; --surface-2: #000; --elevated: #0d0f14; background: #000; }
+:root:not([data-theme="light"]) .run { background: var(--surface); }
+.console:has(> .run) { gap: var(--sp-2); }
 .run { font-size: var(--fs-3); }
 .run .md { font-size: var(--fs-3); line-height: 1.5; }
 .run .md h1 { font-size: var(--fs-6); } .run .md h2 { font-size: var(--fs-5); } .run .md h3, .run .md h4 { font-size: var(--fs-4); }
@@ -703,3 +702,21 @@ button.chip { font: inherit; font-size: var(--fs-3); }
 .version-link:disabled { color: var(--heading); cursor: default; }
 .version-what { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .version-when { font-size: var(--fs-2); white-space: nowrap; }
+
+/* Panels stay black. Focus, selection, status and chart data remain distinguishable. */
+:root:not([data-theme="light"]) :is(.agent-stage, .as-hand, .upload-error, .picker-opt.on, .picker-opt:hover, .chip.intake-chip.on, .md .cite) { background: var(--surface); }
+:root:not([data-theme="light"]) .picker-opt:is(.on, :hover) { color: var(--accent); box-shadow: inset 2px 0 var(--accent); }
+:root:not([data-theme="light"]) .as-ring { fill: var(--surface); }
+:root:not([data-theme="light"]) .as-node text { stroke: var(--surface); }
+:root:not([data-theme="light"]) .skeleton { background: var(--surface); border: 1px solid var(--line); }
+:root:not([data-theme="light"]) .btn:not(.primary):not(.light):hover { background: var(--surface); border-color: var(--line-strong); color: var(--primary); }
+:root:not([data-theme="light"]) .drawer-backdrop { background: rgb(0 0 0 / 65%); }
+@media (pointer: coarse), (max-width: 760px) {
+  /* Applies in either phone orientation, including the intake table and optimizer. */
+  :root :is(input, select, textarea):not([type="checkbox"]):not([type="radio"]) { font-size: 16px; }
+  :root :is(button, summary, a.btn, .input, .select, .textarea) { min-height: 44px; min-width: 44px; }
+  .banner { padding-inline: 44px; }
+  .nav.rail button { flex-shrink: 0; }
+  .run-tabs { flex-wrap: wrap; }
+  .version-history li { grid-template-columns: 44px minmax(0, 1fr) auto; }
+}

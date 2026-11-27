@@ -520,11 +520,15 @@ app.post("/api/diagrams", express.json({ limit: "8kb" }), async (req, res) => {
 app.post("/api/optimize", express.json({ limit: "16kb" }), async (req, res) => {
   const prompt = typeof req.body?.prompt === "string" ? req.body.prompt.trim() : "";
   if (!prompt) return void res.status(400).json({ error: "Nothing to optimize." });
+  if (prompt.length > 20000) return void res.status(400).json({ error: "Request exceeds 20,000 characters." });
+  const workflow = req.body.workflowId === undefined ? undefined : catalog.workflowById.get(req.body.workflowId);
+  if (req.body.workflowId !== undefined && !workflow) return void res.status(400).json({ error: "Unknown workflow." });
   if (mode !== "live") return void res.json({ optimized: null, demo: true });
   const controller = new AbortController();
   res.on("close", () => controller.abort());
   try {
-    res.json({ optimized: await optimizePrompt(prompt, controller.signal) });
+    res.json({ optimized: await optimizePrompt(prompt, controller.signal, undefined,
+      workflow ? { name: workflow.name, topics: intakeFor(catalog, workflow.id).map((q) => q.question) } : undefined) });
   } catch {
     res.json({ optimized: null });
   }
