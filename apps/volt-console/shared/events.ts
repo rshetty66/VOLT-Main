@@ -42,6 +42,8 @@ export interface RunRequest {
   demo?: boolean;
   /** Run every step on the Opus-tier model (the "Opus" switch): overrides the router for this run and the rest of the chat. */
   opus?: boolean;
+  /** Run the independent reviewer on the answer, up to three hand-backs (shared/review.ts). */
+  review?: boolean;
   /** Which provider the specialist workstreams run on: Claude (default), Auto (cross-provider), GPT or Grok. The lead always runs on Claude. */
   engine?: "claude" | "auto" | "gpt" | "grok";
   /** Uploaded template whose formatting guide the agents apply (see shared/templates.ts). */
@@ -83,6 +85,7 @@ export interface CatalogResponse {
     missingSkills: { skill: string; referencedBy: string[] }[];
     missingAgents: { agent: string; referencedBy: string[] }[];
     servicesByCoverage: Record<string, number>;
+    lint?: import("./skillLint").SkillLintSummary;
   };
   benchmarks: { key: string; metric: string; unit: string; top25: number; median: number; bottom25: number; lowerIsBetter: boolean }[];
   /** The USD to CAD rate in use (shared/fx.ts): money in benchmarks and cost estimates is shown in CAD at it. */

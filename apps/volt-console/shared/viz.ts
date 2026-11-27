@@ -9,7 +9,8 @@
  * waterfall (a bridge: first and last labels are totals, the ones between are changes), kpi (tiles: series 0 is the
  * value, an optional series 1 the comparison), heatmap (rows are series, columns are labels; scale "rag" reads
  * 1 red, 2 amber, 3 green). Optional on any type: target (a reference line), highlight (the label to call out) and
- * note (the "so what" line under the title).
+ * note (the "so what" line under the title). A bar, hbar, stacked or donut chart may carry drill: the breakdown behind
+ * some of its labels, keyed by label, each {"labels":[...],"series":[...]} of the same type; a click opens it.
  */
 export type ChartKind = "bar" | "hbar" | "line" | "donut" | "stacked" | "combo" | "waterfall" | "kpi" | "heatmap";
 
@@ -34,7 +35,11 @@ export interface ChartSpec {
   better?: "up" | "down";
   /** KPI tiles: an optional sparkline per tile. */
   trends?: number[][];
+  /** The breakdown behind a label, by label index: one level deep, same type, opened by a click. */
+  drill?: Record<number, ChartSpec>;
 }
+
+const DRILLABLE: ChartKind[] = ["bar", "hbar", "stacked", "donut"];
 
 /** How many labels and series each type can draw. */
 const LIMITS: Record<ChartKind, { labels: [number, number]; series: [number, number] }> = {
@@ -54,7 +59,7 @@ const str = (v: unknown, n: number) => (typeof v === "string" && v.trim() ? v.tr
 const nums = (v: unknown) => (Array.isArray(v) ? v.map(Number) : []);
 
 /** A valid spec, or null. Strict on purpose: a half-written block while an answer streams is simply not a chart yet. */
-export function parseChartSpec(json: string): ChartSpec | null {
+export function parseChartSpec(json: string, nested = false): ChartSpec | null {
   let o: unknown;
   try {
     o = JSON.parse(json);
@@ -89,6 +94,15 @@ export function parseChartSpec(json: string): ChartSpec | null {
   const tv = typeof t === "number" ? t : Number(t?.value);
   const target = t !== null && Number.isFinite(tv) && type !== "donut" && type !== "kpi" && type !== "heatmap" ? { value: tv, label: typeof t === "object" ? str(t.label, 30) : undefined } : undefined;
   const h = typeof r.highlight === "number" ? r.highlight : clean.findIndex((l) => l.toLowerCase() === String(r.highlight ?? "").trim().toLowerCase());
+  const drill: Record<number, ChartSpec> = {};
+  if (!nested && DRILLABLE.includes(type) && r.drill && typeof r.drill === "object" && !Array.isArray(r.drill))
+    for (const [key, child] of Object.entries(r.drill as Record<string, unknown>)) {
+      const i = clean.findIndex((l) => l.toLowerCase() === key.trim().toLowerCase());
+      if (i < 0 || !child || typeof child !== "object") continue;
+      const c = child as Record<string, unknown>;
+      const spec = parseChartSpec(JSON.stringify({ unit: r.unit, ...c, type, title: str(c.title, 120) ?? `${String(r.title ?? "").slice(0, 80)}: ${clean[i]}` }), true);
+      if (spec) drill[i] = spec;
+    }
   const trends = type === "kpi" && Array.isArray(r.trends) ? r.trends.slice(0, labels.length).map((x) => nums(x).filter(Number.isFinite).slice(0, 24)) : undefined;
   return {
     type,
@@ -104,6 +118,7 @@ export function parseChartSpec(json: string): ChartSpec | null {
     scale: type === "heatmap" && r.scale === "rag" ? "rag" : type === "heatmap" ? "heat" : undefined,
     better: type === "kpi" ? (r.better === "down" ? "down" : "up") : undefined,
     trends: trends?.some((x) => x.length >= 2) ? trends : undefined,
+    drill: Object.keys(drill).length ? drill : undefined,
   };
 }
 
@@ -230,6 +245,8 @@ export interface ProcessStep {
   status?: StepStatus;
   /** A step that needs attention: a pain point, a risk or a control gap. */
   issue?: string;
+  /** The APQC PCF element the step belongs to, as the apqc_pcf tool cites it: "9.3.2.6 Reconcile general ledger accounts [10824]". */
+  pcf?: string;
 }
 
 export interface ProcessSpec {
@@ -264,7 +281,7 @@ export function parseProcessSpec(json: string): ProcessSpec | null {
   for (const [i, s] of raw.entries()) {
     const x = (s ?? {}) as Record<string, unknown>;
     const lane = lanes.findIndex((l) => l.toLowerCase() === String(x.lane ?? "").trim().toLowerCase());
-    const name = String(x.name ?? "").trim().slice(0, 48);
+    const name = String(x.name ?? "").trim().slice(0, 72);
     if (lane < 0 || !name) return null;
     const stageName = str(x.stage, 16) ?? `Step ${i + 1}`;
     let stage = stages.indexOf(stageName);
@@ -275,6 +292,7 @@ export function parseProcessSpec(json: string): ProcessSpec | null {
       id, lane, stage, name,
       system: str(x.system, 40), control: str(x.control, 80), owner: str(x.owner, 40), duration: str(x.duration, 24),
       detail: str(x.detail, 400), status: STEP_STATUSES.find((st) => st === x.status), issue: str(x.issue, 160),
+      pcf: str(x.pcf, 90),
     });
   }
   if (stages.length > 10) return null;
@@ -282,7 +300,7 @@ export function parseProcessSpec(json: string): ProcessSpec | null {
   let links = (Array.isArray(r.links) ? r.links : [])
     .map((l) => {
       const x = (l ?? {}) as Record<string, unknown>;
-      return { from: idx(x.from) ?? -1, to: idx(x.to) ?? -1, label: str(x.label, 24) };
+      return { from: idx(x.from) ?? -1, to: idx(x.to) ?? -1, label: str(x.label, 32) };
     })
     .filter((l) => l.from >= 0 && l.to >= 0 && l.from !== l.to)
     .slice(0, 40);

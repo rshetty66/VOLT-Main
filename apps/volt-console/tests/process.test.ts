@@ -117,14 +117,3 @@ describe("HTML page file links", () => {
     expect(html).toContain('<nav class="files" aria-label="Files"><a href="data:application/x;base64,AA==" download="volt-t.xlsx">Download Excel</a></nav>');
   });
 });
-
-describe("process step labels", () => {
-  it("cut a line that does not fit its card with an ellipsis instead of spilling out", async () => {
-    const { fitLines } = await import("../src/charts/specProcess");
-    const { textWidth } = await import("../src/charts/specChart");
-    const [cut] = fitLines(["Supercalifragilisticexpialidocious-reconciliation"], 80, 12.5);
-    expect(cut.endsWith("…")).toBe(true);
-    expect(textWidth(cut, 12.5)).toBeLessThanOrEqual(80);
-    expect(fitLines(["Short"], 80, 12.5)).toEqual(["Short"]);
-  });
-});

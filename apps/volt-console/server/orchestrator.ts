@@ -16,6 +16,8 @@
 import { attachmentsBlock, registerAttachments } from "./attachments.js";
 import { lateForRewrite, runBudgetMs } from "./budget.js";
 import crypto from "node:crypto";
+import { MAX_HANDBACKS, wantsReviewInText } from "../shared/review.js";
+import { independentReview } from "./reviewer.js";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
 import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, DIRECT_GUIDE, directAsk, QUICK_GUIDE, quickAsk, wantsDeliverable } from "./deliverable.js";
@@ -599,7 +601,48 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
   const draft = await runAgentLoop(lead);
   // A quick or direct ask still gets the ledger check, but not the full-deliverable depth review.
   if (quick || direct) await reviewDraft(lead, draft, "");
-  else await reviewDraft(lead, draft, req.prompt);
+  else {
+    const reviewed = await reviewDraft(lead, draft, req.prompt);
+    if (req.review || wantsReviewInText(req.prompt)) await builderReviewerLoop(lead, reviewed, req.prompt);
+  }
+}
+
+/**
+ * The builder/reviewer loop, on request. A fresh-context reviewer checks the draft against the ask; each set of gaps is
+ * handed back to the lead (the builder). It stops when the reviewer passes, after MAX_HANDBACKS hand-backs, or near the time limit,
+ * and says what is left, so the loop can never run on.
+ */
+async function builderReviewerLoop(loop: LoopOptions, first: string, ask: string) {
+  let draft = first;
+  for (let round = 1; round <= MAX_HANDBACKS + 1; round++) {
+    if (loop.signal.aborted || !draft.trim()) return;
+    const r = await independentReview(ask, draft, loop.signal);
+    if (!r) {
+      loop.emit({ type: "status", lane: loop.lane, text: "Independent review: the reviewer did not answer, so the draft is kept as written" });
+      return;
+    }
+    const counts = { inputTokens: r.inputTokens, outputTokens: r.outputTokens, cacheReadTokens: 0 };
+    loop.emit({ type: "usage", lane: loop.lane, ...counts, model: r.model, costUsd: estimateCost(r.model, counts) });
+    if (r.verdict.pass) {
+      loop.emit({ type: "status", lane: loop.lane, text: round === 1 ? "Independent review: passed" : `Independent review: passed after ${round - 1} hand-back${round === 2 ? "" : "s"}` });
+      return;
+    }
+    if (round > MAX_HANDBACKS) {
+      loop.emit({ type: "status", lane: loop.lane, text: `Independent review: stopped after ${MAX_HANDBACKS} hand-backs. Still open: ${r.verdict.gaps.join("; ")}` });
+      return;
+    }
+    if (lateForRewrite(Date.now() - loop.registry.startedAt, runBudgetMs())) {
+      loop.emit({ type: "status", lane: loop.lane, text: `Independent review: ${r.verdict.gaps.length} gap${r.verdict.gaps.length === 1 ? "" : "s"} found, but the run is near its time limit, so the draft is kept as written. Open: ${r.verdict.gaps.join("; ")}` });
+      return;
+    }
+    loop.emit({ type: "status", lane: loop.lane, text: `Independent review: hand-back ${round} of ${MAX_HANDBACKS} (${r.verdict.gaps.length} gap${r.verdict.gaps.length === 1 ? "" : "s"})` });
+    loop.emit({ type: "text_reset", lane: loop.lane });
+    loop.messages.push({
+      role: "user",
+      content: `An independent reviewer, who did not write your draft, sent it back with these gaps:\n${r.verdict.gaps.map((g) => `- ${g}`).join("\n")}\n\nFix each one. Return only the full corrected answer, as the client will read it, with no commentary about this review.`,
+    });
+    draft = await runAgentLoop(loop);
+  }
 }
 
 /**
@@ -638,8 +681,8 @@ async function routeLead(req: RunInput, quick: boolean, session: Session, emit: 
  * The partner-review pass: when the lead agent's draft of a client deliverable falls short of the depth standard,
  * it is sent back once with the specific gaps, and the screen replaces the draft with the rewrite.
  */
-async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, always = false) {
-  if (loop.signal.aborted || !draft.trim()) return;
+async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, always = false): Promise<string> {
+  if (loop.signal.aborted || !draft.trim()) return draft;
   // G7: a figure in a sentence that cites a VOLT Ledger result must appear in that result's evidence.
   const ledger = loop.ledger ? await checkLedgerFigures(draft, loop.registry, loop.signal) : null;
   const ledgerGap = ledger?.unsupported.length
@@ -647,22 +690,22 @@ async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, alw
     : null;
   if (ledger) loop.emit({ type: "status", lane: loop.lane, text: ledgerGap ? `Ledger check: ${ledger.unsupported.length} unsupported figure${ledger.unsupported.length === 1 ? "" : "s"} sent back for correction` : `Ledger check: every figure in ${ledger.sentences} ledger-cited sentence${ledger.sentences === 1 ? "" : "s"} traces to its evidence` });
   const deliverable = always || wantsDeliverable(prompt);
-  if (!deliverable && !ledgerGap) return;
+  if (!deliverable && !ledgerGap) return draft;
   const depth = assessDepth(draft);
   const evidence = deliverable ? evidenceGates(draft, loop.registry.sources, loop.registry.tier).filter((g) => !g.pass) : [];
   const report = deliverable
     ? { ...depth, gaps: [...depth.gaps, ...evidence.map((g) => g.detail), ...(ledgerGap ? [ledgerGap] : [])] }
     : { ...depth, gaps: [ledgerGap as string] };
-  if (!report.gaps.length) return;
+  if (!report.gaps.length) return draft;
   // A file the user asked for is already built from this draft; a rewrite would replace the chat answer but not the file,
   // and costs minutes more.
-  if (!ledgerGap && madeFile(loop.messages)) return;
+  if (!ledgerGap && madeFile(loop.messages)) return draft;
   // A rewrite costs about two minutes, so it is kept for a draft that is too short, has fewer than two visuals, cites sources that do not exist,
   // or misquotes a ledger figure. Smaller gaps are left to the reader's review.
-  if (!ledgerGap && depth.words >= MIN_WORDS && depth.visuals >= 2 && !evidence.some((g) => g.id === "G1")) return;
+  if (!ledgerGap && depth.words >= MIN_WORDS && depth.visuals >= 2 && !evidence.some((g) => g.id === "G1")) return draft;
   if (lateForRewrite(Date.now() - loop.registry.startedAt, runBudgetMs())) {
     loop.emit({ type: "status", lane: loop.lane, text: `Partner review: ${report.gaps.length} gap${report.gaps.length === 1 ? "" : "s"} found, but the run is near its time limit, so the draft is kept as written` });
-    return;
+    return draft;
   }
   loop.emit({ type: "status", lane: loop.lane, text: `Partner review: strengthening the draft (${report.gaps.length} gap${report.gaps.length === 1 ? "" : "s"})` });
   loop.emit({ type: "text_reset", lane: loop.lane });
@@ -670,7 +713,7 @@ async function reviewDraft(loop: LoopOptions, draft: string, prompt: string, alw
     role: "user",
     content: deliverable ? strengthenPrompt(report) : `Ledger check: ${ledgerGap}. Rewrite your answer in full with those figures corrected, and return only the corrected answer.`,
   });
-  await runAgentLoop(loop);
+  return await runAgentLoop(loop);
 }
 
 /** True when the lead agent called create_file in this conversation turn (since the last user message with text). */

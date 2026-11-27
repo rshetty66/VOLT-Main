@@ -2,6 +2,7 @@
 const PATHS: Record<string, string> = {
   console: "M4 5h16v11H9l-5 4zM8 9h8M8 12h5",
   workflows: "M5 4l14 8-14 8zM5 4v16",
+  reference: "M12 6c-3-2-6-2-9-1v13c3-1 6-1 9 1 3-2 6-2 9-1V5c-3-1-6-1-9 1zM12 6v13",
   agents: "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM18 16l.8 2.2L21 19l-2.2.8L18 22l-.8-2.2L15 19l2.2-.8z",
   skills: "M10 4a6 6 0 100 12 6 6 0 000-12zM15 15l5 5",
   services: "M4 8h16v11H4zM9 8V5h6v3M4 13h16",

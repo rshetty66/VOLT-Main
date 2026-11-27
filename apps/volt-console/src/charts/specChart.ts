@@ -8,6 +8,8 @@ import type { Palette } from "./palette";
  */
 export interface DrawOptions {
   t?: number;
+  /** On screen: add a hover band per label, so the console and the HTML page can show a tooltip anywhere over it. */
+  interactive?: boolean;
 }
 
 const W = 720;
@@ -122,20 +124,21 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
 
   // Heading: title, the takeaway and the legend.
   let y = 32;
-  if (spec.title) parts.push(text(24, y, spec.title + (spec.unit && spec.type !== "kpi" ? ` (${spec.unit})` : ""), { size: 17, fill: p.ink, weight: 650 }));
-  if (spec.note) parts.push(text(24, (y += 20), spec.note, { size: 12.5, fill: p.series }));
+  if (spec.title) parts.push(text(24, y, spec.title + (spec.unit && spec.type !== "kpi" ? ` (${spec.unit})` : ""), { size: 15, fill: p.ink, weight: 650 }));
+  if (spec.note) parts.push(text(24, (y += 19), spec.note, { size: 11.5, fill: p.series }));
   const legend = spec.series.length > 1 && !["donut", "kpi", "heatmap", "waterfall"].includes(spec.type);
   if (legend) {
     let x = 24;
     y += 24;
     for (const [i, s] of spec.series.entries()) {
       const name = spec.type === "combo" && i === 1 && spec.unit2 ? `${s.name} (${spec.unit2}, right axis)` : s.name;
-      parts.push(spec.type === "line" || (spec.type === "combo" && i === 1) ? `<line x1="${x}" y1="${y - 4}" x2="${x + 14}" y2="${y - 4}" stroke="${cs[i]}" stroke-width="3" stroke-linecap="round"/>` : `<rect x="${x}" y="${y - 10}" width="12" height="12" rx="3" fill="${cs[i]}"/>`, text(x + 19, y, name, { size: 12, fill: p.ink }));
+      parts.push(`<g class="vl" data-s="${i}">`, spec.type === "line" || (spec.type === "combo" && i === 1) ? `<line x1="${x}" y1="${y - 4}" x2="${x + 14}" y2="${y - 4}" stroke="${cs[i]}" stroke-width="3" stroke-linecap="round"/>` : `<rect x="${x}" y="${y - 10}" width="12" height="12" rx="3" fill="${cs[i]}"/>`, text(x + 19, y, name, { size: 12, fill: p.ink }), "</g>");
       x += 19 + textWidth(name) + 22;
     }
   }
   const top = y + 24;
-  const foot = spec.source ? 30 : 14;
+  const srcLines = spec.source ? wrapLabel(`Source: ${spec.source}`, W - 48, 11, 4) : [];
+  const foot = 14 + 16 * srcLines.length;
   let H = BASE_H;
 
   if (spec.type === "donut") donut();
@@ -143,7 +146,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
   else if (spec.type === "heatmap") heatmap();
   else cartesian();
 
-  if (spec.source) parts.push(text(24, H - 11, `Source: ${spec.source}`, { size: 11 }));
+  srcLines.forEach((ln, i) => parts.push(text(24, H - 11 - (srcLines.length - 1 - i) * 16, ln, { size: 11 })));
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-labelledby="${id}t ${id}d" style="font-variant-numeric:tabular-nums"><title id="${id}t">${esc(spec.title || "Chart")}</title><desc id="${id}d">${esc(describe(spec))}</desc><defs>${defs.join("")}</defs><rect width="${W}" height="${H}" fill="${p.bg}" rx="10"/>${parts.join("")}</svg>`;
 
   function donut() {
@@ -168,7 +171,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
       const mark = positive === 1 && s1 - s0 >= Math.PI * 2 - 1e-6
         ? `<circle cx="${cx}" cy="${n1(cy)}" r="${n1((R + r) / 2)}" fill="none" stroke="${slice(i)}" stroke-width="${n1(R - r)}"/>`
         : `<path d="M ${pt(R, s0)} A ${R} ${R} 0 ${big} 1 ${pt(R, s1)} L ${pt(r, s1)} A ${r} ${r} 0 ${big} 0 ${pt(r, s0)} Z" fill="${slice(i)}" stroke="${p.bg}" stroke-width="2"/>`;
-      parts.push(`<g>${tip(label)}${mark}</g>`);
+      parts.push(`<g class="vm" data-i="${i}" data-s="0">${tip(label)}${mark}</g>`);
     });
     parts.push(text(cx, cy + 4, fmt(total * ease(t)), { size: 26, anchor: "middle", fill: p.ink, weight: 700 }), text(cx, cy + 24, spec.unit ?? "total", { size: 12, anchor: "middle" }));
     const rows = Math.min(vals.length, Math.floor((H - top - foot) / 26));
@@ -176,10 +179,12 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
       const ly = top + 16 + i * 26, k = stagger(t, i, vals.length), share = v / total;
       const hl = spec.highlight === i;
       parts.push(
+        `<g class="vm" data-i="${i}" data-s="0"><rect x="380" y="${ly - 20}" width="320" height="26" fill="transparent"/>`,
         `<rect x="380" y="${ly - 11}" width="12" height="12" rx="3" fill="${slice(i)}"/>`,
         text(400, ly, spec.labels[i], { size: 13, fill: p.ink, weight: hl ? 700 : undefined }),
         `<rect x="560" y="${ly - 7}" width="70" height="5" rx="2.5" fill="${p.grid}"/><rect x="560" y="${ly - 7}" width="${n1(70 * share * k)}" height="5" rx="2.5" fill="${slice(i)}"/>`,
         text(696, ly, `${Math.round(share * 100 * k)}%`, { size: 13, anchor: "end", fill: hl ? p.ink : p.muted, weight: hl ? 700 : undefined }),
+        "</g>",
       );
     });
   }
@@ -193,7 +198,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
       const x = 24 + (i % cols) * (tileW + gap), y0 = top + Math.floor(i / cols) * (tileH + gap), k = stagger(t, i, n);
       const v = cur.values[i];
       const hl = spec.highlight === i;
-      parts.push(`<g opacity="${n1(0.25 + 0.75 * k)}">${tip(`${label}: ${fmt(v)}${unit}`)}<rect x="${n1(x)}" y="${n1(y0)}" width="${n1(tileW)}" height="${tileH}" rx="10" fill="${p.tile}" stroke="${hl ? p.series : p.grid}" stroke-width="${hl ? 2 : 1}"/>`);
+      parts.push(`<g class="vm" data-i="${i}" data-s="0" opacity="${n1(0.25 + 0.75 * k)}">${tip(`${label}: ${fmt(v)}${unit}`)}<rect x="${n1(x)}" y="${n1(y0)}" width="${n1(tileW)}" height="${tileH}" rx="10" fill="${p.tile}" stroke="${hl ? p.series : p.grid}" stroke-width="${hl ? 2 : 1}"/>`);
       parts.push(text(x + 14, y0 + 29, label, { size: 12.5, fill: p.muted, weight: 600 }));
       parts.push(text(x + 14, y0 + 66, fmt(v * k), { size: 30, fill: p.ink, weight: 700 }) + (spec.unit ? text(x + 20 + fmt(v).length * 18, y0 + 66, spec.unit, { size: 13 }) : ""));
       if (cmp) {
@@ -245,7 +250,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
           ink = alpha > 0.55 ? p.bg : p.ink;
         }
         const label = spec.scale === "rag" ? ["Red", "Amber", "Green"][Math.max(1, Math.min(3, Math.round(v))) - 1] : fmt(v);
-        parts.push(`<g opacity="${n1(k)}">${tip(`${s.name} / ${spec.labels[j]}: ${spec.scale === "rag" ? label : `${fmt(v)}${unit}`}`)}<rect x="${n1(left + j * cellW + 2)}" y="${n1(cy + 2)}" width="${n1(cellW - 4)}" height="${n1(cellH - 4)}" rx="5" fill="${fill}" fill-opacity="${n1(alpha * 100) / 100}"/>${cellW > 34 ? text(left + (j + 0.5) * cellW, cy + cellH / 2 + 4, spec.scale === "rag" ? label[0] : fmt(v), { size: 11.5, anchor: "middle", fill: ink, weight: 600 }) : ""}</g>`);
+        parts.push(`<g class="vm" data-i="${j}" data-s="${i}" opacity="${n1(k)}">${tip(`${s.name} / ${spec.labels[j]}: ${spec.scale === "rag" ? label : `${fmt(v)}${unit}`}`)}<rect x="${n1(left + j * cellW + 2)}" y="${n1(cy + 2)}" width="${n1(cellW - 4)}" height="${n1(cellH - 4)}" rx="5" fill="${fill}" fill-opacity="${n1(alpha * 100) / 100}"/>${cellW > 34 ? text(left + (j + 0.5) * cellW, cy + cellH / 2 + 4, spec.scale === "rag" ? label[0] : fmt(v), { size: 11.5, anchor: "middle", fill: ink, weight: 600 }) : ""}</g>`);
       });
     });
     const ly = gridTop + rows * cellH + 20;
@@ -329,7 +334,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
           const yA = val(Math.max(from, to)), yB = val(Math.min(from, to));
           const last = v >= 0 ? spec.series.slice(si + 1).every((x) => x.values[i] <= 0) : false;
           const d = last ? barPath(mid(i) - bw / 2, yA, bw, Math.max(1, yB - yA), 4, "t") : `M${n1(mid(i) - bw / 2)},${n1(yA)}h${n1(bw)}v${n1(Math.max(1, yB - yA))}h${n1(-bw)}Z`;
-          parts.push(`<g opacity="${dim(i)}">${tip(`${label} / ${s.name}: ${fmt(s.values[i])}${unit}`)}<path d="${d}" fill="${cs[si]}" stroke="${p.bg}" stroke-width="1"/>${yB - yA > 18 && bw > 30 ? text(mid(i), (yA + yB) / 2 + 4, fmt(v), { size: 10.5, anchor: "middle", fill: p.bg, weight: 600 }) : ""}</g>`);
+          parts.push(`<g class="vm" data-i="${i}" data-s="${si}" opacity="${dim(i)}">${tip(`${label} / ${s.name}: ${fmt(s.values[i])}${unit}`)}<path d="${d}" fill="${cs[si]}" stroke="${p.bg}" stroke-width="1"/>${yB - yA > 18 && bw > 30 ? text(mid(i), (yA + yB) / 2 + 4, fmt(v), { size: 10.5, anchor: "middle", fill: p.bg, weight: 600 }) : ""}</g>`);
         });
         parts.push(text(mid(i), val(top0 * k) - 7, fmt(top0 * k), { size: 11.5, anchor: "middle", fill: dim(i) < 1 ? p.muted : p.ink, weight: 600 }));
         if (spec.highlight === i) callout.push({ x: mid(i), y: val(top0) - 26, s: `${label}: ${fmt(top0)}${unit}` });
@@ -342,7 +347,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
         const from = total ? Math.max(0, sc.lo) : cum[i], to = total ? from + (v - from) * k : from + v * k;
         const colour = total ? cs[0] : v >= 0 ? p.positive : p.negative;
         const yA = val(Math.max(from, to)), yB = val(Math.min(from, to));
-        parts.push(`<g opacity="${dim(i)}">${tip(`${spec.labels[i]}: ${total ? fmt(v) : signed(v)}${unit}`)}<path d="${barPath(mid(i) - bw / 2, yA, bw, Math.max(1, yB - yA), 4, v >= 0 || total ? "t" : "b")}" fill="${colour}"/></g>`);
+        parts.push(`<g class="vm" data-i="${i}" data-s="0" opacity="${dim(i)}">${tip(`${spec.labels[i]}: ${total ? fmt(v) : signed(v)}${unit}`)}<path d="${barPath(mid(i) - bw / 2, yA, bw, Math.max(1, yB - yA), 4, v >= 0 || total ? "t" : "b")}" fill="${colour}"/></g>`);
         parts.push(text(mid(i), v >= 0 || total ? yA - 7 : yB + 15, total ? fmt(v * k) : signed(v * k), { size: 11.5, anchor: "middle", fill: dim(i) < 1 ? p.muted : (total ? p.ink : v >= 0 ? p.positive : p.negInk), weight: 650 }));
         if (i < n - 1 && k >= 1) {
           const level = total ? v : cum[i] + v;
@@ -365,9 +370,9 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
           const d = horizontal
             ? barPath(Math.min(base, end), m - bw / 2 + 1, Math.max(1, Math.abs(end - base)), bw - 2, 4, neg ? "l" : "r")
             : barPath(m - bw / 2 + 1, Math.min(base, end), bw - 2, Math.max(1, Math.abs(end - base)), 4, neg ? "b" : "t");
-          parts.push(`<g opacity="${dim(i)}">${tip(`${spec.labels[i]}${spec.series.length > 1 ? ` / ${spec.series[si].name}` : ""}: ${fmt(v)}${unit}`)}<path d="${d}" fill="${colour}"/></g>`);
-          if (horizontal) parts.push(text(Math.max(base, end) + 6, m + 4, fmt(v * e), { size: 11, fill: dim(i) < 1 ? p.muted : p.ink }));
-          else if (n * k <= 18) parts.push(text(m, neg ? end + 14 : end - 7, fmt(v * e), { size: 11, anchor: "middle", fill: dim(i) < 1 ? p.muted : p.ink, weight: 600 }));
+          const value = horizontal ? text(Math.max(base, end) + 6, m + 4, fmt(v * e), { size: 11, fill: dim(i) < 1 ? p.muted : p.ink })
+            : n * k <= 18 ? text(m, neg ? end + 14 : end - 7, fmt(v * e), { size: 11, anchor: "middle", fill: dim(i) < 1 ? p.muted : p.ink, weight: 600 }) : "";
+          parts.push(`<g class="vm" data-i="${i}" data-s="${si}" opacity="${dim(i)}">${tip(`${spec.labels[i]}${spec.series.length > 1 ? ` / ${spec.series[si].name}` : ""}: ${fmt(v)}${unit}`)}<path d="${d}" fill="${colour}"/>${value}</g>`);
           if (spec.highlight === i && bi === 0) callout.push(horizontal ? { x: Math.max(base, val(v)) + 60, y: m - bw / 2 - 6, s: `${fmt(v)}${unit}` } : { x: m, y: Math.min(val(0), val(v)) - 26, s: `${spec.labels[i]}: ${fmt(v)}${unit}` });
         }),
       );
@@ -381,13 +386,13 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
       const str = pts.map(([a, b]) => `${n1(a)},${n1(b)}`).join(" ");
       const draw = t < 1 ? ` pathLength="1" stroke-dasharray="1" stroke-dashoffset="${n1((1 - e) * 1000) / 1000}"` : "";
       if (spec.series.length === 1 && spec.type === "line") parts.push(`<polygon points="${n1(pts[0][0])},${y1} ${str} ${n1(pts[pts.length - 1][0])},${y1}" fill="${fade(cs[si])}" opacity="${n1(e)}"/>`);
-      parts.push(`<polyline points="${str}" fill="none" stroke="${cs[si]}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"${draw}/>`);
+      parts.push(`<polyline class="vs" data-s="${si}" points="${str}" fill="none" stroke="${cs[si]}" stroke-width="3" stroke-linejoin="round" stroke-linecap="round"${draw}/>`);
       pts.forEach(([a, b], i) => {
         const shown = e >= (n > 1 ? i / (n - 1) : 0) - 1e-9;
         if (!shown) return;
         const hl = spec.highlight === i;
-        parts.push(`<g>${tip(`${spec.labels[i]} / ${s.name}: ${fmt(s.values[i])}${si === 1 && spec.unit2 ? ` ${spec.unit2}` : unit}`)}<circle cx="${n1(a)}" cy="${n1(b)}" r="${hl ? 7 : 4.5}" fill="${hl ? cs[si] : p.bg}" stroke="${cs[si]}" stroke-width="2.5"/></g>`);
-        if (n <= 10 && spec.series.length <= 2 && spec.type === "line") parts.push(text(a, b - 11, fmt(s.values[i]), { size: 11, anchor: "middle", fill: p.ink, weight: hl ? 700 : 500 }));
+        parts.push(`<g class="vm" data-i="${i}" data-s="${si}">${tip(`${spec.labels[i]} / ${s.name}: ${fmt(s.values[i])}${si === 1 && spec.unit2 ? ` ${spec.unit2}` : unit}`)}<circle cx="${n1(a)}" cy="${n1(b)}" r="${hl ? 7 : 4.5}" fill="${hl ? cs[si] : p.bg}" stroke="${cs[si]}" stroke-width="2.5"/></g>`);
+        if (n <= 10 && spec.series.length <= 2 && spec.type === "line") parts.push(`<g class="vs" data-s="${si}">${text(a, b - 11, fmt(s.values[i]), { size: 11, anchor: "middle", fill: p.ink, weight: hl ? 700 : 500 })}</g>`);
         if (hl && si === lines[0]) {
           parts.push(`<line x1="${n1(a)}" y1="${y0}" x2="${n1(a)}" y2="${y1}" stroke="${cs[si]}" stroke-opacity="0.35" stroke-dasharray="3 3"/>`);
           callout.push({ x: a, y: b - 30, s: `${spec.labels[i]}: ${fmt(s.values[i])}` });
@@ -402,6 +407,9 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
       if (horizontal) parts.push(`<line x1="${n1(val(tv))}" y1="${y0 - 6}" x2="${n1(val(tv))}" y2="${y1}" stroke="${p.series2}" stroke-width="2" stroke-dasharray="6 4"/>`, pill(val(tv), y0 - 8, label, p.series2));
       else parts.push(`<line x1="${x0}" y1="${n1(val(tv))}" x2="${x1}" y2="${n1(val(tv))}" stroke="${p.series2}" stroke-width="2" stroke-dasharray="6 4"/>`, pill(x1, val(tv) - 6, label, p.series2, "end"));
     }
+    // A transparent band per label, over the marks: the tooltip shows wherever the pointer is in the column.
+    if (o.interactive && t >= 1)
+      spec.labels.forEach((_, i) => parts.push(horizontal ? `<rect class="vh" data-i="${i}" x="${x0}" y="${n1(mid(i) - band / 2)}" width="${x1 - x0}" height="${n1(band)}" fill="transparent"/>` : `<rect class="vh" data-i="${i}" x="${n1(mid(i) - band / 2)}" y="${y0}" width="${n1(band)}" height="${y1 - y0}" fill="transparent"/>`));
     if (t >= 1) for (const c of callout) parts.push(pill(Math.max(70, Math.min(W - 70, c.x)), Math.max(top - 4, c.y), c.s, p.series));
   }
 }
