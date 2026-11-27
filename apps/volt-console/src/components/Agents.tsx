@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import type { CatalogResponse } from "../../shared/events";
 import { getJSON } from "../api";
+import { errText } from "../netGuard";
 
 export function Agents({ catalog, onOpen }: { catalog: CatalogResponse; onOpen: (id: string) => void }) {
   const [q, setQ] = useState("");
@@ -71,7 +72,7 @@ export function AgentDrawer({ catalog, agentId, onClose, onChat }: { catalog: Ca
   const [err, setErr] = useState("");
   useEffect(() => {
     setA(null);
-    getJSON<AgentDetail>(`/api/agents/${encodeURIComponent(agentId)}`).then(setA, (e) => setErr(String(e)));
+    getJSON<AgentDetail>(`/api/agents/${encodeURIComponent(agentId)}`).then(setA, (e) => setErr(errText(e)));
   }, [agentId]);
   const shipped = new Set(catalog.skills.map((s) => s.id));
 

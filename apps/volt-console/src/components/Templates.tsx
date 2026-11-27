@@ -4,6 +4,7 @@ import type { CellStyle, TemplateKind, TemplateProfile, TemplateSummary, TextSty
 import { TEMPLATE_EXTENSIONS } from "../../shared/templates";
 import { deleteTemplate, getTemplate, uploadTemplate } from "../api";
 import { Markdown } from "./Markdown";
+import { errText } from "../netGuard";
 
 const KIND_LABEL: Record<TemplateKind, string> = { word: "Word", excel: "Excel", powerpoint: "PowerPoint" };
 const SLOT_LABEL: Record<string, string> = {
@@ -153,7 +154,7 @@ function TemplateDetail({ id, onBack, refresh, activeTemplate, setActiveTemplate
   const [showGuide, setShowGuide] = useState(false);
 
   useEffect(() => {
-    getTemplate(id).then(setP, (e) => setErr(String(e)));
+    getTemplate(id).then(setP, (e) => setErr(errText(e)));
   }, [id]);
 
   if (err) return <div className="empty">{err}</div>;
