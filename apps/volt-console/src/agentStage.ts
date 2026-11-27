@@ -63,6 +63,7 @@ const TOOL_STATION: Record<string, StationId> = {
   web_search: "web",
   web_fetch: "web",
   apqc_benchmark: "analytics",
+  apqc_pcf: "kb",
   score_maturity: "analytics",
   build_value_case: "analytics",
   appraise_investment: "analytics",
@@ -86,6 +87,7 @@ export function describeTool(name: string, detail = ""): string {
     case "web_search": return d ? `Search: ${d}` : "Searching the web";
     case "web_fetch": return "Reading a source";
     case "apqc_benchmark": return d ? `Benchmark: ${d}` : "Pulling a benchmark";
+    case "apqc_pcf": return d ? `Process: ${d}` : "Looking up a process";
     case "score_maturity": return "Scoring maturity";
     case "build_value_case": return "Value case model";
     case "appraise_investment": return "Appraising the investment";

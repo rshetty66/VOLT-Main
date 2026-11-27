@@ -48,6 +48,8 @@ export function sourceForTool(name: ToolName, input: unknown): NewSource | null 
   switch (name) {
     case "apqc_benchmark":
       return { title: `APQC benchmark: ${String(i.metric ?? "")}`, publisher: "APQC (VOLT benchmark table)", date: "n/d", type: "benchmark table", authority: 7 };
+    case "apqc_pcf":
+      return { title: `APQC PCF: ${String(i.query ?? "")}`, publisher: "APQC Process Classification Framework, Cross-Industry", date: "2026-02-25", type: "process framework", authority: 8 };
     case "score_maturity":
       return { title: "VOLT maturity scoring (scores supplied in the request)", publisher: "VOLT analytics", date: month(), type: "calculation", authority: 6 };
     case "appraise_investment":

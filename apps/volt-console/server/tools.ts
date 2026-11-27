@@ -11,6 +11,7 @@ import type Anthropic from "@anthropic-ai/sdk";
 import { type Catalog, loadSkillBody, rankAgents, rankSkills } from "./catalog.js";
 import { BENCHMARKS, appraiseInvestment, buildValueCase, compareToBenchmark, MATURITY_DIMENSIONS, scoreMaturity } from "./analytics.js";
 import { templateStore } from "./templates.js";
+import { lookupPcf, PCF_VERSION } from "./pcf.js";
 import { FILE_FORMATS, FILE_LABEL, type FileSpec } from "../shared/files.js";
 import { checkHub, hubSchema } from "../shared/accountingHub.js";
 import { hubPage, hubTitle } from "../shared/accountingHubPage.js";
@@ -35,6 +36,11 @@ export const schemas = {
   apqc_benchmark: z.object({
     metric: z.string().describe(`Metric key or name. Keys: ${BENCHMARKS.map((b) => b.key).join(", ")}`),
     client_value: z.number().optional().describe("Client's current value in the metric's unit, to place them in a quartile."),
+  }),
+  apqc_pcf: z.object({
+    query: z.string().trim().min(1).max(200).describe("A PCF ID (10730), a hierarchy ID (9.3) or plain words for the process (e.g. 'reconcile general ledger accounts')."),
+    within: z.string().max(20).optional().describe("Only search under this element, e.g. '9.0' for Manage Financial Resources or '11.0' for risk and compliance."),
+    limit: z.number().int().min(1).max(10).optional().describe("Max matches for a word search (default 5)."),
   }),
   score_maturity: z.object({
     scores: z
@@ -107,6 +113,8 @@ const descriptions: Record<ToolName, string> = {
   load_skill: "Load a VOLT skill pack (or one of its reference files) into context.",
   apqc_benchmark:
     "Look up an APQC finance benchmark (top quartile / median / bottom quartile) and optionally place a client value in its quartile with gap-to-median and gap-to-top-quartile.",
+  apqc_pcf:
+    `Look up the APQC Process Classification Framework (Cross-Industry v${PCF_VERSION}, 13 categories, about 2,000 processes): by PCF ID or hierarchy ID it returns the element, its parents, its children and APQC's metric definitions; by plain words it returns the best-matching processes. Use it to cite real PCF IDs for any process you name.`,
   score_maturity:
     "Score the 7-dimension finance maturity model (1 Ad Hoc to 5 Leading): returns overall level, per-dimension gaps, top priority gaps and unassessed dimensions.",
   appraise_investment: "Compute NPV, IRR, payback and profitability index for an investment and its yearly cash flows.",
@@ -141,6 +149,7 @@ export const ORCHESTRATOR_TOOLS: ToolName[] = [
   "consult_agent",
   "load_skill",
   "apqc_benchmark",
+  "apqc_pcf",
   "score_maturity",
   "appraise_investment",
   "build_value_case",
@@ -154,7 +163,7 @@ export const ORCHESTRATOR_TOOLS: ToolName[] = [
 export const QUICK_TOOLS: ToolName[] = ORCHESTRATOR_TOOLS.filter((t) => t !== "consult_agent" && t !== "find_agents");
 
 /** A specialist talking to the user directly can make files; one consulted by Rudra cannot (Rudra makes the one file). */
-export const SPECIALIST_TOOLS: ToolName[] = ["find_skills", "load_skill", "apqc_benchmark", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template", "create_file", "build_accounting_hub"];
+export const SPECIALIST_TOOLS: ToolName[] = ["find_skills", "load_skill", "apqc_benchmark", "apqc_pcf", "score_maturity", "appraise_investment", "build_value_case", "list_templates", "get_template", "create_file", "build_accounting_hub"];
 export const CONSULTED_TOOLS: ToolName[] = SPECIALIST_TOOLS.filter((t) => t !== "create_file" && t !== "build_accounting_hub");
 
 /** `reply`, when set, is what the model reads back instead of the data (a made file is not echoed to it). */
@@ -210,6 +219,11 @@ export function runLocalTool(catalog: Catalog, name: Exclude<ToolName, "consult_
         data: r,
         summary: `${r.benchmark.metric}: top25 ${r.benchmark.top25} / median ${r.benchmark.median}${r.quartile ? ` → client ${r.clientValue} (${r.quartile})` : ""}`,
       };
+    }
+    case "apqc_pcf": {
+      const r = lookupPcf(input as z.infer<typeof schemas.apqc_pcf>);
+      const summary = r.match?.cite ?? ((r.matches ?? []).map((m) => m.cite).join("; ") || "no matches");
+      return { ok: true, data: r, summary };
     }
     case "score_maturity": {
       const { scores } = input as z.infer<typeof schemas.score_maturity>;
