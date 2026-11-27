@@ -26,7 +26,7 @@ export function runFiles(run: Run): { id: string; spec: FileSpec }[] {
 function detail(s: FileSpec): string {
   if (s.hub) return "5 tabs · interactive diagrams";
   const sections = (s.markdown.match(/^##\s/gm) ?? []).length;
-  const visuals = (s.markdown.match(/^```(chart|process|architecture|mermaid|taxonomy|lifecycle)\b/gm) ?? []).length;
+  const visuals = (s.markdown.match(/^```(chart|process|architecture|mermaid|taxonomy|lifecycle|fim)\b/gm) ?? []).length;
   const sheets = s.tables?.length ?? 0;
   const parts = [
     sections ? `${sections} ${s.format === "pptx" || s.format === "slides" ? "slide" : "section"}${sections === 1 ? "" : "s"}` : "",

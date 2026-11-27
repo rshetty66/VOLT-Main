@@ -80,19 +80,37 @@ html,body,.reveal-viewport{background:var(--bg);color:var(--tx)}
 .reveal .body>.kpi-slot{margin:0 0 14px}
 .reveal .nb{padding-block-end:6px;background-size:var(--w) 4px}
 /* Diagrams build in when their slide opens: layers from the top, process steps stage by stage. */
-.reveal .present .va-band,.reveal .present .vp-step,.reveal .present .vt-col,.reveal .present .vl-stage{animation:build .6s var(--ease) both}
+.reveal .present .va-band,.reveal .present .vp-step,.reveal .present .vt-col,.reveal .present .vl-stage,.reveal .present .vf-col{animation:build .6s var(--ease) both}
 .reveal .present .va-band{animation-delay:calc(var(--va-i,0) * 110ms)}
-.reveal .present .vp-step,.reveal .present .vt-col,.reveal .present .vl-stage{animation-delay:calc(var(--vp-i,0) * 90ms)}
-@media (prefers-reduced-motion:reduce){.reveal .present .va-band,.reveal .present .vp-step,.reveal .present .vt-col,.reveal .present .vl-stage{animation:none}}
+.reveal .present .vp-step,.reveal .present .vt-col,.reveal .present .vl-stage,.reveal .present .vf-col{animation-delay:calc(var(--vp-i,0) * 90ms)}
+@media (prefers-reduced-motion:reduce){.reveal .present .va-band,.reveal .present .vp-step,.reveal .present .vt-col,.reveal .present .vl-stage,.reveal .present .vf-col{animation:none}}
+/* Contents slide: every section, and the slides under it, one click away. */
+.reveal .toc .body{columns:2;column-gap:44px}
+.reveal .toc .sec{break-inside:avoid;margin:0 0 12px}
+.reveal .toc .sec>a{display:flex;gap:10px;align-items:baseline;color:var(--tx);text-decoration:none;font-size:15px;font-weight:650}
+.reveal .toc .sec>a span{color:var(--gold);font-size:12px;font-weight:700;min-inline-size:20px}
+.reveal .toc .sec>a:hover,.reveal .toc li a:hover{color:var(--cyan)}
+.reveal .toc ul{margin:4px 0 0 30px;padding:0;list-style:none}
+.reveal .toc li{margin:0 0 2px;font-size:12px;line-height:1.35}
+.reveal .toc li a{color:var(--mu);text-decoration:none}
+/* The deck toolbar: contents, animation on or off, read as a page, PDF. Hidden in print. */
+.vt-bar{position:fixed;top:10px;right:14px;z-index:40;display:flex;gap:6px;font:12px/1 Inter,"Segoe UI",system-ui,sans-serif}
+.vt-bar a,.vt-bar button{border:1px solid var(--bd);background:#000;color:var(--mu);padding:5px 9px;border-radius:4px;text-decoration:none;cursor:pointer;font:inherit}
+.vt-bar a:hover,.vt-bar button:hover{color:var(--tx);border-color:var(--cyan)}
+.vt-bar button[aria-pressed=true]{color:var(--cyan);border-color:var(--cyan)}
+.print-pdf .vt-bar{display:none}
 .reveal .progress{color:var(--cyan);block-size:4px}
 .reveal .slide-number{background:transparent;color:var(--dim);font-size:12px}
 .reveal .controls{color:var(--cyan)}
-@media print{.reveal .slides>section{overflow:hidden}}
+@media print{.reveal .slides>section{overflow:hidden}.vt-bar{display:none}}
 `;
 
 const DECK_SCRIPT = `
 (function(){
-  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var reduce0 = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Static view (the toolbar's Animation button, or ?static in the address): no transitions, builds or count-ups.
+  function still(){ return reduce0 || document.documentElement.classList.contains('static'); }
+  var reduce = still();
   /*
    * Fit every slide to 16:9 with no scrolling. Each slide is measured at 1280 x 720; what does not fit moves to a
    * "continued" slide after it. Lists, tables, card grids and KPI strips split between items (a table repeats its
@@ -105,10 +123,10 @@ const DECK_SCRIPT = `
   function items(el){ return el.tagName === 'TABLE' ? Array.prototype.slice.call(el.tBodies[0] ? el.tBodies[0].rows : []) : /^(UL|OL)$/.test(el.tagName) || el.classList.contains('cards') || el.classList.contains('kgrid') ? Array.prototype.slice.call(el.children) : []; }
   function isLead(el){ return el && el.tagName === 'P' && el.children.length === 1 && el.firstElementChild.tagName === 'STRONG' && el.textContent.trim() === el.firstElementChild.textContent.trim(); }
   function shell(el){ var c = el.cloneNode(false); if (el.tagName === 'TABLE') { if (el.tHead) c.appendChild(el.tHead.cloneNode(true)); c.appendChild(document.createElement('tbody')); } if (el.tagName === 'OL') c.start = (el.start || 1) + items(el).length; return c; }
-  function next(slide){
+  function next(slide, same){
     var s = document.createElement('section'); s.className = 'slide';
     var head = slide.querySelector('.head').cloneNode(true), k = head.querySelector('.kick');
-    if (!head.querySelector('.cont')) { var m = document.createElement('span'); m.className = 'cont'; m.textContent = ' (continued)'; (k || head.querySelector('h2')).appendChild(m); }
+    if (!same && !head.querySelector('.cont')) { var m = document.createElement('span'); m.className = 'cont'; m.textContent = ' (continued)'; (k || head.querySelector('h2')).appendChild(m); }
     var b = document.createElement('div'); b.className = 'body';
     s.appendChild(head); s.appendChild(b); slide.parentNode.insertBefore(s, slide.nextSibling); return s;
   }
@@ -166,10 +184,42 @@ const DECK_SCRIPT = `
       svg.style.maxBlockSize = Math.max(240, Math.floor(limit - svg.getBoundingClientRect().top - after - 4)) + 'px';
     });
   }
-  Array.prototype.slice.call(document.querySelectorAll('.reveal .slides > section.slide')).forEach(function(s){ grow(s); fit(s); });
+  // A diagram that would be squeezed under text (less height than it needs to read at full width) gets a slide of its
+  // own under the same headline, with its read-out, instead of being drawn small beside empty space.
+  var BIG = /(^|\s)(flow|arch|view|diagram)(\s|$)/;
+  function own(slide){
+    var limit = slide.getBoundingClientRect().top + slide.clientHeight - parseFloat(getComputedStyle(slide).paddingBottom);
+    var body = kids(slide);
+    for (var i = 1; i < body.length; i++) {
+      var f = body[i], svg = f.tagName === 'FIGURE' && BIG.test(f.className) && f.querySelector('svg');
+      if (!svg || !svg.viewBox || !svg.viewBox.baseVal || !svg.viewBox.baseVal.width) continue;
+      var vb = svg.viewBox.baseVal, natural = slide.clientHeight > 0 ? (slide.querySelector('.body').clientWidth * vb.height / vb.width) : 0;
+      var extra = f.getBoundingClientRect().height - svg.getBoundingClientRect().height;
+      var room = limit - f.getBoundingClientRect().top - extra;
+      if (room >= Math.min(natural, 420) * 0.85) continue;
+      var k = i;
+      while (k > 0 && isLead(body[k - 1])) k--;
+      if (k === 0) return null;
+      var ns = next(slide, true), nb = ns.querySelector('.body');
+      body.slice(k).forEach(function(n){ nb.appendChild(n); });
+      return ns;
+    }
+    return null;
+  }
+  Array.prototype.slice.call(document.querySelectorAll('.reveal .slides > section.slide')).forEach(function(s){
+    for (var guard = 0; s && guard < 6; guard++) { var n = own(s); grow(s); fit(s); s = n; }
+  });
+  // The contents slide links each section and each slide headline to the slide it now sits on (after pagination).
+  var all = Array.prototype.slice.call(document.querySelectorAll('.reveal .slides > section'));
+  Array.prototype.forEach.call(document.querySelectorAll('.toc a[data-go]'), function(a){
+    var at = -1; all.some(function(s, i){ if (s.getAttribute('data-key') === a.getAttribute('data-go')) { at = i; return true; } return false; });
+    if (at < 0) { a.removeAttribute('href'); return; }
+    a.setAttribute('href', '#/' + at);
+    a.addEventListener('click', function(e){ e.preventDefault(); Reveal.slide(at); });
+  });
   root.classList.remove('measuring');
   // No click-by-click builds: an executive reads every slide whole, in the deck and in its PDF. Numbers still count up.
-  function draw(slide){ Array.prototype.forEach.call(slide.querySelectorAll('figure.chart'), function(f, i){ setTimeout(function(){ f.classList.add('in'); }, reduce ? 0 : 120 * i); }); count(slide); }
+  function draw(slide){ reduce = still(); Array.prototype.forEach.call(slide.querySelectorAll('figure.chart'), function(f, i){ setTimeout(function(){ f.classList.add('in'); }, reduce ? 0 : 120 * i); }); count(slide); }
   // Big numbers count up to their value when their slide opens (KPI tiles and hero figures).
   function count(slide){
     Array.prototype.forEach.call(slide.querySelectorAll('.kpi .v, .hero .hv'), function(el){
@@ -183,8 +233,13 @@ const DECK_SCRIPT = `
     });
   }
   // The address tracks the slide, except in a sandboxed preview (an about:srcdoc frame), which forbids replaceState.
-  Reveal.initialize({ hash: !/^about:/.test(location.href), width: 1280, height: 720, margin: 0.04, center: false, slideNumber: 'c/t', transition: reduce ? 'none' : 'fade',
-    pdfSeparateFragments: false, plugins: [RevealNotes] });
+  // "Read as page" is reveal.js's scroll view: every slide one under the other, nothing animated.
+  var scroll = /[?&]view=scroll\b/.test(location.search);
+  Reveal.initialize({ hash: !/^about:/.test(location.href), width: 1280, height: 720, margin: 0.04, center: false, slideNumber: 'c/t', transition: reduce || scroll ? 'none' : 'fade',
+    view: scroll ? 'scroll' : null, pdfSeparateFragments: false, plugins: [RevealNotes] });
+  document.addEventListener('voltstatic', function(){ reduce = still(); Reveal.configure({ transition: reduce || scroll ? 'none' : 'fade' }); });
+  var toc = document.querySelector('.vt-bar .vt-toc');
+  if (toc) toc.addEventListener('click', function(e){ var t = document.querySelector('.reveal .slides > section.toc'); if (!t) return; e.preventDefault(); Reveal.slide(all.indexOf(t)); });
   Reveal.on('ready', function(e){ draw(e.currentSlide); });
   Reveal.on('slidechanged', function(e){ draw(e.currentSlide); });
 })();
@@ -205,7 +260,7 @@ export function sectionSlides(title: string, html: string): { kicker: string; he
       const sub = h3 ? h3[1].trim() : "";
       let body = h3 ? part.slice(h3[0].length) : part;
       const lead = /^\s*<p><strong>((?:(?!<\/?strong>)[\s\S])*?)<\/strong><\/p>\s*/.exec(body);
-      const headline = lead && !/^Exhibit\b/i.test(lead[1]) ? tidy(lead[1]) : "";
+      const headline = lead && actionTitle(lead[1]) ? tidy(lead[1]) : "";
       if (headline) body = body.slice(lead![0].length);
       return headline
         ? { kicker: sub ? `${section} | ${sub}` : section, headline, html: body }
@@ -213,6 +268,15 @@ export function sectionSlides(title: string, html: string): { kicker: string; he
     })
     .filter((s) => s.html.trim() || s.headline !== section);
 }
+
+/**
+ * Whether a bold opening line reads as an action title. A label that introduces what follows ("Design principles:",
+ * "The method.", "Exhibit 3: ...") stays in the body above its content, and the subsection name stays the headline.
+ */
+export const actionTitle = (lead: string): boolean => {
+  const t = lead.replace(/<[^>]+>/g, "").trim();
+  return !/^Exhibit\b/i.test(t) && !/:\s*$/.test(t) && t.split(/\s+/).length > 3;
+};
 
 const decode = (s: string) => s.replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
 
@@ -247,25 +311,43 @@ export function heroes(html: string): string {
   });
 }
 
+/**
+ * The contents slide: each section and the headline of each of its slides, linked to the slide it lands on once the
+ * deck is paginated (the deck script fills the links). Subsections are listed while the slide stays readable.
+ */
+export function tocSlide(sections: { title: string; slides: { headline: string }[] }[]): string {
+  if (sections.length < 3) return "";
+  const subs = sections.reduce((n, s) => n + (s.slides.length > 1 ? s.slides.length : 0), 0);
+  const items = sections.map((sec, i) => {
+    const title = esc(decode(plain(sec.title)));
+    const list = subs <= 30 && sec.slides.length > 1 ? `<ul>${sec.slides.map((s, j) => `<li><a data-go="${i}-${j}">${s.headline}</a></li>`).join("")}</ul>` : "";
+    return `<div class="sec"><a data-go="${i}-0"><span>${String(i + 1).padStart(2, "0")}</span>${title}</a>${list}</div>`;
+  });
+  return `<section class="slide toc"><div class="head"><div><h2>Contents</h2></div></div><div class="body">${items.join("")}</div></section>`;
+}
+
 /** The full deck: a cover, then each section's slides. Pages carry trusted, already-rendered HTML, as in voltHtml. */
 export function voltDeck(d: HtmlDeliverable, assets: RevealAssets): string {
   const pages = d.pages.filter((p, i) => !(i === 0 && chatLeadIn(p.html)));
-  const slides = pages.flatMap((p, i) =>
-    sectionSlides(p.title, i === 0 ? withSoWhat(p.html) : p.html).map((s) => {
+  const sections = pages.map((p, i) => ({ title: p.title, slides: sectionSlides(p.title, i === 0 ? withSoWhat(p.html) : p.html) }));
+  const slides = sections.flatMap((sec, i) =>
+    sec.slides.map((s, j) => {
       const { html, notes } = speakerNotes(s.html);
       const head = `<div class="head"><span class="no">${String(i + 1).padStart(2, "0")}</span><div>${s.kicker ? `<span class="kick">${s.kicker}</span>` : ""}<h2>${s.headline}</h2></div></div>`;
-      return `<section class="slide">${head}<div class="body">${kpisFirst(heroes(referenceLayout(html)))}</div>${notes ? `<aside class="notes">${notes}</aside>` : ""}</section>`;
+      return `<section class="slide" data-key="${i}-${j}">${head}<div class="body">${kpisFirst(heroes(referenceLayout(html)))}</div>${notes ? `<aside class="notes">${notes}</aside>` : ""}</section>`;
     }),
   );
   const cover = `<section class="cover"><div class="brand"><span class="mark" aria-hidden="true">V</span><b>VOLT</b></div><h1>${esc(d.title)}</h1>${d.subtitle ? `<p class="lede">${esc(d.subtitle)}</p>` : ""}<p class="meta">Prepared with VOLT</p></section>`;
+  const contents = tocSlide(sections);
   return `<!doctype html>
 <html lang="en" class="js"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="VOLT Console">
 <title>${esc(d.title)}</title>
 <style>${inline(assets.css)}</style><style>${CSS}${DECK_CSS}</style></head><body>
 <div class="reveal"><div class="slides">
-${[cover, ...slides].join("\n")}
+${[cover, contents, ...slides].filter(Boolean).join("\n")}
 </div></div>
+<nav class="vt-bar" aria-label="Deck"><a class="vt-toc" href="#/1">Contents</a><button type="button" data-static-toggle aria-pressed="false">Animation on</button><a href="?view=scroll" title="Every slide one under the other">Read as page</a><a href="?print-pdf" title="Open the print layout, then save as PDF">PDF</a></nav>
 <script>${inline(assets.js)}</script><script>${inline(assets.notes)}</script>
 <script>${SCRIPT}</script><script>${DECK_SCRIPT}</script>
 </body></html>

@@ -128,7 +128,7 @@ export function chartBlocks(markdown: string): (ChartSpec | null)[] {
 }
 
 /** Fenced visuals (charts and Mermaid diagrams) in a text: how many pictures the deliverable carries. */
-export const countVisuals = (markdown: string): number => (markdown.match(/^```(chart|mermaid|architecture|process|taxonomy|lifecycle)\b/gm) ?? []).length;
+export const countVisuals = (markdown: string): number => (markdown.match(/^```(chart|mermaid|architecture|process|taxonomy|lifecycle|fim)\b/gm) ?? []).length;
 
 // ── Architecture options, drawn as a 3D (isometric) layered stack ──────────────────────────────────────────
 
@@ -144,9 +144,35 @@ export const countVisuals = (markdown: string): number => (markdown.match(/^```(
  */
 export type ArchStatus = "new" | "keep" | "retire";
 
+/** Chart-of-accounts layer a system carries: thin GL segments, thick sub-ledger dimensions, analytical dimensions. */
+export type CoaLayer = "thin" | "thick" | "analytical";
+
 export interface ArchItem {
   name: string;
   status: ArchStatus;
+  coa?: CoaLayer[];
+  /** Flow membership for the explore modes: accounting and financial reporting, risk and regulatory, or both. */
+  flow?: "a" | "r" | "ar";
+  /** Key solution component group, 1 to 5 (an index into ArchSpec.groups). */
+  group?: number;
+  /** The system's role in one or two sentences, shown when it is clicked. */
+  detail?: string;
+}
+
+/** A key solution component: a group of systems delivered together, with the platform where the client names one. */
+export interface ArchGroup {
+  name: string;
+  platform?: string;
+}
+
+/**
+ * One step of the guided walkthrough (the master prompt's 15-click build): the systems it lights up, a caption title and
+ * one sentence. A flow is drawn from the step in which both of its ends have been lit.
+ */
+export interface ArchStep {
+  title: string;
+  text: string;
+  on: string[];
 }
 
 export interface ArchLayer {
@@ -166,7 +192,16 @@ export interface ArchSpec {
   layers: ArchLayer[];
   flows: ArchFlow[];
   note?: string;
+  steps?: ArchStep[];
+  /** The Key Principles box (up to three sentences) and up to three design-principle tiles under the stack. */
+  principles?: string[];
+  tiles?: { title: string; text: string }[];
+  groups?: ArchGroup[];
+  /** The flow ribbons the explore modes show: the accounting flow and the risk flow, stage by stage. */
+  ribbons?: { a?: string[]; r?: string[] };
 }
+
+const COA: CoaLayer[] = ["thin", "thick", "analytical"];
 
 const STATUSES: ArchStatus[] = ["new", "keep", "retire"];
 
@@ -193,7 +228,11 @@ export function parseArchSpec(json: string): ArchSpec | null {
       .map((i): ArchItem => {
         if (i && typeof i === "object") {
           const it = i as Record<string, unknown>;
-          return { name: String(it.name ?? "").trim().slice(0, ITEM_MAX), status: STATUSES.find((st) => st === it.status) ?? "keep" };
+          const coa = COA.filter((c) => (Array.isArray(it.coa) ? it.coa : [it.coa]).includes(c));
+          const flow = (["a", "r", "ar"] as const).find((f) => f === it.flow);
+          const group = Number.isInteger(it.group) && (it.group as number) >= 1 && (it.group as number) <= 5 ? (it.group as number) : undefined;
+          const detail = typeof it.detail === "string" && it.detail.trim() ? it.detail.trim().slice(0, 240) : undefined;
+          return { name: String(it.name ?? "").trim().slice(0, ITEM_MAX), status: STATUSES.find((st) => st === it.status) ?? "keep", ...(coa.length ? { coa } : {}), ...(flow ? { flow } : {}), ...(group ? { group } : {}), ...(detail ? { detail } : {}) };
         }
         return { name: String(i).trim().slice(0, ITEM_MAX), status: "keep" };
       })
@@ -209,7 +248,43 @@ export function parseArchSpec(json: string): ArchSpec | null {
     })
     .filter((f) => known.has(f.from.toLowerCase()) && known.has(f.to.toLowerCase()) && f.from.toLowerCase() !== f.to.toLowerCase())
     .slice(0, 10);
-  return { title: String(r.title ?? "").slice(0, 120), layers, flows, note: typeof r.note === "string" ? r.note.slice(0, 160) : undefined };
+  // The walkthrough: up to 15 steps, each lighting at least one known system; anything else is dropped.
+  const names = new Map(layers.flatMap((l) => l.items.map((i) => [i.name.toLowerCase(), i.name] as const)));
+  const steps: ArchStep[] = (Array.isArray(r.steps) ? r.steps : [])
+    .map((st) => {
+      const x = (st ?? {}) as Record<string, unknown>;
+      const on = (Array.isArray(x.on) ? x.on : []).map((v) => names.get(String(v).trim().slice(0, ITEM_MAX).toLowerCase())).filter((v): v is string => !!v);
+      return { title: String(x.title ?? "").trim().slice(0, 60), text: String(x.text ?? "").trim().slice(0, 200), on };
+    })
+    .filter((st) => st.title && st.on.length)
+    .slice(0, 15);
+  const texts = (v: unknown, k: number, n: number) => (Array.isArray(v) ? v : []).map((t) => (typeof t === "string" ? t.trim().slice(0, n) : "")).filter(Boolean).slice(0, k);
+  const principles = texts(r.principles, 3, 160);
+  const tiles = (Array.isArray(r.tiles) ? r.tiles : [])
+    .map((t) => ({ title: String((t as Record<string, unknown>)?.title ?? "").trim().slice(0, 48), text: String((t as Record<string, unknown>)?.text ?? "").trim().slice(0, 160) }))
+    .filter((t) => t.title)
+    .slice(0, 3);
+  const groups = (Array.isArray(r.groups) ? r.groups : [])
+    .map((g) => {
+      const x = (g ?? {}) as Record<string, unknown>;
+      const platform = typeof x.platform === "string" && x.platform.trim() ? x.platform.trim().slice(0, 60) : undefined;
+      return { name: String(x.name ?? "").trim().slice(0, 60), ...(platform ? { platform } : {}) };
+    })
+    .filter((g) => g.name)
+    .slice(0, 5);
+  const rb = (r.ribbons ?? {}) as Record<string, unknown>;
+  const ribbons = { a: texts(rb.a ?? rb.accounting, 10, 40), r: texts(rb.r ?? rb.risk, 10, 40) };
+  return {
+    title: String(r.title ?? "").slice(0, 120),
+    layers,
+    flows,
+    note: typeof r.note === "string" ? r.note.slice(0, 160) : undefined,
+    ...(steps.length >= 2 ? { steps } : {}),
+    ...(principles.length ? { principles } : {}),
+    ...(tiles.length ? { tiles } : {}),
+    ...(groups.length ? { groups } : {}),
+    ...(ribbons.a.length || ribbons.r.length ? { ribbons } : {}),
+  };
 }
 
 /** The ```architecture blocks of a markdown text in document order; null where a block is not a valid spec. */

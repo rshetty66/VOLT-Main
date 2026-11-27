@@ -12,6 +12,14 @@
  *   {"title":"Residential mortgage: where finance changes","product":"Residential mortgage",
  *    "stages":[{"name":"Originate","finance":["Fees deferred (EIR)","IFRS 9 stage 1 ECL"],"today":"Fees booked by spreadsheet",
  *               "change":"Rules engine posts fees and ECL at booking","impact":"high"}],"note":"...","source":"..."}
+ *
+ * ```fim: the finance information model, lineage from source and instrument to GL balance and report, with
+ * adjustments at instrument and GL level and the keys carried end to end.
+ *   {"title":"Finance information model: every mortgage balance traces to its contracts","balance":{"account":
+ *    "13900 Residential mortgages","value":"CAD 4.2bn","status":"ties"},"chain":[{"level":"Source","items":["Core banking"]},
+ *    {"level":"Instrument","items":["Mortgage contract"]},{"level":"GL balance","items":["13900 Residential mortgages"]}],
+ *    "adjustments":[{"level":"instrument","name":"EIR fee deferral","value":"-CAD 3.1M"}],"keys":["Entity","Product"],
+ *    "change":"Lineage reaches the instrument at D+1","note":"...","source":"..."}
  */
 export type Impact = "high" | "moderate" | "low";
 const IMPACTS: Impact[] = ["high", "moderate", "low"];
@@ -112,7 +120,64 @@ export function parseLifecycleSpec(text: string): LifecycleSpec | null {
   return { title: str(r.title, 140) ?? product, product, stages, note: str(r.note, 160), source: str(r.source, 160) };
 }
 
-export type ViewSpec = { kind: "taxonomy"; spec: TaxonomySpec } | { kind: "lifecycle"; spec: LifecycleSpec };
+export type FimStatus = "ties" | "break" | "partly_traced" | "gl_only";
+export interface FimLevel {
+  level: string;
+  items: string[];
+}
+export interface FimAdjustment {
+  level: "instrument" | "gl";
+  name: string;
+  value?: string;
+}
+export interface FimSpec {
+  title: string;
+  balance?: { account: string; value?: string; status?: FimStatus };
+  chain: FimLevel[];
+  adjustments: FimAdjustment[];
+  keys: string[];
+  change?: string;
+  note?: string;
+  source?: string;
+}
+const FIM_STATUS: FimStatus[] = ["ties", "break", "partly_traced", "gl_only"];
+
+/** A valid information model, or null: three to six levels of one to four items, up to six adjustments and eight keys. */
+export function parseFimSpec(text: string): FimSpec | null {
+  const r = obj(json(text));
+  const raw = arr(r.chain);
+  if (raw.length < 3 || raw.length > 6) return null;
+  const chain: FimLevel[] = [];
+  for (const c of raw) {
+    const x = obj(c);
+    const level = str(x.level, 28);
+    const items = arr(x.items).map((i) => str(i, 48)).filter((i): i is string => !!i);
+    if (!level || items.length < 1 || items.length > 4) return null;
+    chain.push({ level, items });
+  }
+  const b = obj(r.balance);
+  const account = str(b.account, 60);
+  const adjustments = arr(r.adjustments)
+    .map((a): FimAdjustment | null => {
+      const x = obj(a);
+      const name = str(x.name, 48);
+      return name ? { level: x.level === "gl" ? "gl" : "instrument", name, value: str(x.value, 20) } : null;
+    })
+    .filter((a): a is FimAdjustment => !!a)
+    .slice(0, 6);
+  return {
+    title: str(r.title, 140) ?? "Finance information model",
+    balance: account ? { account, value: str(b.value, 24), status: FIM_STATUS.find((s) => s === b.status) } : undefined,
+    chain,
+    adjustments,
+    keys: arr(r.keys).map((k) => str(k, 28)).filter((k): k is string => !!k).slice(0, 8),
+    change: str(r.change, 160),
+    note: str(r.note, 160),
+    source: str(r.source, 160),
+  };
+}
+
+export type ViewSpec = { kind: "taxonomy"; spec: TaxonomySpec } | { kind: "lifecycle"; spec: LifecycleSpec } | { kind: "fim"; spec: FimSpec };
 
 /** One view block by its fence name; null when the JSON is not valid (yet, while an answer streams). */
 export function parseView(kind: string, text: string): ViewSpec | null {
@@ -124,12 +189,16 @@ export function parseView(kind: string, text: string): ViewSpec | null {
     const spec = parseLifecycleSpec(text);
     return spec && { kind, spec };
   }
+  if (kind === "fim") {
+    const spec = parseFimSpec(text);
+    return spec && { kind, spec };
+  }
   return null;
 }
 
-/** The ```taxonomy and ```lifecycle blocks of a markdown text in document order; null where a block is not valid. */
+/** The ```taxonomy, ```lifecycle and ```fim blocks of a markdown text in document order; null where a block is not valid. */
 export function viewBlocks(markdown: string): (ViewSpec | null)[] {
-  return [...markdown.matchAll(/^```(taxonomy|lifecycle)[^\n]*\n([\s\S]*?)^```/gm)].map((m) => parseView(m[1], m[2]));
+  return [...markdown.matchAll(/^```(taxonomy|lifecycle|fim)[^\n]*\n([\s\S]*?)^```/gm)].map((m) => parseView(m[1], m[2]));
 }
 
 /** The counts a taxonomy's legend and KPI strip show. */
@@ -142,7 +211,7 @@ export function taxonomyCounts(t: TaxonomySpec) {
 
 // ── The required views of a finance transformation deliverable (Rakesh, 2026-11-27) ────────────────────────────
 
-/** Whether a deliverable is a finance transformation piece, which must carry the four views and a process flow. */
+/** Whether a deliverable is a finance transformation piece, which must carry the required views. */
 export const isFinanceTransformation = (text: string): boolean =>
   /\b(transform\w*|close|ledger|sub-?ledger|accounting hub|chart of accounts|reconcil\w*|consolidat\w*|ERP|EPM|finance operating model|record to report)\b/i.test(text);
 
@@ -157,5 +226,6 @@ export function missingViews(markdown: string): string[] {
   if (!titles.some((t) => /business reference architecture/i.test(t))) gaps.push('a business reference architecture: an ```architecture block titled "Business reference architecture: ..." whose layers hold capabilities');
   if (!titles.some((t) => /technology reference architecture/i.test(t))) gaps.push('a technology reference architecture: an ```architecture block titled "Technology reference architecture: ..." whose layers hold the systems and the data flows between them');
   if (!/^```lifecycle\b/m.test(markdown)) gaps.push("a product lifecycle view: a ```lifecycle block showing, stage by stage, the finance touchpoints and what the transformation changes");
+  if (!/^```fim\b/m.test(markdown)) gaps.push("the finance information model: a ```fim block tracing a key GL balance to its instruments and source, with adjustments at instrument and GL level and the keys carried end to end");
   return gaps;
 }
