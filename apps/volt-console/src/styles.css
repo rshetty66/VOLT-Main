@@ -1,8 +1,8 @@
 /* VOLT brand board: Cosmic Obsidian and Deep Space Indigo surfaces, Electric Cyber Blue accent, Copper Gold highlight, Rudra's Fire Orange for attention. See shared/brand.ts. */
 :root {
   --void: #000000;
-  --surface: #1a1e2e;
-  --elevated: #262c44;
+  --surface: #000000; /* Rakesh 2026-11-27: every background black in the dark theme */
+  --elevated: #0d0f14;
   --border: #3a4262;
   --muted: #8c95ae; /* 5.5:1 on --surface, 4.6:1 on --elevated */
   --body: #a9b1c7;
@@ -18,7 +18,7 @@
   --warn: #ff5722;
   --font: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-  --surface-2: #171b29;
+  --surface-2: #000000;
   --tint-02: rgba(255, 255, 255, 0.02);
   --tint-04: rgba(255, 255, 255, 0.04);
   --tint-05: rgba(255, 255, 255, 0.05);
@@ -209,14 +209,14 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .usage { font-size: var(--fs-2); color: var(--muted); font-family: var(--mono); }
 
 /* Markdown */
-.md { color: var(--heading); font-size: var(--fs-6); line-height: 1.65; overflow-wrap: anywhere; }
+.md { color: var(--heading); font-size: var(--fs-3); line-height: 1.55; overflow-wrap: anywhere; }
 /* Prose keeps a reading measure; tables, code and charts use the full column. */
 .md > :is(p, ul, ol, blockquote, h1, h2, h3, h4) { max-width: var(--measure); }
 .md h1, .md h2, .md h3, .md h4 { color: var(--primary); line-height: 1.25; margin: 1.1em 0 0.5em; }
-.md h1 { font-size: var(--fs-8); } .md h2 { font-size: var(--fs-7); } .md h3 { font-size: var(--fs-5); } .md h4 { font-size: var(--fs-5); }
+.md h1 { font-size: var(--fs-6); } .md h2 { font-size: var(--fs-5); } .md h3 { font-size: var(--fs-4); } .md h4 { font-size: var(--fs-4); }
 .md :first-child { margin-top: 0; }
 .md p, .md ul, .md ol { margin: 0.5em 0; }
-.md table { border-collapse: collapse; width: 100%; margin: 0.75em 0; font-size: var(--fs-4); display: block; overflow-x: auto; }
+.md table { border-collapse: collapse; width: 100%; margin: 0.75em 0; font-size: var(--fs-2); display: block; overflow-x: auto; }
 .md th, .md td { border: 1px solid var(--line); padding: 6px 10px; text-align: left; vertical-align: top; }
 .md th { background: var(--tint-05); color: var(--primary); font-weight: 600; }
 .md code { background: var(--tint-08); padding: 1px 5px; border-radius: 4px; }
