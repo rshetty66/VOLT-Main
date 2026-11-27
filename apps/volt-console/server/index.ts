@@ -491,6 +491,7 @@ const RunBody = z.object({
   agentId: z.string().optional(),
   demo: z.boolean().optional(),
   opus: z.boolean().optional(),
+  review: z.boolean().optional(),
   engine: z.enum(["claude", "auto", "gpt", "grok"]).optional(),
   templateId: z.string().max(32).optional(),
   scope: scopeSchema.optional(),

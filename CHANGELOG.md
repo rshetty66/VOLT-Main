@@ -4,6 +4,8 @@
 
 ### Added
 
+- 2026-11-27: Independent review in chat, on request (Settings checkbox, or words like "have it reviewed"). A separate fresh-context reviewer checks the draft against the ask and hands gaps back to the lead, at most 3 times, then stops and reports what is open. Off by default; adds time and cost only when asked.
+
 - Diagram builder in the console: describe an agent system or process, get an interactive, animated diagram with typed nodes and edges and playable scenarios (Sonnet drafts it; demo mode shows a sample). Downloads as standalone HTML or JSON. Model text is stripped of markup, the frame is sandboxed, and the route is rate limited like runs.
 
 ### Fixed
