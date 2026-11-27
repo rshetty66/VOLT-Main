@@ -11,6 +11,7 @@ import { z } from "zod";
 
 import { BASES, CLIENT_TYPES, RECOMMEND } from "./scope-options.js";
 import { GOAL_IDS, goalLines, goalType, validGoalAnswers } from "./goalTypes.js";
+import { DISCOVERY, discoveryRules } from "./discovery.js";
 
 export { BASES, CLIENT_TYPES, RECOMMEND };
 
@@ -119,5 +120,6 @@ export function scopeBrief(scope: Scope): string {
     : "";
   const depth = scope.depth ? ` ${DEPTH[scope.depth]}` : "";
   const file = files.length ? ` When the message asks for work, deliver the result as ${files.join(" and ")} made with create_file.` : "";
-  return `## Scope the client set for this chat\n${lines.join("\n")}\nKeep the work inside this scope and do not ask again for anything it answers. If the request clearly falls outside it, say so in one line and go on with the request. The scope is context, not the task: a direct question or a lookup gets a direct answer to what it asks, never a deliverable on the outcomes above.${kpiRule}${depth}${file}`;
+  const discovery = scope.goal === DISCOVERY ? `\n\n${discoveryRules(scope.goal_answers)}` : "";
+  return `## Scope the client set for this chat\n${lines.join("\n")}\nKeep the work inside this scope and do not ask again for anything it answers. If the request clearly falls outside it, say so in one line and go on with the request. The scope is context, not the task: a direct question or a lookup gets a direct answer to what it asks, never a deliverable on the outcomes above.${kpiRule}${depth}${file}${discovery}`;
 }

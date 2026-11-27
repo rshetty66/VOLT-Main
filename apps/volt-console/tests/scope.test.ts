@@ -97,9 +97,9 @@ describe("intake skip", () => {
 });
 
 describe("goal catalog", () => {
-  it("offers eight goal types, each with at most two questions, and every question can recommend", async () => {
+  it("offers nine goal types, each with at most two questions, and every question can recommend", async () => {
     const { GOAL_TYPES } = await import("../shared/goalTypes");
-    expect(GOAL_TYPES.map((g) => g.id)).toEqual(["finance_transformation", "market_research", "business_development", "strategy", "accounting", "data_analysis", "technology", "other"]);
+    expect(GOAL_TYPES.map((g) => g.id)).toEqual(["finance_transformation", "market_research", "business_development", "strategy", "accounting", "data_analysis", "technology", "discovery", "other"]);
     for (const g of GOAL_TYPES) {
       expect(g.questions.length, g.id).toBeLessThanOrEqual(2);
       for (const q of g.questions) expect(q.options[RECOMMEND], `${g.id}.${q.key}`).toBe("Not sure, recommend");
@@ -121,5 +121,24 @@ describe("goal catalog", () => {
     expect(brief).toContain("- What do you need: not set; recommend what fits");
     expect(scopeBrief({ goal: "other" })).toContain("- Goal: Something else");
     expect(scopeLabel({ goal: "market_research", deliverables: ["deck"] })).toBe("Market and competitor research · HTML slide deck");
+  });
+
+  it("adds the discovery rules only for the discovery goal, and its evidence answer decides the knowledge base", async () => {
+    const { discoveryUsesDocs } = await import("../shared/discovery");
+    const brief = scopeBrief({ goal: "discovery", goal_answers: { mode: ["spec"], sources: ["none"] } });
+    expect(brief).toContain("- Goal: Shape an idea into a brief");
+    expect(brief).toContain("- What back: Specification");
+    expect(brief).toContain("## Discovery: shape the idea before building anything");
+    expect(brief).toContain("at most three related questions");
+    expect(brief).toContain('"skip all"');
+    expect(brief).toContain("no web research and no documents");
+    expect(brief).toContain("until the client confirms the brief");
+    expect(scopeBrief({ goal: "strategy" })).not.toContain("## Discovery");
+    expect(scopeBrief({ goal: "discovery" })).toContain("Pick the evidence the idea needs");
+    expect(discoveryUsesDocs({ goal: "discovery", goal_answers: { sources: ["docs"] } })).toBe(true);
+    expect(discoveryUsesDocs({ goal: "discovery", goal_answers: { sources: ["both"] } })).toBe(true);
+    expect(discoveryUsesDocs({ goal: "discovery", goal_answers: { sources: ["web"] } })).toBe(false);
+    expect(discoveryUsesDocs({ goal: "data_analysis", goal_answers: { data: ["kb"] } })).toBe(false);
+    expect(discoveryUsesDocs(undefined)).toBe(false);
   });
 });
