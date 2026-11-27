@@ -1,16 +1,16 @@
 {
   "coverage": {
-    "skills": 312,
-    "withTriggers": 33
+    "skills": 316,
+    "withTriggers": 37
   },
-  "generatedAt": "2026-09-24T23:51:22.784Z",
+  "generatedAt": "2026-11-27T18:19:05.369Z",
   "id": "skill-triggers@1",
   "model": {
     "effort": null,
     "id": "hand-seeded",
     "source": "manual-curation-pending-regeneration"
   },
-  "registryDigest": "0358a83d6466c8765df9d0f61a430b8f3101e68bb9b6ac893de0f7ba94d68033",
+  "registryDigest": "57b224407662dc2e4e08353b1544d41e5ce2098701ed62a9f573a2ca7fa17eca",
   "schemaVersion": 1,
   "triggers": {
     "skill:agent-runtime-gateway-smoke-test": [
@@ -55,6 +55,10 @@
       "axe accessibility audit",
       "ship do not ship",
       "staging verification"
+    ],
+    "skill:builder-reviewer-loop": [
+      "set up separate builder and reviewer sessions for my backlog",
+      "limit how many times a reviewer can hand a pull request back"
     ],
     "skill:canary-watch": [
       "post deploy monitoring",
@@ -154,6 +158,10 @@
       "wei conversion",
       "erc20 balance off",
       "bridge token precision"
+    ],
+    "skill:executive-prompt-optimizer": [
+      "turn my rough business question into a board-ready prompt",
+      "rewrite this ask with explicit decision questions and assumptions"
     ],
     "skill:frontend-a11y": [
       "aria attributes",
@@ -283,13 +291,21 @@
       "regression test first",
       "write a regression test"
     ],
+    "skill:uber-agent-skills": [
+      "compare a skill against a no-skill baseline on real prompts",
+      "evaluate skill cost and quality and triage recurring failures"
+    ],
     "skill:verification-loop": [
       "pre pr checks",
       "verification report",
       "quality gates",
       "build lint test coverage",
       "before creating a pr"
+    ],
+    "skill:volt-release-loop": [
+      "run the volt release loop with independent verification",
+      "take a volt backlog item through testing and release approval"
     ]
   },
-  "triggersDigest": "054898acb769893c46e5bd7037141f7be83fb775515ea1dbb52fb1c18aca19e6"
+  "triggersDigest": "426225b6e0538e20251f7a4d48602f2935ee1f36d75f957a5c70e61b989ca86c"
 }
