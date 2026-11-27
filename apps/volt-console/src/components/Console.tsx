@@ -10,6 +10,8 @@ import { DownloadMenu } from "./DownloadMenu";
 import { addMemory } from "../projects";
 import { FileCards } from "./FileCards";
 import { AgentStage } from "./AgentStage";
+import { keyPoints, SHORT_ANSWER } from "../runDigest";
+import type { Lane } from "../runState";
 import { runDeliverable } from "../exports";
 import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
 import { scopeLabel, type Scope } from "../../shared/scope";
@@ -409,8 +411,17 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
   const gates = run.state !== "running" && run.tier && run.text.trim() ? evidenceGates(run.text, run.sources, run.tier) : [];
   const openGates = gates.filter((g) => !g.pass);
   const stage = useStageOpen(run.state === "running");
-  // Each specialist's finished workstream, readable while the lead is still writing the summary.
-  const readySections = run.laneOrder.map((id) => run.lanes[id]).filter((l) => l && l.state === "done" && l.text.trim());
+  // Every specialist, shown as a card of key points once its workstream is finished.
+  const lanes = run.laneOrder.map((id) => run.lanes[id]).filter(Boolean);
+  const running = run.state === "running";
+  const [promptOpen, setPromptOpen] = useState(false);
+  const longPrompt = run.prompt.length > 110 || run.prompt.includes("\n");
+  const [tab, setTab] = useState<"sum" | "spec" | "steps" | "src">("sum");
+  // The full answer or a full section opens in a panel over the run instead of making the page longer.
+  const [sheet, setSheet] = useState<{ title: string; text: string; visuals?: boolean } | null>(null);
+  const shortAnswer = run.text.length <= SHORT_ANSWER;
+  const points = shortAnswer ? [] : keyPoints(run.text, 5);
+  const stepCount = runSteps(run).length;
   const elapsed = Math.round(((run.finishedAt ?? Date.now()) - run.startedAt) / 1000);
   // Which models answered this message (Haiku triage, Sonnet, Opus), from the run's usage events.
   const models = modelsOf([run]);
@@ -433,8 +444,6 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
     if (wasRunning.current && run.state !== "running") setTimeout(() => scrollEndIntoView(run.id), 450);
     wasRunning.current = run.state === "running";
   }, [run.state, run.id]);
-  const [showAll, setShowAll] = useState(false);
-  const long = run.prompt.length > 280 || run.prompt.split("\n").length > 4;
   const [, tick] = useState(0);
   useEffect(() => {
     if (run.state !== "running") return;
@@ -450,15 +459,15 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
           {RUN_STATUS_LABEL[status]}
         </span>
         <span className="micro">{run.title}</span>
-        <div className={`prompt${long && !showAll ? " clamped" : ""}`}>
-          {run.prompt}
+        <div className="prompt">
+          <span className={promptOpen ? "" : "clamp"}>{run.prompt}</span>
+          {longPrompt && (
+            <button className="link-btn" aria-expanded={promptOpen} onClick={() => setPromptOpen((o) => !o)}>
+              {promptOpen ? "Show less" : "Show more"}
+            </button>
+          )}
           {run.attachments?.length ? <div className="muted" style={{ fontSize: "var(--fs-3)", fontWeight: 400 }}>Attached: {run.attachments.join(", ")}</div> : null}
         </div>
-        {long && (
-          <button className="prompt-more" onClick={() => setShowAll((v) => !v)}>
-            {showAll ? "Show less" : "Show full prompt"}
-          </button>
-        )}
         <span className="usage" title={models.length ? models.map((m) => `${modelName(m.model)}: ${m.tokens.toLocaleString()} tokens, est. ${cad(m.cost)}`).join("\n") : undefined}>
           {elapsed}s{run.mode === "demo" ? " · demo" : ""}
           {models.length > 0 && ` · ${modelsLine(models)} · est. ${cad(run.usage.cost ?? 0)}`}
@@ -493,7 +502,12 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
             </button>
           </div>
         )}
-        {stage.open && <AgentStage run={run} gates={gates.length ? { passed: gates.length - openGates.length, total: gates.length } : undefined} />}
+        {(stage.open || (running && lanes.length > 0)) && (
+          <div className={`run-live${stage.open && running && lanes.length ? " split" : ""}`}>
+            {stage.open && <AgentStage run={run} gates={gates.length ? { passed: gates.length - openGates.length, total: gates.length } : undefined} />}
+            {running && lanes.length > 0 && <SectionCards lanes={lanes} onOpen={(l) => setSheet({ title: l.name, text: l.text })} />}
+          </div>
+        )}
         {work.errors.length > 0 && (
           <div className="run-errors" role="alert">
             {work.errors.map((m, i) => (
@@ -510,36 +524,59 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
             ))}
           </div>
         )}
-        {readySections.length > 0 && (
-          <div className="sections">
-            <div className="micro">
-              Sections ready to review ({readySections.length}){run.state === "running" ? " · the summary is still being written" : ""}
-            </div>
-            {readySections.map((l) => (
-              <details key={l.id} className="section">
-                <summary>{l.name}</summary>
-                <div className="section-body">
-                  <Markdown text={l.text} />
-                </div>
-              </details>
-            ))}
-          </div>
-        )}
-        <RunVisuals run={run} />
-        <div className="answer">
-          {run.text ? <Markdown text={run.text} /> : run.state === "running" ? <p className="muted"><span className="spinner" /> Rudra is working…</p> : null}
-        </div>
-        {run.state !== "running" && run.text.trim() && (
-          <div className="answer-foot">
-            <button className="btn ghost sm" onClick={() => void navigator.clipboard?.writeText(run.text).then(() => toast("Answer copied"), () => toast("Copy failed", "error"))}>
-              Copy
-            </button>
-            {onRegenerate && (
-              <button className="btn ghost sm" title="Send the same message again with the same scope" onClick={onRegenerate}>
-                Regenerate
-              </button>
+        {running ? (
+          <p className="muted run-wait">
+            <span className="spinner" /> {lanes.length ? "Rudra is writing the summary. It shows here when it is finished." : "Rudra is working. The answer shows here when it is finished."}
+            {stepCount > 0 && ` · ${stepCount} steps`}
+          </p>
+        ) : (
+          <>
+            {(lanes.length > 0 || stepCount > 0 || run.sources.length > 0) && (
+              <div className="run-tabs" role="tablist">
+                <button role="tab" aria-selected={tab === "sum"} onClick={() => setTab("sum")}>Summary</button>
+                {lanes.length > 0 && <button role="tab" aria-selected={tab === "spec"} onClick={() => setTab("spec")}>Specialists ({lanes.length})</button>}
+                {stepCount > 0 && <button role="tab" aria-selected={tab === "steps"} onClick={() => setTab("steps")}>Steps ({stepCount})</button>}
+                {run.sources.length > 0 && <button role="tab" aria-selected={tab === "src"} onClick={() => setTab("src")}>Sources ({run.sources.length})</button>}
+              </div>
             )}
-            {run.sources.length > 0 && (
+            {tab === "sum" && (
+              <>
+                <div className="answer">
+                  {shortAnswer ? (
+                    run.text && <Markdown text={run.text} />
+                  ) : (
+                    <div className="key-points">
+                      <div className="micro">Key points</div>
+                      <ul>
+                        {points.map((p, i) => (
+                          <li key={i}>{p}</li>
+                        ))}
+                      </ul>
+                      <button className="link-btn" onClick={() => setSheet({ title: "Full answer", text: run.text, visuals: true })}>
+                        Read the full answer
+                      </button>
+                    </div>
+                  )}
+                </div>
+                {shortAnswer && <RunVisuals run={run} />}
+                <FileCards run={run} />
+                {run.text.trim() && (
+                  <div className="answer-foot">
+                    <button className="btn ghost sm" onClick={() => void navigator.clipboard?.writeText(run.text).then(() => toast("Answer copied"), () => toast("Copy failed", "error"))}>
+                      Copy
+                    </button>
+                    {onRegenerate && (
+                      <button className="btn ghost sm" title="Send the same message again with the same scope" onClick={onRegenerate}>
+                        Regenerate
+                      </button>
+                    )}
+                  </div>
+                )}
+              </>
+            )}
+            {tab === "spec" && <SectionCards lanes={lanes} wide onOpen={(l) => setSheet({ title: l.name, text: l.text })} />}
+            {tab === "steps" && <Steps run={run} />}
+            {tab === "src" && (
               <div className="source-chips" aria-label="Sources">
                 {run.sources.map((src) => (
                   <button key={src.key} className="chip click" title={src.title} onClick={() => setSource(src)}>
@@ -548,11 +585,22 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
                 ))}
               </div>
             )}
-          </div>
+          </>
         )}
-        <Steps run={run} />
-        <FileCards run={run} />
       </div>
+      {sheet && (
+        <>
+          <div className="drawer-backdrop" onClick={() => setSheet(null)} />
+          <div className="run-sheet" role="dialog" aria-label={sheet.title} onKeyDown={(e) => e.key === "Escape" && setSheet(null)}>
+            <div className="drawer-head">
+              <span className="micro">{sheet.title}</span>
+              <button className="btn ghost sm" autoFocus onClick={() => setSheet(null)}>Close</button>
+            </div>
+            <Markdown text={sheet.text} />
+            {sheet.visuals && <RunVisuals run={run} />}
+          </div>
+        </>
+      )}
       {source && (
         <>
           <div className="drawer-backdrop" onClick={() => setSource(null)} />
@@ -619,20 +667,24 @@ function useStageOpen(running: boolean): { open: boolean; toggle: () => void } {
   return { open, toggle };
 }
 
-/** A collapsible timeline of what the run did: each specialist and each tool call, in order. */
-function Steps({ run }: { run: Run }) {
+/** What the run did: each specialist and each tool call, in order. */
+function runSteps(run: Run) {
   const lanes = run.laneOrder.map((id) => run.lanes[id]).filter(Boolean);
-  const steps = [
+  return [
     ...run.activity.filter((a) => a.kind !== "status").map((a) => ({ id: a.id, who: "Lead", text: a.text, detail: a.detail, bad: !!a.isError, pending: !!a.pending })),
     ...lanes.flatMap((l) => [
       { id: l.id, who: l.name, text: l.state === "running" ? "working" : l.state === "failed" ? "failed" : "finished its workstream", detail: l.brief, bad: l.state === "failed", pending: l.state === "running" },
       ...l.activity.filter((a) => a.kind === "tool" || a.isError).map((a) => ({ id: `${l.id}:${a.id}`, who: l.name, text: a.text, detail: a.detail, bad: !!a.isError, pending: !!a.pending })),
     ]),
   ];
+}
+
+/** The Steps tab: the run's timeline as a numbered list. */
+function Steps({ run }: { run: Run }) {
+  const steps = runSteps(run);
   if (!steps.length) return null;
   return (
-    <details className="steps">
-      <summary>Steps ({steps.length})</summary>
+    <div className="steps">
       <ol>
         {steps.map((st) => (
           <li key={st.id} className={st.bad ? "bad" : st.pending ? "pending" : ""}>
@@ -641,7 +693,36 @@ function Steps({ run }: { run: Run }) {
           </li>
         ))}
       </ol>
-    </details>
+    </div>
+  );
+}
+
+const CARD_COLORS = ["#00e5ff", "#e879f9", "#60a5fa", "#34d399"];
+
+/** One card per specialist: three key points cut from its own section (no model call), the full text a click away. */
+function SectionCards({ lanes, onOpen, wide }: { lanes: Lane[]; onOpen: (l: Lane) => void; wide?: boolean }) {
+  return (
+    <div className={`section-cards${wide ? " wide" : ""}`}>
+      {lanes.map((l, i) => {
+        const pts = l.state === "done" ? keyPoints(l.text, 3) : [];
+        return (
+          <div key={l.id} className={`section-card ${l.state}`} style={{ ["--c" as string]: CARD_COLORS[i % CARD_COLORS.length] }}>
+            <b>
+              <i aria-hidden="true" />
+              {l.name}
+            </b>
+            <ul>
+              {l.state === "running" ? <li>Still working</li> : l.state === "failed" ? <li>Failed</li> : pts.length ? pts.map((p, k) => <li key={k}>{p}</li>) : <li>No notes</li>}
+            </ul>
+            {l.state === "done" && l.text.trim() && (
+              <button className="link-btn" onClick={() => onOpen(l)}>
+                Read full section
+              </button>
+            )}
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
