@@ -110,23 +110,44 @@ describe("goal catalog", () => {
     expect(scopeSchema.safeParse({ goal: "market_research", goal_answers: { market: ["consulting", "banking"], need: ["players"] } }).success).toBe(true);
     expect(scopeSchema.safeParse({ goal: "market_research", goal_answers: { market: ["mining"] } }).success).toBe(false);
     expect(scopeSchema.safeParse({ goal: "market_research", goal_answers: { audience: ["board"] } }).success).toBe(false);
-    expect(scopeSchema.safeParse({ goal: "strategy", goal_answers: { audience: ["board", "cfo"] } }).success).toBe(false);
+    expect(scopeSchema.safeParse({ goal: "strategy", goal_answers: { form: ["options", "risk"] } }).success).toBe(false);
+    expect(scopeSchema.safeParse({ goal: "strategy", goal_answers: { audience: ["board", "cfo"] } }).success).toBe(true);
     expect(scopeSchema.safeParse({ goal: "astrology" }).success).toBe(false);
   });
 
   it("puts the goal and its answers in the scope block, and a skipped question adds nothing", () => {
     const brief = scopeBrief({ goal: "market_research", goal_answers: { market: ["consulting"], need: [RECOMMEND] } });
     expect(brief).toContain("- Goal: Market and competitor research");
-    expect(brief).toContain("- Which market: Consulting and advisory");
-    expect(brief).toContain("- What do you need: not set; recommend what fits");
+    expect(brief).toContain("- Which markets should the research cover: Consulting and advisory");
+    expect(brief).toContain("- What should the research answer: not set; recommend what fits");
     expect(scopeBrief({ goal: "other" })).toContain("- Goal: Something else");
     expect(scopeLabel({ goal: "market_research", deliverables: ["deck"] })).toBe("Market and competitor research · HTML slide deck");
+  });
+
+  it("adds Other answers in the client's own words, and drops an empty Other box", () => {
+    const brief = scopeBrief({ goal: "market_research", goal_answers: { market: ["banking"] }, other: { market: "Mortgage brokers", need: "  " } });
+    expect(brief).toContain("- Which markets should the research cover: Banking, Mortgage brokers (client's words)");
+    expect(brief).not.toContain("- What should the research answer");
+    expect(scopeBrief({ goal: "other", other: { goal: "A board paper on outsourcing payables" } })).toContain("- What the chat is for (client's words): A board paper on outsourcing payables");
+    const ft = scopeBrief({ goal: "finance_transformation", outcomes: ["close"], other: { outcomes: "Shorter audit", client: "Trust company" } });
+    expect(ft).toContain("- Other outcome (client's words): Shorter audit");
+    expect(ft).toContain("- Client (client's words): Trust company");
+    expect(scopeSchema.safeParse({ other: { market: "x".repeat(161) } }).success).toBe(false);
+  });
+
+  it("lets every multi-answer question take all of its answers at once", async () => {
+    const { GOAL_TYPES } = await import("../shared/goalTypes");
+    for (const g of GOAL_TYPES)
+      for (const q of g.questions.filter((x) => x.multi)) {
+        const all = Object.keys(q.options).filter((k) => k !== RECOMMEND);
+        expect(scopeSchema.safeParse({ goal: g.id, goal_answers: { [q.key]: all } }).success, `${g.id}.${q.key}`).toBe(true);
+      }
   });
 
   it("adds the discovery rules only for the discovery goal, and a documents answer turns the knowledge base on", async () => {
     const brief = scopeBrief({ goal: "discovery", goal_answers: { mode: ["spec"], sources: ["none"] } });
     expect(brief).toContain("- Goal: Shape an idea into a brief");
-    expect(brief).toContain("- What back: Specification");
+    expect(brief).toContain("- What should VOLT hand back: Specification");
     expect(brief).toContain("## Discovery: shape the idea before building anything");
     expect(brief).toContain("at most three related questions");
     expect(brief).toContain('"skip all"');
