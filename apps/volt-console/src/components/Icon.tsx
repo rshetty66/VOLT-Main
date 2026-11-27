@@ -24,6 +24,9 @@ const PATHS: Record<string, string> = {
   help: "M12 4a8 8 0 100 16 8 8 0 000-16zM9.5 9.5a2.5 2.5 0 114 2c-.8.6-1.5 1-1.5 2M12 16.5v.5",
   user: "M12 4a4 4 0 100 8 4 4 0 000-8zM4.5 20c.8-4 3.8-6 7.5-6s6.7 2 7.5 6",
   warn: "M12 4l9 16H3zM12 10v4M12 17v.5",
+  spark: "M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8zM19 3v4M17 5h4",
+  send: "M4 12l16-8-6 16-2.5-6.5zM11.5 13.5L20 4",
+  clip: "M20 11l-8 8a5 5 0 01-7-7l8.5-8.5a3.5 3.5 0 015 5L10 17a2 2 0 01-3-3l7.5-7.5",
 };
 
 export function Icon({ name, size = 20 }: { name: string; size?: number }) {
