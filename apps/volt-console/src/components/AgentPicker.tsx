@@ -11,6 +11,35 @@ const readRecent = (): string[] => {
   }
 };
 
+const RUDRA = { id: "rudra", name: "All specialists (Rudra leads)", layer: "" };
+export interface PickerRow { group: string; id: string; name: string }
+
+/** What the picker lists, in order: Rudra, then recent agents (when not searching), then each layer; filtered by the query. */
+export function pickerRows(agents: Pick<CatalogAgent, "id" | "name" | "layer">[], q: string, recent: string[]): PickerRow[] {
+  const needle = q.trim().toLowerCase();
+  const byId = new Map(agents.map((a) => [a.id, a]));
+  const match = (a: { name: string; layer: string }) => !needle || a.name.toLowerCase().includes(needle) || a.layer.toLowerCase().includes(needle);
+  const out: PickerRow[] = [];
+  if (match(RUDRA)) out.push({ group: "", id: RUDRA.id, name: RUDRA.name });
+  if (!needle) for (const id of recent) { const a = byId.get(id); if (a && id !== RUDRA.id) out.push({ group: "Recent", id, name: a.name }); }
+  for (const layer of [...new Set(agents.map((a) => a.layer))]) {
+    for (const a of agents) if (a.layer === layer && a.id !== RUDRA.id && match(a)) out.push({ group: layer, id: a.id, name: a.name });
+  }
+  return out;
+}
+
+/** The highlighted row after a key press, or undefined for a key the list does not handle. */
+export function moveCursor(key: string, cursor: number, count: number): number | undefined {
+  const last = Math.max(0, count - 1);
+  if (key === "ArrowDown") return Math.min(last, cursor + 1);
+  if (key === "ArrowUp") return Math.max(0, cursor - 1);
+  if (key === "Home") return 0;
+  if (key === "End") return last;
+  if (key === "PageDown") return Math.min(last, cursor + 8);
+  if (key === "PageUp") return Math.max(0, cursor - 8);
+  return undefined;
+}
+
 /** Searchable replacement for the long "Talk to" dropdown: type to filter, recent agents first, arrow keys and Enter. */
 export function AgentPicker({ agents, value, onChange }: { agents: CatalogAgent[]; value: string; onChange: (id: string) => void }) {
   const [open, setOpen] = useState(false);
@@ -19,22 +48,11 @@ export function AgentPicker({ agents, value, onChange }: { agents: CatalogAgent[
   const root = useRef<HTMLDivElement>(null);
   const input = useRef<HTMLInputElement>(null);
 
-  const rudra = { id: "rudra", name: "All specialists (Rudra leads)", layer: "" };
   const byId = useMemo(() => new Map(agents.map((a) => [a.id, a])), [agents]);
-  const label = value === "rudra" ? rudra.name : byId.get(value)?.name ?? value;
-
-  // Flat, ordered list of what is shown: Rudra, recents, then each layer; filtered by the query.
-  const rows = useMemo(() => {
-    const needle = q.trim().toLowerCase();
-    const match = (a: { name: string; layer: string }) => !needle || a.name.toLowerCase().includes(needle) || a.layer.toLowerCase().includes(needle);
-    const out: { group: string; id: string; name: string }[] = [];
-    if (match(rudra)) out.push({ group: "", id: rudra.id, name: rudra.name });
-    if (!needle) for (const id of readRecent()) { const a = byId.get(id); if (a && id !== "rudra") out.push({ group: "Recent", id, name: a.name }); }
-    for (const layer of [...new Set(agents.map((a) => a.layer))]) {
-      for (const a of agents) if (a.layer === layer && a.id !== "rudra" && match(a)) out.push({ group: layer, id: a.id, name: a.name });
-    }
-    return out;
-  }, [agents, byId, q]);
+  const label = value === RUDRA.id ? RUDRA.name : byId.get(value)?.name ?? value;
+  const rows = useMemo(() => pickerRows(agents, q, readRecent()), [agents, q]);
+  const button = useRef<HTMLButtonElement>(null);
+  const optId = (i: number) => `picker-opt-${i}`;
 
   useEffect(() => setCursor(0), [q, open]);
   useEffect(() => {
@@ -50,38 +68,40 @@ export function AgentPicker({ agents, value, onChange }: { agents: CatalogAgent[
 
   const pick = (id: string) => {
     onChange(id);
-    if (id !== "rudra") {
+    if (id !== RUDRA.id) {
       try { localStorage.setItem(RECENT_KEY, JSON.stringify([id, ...readRecent().filter((x) => x !== id)].slice(0, 5))); } catch { /* storage unavailable */ }
     }
     setOpen(false);
     setQ("");
+    button.current?.focus();
   };
 
   const onKey = (e: React.KeyboardEvent) => {
-    if (e.key === "Escape") { setOpen(false); return; }
-    if (e.key === "ArrowDown") { e.preventDefault(); setCursor((c) => Math.min(rows.length - 1, c + 1)); }
-    else if (e.key === "ArrowUp") { e.preventDefault(); setCursor((c) => Math.max(0, c - 1)); }
-    else if (e.key === "Enter") { e.preventDefault(); if (rows[cursor]) pick(rows[cursor].id); }
+    if (!open) return;
+    if (e.key === "Escape") { e.preventDefault(); setOpen(false); button.current?.focus(); return; }
+    if (e.key === "Enter") { e.preventDefault(); if (rows[cursor]) pick(rows[cursor].id); return; }
+    const next = moveCursor(e.key, cursor, rows.length);
+    if (next !== undefined) { e.preventDefault(); setCursor(next); }
   };
 
   let lastGroup: string | null = null;
   return (
     <div className="picker" ref={root} onKeyDown={onKey}>
-      <button type="button" className="select picker-btn" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
+      <button ref={button} type="button" className="select picker-btn" aria-label={`Talk to: ${label}`} aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
         {label} <span aria-hidden="true">▾</span>
       </button>
       {open && (
         <div className="picker-pop">
-          <input ref={input} className="input" placeholder={`Search ${agents.length} agents…`} aria-label="Search agents" value={q} onChange={(e) => setQ(e.target.value)} />
-          <div className="picker-list" role="listbox" aria-label="Agents">
+          <input ref={input} className="input" role="combobox" aria-expanded="true" aria-controls="picker-list" aria-autocomplete="list" aria-activedescendant={rows[cursor] ? optId(cursor) : undefined} placeholder={`Search ${agents.length} agents…`} aria-label="Search agents" value={q} onChange={(e) => setQ(e.target.value)} />
+          <div className="picker-list" id="picker-list" role="listbox" aria-label="Agents">
             {rows.length === 0 && <div className="picker-empty">No agent matches “{q}”.</div>}
             {rows.map((r, i) => {
-              const header = r.group !== lastGroup && r.group ? <div className="picker-group" key={`g-${r.group}-${i}`}>{r.group}</div> : null;
+              const header = r.group !== lastGroup && r.group ? <div className="picker-group" role="presentation" key={`g-${r.group}-${i}`}>{r.group}</div> : null;
               lastGroup = r.group;
               return (
                 <div key={`${r.group}-${r.id}`} style={{ display: "contents" }}>
                   {header}
-                  <button type="button" role="option" aria-selected={r.id === value} className={`picker-opt ${i === cursor ? "on" : ""}`} onMouseEnter={() => setCursor(i)} onClick={() => pick(r.id)}>
+                  <button type="button" role="option" id={optId(i)} tabIndex={-1} aria-selected={r.id === value} className={`picker-opt ${i === cursor ? "on" : ""}`} onMouseEnter={() => setCursor(i)} onClick={() => pick(r.id)}>
                     {r.name}
                   </button>
                 </div>

@@ -1,6 +1,6 @@
-import { confirmDialog, toast } from "../ui";
+import { ago, confirmDialog, toast } from "../ui";
 import { useEffect, useRef, useState } from "react";
-import { addUrlSource, deleteUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
+import { addUrlSource, deleteUpload, listUploads, refreshUpload, uploadAttachment, type UploadMeta } from "../api";
 
 const size = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
 const when = (t: number) => new Date(t).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
@@ -43,7 +43,7 @@ export function Uploads({ projectName }: { projectName: string }) {
       <div>
         <h1 className="page-title">Knowledge base</h1>
         <p className="page-sub">
-          The documents and web pages of {projectName}. Every chat in this project searches them and cites the passages it uses, with file and page. Files you attach in a chat land here too. Web pages are read once when you add them.
+          The documents and web pages of {projectName}. Every chat in this project searches them and cites the passages it uses, with file and page. Files you attach in a chat land here too. Web pages are read when you add them; use Refresh to read one again.
         </p>
       </div>
       <div className="card stack">
@@ -69,15 +69,20 @@ export function Uploads({ projectName }: { projectName: string }) {
           <div key={u.id} className="card history-item">
             <div className="history-main">
               <div className="micro">
-                {u.url ? "WEB" : u.ext.toUpperCase()} · {size(u.bytes)} · {u.chars.toLocaleString()} characters read{u.truncated ? " (truncated)" : ""} · {when(u.createdAt)}
+                {u.url ? "WEB" : u.ext.toUpperCase()} · {size(u.bytes)} · {u.chars.toLocaleString()} characters read{u.truncated ? " (truncated)" : ""} · {u.url ? <span title={`Added ${when(u.createdAt)}`}>Last read {ago(u.readAt ?? u.createdAt)}</span> : when(u.createdAt)}
               </div>
               <div className="history-prompt">{u.name}</div>
             </div>
             <div className="row">
               {u.url ? (
-                <a className="btn sm" href={u.url} target="_blank" rel="noopener noreferrer">
-                  Open page
-                </a>
+                <>
+                  <button className="btn sm" disabled={!!busy} title="Read this page again, so chats use its current text" onClick={() => void run("Refreshing", async () => (await refreshUpload(u.id), toast(`Refreshed ${u.name}`)))}>
+                    Refresh
+                  </button>
+                  <a className="btn sm" href={u.url} target="_blank" rel="noopener noreferrer">
+                    Open page
+                  </a>
+                </>
               ) : (
                 <a className="btn sm" href={`/api/uploads/${u.id}/file`}>
                   Download

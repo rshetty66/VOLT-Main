@@ -20,16 +20,17 @@ import { Agents, AgentDrawer } from "./components/Agents";
 import { SkillFinder } from "./components/SkillFinder";
 import { Services } from "./components/Services";
 import { Analytics } from "./components/Analytics";
+import { Diagrams } from "./components/Diagrams";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
 import { TemplateContext } from "./exports";
-import { cad, chatUsage, setUsdCadRate, usageTotals } from "./usage";
+import { cad, chatUsage, modelName, setUsdCadRate, usageTotals } from "./usage";
 import { Icon, Ring } from "./components/Icon";
 import { setupProgress, setupSteps } from "./setup";
 import { kpiScorecard } from "./charts/results";
 import { errText } from "./netGuard";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads" | "ledger" | "projects";
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads" | "ledger" | "projects" | "diagrams";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -55,6 +56,20 @@ export function App() {
   const [forceDemo, setForceDemo] = useState(false);
   /** "Opus" switch: every step of the next runs on Opus, and the chat stays there (see server/router.ts). */
   const [forceOpus, setForceOpus] = useState(false);
+  // The top bar's Settings menu closes on a click outside it or on Escape.
+  const settings = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    const close = (e: Event) => {
+      const el = settings.current;
+      if (el?.open && (e.type === "keydown" ? (e as KeyboardEvent).key === "Escape" : !el.contains(e.target as Node))) el.open = false;
+    };
+    document.addEventListener("mousedown", close);
+    document.addEventListener("keydown", close);
+    return () => {
+      document.removeEventListener("mousedown", close);
+      document.removeEventListener("keydown", close);
+    };
+  }, []);
   /** Which provider the specialist workstreams run on; the lead stays on Claude. */
   const [engine, setEngine] = useState<"claude" | "auto" | "gpt" | "grok">(() => (localStorage.getItem("volt.engine") as "claude" | "auto" | "gpt" | "grok") || "claude");
   useEffect(() => localStorage.setItem("volt.engine", engine), [engine]);
@@ -247,6 +262,7 @@ export function App() {
     ["history", "Chats", "Chats", history.length || ""],
     ["uploads", "Knowledge", "Knowledge base", uploadCount || ""],
     ["ledger", "Ledger", "Ledger review", ""],
+    ["diagrams", "Diagrams", "Diagram builder", ""],
     ["usage", "Usage", "Token usage", ""],
     ["health", "Health", "Capability Health", missing],
   ];
@@ -288,31 +304,36 @@ export function App() {
             <Icon name="plus" size={18} />
           </button>
         </div>
-        <span className={`badge admin-only ${live ? "live" : ""}`}>{live ? "Live" : "Demo"}</span>
-        <span className="usage" title={live && catalog.routing ? `VOLT picks the model for each step: Haiku triages, Sonnet answers quick asks and specialist work, Opus leads deliverables. Default tier: ${catalog.model}.` : undefined}>
-          {live ? (catalog.routing ? "Auto" : catalog.model) : "offline simulator"}
+        <span className="usage" title={live && catalog.routing ? `VOLT picks the model for each step: Haiku triages, Sonnet answers quick asks and specialist work, Opus leads deliverables. Each answer shows the models that ran it.` : undefined}>
+          {live ? (catalog.routing ? "Auto" : modelName(catalog.model)) : "offline simulator"}
         </span>
-        {catalog.mode === "live" && (
-          <label className="row body admin-only" style={{ fontSize: 12 }}>
-            <input type="checkbox" checked={forceDemo} onChange={(e) => setForceDemo(e.target.checked)} /> demo
-          </label>
-        )}
-        {live && (
-          <label className="row body admin-only" style={{ fontSize: 12 }} title="Run every step on Opus instead of letting VOLT pick the model. A chat that has used Opus stays on Opus.">
-            <input type="checkbox" checked={forceOpus} onChange={(e) => setForceOpus(e.target.checked)} /> Opus
-          </label>
-        )}
-        {live && (catalog.engines?.gpt || catalog.engines?.grok) && (
-          <label className="row body template-pick admin-only" style={{ fontSize: 12 }} title="Which provider runs the specialist workstreams. The lead and high-stakes finance work stay on Claude.">
-            Specialists
-            <select className="select" value={engine} onChange={(e) => setEngine(e.target.value as typeof engine)}>
-              <option value="claude">Claude</option>
-              <option value="auto">Auto (best across)</option>
-              {catalog.engines?.gpt && <option value="gpt">GPT</option>}
-              {catalog.engines?.grok && <option value="grok">Grok</option>}
-            </select>
-          </label>
-        )}
+        <details className="settings-menu admin-only" ref={settings}>
+          <summary className="btn ghost sm" aria-label="Run settings">Settings</summary>
+          <div className="settings-pop" role="group" aria-label="Run settings">
+            <div className="row"><span className={`badge ${live ? "live" : ""}`}>{live ? "Live" : "Demo"}</span><span className="muted" style={{ fontSize: 12 }}>Default model: {catalog.model}</span></div>
+            {catalog.mode === "live" && (
+              <label className="row body">
+                <input type="checkbox" checked={forceDemo} onChange={(e) => setForceDemo(e.target.checked)} /> Demo mode (simulated answers, no model spend)
+              </label>
+            )}
+            {live && (
+              <label className="row body" title="A chat that has used Opus stays on Opus.">
+                <input type="checkbox" checked={forceOpus} onChange={(e) => setForceOpus(e.target.checked)} /> Run every step on Opus
+              </label>
+            )}
+            {live && (catalog.engines?.gpt || catalog.engines?.grok) && (
+              <label className="row body" title="Which provider runs the specialist workstreams. The lead and high-stakes finance work stay on Claude.">
+                Specialists
+                <select className="select" value={engine} onChange={(e) => setEngine(e.target.value as typeof engine)}>
+                  <option value="claude">Claude</option>
+                  <option value="auto">Auto (best across)</option>
+                  {catalog.engines?.gpt && <option value="gpt">GPT</option>}
+                  {catalog.engines?.grok && <option value="grok">Grok</option>}
+                </select>
+              </label>
+            )}
+          </div>
+        </details>
         <label className="row body template-pick" style={{ fontSize: 12 }}>
           Project
           <select className="select" value={projectId} onChange={(e) => void switchProject(e.target.value)}>
@@ -346,10 +367,10 @@ export function App() {
         {nav.filter(([id]) => !(present && (id === "usage" || id === "health" || id === "ledger"))).map(([id, label, full, count], i) => (
           <div key={id} style={{ display: "contents" }}>
             {(i === 1 || i === 8) && <div className="sep" />}
-            <button className={view === id ? "active" : ""} onClick={() => setView(id)} title={count !== "" ? `${full} (${count})` : full} aria-label={full}>
+            <button className={view === id ? "active" : ""} onClick={() => setView(id)} title={id === "health" && missing > 0 ? `${missing} skills referenced by agents are missing from this build` : count !== "" ? `${full} (${count})` : full} aria-label={id === "health" && missing > 0 ? `${full}: ${missing} missing skills` : full}>
               <span className="rail-icon">
                 <Icon name={id} />
-                {id === "health" && Number(count) > 0 && <span className="rail-badge" aria-label={`${count} gaps`} />}
+                {id === "health" && missing > 0 && <span className="rail-badge count" aria-hidden="true">{missing > 99 ? "99+" : missing}</span>}
               </span>
               <span className="rail-label">{label}</span>
             </button>
@@ -406,6 +427,7 @@ export function App() {
             }}
           />
         )}
+        {view === "diagrams" && <Diagrams />}
         {view === "health" && <Health catalog={catalog} onOpenAgent={setOpenAgent} />}
       </main>
       </TemplateContext.Provider>

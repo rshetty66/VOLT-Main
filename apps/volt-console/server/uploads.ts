@@ -27,8 +27,10 @@ export interface UploadMeta {
   uses: number;
   /** The project whose knowledge base it belongs to; absent means "general". */
   projectId?: string;
-  /** For a web source: the page's URL (fetched once, when it was added). */
+  /** For a web source: the page's URL. */
   url?: string;
+  /** For a web source: when the page was last read (added or refreshed). */
+  readAt?: number;
 }
 
 const projectOf = (m: UploadMeta) => m.projectId ?? DEFAULT_PROJECT_ID;
@@ -65,14 +67,15 @@ export function removeUpload(id: string): boolean {
   return true;
 }
 
-export function saveUpload(extracted: Extracted, original: Uint8Array, opts: { projectId?: string; url?: string } = {}): UploadMeta {
+/** `keep` refreshes an existing entry in place: same id and first-added time, so chats that cite it still find it. */
+export function saveUpload(extracted: Extracted, original: Uint8Array, opts: { projectId?: string; url?: string; keep?: UploadMeta } = {}): UploadMeta {
   fs.mkdirSync(root(), { recursive: true });
   const projectId = opts.projectId ?? DEFAULT_PROJECT_ID;
   // The same name (or URL) in the same project replaces the older copy, so the library does not fill with versions of one file.
   for (const m of listUploads(projectId)) if (opts.url ? m.url === opts.url : !m.url && m.name === extracted.name) removeUpload(m.id);
-  const id = crypto.randomUUID();
+  const id = opts.keep?.id ?? crypto.randomUUID();
   const ext = opts.url ? "url" : extracted.name.includes(".") ? extracted.name.split(".").pop()!.toLowerCase() : "";
-  const meta: UploadMeta = { id, name: extracted.name, ext, bytes: original.length, chars: extracted.chars, truncated: extracted.truncated, createdAt: Math.max(Date.now(), (listUploads()[0]?.createdAt ?? 0) + 1), uses: 0, projectId, ...(opts.url ? { url: opts.url } : {}) };
+  const meta: UploadMeta = { id, name: extracted.name, ext, bytes: original.length, chars: extracted.chars, truncated: extracted.truncated, createdAt: opts.keep?.createdAt ?? Math.max(Date.now(), (listUploads()[0]?.createdAt ?? 0) + 1), uses: opts.keep?.uses ?? 0, projectId, ...(opts.url ? { url: opts.url, readAt: Date.now() } : {}) };
   fs.writeFileSync(path.join(root(), `${id}.bin`), original);
   fs.writeFileSync(path.join(root(), `${id}.txt`), extracted.text);
   fs.writeFileSync(path.join(root(), `${id}.json`), JSON.stringify(meta));
@@ -89,6 +92,10 @@ export function saveUpload(extracted: Extracted, original: Uint8Array, opts: { p
     all.splice(all.indexOf(m), 1);
   }
   return meta;
+}
+
+export function uploadMeta(id: string): UploadMeta | undefined {
+  return ID.test(id) ? readMeta(id) : undefined;
 }
 
 export function readUpload(id: string): { meta: UploadMeta; text: string } | undefined {

@@ -178,6 +178,13 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .examples { display: flex; gap: 8px; flex-wrap: wrap; }
 .examples button { text-align: left; max-width: 340px; }
 
+/* Room under the last answer for the pinned message box: scrolling to an answer's end lands above the box. */
+.main { scroll-padding-bottom: calc(var(--composer-h, 0px) + 16px); }
+.status-pill { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; padding: 3px 10px 3px 8px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--heading); }
+.status-pill.working { color: var(--primary); }
+.status-pill.stopped { color: var(--muted); }
+.status-pill.failed { color: var(--warn); border-color: var(--orange); }
+.status-pill.failed .dot.failed { background: var(--orange); border: 0; }
 .run { border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
 .run-head { padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--line); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .run-head .prompt { flex: 1 1 320px; font-weight: 500; white-space: pre-wrap; }
@@ -471,6 +478,8 @@ span.pill { cursor: default; }
 .rail-mode strong { font-size: 15px; color: var(--heading); }
 .rail-mode span { font-size: 10px; color: var(--muted); }
 .rail-badge.blue { background: #3b82f6; }
+/* A warning count (missing skills), not a catalogue count: catalogue counts stay in the tooltips. */
+.rail-badge.count { width: auto; height: auto; min-width: 14px; padding: 0 4px; top: -4px; right: -6px; border-radius: 999px; font-size: 10px; font-weight: 700; line-height: 14px; text-align: center; color: var(--on-light); background: var(--warn); }
 .rail-avatar { position: relative; align-self: center; width: 38px; height: 38px; margin: 6px 0; border-radius: 50%; display: grid; place-items: center; background: var(--surface); color: var(--body); border: 1px solid var(--line-strong); }
 .rail-avatar .presence { position: absolute; right: -1px; top: -1px; width: 10px; height: 10px; border-radius: 50%; background: #3fb950; border: 2px solid var(--void); box-sizing: content-box; }
 
@@ -512,3 +521,9 @@ html, body, #root { height: 100%; }
   .mermaid-svg .va-band,
   .mermaid-svg .vp-step { animation: none; }
 }
+
+/* Top bar Settings menu: the admin run toggles, out of the main bar. */
+.settings-menu { position: relative; }
+.settings-menu > summary { list-style: none; cursor: pointer; }
+.settings-menu > summary::-webkit-details-marker { display: none; }
+.settings-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 280px; display: grid; gap: 10px; padding: 12px 14px; font-size: 13px; background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }

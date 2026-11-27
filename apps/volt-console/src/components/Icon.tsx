@@ -12,6 +12,7 @@ const PATHS: Record<string, string> = {
   uploads: "M12 4c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3zM4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3",
   ledger: "M5 4h14v16H5zM9 9l2 2 4-4M9 16h6",
   usage: "M12 4c4.4 0 8 1.3 8 3s-3.6 3-8 3-8-1.3-8-3 3.6-3 8-3zM4 7v5c0 1.7 3.6 3 8 3M4 12v5c0 1.7 3.6 3 8 3",
+  diagrams: "M3 5h6v5H3zM15 5h6v5h-6zM9 14h6v5H9zM6 10v2h12v-2M12 12v2",
   health: "M3 12h4l2-6 4 12 2-6h6",
   plus: "M12 5v14M5 12h14",
   search: "M10 4a6 6 0 100 12 6 6 0 000-12zM15 15l5 5",
