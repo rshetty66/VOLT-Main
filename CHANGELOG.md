@@ -4,6 +4,7 @@
 
 ### Added
 
+- `volt-release-loop` skill: a self-running release loop for the console (one change per lap, objective gate plus an independent reviewer, loop-state.md memory, stop rules, training mode on for the first three runs).
 - Skill quality checks on the Health page, based on Uber Engineering's skill linter: numbered steps, a way to check each result, an error-recovery section, a body under 500 lines, a useful description, and no bundled tool servers. They are plain text checks that flag skills worth a look, not a quality score. First run over the shipped skills: 6 of 378 pass every check; 361 have no error-recovery section.
 
 - Diagram builder in the console: describe an agent system or process, get an interactive, animated diagram with typed nodes and edges and playable scenarios (Sonnet drafts it; demo mode shows a sample). Downloads as standalone HTML or JSON. Model text is stripped of markup, the frame is sandboxed, and the route is rate limited like runs.
