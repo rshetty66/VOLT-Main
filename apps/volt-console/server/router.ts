@@ -73,6 +73,17 @@ export function scopeOpusReason(scope?: { deliverables?: string[]; depth?: strin
   return file ? `the scope asks for a ${file} deliverable` : null;
 }
 
+/**
+ * The specialist guardrail, decided per turn: this turn's own wording, scope or Opus switch. It never reads the
+ * session's lead tier (which only moves up), so a follow-up question after an Opus turn runs its specialists on
+ * Sonnet, GPT or Grok again. Returns the reason, or null.
+ */
+export function specialistOpusReason(turn: { prompt: string; opus?: boolean; scope?: { deliverables?: string[]; depth?: string } }): string | null {
+  if (turn.opus) return "the Opus switch is on";
+  if (highStakes(turn.prompt)) return "high-stakes finance wording";
+  return scopeOpusReason(turn.scope);
+}
+
 /** The rule used when triage is off or fails: the same signal the partner review uses for a client deliverable. */
 export function ruleRoute(wantsDeliverable: boolean): Route {
   return wantsDeliverable

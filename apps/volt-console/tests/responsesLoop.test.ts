@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { ProviderError, runResponsesLoop, sse } from "../server/responsesLoop";
+import { PartialStreamError, ProviderError, runResponsesLoop, sse, toFunctionTool } from "../server/responsesLoop";
 
 const frames = (events: object[]) =>
   new Response(new ReadableStream({ start(c) { for (const e of events) c.enqueue(new TextEncoder().encode(`event: x\ndata: ${JSON.stringify(e)}\n\n`)); c.close(); } }), { status: 200 });
@@ -43,7 +43,7 @@ describe("runResponsesLoop", () => {
     expect(out).toBe("Hello world");
     expect(text.join("")).toBe("Hello world");
     expect(calls).toEqual([{ id: "c1", name: "apqc_benchmark", input: { x: 1 } }]);
-    expect(usage[0]).toEqual({ inputTokens: 60, outputTokens: 10, cacheReadTokens: 40 });
+    expect(usage[0]).toEqual({ inputTokens: 60, outputTokens: 10, cacheReadTokens: 40, reasoningTokens: 0 });
     expect(bodies[0].store).toBe(false);
     expect(bodies[0].reasoning).toEqual({ effort: "high" });
     expect(bodies[1].input.map((i: any) => i.type ?? i.role)).toEqual(["user", "function_call", "function_call_output"]);
@@ -84,5 +84,56 @@ describe("runResponsesLoop", () => {
     const got: any[] = [];
     for await (const e of sse(body)) got.push(e);
     expect(got).toEqual([{ a: 1 }, { b: 2 }]);
+  });
+});
+
+describe("stateless integrity", () => {
+  it("normalises Anthropic tools to function tools", () => {
+    expect(toFunctionTool({ name: "t", input_schema: {} })).toEqual({ type: "function", name: "t", description: "", parameters: { type: "object", properties: {} }, strict: false });
+    const t = toFunctionTool({ name: "t", description: "d", input_schema: { type: "object", properties: { a: { type: "string" } }, required: ["a"] } });
+    expect((t.parameters as any).required).toEqual(["a"]);
+    expect(t).not.toHaveProperty("input_schema");
+  });
+
+  it("echoes reasoning beside function calls and reads reasoning token counts", async () => {
+    const bodies: any[] = [];
+    const reasoning = { type: "reasoning", id: "r1", encrypted_content: "enc", summary: [] };
+    const replies = [
+      frames([
+        { type: "response.output_item.done", item: reasoning },
+        { type: "response.output_item.done", item: { type: "reasoning", id: "r0", summary: [] } },
+        { type: "response.output_item.done", item: { type: "function_call", id: "fc1", call_id: "c1", name: "apqc_benchmark", arguments: "{}" } },
+        { type: "response.completed", response: { usage: { input_tokens: 10, output_tokens: 7, output_tokens_details: { reasoning_tokens: 5 } } } },
+      ]),
+      frames([{ type: "response.output_text.delta", delta: "done" }, { type: "response.completed", response: {} }]),
+    ];
+    const usage: any[] = [];
+    await runResponsesLoop({
+      ...base,
+      fetchImpl: (async (_u: string, init: any) => (bodies.push(JSON.parse(init.body)), replies.shift()!)) as any,
+      onText() {},
+      onUsage: (u) => usage.push(u),
+      execute: async () => ({ content: "ok" }),
+    });
+    expect(bodies[0].include).toEqual(["reasoning.encrypted_content"]);
+    expect(bodies[1].input.map((i: any) => i.type ?? i.role)).toEqual(["user", "reasoning", "function_call", "function_call_output"]);
+    expect(bodies[1].input[1]).toEqual(reasoning);
+    expect(usage[0].reasoningTokens).toBe(5);
+  });
+
+  it("reports a mid-stream failure with the text already emitted", async () => {
+    let n = 0;
+    const stream = new Response(new ReadableStream({ pull(c) { if (n++ === 0) c.enqueue(new TextEncoder().encode(`data: ${JSON.stringify({ type: "response.output_text.delta", delta: "Part one. " })}\n\n`)); else c.error(new Error("socket hang up")); } }), { status: 200 });
+    const err: any = await runResponsesLoop({ ...base, fetchImpl: (async () => stream) as any, onText() {}, onUsage() {}, execute: async () => ({ content: "" }) }).catch((e) => e);
+    expect(err).toBeInstanceOf(PartialStreamError);
+    expect(err.partial).toBe("Part one. ");
+    expect(err.status).toBe(503);
+  });
+
+  it("fails plainly when nothing was emitted", async () => {
+    const stream = new Response(new ReadableStream({ start(c) { c.error(new Error("boom")); } }), { status: 200 });
+    const err: any = await runResponsesLoop({ ...base, fetchImpl: (async () => stream) as any, onText() {}, onUsage() {}, execute: async () => ({ content: "" }) }).catch((e) => e);
+    expect(err).toBeInstanceOf(ProviderError);
+    expect(err).not.toBeInstanceOf(PartialStreamError);
   });
 });
