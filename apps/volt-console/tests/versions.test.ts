@@ -48,3 +48,10 @@ describe("answer layout rule", () => {
     for (const w of ["headings", "bullets", "Bold the key figures", "table", "[S02][S03]"]) expect(CHAT_FORMAT).toContain(w);
   });
 });
+
+describe("key points", () => {
+  it("drop source keys and evidence tags", async () => {
+    const { plain } = await import("../src/runDigest");
+    expect(plain("Close takes 9 days [S02][S03] at a cost [ASSUMPTION].")).toBe("Close takes 9 days at a cost.");
+  });
+});
