@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from "react";
 import { DELIVERABLES, MAX_KPIS, MAX_OUTCOMES, OUTCOME_GROUPS, OUTCOMES, RECOMMEND, CLIENT_TYPES, type Kpi, type Scope } from "../../shared/scope";
-import { GOAL_TYPES, goalType } from "../../shared/goalTypes";
+import { GOAL_TYPES, OTHER_GOAL, goalType } from "../../shared/goalTypes";
 import { parseKpiList, suggestKpis, type KpiDef } from "../../shared/kpis";
 
 /**
  * The intake, kept short: pick what the chat is for, answer up to two questions for that goal (each can be skipped),
- * and start. Finance transformation adds its outcomes and an optional KPI step. "Skip all" sends the message with no
+ * and start. A question that takes several answers has Select all, and every question has Other for the client's own
+ * words. Finance transformation adds its outcomes and an optional KPI step. "Skip all" sends the message with no
  * scope. Nothing is preselected, so no default steers the answer.
  */
 export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { draft: Scope; onChange: (s: Scope) => void; starting: boolean; onConfirm: () => void; onSkip: () => void }) {
@@ -18,6 +19,12 @@ export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { d
   const outcomes = draft.outcomes ?? [];
   const kpis = draft.kpis ?? [];
   const answers = draft.goal_answers ?? {};
+  const other = draft.other ?? {};
+  /** The scope with one Other answer set (a string, even empty, while its box is open) or removed (undefined). */
+  const withOther = (key: string, v: string | undefined): Partial<Scope> => {
+    const { [key]: _drop, ...rest } = other;
+    return { other: v === undefined ? rest : { ...rest, [key]: v } };
+  };
 
   const toggle = (list: string[] | undefined, key: string, multi: boolean, max = Infinity): string[] => {
     const l = list ?? [];
@@ -37,8 +44,28 @@ export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { d
   };
   const unskip = (key: string) => setSkipped((s) => { const n = new Set(s); n.delete(key); return n; });
 
+  /** Select all / Clear for a question that takes several answers ("Not sure, recommend" is never part of all). */
+  const selectAll = (label: string, picked: string[] | undefined, all: string[], pick: (l: string[] | undefined) => void) => {
+    const on = all.length > 0 && all.every((k) => picked?.includes(k));
+    return (
+      <button type="button" className="btn ghost sm" aria-label={`${on ? "Clear" : "Select all"}: ${label}`} onClick={() => pick(on ? undefined : all)}>
+        {on ? "Clear" : "Select all"}
+      </button>
+    );
+  };
+  /** The Other chip and, once picked, a one-line box for the client's own words. */
+  const otherChip = (key: string, label: string, patchOn: Partial<Scope> = {}) => {
+    const on = other[key] !== undefined;
+    return (
+      <>
+        {chip(on, "Other", () => set(on ? withOther(key, undefined) : { ...patchOn, ...withOther(key, "") }))}
+        {on && <input className="input intake-other" autoFocus maxLength={160} aria-label={`${label}: other`} placeholder="Say it in your own words" value={other[key]} onChange={(e) => set(withOther(key, e.target.value))} />}
+      </>
+    );
+  };
+
   /** One question: its label, a Skip button, and its chips; once skipped, a single line with Undo. */
-  const question = (key: string, label: string, note: string, body: ReactNode, clear: () => void) =>
+  const question = (key: string, label: string, note: string, body: ReactNode, clear: () => void, actions?: ReactNode) =>
     skipped.has(key) ? (
       <div key={key} className="intake-q intake-skipped">
         <span>{label}</span>
@@ -50,7 +77,10 @@ export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { d
         <div className="intake-ql">
           <b>{label}</b>
           <span>{note}</span>
-          <button type="button" className="btn ghost sm intake-skip" aria-label={`Skip: ${label}`} onClick={() => skip(key, clear)}>Skip</button>
+          <span className="intake-qa">
+            {actions}
+            <button type="button" className="btn ghost sm intake-skip" aria-label={`Skip: ${label}`} onClick={() => skip(key, clear)}>Skip</button>
+          </span>
         </div>
         {body}
       </div>
@@ -69,10 +99,11 @@ export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { d
   const suggested = suggestKpis(outcomes.filter((o) => o !== RECOMMEND));
   const deliverables = question(
     "deliverables",
-    "Hand back as",
-    "any",
+    "How should VOLT hand it back?",
+    "pick any",
     <div className="intake-chips">{Object.entries(DELIVERABLES).map(([k, label]) => chip(Boolean(draft.deliverables?.includes(k)), label, () => set({ deliverables: toggle(draft.deliverables, k, true) })))}</div>,
     () => set({ deliverables: undefined }),
+    selectAll("How should VOLT hand it back?", draft.deliverables, Object.keys(DELIVERABLES), (l) => set({ deliverables: l })),
   );
 
   return (
@@ -85,7 +116,7 @@ export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { d
           </div>
           <div className="intake-chips intake-goals" role="radiogroup" aria-label="Goal">
             {GOAL_TYPES.map((g) => (
-              <button key={g.id} type="button" role="radio" aria-checked={draft.goal === g.id} title={g.hint} className={`chip click intake-chip${draft.goal === g.id ? " on" : ""}`} onClick={() => onChange(draft.goal === g.id ? {} : { goal: g.id, deliverables: draft.deliverables })}>
+              <button key={g.id} type="button" role="radio" aria-checked={draft.goal === g.id} title={g.hint} className={`chip click intake-chip${draft.goal === g.id ? " on" : ""}`} onClick={() => onChange(draft.goal === g.id ? {} : { goal: g.id, deliverables: draft.deliverables, ...(g.id === "other" ? { other: { [OTHER_GOAL]: "" } } : {}) })}>
                 {g.label}
               </button>
             ))}
@@ -94,8 +125,8 @@ export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { d
             <>
               {question(
                 "outcomes",
-                "Outcome",
-                `up to ${MAX_OUTCOMES}`,
+                "Which outcomes matter most?",
+                `pick up to ${MAX_OUTCOMES}`,
                 <>
                   <div className="intake-groups">
                     {OUTCOME_GROUPS.map((g) => (
@@ -105,28 +136,55 @@ export function IntakeCard({ draft, onChange, starting, onConfirm, onSkip }: { d
                       </div>
                     ))}
                   </div>
-                  <div className="intake-chips">{chip(outcomes.includes(RECOMMEND), OUTCOMES[RECOMMEND], () => set({ outcomes: toggle(outcomes, RECOMMEND, true) }), true)}</div>
+                  <div className="intake-chips">
+                    {otherChip("outcomes", "Which outcomes matter most?", { outcomes: outcomes.filter((o) => o !== RECOMMEND) })}
+                    {chip(outcomes.includes(RECOMMEND), OUTCOMES[RECOMMEND], () => set({ outcomes: toggle(outcomes, RECOMMEND, true), ...(outcomes.includes(RECOMMEND) ? {} : withOther("outcomes", undefined)) }), true)}
+                  </div>
                 </>,
-                () => set({ outcomes: undefined }),
+                () => set({ outcomes: undefined, ...withOther("outcomes", undefined) }),
               )}
               {question(
                 "client",
-                "Client",
-                "one",
-                <div className="intake-chips">{Object.entries(CLIENT_TYPES).map(([k, label]) => chip(draft.client_type === k, label, () => set({ client_type: draft.client_type === k ? undefined : k })))}</div>,
-                () => set({ client_type: undefined }),
+                "Who is the client?",
+                "pick one",
+                <div className="intake-chips">
+                  {Object.entries(CLIENT_TYPES).map(([k, label]) => chip(draft.client_type === k, label, () => set({ client_type: draft.client_type === k ? undefined : k, ...withOther("client", undefined) })))}
+                  {otherChip("client", "Who is the client?", { client_type: undefined })}
+                </div>,
+                () => set({ client_type: undefined, ...withOther("client", undefined) }),
               )}
             </>
           )}
-          {goal?.questions.map((q) =>
+          {draft.goal === "other" &&
             question(
+              OTHER_GOAL,
+              "What is this chat for?",
+              "one line",
+              <input className="input intake-other" maxLength={160} aria-label="What is this chat for?" placeholder="For example: a board paper on outsourcing the payables team" value={other[OTHER_GOAL] ?? ""} onChange={(e) => set(withOther(OTHER_GOAL, e.target.value))} />,
+              () => set(withOther(OTHER_GOAL, undefined)),
+            )}
+          {goal?.questions.map((q) => {
+            const pick = (l: string[] | undefined) => { const { [q.key]: _drop, ...rest } = answers; set({ goal_answers: l?.length ? { ...rest, [q.key]: l } : rest }); };
+            const all = Object.keys(q.options).filter((k) => k !== RECOMMEND);
+            const choose = (k: string) => {
+              const next = toggle(answers[q.key], k, q.multi);
+              const { [q.key]: _drop, ...rest } = answers;
+              // A single answer, or "Not sure, recommend", replaces Other.
+              set({ goal_answers: next.length ? { ...rest, [q.key]: next } : rest, ...(!q.multi || k === RECOMMEND ? withOther(q.key, undefined) : {}) });
+            };
+            return question(
               q.key,
               q.label,
-              q.multi ? "any" : "one",
-              <div className="intake-chips">{Object.entries(q.options).map(([k, label]) => chip(Boolean(answers[q.key]?.includes(k)), label, () => set({ goal_answers: { ...answers, [q.key]: toggle(answers[q.key], k, q.multi) } }), k === RECOMMEND))}</div>,
-              () => { const { [q.key]: _drop, ...rest } = answers; set({ goal_answers: rest }); },
-            ),
-          )}
+              q.multi ? "pick any" : "pick one",
+              <div className="intake-chips">
+                {Object.entries(q.options).filter(([k]) => k !== RECOMMEND).map(([k, label]) => chip(Boolean(answers[q.key]?.includes(k)), label, () => choose(k)))}
+                {otherChip(q.key, q.label, { goal_answers: (() => { const l = (answers[q.key] ?? []).filter((k) => q.multi && k !== RECOMMEND); const { [q.key]: _d, ...rest } = answers; return l.length ? { ...rest, [q.key]: l } : rest; })() })}
+                {RECOMMEND in q.options && chip(Boolean(answers[q.key]?.includes(RECOMMEND)), q.options[RECOMMEND], () => choose(RECOMMEND), true)}
+              </div>,
+              () => { const { [q.key]: _d, ...rest } = answers; set({ goal_answers: rest, ...withOther(q.key, undefined) }); },
+              q.multi ? selectAll(q.label, answers[q.key], all, pick) : undefined,
+            );
+          })}
           {goal && deliverables}
         </>
       )}

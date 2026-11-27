@@ -582,6 +582,9 @@ button.rail-avatar { cursor: pointer; font: inherit; padding: 0; }
 .intake-head h2 { margin: 0; }
 .intake-goals { margin: var(--sp-1) 0 var(--sp-2); }
 .intake-ql > button:last-child { margin-left: auto; }
+.intake-qa { margin-left: auto; display: inline-flex; gap: var(--sp-1); white-space: nowrap; }
+@media (max-width: 560px) { .intake-ql { flex-wrap: wrap; } .intake-ql b { flex-basis: 100%; } }
+.intake-other { flex: 1 1 260px; min-width: 200px; max-width: 420px; }
 .intake-skipped { display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-4); }
 /* Home: greeting, then the message box, then starters, recent chats and the setup checklist. */
 .home-greeting { order: -2; margin: var(--sp-5) 0 0; font-size: var(--fs-8); font-weight: 600; color: var(--heading); }
