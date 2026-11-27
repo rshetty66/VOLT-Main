@@ -1,0 +1,13 @@
+{
+  "id": "controller_reconciliation_review",
+  "version": 1,
+  "name": "Controller's reconciliation review",
+  "origin": "manual",
+  "nodes": [
+    {"id": "reconcile", "kind": "agent", "agent_id": "r2r_reconciler", "agent_version": 1, "position": {"x": 20, "y": 80}},
+    {"id": "review", "kind": "approval", "required_role": "controller", "action": "review", "position": {"x": 340, "y": 80}}
+  ],
+  "edges": [
+    {"source": "reconcile", "source_port": "bank_gl_matches", "target": "review", "target_port": "proposal"}
+  ]
+}

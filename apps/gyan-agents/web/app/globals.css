@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+  --ink: #192d2b;
+  --muted: #4e6560;
+  --accent: #21644d;
+  --rule: #cbd6cf;
+  --paper: #f7f8f4;
+}
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: system-ui, sans-serif;
+}
+.frame { width: min(68rem, calc(100% - 3rem)); margin-inline: auto; }
+.bar { background: #152e29; color: #fff; padding-block: 1.15rem; }
+.wordmark { font-size: 1.18rem; font-weight: 700; letter-spacing: -.045em; }
+.wordmark span { font-weight: 400; }
+.label, .count { font-family: ui-monospace, monospace; font-size: .75rem; }
+.label { text-transform: uppercase; letter-spacing: .075em; }
+.bar .label { color: #c8ddd2; }
+.intro { padding-block: clamp(2.8rem, 7vw, 5rem) 2.5rem; }
+.eyebrow { color: var(--accent); font-weight: 600; }
+h1 { font-size: clamp(1.9rem, 4vw, 2.25rem); letter-spacing: -.05em; font-weight: 650; }
+.intro h1 { margin-block: .4rem; }
+.subtle, .notice p, .count { color: var(--muted); }
+.domain { border-top: 1px solid var(--rule); padding-block: 1.5rem 2.5rem; display: grid; grid-template-columns: minmax(10rem, 1fr) minmax(0, 2fr); gap: 2rem; }
+h2 { font-size: 1.25rem; line-height: 1.35; font-weight: 650; letter-spacing: -.025em; }
+.domain-heading h2 { margin: .4rem 0 .5rem; }
+.entry { padding-block: .85rem; border-bottom: 1px solid var(--rule); }
+.entry:first-child { padding-top: 0; }
+.entry dt { font-weight: 600; }
+.notice p { margin-top: .3rem; max-width: 65ch; line-height: 1.55; }
+.console-link { display: inline-flex; gap: 1.4rem; align-items: center; color: white; background: var(--accent); padding: .75rem 1.1rem; border-radius: .25rem; margin-top: 1.25rem; font-weight: 600; }
+.console-link:hover { background: var(--ink); }
+.notice { padding-block: 1.75rem; border-top: 1px solid var(--rule); }
+.retry { display: inline-block; padding-block: .75rem; margin-top: .4rem; color: var(--accent); text-decoration: underline; text-underline-offset: .2em; }
+:focus-visible { outline: 3px solid #318161; outline-offset: 4px; }
+.skip { position: absolute; left: 1rem; top: -5rem; padding: .75rem 1rem; background: white; }
+.skip:focus { top: .5rem; }
+@media (max-width: 40rem) {
+  .frame { width: calc(100% - 2rem); }
+  .domain { grid-template-columns: 1fr; gap: 1.25rem; }
+  .bar .label { max-width: 9rem; text-align: right; }
+}
