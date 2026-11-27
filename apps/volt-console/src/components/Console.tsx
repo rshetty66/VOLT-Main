@@ -549,6 +549,7 @@ function RunView({ run, versions = [], onStop, onRegenerate }: { run: Run; versi
                     )}
                   </div>
                 )}
+                {run.version && versions.length > 1 && <VersionHistory run={run} versions={versions} />}
               </>
             )}
             {tab === "spec" && <SectionCards lanes={lanes} wide onOpen={(l) => setSheet({ title: l.name, text: l.text })} />}
@@ -564,7 +565,6 @@ function RunView({ run, versions = [], onStop, onRegenerate }: { run: Run; versi
             )}
           </>
         )}
-        {run.version && versions.length > 1 && run.state !== "running" && <VersionHistory run={run} versions={versions} />}
       </div>
       {sheet && !source && (
         <>
