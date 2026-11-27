@@ -23,6 +23,7 @@ import { SourceRegistry, WEB_RESEARCH_GUIDE, registerWebBlock, sourceForTool, we
 import { evidenceGates } from "../shared/research.js";
 import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
 import { KNOWLEDGE_TOOL, asksForKnowledge, knowledgeNote, knowledgeToolDef, runKnowledgeTool } from "./knowledge.js";
+import { ANIMATION_GUIDE, MCP_BETA, animationChartEnabled, animationChartParams, asksForAnimation, stripMcpBlocks } from "./animationChart.js";
 import { memoryBlock } from "./memory.js";
 import { listUploads } from "./uploads.js";
 import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerToolDefs, runLedgerTool } from "./ledger.js";
@@ -165,6 +166,8 @@ interface LoopOptions {
   ledger?: boolean;
   /** The tier for specialists this agent consults (Opus for high-stakes finance work or the Opus switch). */
   specialistTier?: Tier;
+  /** Offer AnimationChart (lead only, when ANIMATIONCHART_API_KEY is set and the request asks for animation). */
+  animation?: boolean;
 }
 
 /**
@@ -181,22 +184,28 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
   if (fallbacks) betas.push("server-side-fallback-2026-07-01");
   let finalText = "";
   let jsonRetries = 0;
+  // AnimationChart for this agent; switched off for the rest of the run if the server fails.
+  let animation = Boolean(opts.animation) && animationChartEnabled();
+  if (!animation) stripMcpBlocks(messages);
 
   for (let turn = 0; turn <= MAX_TURNS; turn++) {
     // The last turn has no tools: the agent writes its answer from what it has instead of stopping mid-way.
     const wrapUp = turn === MAX_TURNS;
     if (wrapUp) emit({ type: "status", lane, text: `Reached ${MAX_TURNS} turns; writing the answer from the results so far` });
+    const mcp = animation ? animationChartParams() : null;
+    const system = `${opts.system}${WEB_RESEARCH ? `\n\n${WEB_RESEARCH_GUIDE}` : ""}${mcp ? `\n\n${ANIMATION_GUIDE}` : ""}`;
     const stream = getClient().beta.messages.stream(
       {
         model: opts.model,
         max_tokens: 64000,
-        system: [{ type: "text", text: WEB_RESEARCH ? `${opts.system}\n\n${WEB_RESEARCH_GUIDE}` : opts.system, cache_control: { type: "ephemeral" } }],
+        system: [{ type: "text", text: system, cache_control: { type: "ephemeral" } }],
         messages,
-        tools: [...toolDefs(opts.tools), ...(opts.registry.knowledgeProject ? [knowledgeToolDef()] : []), ...(opts.ledger && ledgerEnabled() ? [...goalToolDefs(), ...ledgerToolDefs()] : []), ...(WEB_RESEARCH ? WEB_TOOLS : [])],
+        tools: [...toolDefs(opts.tools), ...(opts.registry.knowledgeProject ? [knowledgeToolDef()] : []), ...(opts.ledger && ledgerEnabled() ? [...goalToolDefs(), ...ledgerToolDefs()] : []), ...(WEB_RESEARCH ? WEB_TOOLS : []), ...(mcp ? mcp.tools : [])],
+        ...(mcp ? { mcp_servers: mcp.mcp_servers } : {}),
         ...(wrapUp ? { tool_choice: { type: "none" as const } } : {}),
         thinking: haiku ? { type: "adaptive" } : { type: "adaptive", display: "updates" },
         output_config: { effort: opts.effort },
-        betas,
+        betas: mcp ? [...betas, MCP_BETA] : betas,
         ...(fallbacks ? { fallbacks: "default" as const } : {}),
       },
       { signal },
@@ -206,35 +215,46 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
     // Web citations on the text block being streamed, and the source keys added after each cited block (by block index).
     let citations: unknown[] = [];
     const keySuffix = new Map<number, string>();
-    for await (const ev of stream) {
-      if (ev.type === "content_block_start") {
-        if (ev.content_block.type === "thinking") thinkingBuf = "";
-        if (ev.content_block.type === "text") citations = [];
-        if (ev.content_block.type === "fallback") {
-          emit({ type: "fallback", lane, from: ev.content_block.from.model, to: ev.content_block.to.model });
-        }
-        // Search and fetch results arrive whole: record their pages before the text that cites them streams.
-        if (WEB_RESEARCH) for (const record of registerWebBlock(ev.content_block, opts.registry)) emit({ type: "source", record });
-      } else if (ev.type === "content_block_delta") {
-        if (ev.delta.type === "text_delta") emit({ type: "text_delta", lane, text: ev.delta.text });
-        else if (ev.delta.type === "thinking_delta") thinkingBuf += ev.delta.thinking;
-        else if (ev.delta.type === "citations_delta") citations.push(ev.delta.citation);
-      } else if (ev.type === "content_block_stop") {
-        if (thinkingBuf.trim()) {
-          // With display "updates", non-empty thinking blocks are short progress notes.
-          emit({ type: "status", lane, text: thinkingBuf.trim() });
-          thinkingBuf = "";
-        }
-        if (citations.length) {
-          const keys = webCitationKeys(citations, opts.registry);
-          if (keys.length) {
-            const suffix = ` ${keys.map((k) => `[${k}]`).join(" ")}`;
-            keySuffix.set(ev.index, suffix);
-            emit({ type: "text_delta", lane, text: suffix });
+    try {
+      for await (const ev of stream) {
+        if (ev.type === "content_block_start") {
+          if (ev.content_block.type === "mcp_tool_use") emit({ type: "status", lane, text: `AnimationChart: ${ev.content_block.name}` });
+          if (ev.content_block.type === "mcp_tool_result" && ev.content_block.is_error) emit({ type: "status", lane, text: "AnimationChart tool failed; the agent falls back to VOLT's own charts" });
+          if (ev.content_block.type === "thinking") thinkingBuf = "";
+          if (ev.content_block.type === "text") citations = [];
+          if (ev.content_block.type === "fallback") {
+            emit({ type: "fallback", lane, from: ev.content_block.from.model, to: ev.content_block.to.model });
           }
-          citations = [];
+          // Search and fetch results arrive whole: record their pages before the text that cites them streams.
+          if (WEB_RESEARCH) for (const record of registerWebBlock(ev.content_block, opts.registry)) emit({ type: "source", record });
+        } else if (ev.type === "content_block_delta") {
+          if (ev.delta.type === "text_delta") emit({ type: "text_delta", lane, text: ev.delta.text });
+          else if (ev.delta.type === "thinking_delta") thinkingBuf += ev.delta.thinking;
+          else if (ev.delta.type === "citations_delta") citations.push(ev.delta.citation);
+        } else if (ev.type === "content_block_stop") {
+          if (thinkingBuf.trim()) {
+            // With display "updates", non-empty thinking blocks are short progress notes.
+            emit({ type: "status", lane, text: thinkingBuf.trim() });
+            thinkingBuf = "";
+          }
+          if (citations.length) {
+            const keys = webCitationKeys(citations, opts.registry);
+            if (keys.length) {
+              const suffix = ` ${keys.map((k) => `[${k}]`).join(" ")}`;
+              keySuffix.set(ev.index, suffix);
+              emit({ type: "text_delta", lane, text: suffix });
+            }
+            citations = [];
+          }
         }
       }
+    } catch (err) {
+      // AnimationChart unreachable or the key refused: rerun the turn without it, on VOLT's own charts.
+      if (!animation || !(err instanceof Anthropic.APIError) || signal.aborted) throw err;
+      animation = false;
+      stripMcpBlocks(messages);
+      emit({ type: "status", lane, text: `AnimationChart unavailable (${err.status ?? "error"}); using VOLT's own charts` });
+      continue;
     }
 
     let message: Anthropic.Beta.BetaMessage;
@@ -572,6 +592,7 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
     signal,
     registry,
     ledger: true,
+    animation: asksForAnimation(req.prompt),
     specialistTier: registry.turnOpus ? "opus" : tierForStep("specialist"),
   };
   const draft = await runAgentLoop(lead);
