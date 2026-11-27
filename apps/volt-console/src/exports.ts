@@ -15,7 +15,7 @@ import { processSvg } from "./charts/specProcess";
 import { archSvg } from "./charts/specArch";
 import { specSvg } from "./charts/specChart";
 import { DARK, LIGHT } from "./charts/palette";
-import { kpiStrip, splitPages, toneTables, voltHtml } from "./htmlTemplate";
+import { barTables, kpiStrip, splitPages, toneTables, voltHtml } from "./htmlTemplate";
 import { archBlocks, chartBlocks, processBlocks, type ChartSpec, type ProcessSpec } from "../shared/viz";
 import { downloadBlob, downloadText, svgSize, svgToPng, voltFileName } from "./download";
 import { csvText } from "../shared/files";
@@ -217,7 +217,7 @@ async function htmlPages(d: Deliverable) {
     }),
   );
   const appendix = charts.length ? `<h2>Appendix: Supporting analysis</h2>${charts.map((svg) => `<figure class="chart">${svg}</figure>`).join("")}` : "";
-  return splitPages(toneTables(body + appendix));
+  return splitPages(barTables(toneTables(body + appendix)));
 }
 
 const COMPANION_LABEL: Record<ExportFormat, string> = { pptx: "PowerPoint", xlsx: "Excel", docx: "Word" };

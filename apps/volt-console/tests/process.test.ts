@@ -104,9 +104,9 @@ describe("HTML deliverable fixes from the 5-day close review", () => {
     expect(html).not.toContain("01</span>1.");
     expect(html).toContain('<h2 class="pt">Findings: a 12-day close is bottom quartile</h2>');
   });
-  it("gives a long step name three lines before cutting it", () => {
+  it("wraps a long step name in full rather than cutting it", () => {
     const svg = processSvg(parseProcessSpec(JSON.stringify({ lanes: ["GL"], steps: [{ id: "a", lane: "GL", stage: "D1", name: "Recurring and estimate accruals posted to the ledger" }, { id: "b", lane: "GL", stage: "D2", name: "Lock" }] }))!, DARK);
-    expect(svg).toContain(">accruals posted to");
+    expect(svg).toContain(">Recurring and estimate accruals");
     expect(svg).not.toContain("...");
   });
 });

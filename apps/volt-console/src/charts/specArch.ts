@@ -1,17 +1,24 @@
 import type { ArchSpec, ArchStatus } from "../../shared/viz";
+import { iconAt, iconFor, type IconName } from "../../shared/icons";
 import type { Palette } from "./palette";
+import { textWidth, wrapLabel } from "./specChart";
 
 /**
- * An architecture option as an isometric stack: each layer is a slab with a top and two side faces, the foundation at the
- * bottom. Each system is a numbered tile on its slab, coloured by what happens to it (new, kept, retired); arrows between
- * tiles are the data flows. The layer names, systems and flows are listed beside and under the stack.
+ * An architecture option as a stack of full-width layers, the foundation at the bottom. Each layer is a slab with a
+ * shallow depth face (the 3D cue), an icon and its name on the left and its systems as chips across the rest of the
+ * width, each chip marked by what happens to it (new, kept, retired). Data flows are arrows between chips, listed
+ * again under the stack. Labels wrap rather than being cut, so the drawing stays readable when a slide shows it full
+ * width. Each layer carries its position from the top as --va-i, so the console and HTML pages can build the stack in.
  */
-const W = 720;
-const A = 110; // half width of a slab's top face
-const B = 55; // half height (2:1 isometric)
-const T = 16; // slab thickness
-const PITCH = 80;
+const W = 1160;
+const X0 = 24;
+const X1 = W - 24;
+const NAME_W = 290;
+const DEPTH = 9;
+const GAP = 22;
+const CHIP_PAD = 46;
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+const n1 = (v: number) => +v.toFixed(1);
 
 function shade(hex: string, f: number): string {
   const n = parseInt(hex.slice(1), 16);
@@ -19,144 +26,149 @@ function shade(hex: string, f: number): string {
   return `#${[(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => c(v).toString(16).padStart(2, "0")).join("")}`;
 }
 
-/** Layer colours from the brand board; the light set is for white pages, the dark set for the console. */
+/** Layer accents from the brand board; the light set is for white pages, the dark set for the console. */
 const LAYER_COLOURS = {
-  dark: ["#00e5ff", "#6c7694", "#d4af37", "#3a8fa3", "#a9b1c7", "#ff5722", "#8a90a5"],
-  light: ["#0097a7", "#1a1e2e", "#d4af37", "#5a6278", "#00b8d4", "#ff5722", "#8a90a5"],
+  dark: ["#00e5ff", "#8c9eff", "#d4af37", "#3a8fa3", "#a9b1c7", "#ff5722", "#2fd49a"],
+  light: ["#0097a7", "#3d4a8f", "#b8921c", "#5a6278", "#00838f", "#e64a19", "#1b8a5a"],
 };
 
-/** Tile fill by what happens to the system: new is cyan, kept is white, retired is orange. */
-const STATUS_FILL: Record<ArchStatus, string> = { new: "#00e5ff", keep: "#ffffff", retire: "#ff5722" };
+/** What happens to a system: new is cyan, kept is neutral, retired is orange and struck through. */
+const STATUS_ICON: Record<ArchStatus, IconName> = { new: "sparkles", keep: "check", retire: "x" };
 const STATUS_WORD: Record<ArchStatus, string> = { new: "New", keep: "Kept", retire: "Retire" };
 
-/** Wraps `text` to lines of at most `max` characters, at most `lines` of them. */
-function wrap(text: string, max: number, lines: number): string[] {
-  const out: string[] = [];
-  let cur = "";
-  for (const word of text.split(" ")) {
-    if ((cur + " " + word).trim().length > max && cur) {
-      out.push(cur);
-      cur = word;
-    } else cur = (cur + " " + word).trim();
-  }
-  if (cur) out.push(cur);
-  return out.length > lines ? [...out.slice(0, lines - 1), `${out.slice(lines - 1).join(" ").slice(0, max - 3)}...`] : out;
-}
-
-interface Tile {
-  n: number;
+interface Chip {
   x: number;
   y: number;
+  w: number;
+  h: number;
 }
 
 export function archSvg(spec: ArchSpec, p: Palette): string {
-  const colours = p.bg.toLowerCase() === "#ffffff" ? LAYER_COLOURS.light : LAYER_COLOURS.dark;
+  const light = p.bg.toLowerCase() === "#ffffff";
+  const colours = light ? LAYER_COLOURS.light : LAYER_COLOURS.dark;
+  const statusColour: Record<ArchStatus, string> = { new: light ? "#00838f" : "#00e5ff", keep: p.muted, retire: light ? "#e64a19" : "#ff5722" };
+  const text = (x: number, y: number, s: string, o: { size?: number; fill?: string; weight?: number; anchor?: string; halo?: boolean } = {}) =>
+    `<text x="${n1(x)}" y="${n1(y)}" font-family="${esc(p.font)}" font-size="${o.size ?? 12}" fill="${o.fill ?? p.muted}"${o.weight ? ` font-weight="${o.weight}"` : ""}${o.anchor ? ` text-anchor="${o.anchor}"` : ""}${o.halo ? ` stroke="${p.bg}" stroke-width="4" paint-order="stroke" stroke-linejoin="round"` : ""}>${esc(s)}</text>`;
+
+  // Chip sizes: each layer's systems share the width right of the name; a long name wraps onto a second line.
+  // When a layer's systems do not fit one row in two lines each, they go two to a row.
+  const room = X1 - 16 - (X0 + NAME_W);
+  const fits = (t: string[], cap: number) => t.length <= 2 && t.every((l) => textWidth(l, 14) <= cap);
+  const perRow = spec.layers.map((l) => {
+    const cap = (room - (l.items.length - 1) * 12) / l.items.length - CHIP_PAD;
+    return l.items.every((it) => fits(wrapLabel(it.name, cap, 14, 2), cap)) ? l.items.length : 2;
+  });
+  const chipText = spec.layers.map((l, i) => {
+    const cap = (room - (perRow[i] - 1) * 12) / perRow[i] - CHIP_PAD;
+    return l.items.map((it) => wrapLabel(it.name, cap, 14, 3));
+  });
+  const lines = Math.max(1, ...chipText.flat().map((t) => t.length));
+  const chipH = 22 + lines * 17;
+  const chipRows = Math.max(1, ...spec.layers.map((l, i) => Math.ceil(l.items.length / perRow[i])));
+  const nameLines = spec.layers.map((l) => wrapLabel(l.name, NAME_W - 76 - (l.badge ? textWidth(l.badge, 10.5) + 22 : 0), 17, 2));
+  const BH = Math.max(72, chipRows * chipH + (chipRows - 1) * 10 + 26, ...nameLines.map((l) => 30 + l.length * 21));
+
+  const top = spec.title ? 60 : 20;
   const n = spec.layers.length;
+  // The foundation (layer 0) is drawn at the bottom.
+  const bandY = (i: number) => top + (n - 1 - i) * (BH + GAP);
+  const stackH = n * (BH + GAP) - GAP + DEPTH;
   const statuses = [...new Set(spec.layers.flatMap((l) => l.items.map((i) => i.status)))];
   const showLegend = statuses.some((s) => s !== "keep") || spec.flows.length > 0;
-  const top = spec.title ? 64 : 24;
-  const stackH = B + (n - 1) * PITCH + B + T;
-  const flowsH = spec.flows.length ? 10 + spec.flows.length * 15 : 0;
-  const footH = (showLegend ? 26 : 0) + flowsH + (spec.note ? 22 : 0) + 14;
-  const H = top + stackH + footH;
-  const cx = 170;
-  const baseY = top + stackH - B - T;
-  const parts: string[] = [`<rect width="${W}" height="${H}" fill="${p.bg}" rx="8"/>`];
-  const text = (x: number, y: number, s: string, o: { size?: number; fill?: string; weight?: number; anchor?: string; halo?: boolean } = {}) =>
-    `<text x="${x.toFixed(1)}" y="${y.toFixed(1)}" font-family="${esc(p.font)}" font-size="${o.size ?? 12}" fill="${o.fill ?? p.muted}"${o.weight ? ` font-weight="${o.weight}"` : ""}${o.anchor ? ` text-anchor="${o.anchor}"` : ""}${o.halo ? ` stroke="${p.bg}" stroke-width="3.5" paint-order="stroke" stroke-linejoin="round"` : ""}>${esc(s)}</text>`;
-  if (spec.title) parts.push(text(24, 34, spec.title, { size: 16, fill: p.ink, weight: 600 }));
+  const footH = (showLegend ? 30 : 0) + (spec.flows.length ? 8 + spec.flows.length * 17 : 0) + (spec.note ? 24 : 0) + 12;
+  const H = top + stackH + 18 + footH;
 
-  // Systems are numbered across the whole stack, foundation first, so a flow can be read against the list.
-  const tiles = new Map<string, Tile>();
-  let counter = 0;
-  const layerNumbers: number[][] = [];
-  spec.layers.forEach((layer, i) => {
-    const yc = baseY - i * PITCH;
-    const m = layer.items.length;
-    layerNumbers.push(
-      layer.items.map((item, k) => {
-        const num = ++counter;
-        tiles.set(item.name.toLowerCase(), { n: num, x: cx + (k - (m - 1) / 2) * 46, y: yc + 8 });
-        return num;
-      }),
-    );
-  });
+  const parts: string[] = [`<rect width="${W}" height="${H}" fill="${p.bg}" rx="10"/>`];
+  if (spec.title) parts.push(text(X0, 36, spec.title, { size: 17, fill: p.ink, weight: 650 }));
 
+  const chips = new Map<string, Chip>();
+  const bands: string[] = [];
   spec.layers.forEach((layer, i) => {
-    const yc = baseY - i * PITCH;
-    const base = colours[i % colours.length];
-    const poly = (pts: [number, number][], fill: string, stroke = p.bg, w = 1.5) => `<polygon points="${pts.map(([x, y]) => `${x.toFixed(1)},${y.toFixed(1)}`).join(" ")}" fill="${fill}" stroke="${stroke}" stroke-width="${w}" stroke-linejoin="round"/>`;
-    parts.push(
-      poly([[cx - A, yc], [cx, yc + B], [cx, yc + B + T], [cx - A, yc + T]], shade(base, -0.32)),
-      poly([[cx, yc + B], [cx + A, yc], [cx + A, yc + T], [cx, yc + B + T]], shade(base, -0.16)),
-      poly([[cx, yc - B], [cx + A, yc], [cx, yc + B], [cx - A, yc]], base),
-    );
-    layer.items.forEach((item, k) => {
-      const t = tiles.get(item.name.toLowerCase())!;
-      parts.push(
-        poly([[t.x, t.y - 9], [t.x + 17, t.y], [t.x, t.y + 9], [t.x - 17, t.y]], STATUS_FILL[item.status], "#0a0d14", 1.2),
-        `<text x="${t.x}" y="${t.y + 4}" text-anchor="middle" font-family="${esc(p.font)}" font-size="11" font-weight="700" fill="#0a0d14">${layerNumbers[i][k]}</text>`,
-      );
-    });
-    // Leader line and the layer's labels.
-    const lx = cx + A + 36;
-    parts.push(`<line x1="${cx + A + 4}" y1="${yc}" x2="${lx - 8}" y2="${yc}" stroke="${p.grid}" stroke-dasharray="3 3"/>`);
-    parts.push(text(lx, yc - 4, layer.name, { size: 14, fill: p.ink, weight: 600 }));
+    const y = bandY(i);
+    const accent = colours[i % colours.length];
+    const hot = Boolean(layer.badge);
+    const face = light ? (hot ? "#fbf6e6" : "#f4f6fa") : hot ? "#2a2716" : "#20263a";
+    const g: string[] = [];
+    // The slab: a depth face under the top face, then the top face with an accent edge.
+    g.push(`<polygon points="${X0},${y + BH} ${X1},${y + BH} ${X1 + DEPTH},${y + BH + DEPTH} ${X0 + DEPTH},${y + BH + DEPTH}" fill="${light ? shade(face, -0.12) : shade(face, -0.45)}"/>`);
+    g.push(`<polygon points="${X1},${y} ${X1 + DEPTH},${y + DEPTH} ${X1 + DEPTH},${y + BH + DEPTH} ${X1},${y + BH}" fill="${light ? shade(face, -0.2) : shade(face, -0.55)}"/>`);
+    g.push(`<rect x="${X0}" y="${y}" width="${X1 - X0}" height="${BH}" rx="6" fill="${face}" stroke="${hot ? p.series2 : p.grid}" stroke-width="${hot ? 1.5 : 1}"/>`);
+    g.push(`<rect x="${X0}" y="${y}" width="5" height="${BH}" rx="2" fill="${hot ? p.series2 : accent}"/>`);
+    g.push(iconAt(iconFor(layer.name), X0 + 22, y + BH / 2 - 14, 28, hot ? p.series2 : accent));
+    const nl = nameLines[i];
+    nl.forEach((ln, k) => g.push(text(X0 + 64, y + BH / 2 + 6 + (k - (nl.length - 1) / 2) * 21, ln, { size: 17, fill: p.ink, weight: 650 })));
     if (layer.badge) {
-      const bx = lx + layer.name.length * 8.4 + 10;
-      parts.push(`<rect x="${bx}" y="${yc - 17}" width="${layer.badge.length * 6.6 + 14}" height="18" rx="9" fill="${base}"/>`, `<text x="${bx + 7}" y="${yc - 4.5}" font-family="${esc(p.font)}" font-size="10.5" font-weight="700" fill="${p.bg}">${esc(layer.badge)}</text>`);
+      const bx = X0 + 64 + Math.max(...nl.map((l) => textWidth(l, 17))) + 12, bw = textWidth(layer.badge, 10.5) + 16;
+      g.push(`<rect x="${n1(bx)}" y="${n1(y + BH / 2 - 10)}" width="${n1(bw)}" height="20" rx="4" fill="${p.series2}"/>`, text(bx + bw / 2, y + BH / 2 + 4, layer.badge, { size: 10.5, fill: light ? "#ffffff" : "#111318", weight: 800, anchor: "middle" }));
     }
-    const names = layer.items.map((it, k) => `${layerNumbers[i][k]} ${it.name}${it.status === "new" ? " (new)" : it.status === "retire" ? " (retire)" : ""}`).join("  ·  ");
-    wrap(names, 56, 3).forEach((l, k) => parts.push(text(lx, yc + 14 + k * 14, l, { size: 12 })));
+    // Chips, left to right.
+    const rowsHere = Math.ceil(layer.items.length / perRow[i]);
+    const block = rowsHere * chipH + (rowsHere - 1) * 10;
+    let x = X0 + NAME_W;
+    layer.items.forEach((item, k) => {
+      if (k && k % perRow[i] === 0) x = X0 + NAME_W;
+      const t = chipText[i][k];
+      const w = Math.max(...t.map((l) => textWidth(l, 14))) + CHIP_PAD;
+      const cy = y + (BH - block) / 2 + Math.floor(k / perRow[i]) * (chipH + 10);
+      const c = statusColour[item.status];
+      chips.set(item.name.toLowerCase(), { x, y: cy, w, h: chipH });
+      g.push(`<rect x="${n1(x)}" y="${n1(cy)}" width="${n1(w)}" height="${chipH}" rx="5" fill="${item.status === "new" ? (light ? "#e0f7fa" : "#0f2a33") : light ? "#ffffff" : "#141927"}" stroke="${item.status === "keep" ? p.grid : c}" stroke-width="1.2"/>`);
+      g.push(iconAt(STATUS_ICON[item.status], x + 12, cy + chipH / 2 - 8, 16, c, 2.2));
+      t.forEach((ln, j) => {
+        const ty = cy + chipH / 2 + 5 + (j - (t.length - 1) / 2) * 17;
+        g.push(text(x + 36, ty, ln, { size: 14, fill: item.status === "retire" ? c : p.ink, weight: item.status === "new" ? 600 : undefined }));
+        if (item.status === "retire") g.push(`<line x1="${n1(x + 36)}" y1="${n1(ty - 5)}" x2="${n1(x + 36 + textWidth(ln, 14))}" y2="${n1(ty - 5)}" stroke="${c}" stroke-width="1.4"/>`);
+      });
+      x += w + 12;
+    });
+    bands.push(`<g class="va-band" style="--va-i:${n - 1 - i}"><title>${esc(`${layer.name}: ${layer.items.map((it) => `${it.name} (${STATUS_WORD[it.status].toLowerCase()})`).join(", ")}`)}</title>${g.join("")}</g>`);
   });
+  parts.push(...bands);
 
-  // Data flows: curved arrows between tiles, drawn over the slabs, with a small label when there are few.
+  // Data flows: an arrow from chip to chip, leaving the edge that faces the other chip, labelled at its middle.
+  const arrows: string[] = [];
   spec.flows.forEach((f) => {
-    const a = tiles.get(f.from.toLowerCase())!;
-    const b = tiles.get(f.to.toLowerCase())!;
-    const dx = b.x - a.x;
-    const dy = b.y - a.y;
-    const len = Math.hypot(dx, dy) || 1;
-    const ux = dx / len;
-    const uy = dy / len;
-    const sx = a.x + ux * 14;
-    const sy = a.y + uy * 9;
-    const ex = b.x - ux * 16;
-    const ey = b.y - uy * 11;
-    const mx = (sx + ex) / 2 + (-uy) * 22;
-    const my = (sy + ey) / 2 + ux * 22;
-    const path = `M ${sx.toFixed(1)} ${sy.toFixed(1)} Q ${mx.toFixed(1)} ${my.toFixed(1)} ${ex.toFixed(1)} ${ey.toFixed(1)}`;
-    // Arrowhead along the curve's end direction.
-    const tx = ex - mx;
-    const ty = ey - my;
-    const tl = Math.hypot(tx, ty) || 1;
-    const hx = tx / tl;
-    const hy = ty / tl;
-    const head = `${ex.toFixed(1)},${ey.toFixed(1)} ${(ex - hx * 9 - hy * 4.5).toFixed(1)},${(ey - hy * 9 + hx * 4.5).toFixed(1)} ${(ex - hx * 9 + hy * 4.5).toFixed(1)},${(ey - hy * 9 - hx * 4.5).toFixed(1)}`;
-    parts.push(
-      `<path d="${path}" fill="none" stroke="${p.bg}" stroke-width="4.5" stroke-linecap="round"/>`,
-      `<path d="${path}" fill="none" stroke="${p.ink}" stroke-width="1.8" stroke-linecap="round"/>`,
-      `<polygon points="${head}" fill="${p.ink}" stroke="${p.bg}" stroke-width="1" stroke-linejoin="round"/>`,
+    const a = chips.get(f.from.toLowerCase())!;
+    const b = chips.get(f.to.toLowerCase())!;
+    const up = b.y < a.y - 1, down = b.y > a.y + 1;
+    let sx: number, sy: number, ex: number, ey: number, d: string;
+    if (up || down) {
+      sx = a.x + a.w / 2;
+      ex = b.x + b.w / 2;
+      sy = up ? a.y : a.y + a.h;
+      ey = up ? b.y + b.h : b.y;
+      const my = (sy + ey) / 2;
+      d = `M ${n1(sx)} ${n1(sy)} C ${n1(sx)} ${n1(my)} ${n1(ex)} ${n1(my)} ${n1(ex)} ${n1(ey)}`;
+    } else {
+      const right = b.x > a.x;
+      sx = right ? a.x + a.w : a.x;
+      ex = right ? b.x : b.x + b.w;
+      sy = ey = a.y + a.h / 2;
+      d = `M ${n1(sx)} ${n1(sy)} L ${n1(ex)} ${n1(ey)}`;
+    }
+    const dir = up ? -1 : 1;
+    const head = up || down ? `${n1(ex)},${n1(ey)} ${n1(ex - 5)},${n1(ey - dir * 9)} ${n1(ex + 5)},${n1(ey - dir * 9)}` : `${n1(ex)},${n1(ey)} ${n1(ex - Math.sign(ex - sx) * 9)},${n1(ey - 5)} ${n1(ex - Math.sign(ex - sx) * 9)},${n1(ey + 5)}`;
+    arrows.push(
+      `<path d="${d}" fill="none" stroke="${p.bg}" stroke-width="5" stroke-linecap="round"/>`,
+      `<path d="${d}" fill="none" stroke="${p.ink}" stroke-width="1.8" stroke-linecap="round"/>`,
+      `<polygon points="${head}" fill="${p.ink}"/>`,
     );
-    if (f.label && spec.flows.length <= 6) parts.push(text((sx + 2 * mx + ex) / 4 + 6, (sy + 2 * my + ey) / 4 - 2, f.label, { size: 10.5, fill: p.ink, halo: true }));
+    if (f.label) arrows.push(text((sx + ex) / 2 + 8, (sy + ey) / 2 + 4, f.label, { size: 12, fill: p.ink, halo: true }));
   });
+  if (arrows.length) parts.push(`<g class="va-flows">${arrows.join("")}</g>`);
 
   // Legend and the flow list under the stack.
-  let y = top + stackH + 18;
+  let y = top + stackH + 30;
   if (showLegend) {
-    let x = 24;
+    let x = X0;
     for (const s of (["new", "keep", "retire"] as ArchStatus[]).filter((s) => statuses.includes(s) && (s !== "keep" || statuses.length > 1))) {
-      parts.push(`<polygon points="${x},${y - 4} ${x + 9},${y - 9} ${x + 18},${y - 4} ${x + 9},${y + 1}" fill="${STATUS_FILL[s]}" stroke="#0a0d14" stroke-width="1"/>`, text(x + 24, y, STATUS_WORD[s], { size: 11.5, fill: p.ink }));
-      x += 24 + STATUS_WORD[s].length * 7 + 18;
+      parts.push(iconAt(STATUS_ICON[s], x, y - 12, 16, statusColour[s], 2.2), text(x + 22, y, STATUS_WORD[s], { size: 12.5, fill: p.ink }));
+      x += 22 + textWidth(STATUS_WORD[s], 12.5) + 22;
     }
-    if (spec.flows.length) parts.push(`<path d="M ${x} ${y - 4} L ${x + 22} ${y - 4}" stroke="${p.ink}" stroke-width="1.8"/>`, `<polygon points="${x + 24},${y - 4} ${x + 17},${y - 8} ${x + 17},${y}" fill="${p.ink}"/>`, text(x + 30, y, "Data flow", { size: 11.5, fill: p.ink }));
-    y += 12;
+    if (spec.flows.length) parts.push(`<path d="M ${x} ${y - 4} L ${x + 22} ${y - 4}" stroke="${p.ink}" stroke-width="1.8"/>`, `<polygon points="${x + 26},${y - 4} ${x + 18},${y - 8.5} ${x + 18},${y + 0.5}" fill="${p.ink}"/>`, text(x + 34, y, "Data flow", { size: 12.5, fill: p.ink }));
+    y += 14;
   }
-  spec.flows.forEach((f, k) => {
-    const a = tiles.get(f.from.toLowerCase())!;
-    const b = tiles.get(f.to.toLowerCase())!;
-    parts.push(text(24, y + 8 + k * 15, `${a.n} ${f.from} -> ${b.n} ${f.to}${f.label ? `: ${f.label}` : ""}`, { size: 11.5 }));
-  });
-  if (spec.note) parts.push(text(24, H - 12, spec.note, { size: 11 }));
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(spec.title || "Architecture option")}">${parts.join("")}</svg>`;
+  spec.flows.forEach((f, k) => parts.push(text(X0, y + 10 + k * 17, `${f.from} -> ${f.to}${f.label ? `: ${f.label}` : ""}`, { size: 12.5 })));
+  if (spec.note) parts.push(text(X0, H - 14, spec.note, { size: 12 }));
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="va" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(spec.title || "Architecture option")}">${parts.join("")}</svg>`;
 }
