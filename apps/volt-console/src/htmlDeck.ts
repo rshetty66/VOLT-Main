@@ -94,15 +94,15 @@ html,body,.reveal-viewport{background:var(--bg);color:var(--tx)}
 .reveal .toc li{margin:0 0 2px;font-size:12px;line-height:1.35}
 .reveal .toc li a{color:var(--mu);text-decoration:none}
 /* The deck toolbar: contents, animation on or off, read as a page, PDF. Hidden in print. */
-.vt-bar{position:fixed;top:10px;right:14px;z-index:40;display:flex;gap:6px;font:12px/1 Inter,"Segoe UI",system-ui,sans-serif}
-.vt-bar a,.vt-bar button{border:1px solid var(--bd);background:#000;color:var(--mu);padding:5px 9px;border-radius:4px;text-decoration:none;cursor:pointer;font:inherit}
-.vt-bar a:hover,.vt-bar button:hover{color:var(--tx);border-color:var(--cyan)}
-.vt-bar button[aria-pressed=true]{color:var(--cyan);border-color:var(--cyan)}
-.print-pdf .vt-bar{display:none}
+.deck-bar{position:fixed;top:10px;right:14px;z-index:40;display:flex;gap:6px;font:12px/1 Inter,"Segoe UI",system-ui,sans-serif}
+.deck-bar a,.deck-bar button{border:1px solid var(--bd);background:#000;color:var(--mu);padding:5px 9px;border-radius:4px;text-decoration:none;cursor:pointer;font:inherit}
+.deck-bar a:hover,.deck-bar button:hover{color:var(--tx);border-color:var(--cyan)}
+.deck-bar button[aria-pressed=true]{color:var(--cyan);border-color:var(--cyan)}
+.print-pdf .deck-bar{display:none}
 .reveal .progress{color:var(--cyan);block-size:4px}
 .reveal .slide-number{background:transparent;color:var(--dim);font-size:12px}
 .reveal .controls{color:var(--cyan)}
-@media print{.reveal .slides>section{overflow:hidden}.vt-bar{display:none}}
+@media print{.reveal .slides>section{overflow:hidden}.deck-bar{display:none}}
 `;
 
 const DECK_SCRIPT = `
@@ -186,7 +186,7 @@ const DECK_SCRIPT = `
   }
   // A diagram that would be squeezed under text (less height than it needs to read at full width) gets a slide of its
   // own under the same headline, with its read-out, instead of being drawn small beside empty space.
-  var BIG = /(^|\s)(flow|arch|view|diagram)(\s|$)/;
+  var BIG = /(^|\\s)(flow|arch|view|diagram)(\\s|$)/;
   function own(slide){
     var limit = slide.getBoundingClientRect().top + slide.clientHeight - parseFloat(getComputedStyle(slide).paddingBottom);
     var body = kids(slide);
@@ -234,11 +234,11 @@ const DECK_SCRIPT = `
   }
   // The address tracks the slide, except in a sandboxed preview (an about:srcdoc frame), which forbids replaceState.
   // "Read as page" is reveal.js's scroll view: every slide one under the other, nothing animated.
-  var scroll = /[?&]view=scroll\b/.test(location.search);
+  var scroll = /[?&]view=scroll\\b/.test(location.search);
   Reveal.initialize({ hash: !/^about:/.test(location.href), width: 1280, height: 720, margin: 0.04, center: false, slideNumber: 'c/t', transition: reduce || scroll ? 'none' : 'fade',
     view: scroll ? 'scroll' : null, pdfSeparateFragments: false, plugins: [RevealNotes] });
   document.addEventListener('voltstatic', function(){ reduce = still(); Reveal.configure({ transition: reduce || scroll ? 'none' : 'fade' }); });
-  var toc = document.querySelector('.vt-bar .vt-toc');
+  var toc = document.querySelector('.deck-bar .vt-toc');
   if (toc) toc.addEventListener('click', function(e){ var t = document.querySelector('.reveal .slides > section.toc'); if (!t) return; e.preventDefault(); Reveal.slide(all.indexOf(t)); });
   Reveal.on('ready', function(e){ draw(e.currentSlide); });
   Reveal.on('slidechanged', function(e){ draw(e.currentSlide); });
@@ -320,7 +320,7 @@ export function tocSlide(sections: { title: string; slides: { headline: string }
   const subs = sections.reduce((n, s) => n + (s.slides.length > 1 ? s.slides.length : 0), 0);
   const items = sections.map((sec, i) => {
     const title = esc(decode(plain(sec.title)));
-    const list = subs <= 30 && sec.slides.length > 1 ? `<ul>${sec.slides.map((s, j) => `<li><a data-go="${i}-${j}">${s.headline}</a></li>`).join("")}</ul>` : "";
+    const list = subs <= 30 && sec.slides.length > 1 ? `<ul>${sec.slides.map((s, j) => (esc(decode(plain(s.headline))) === title ? "" : `<li><a data-go="${i}-${j}">${s.headline}</a></li>`)).join("")}</ul>` : "";
     return `<div class="sec"><a data-go="${i}-0"><span>${String(i + 1).padStart(2, "0")}</span>${title}</a>${list}</div>`;
   });
   return `<section class="slide toc"><div class="head"><div><h2>Contents</h2></div></div><div class="body">${items.join("")}</div></section>`;
@@ -347,7 +347,7 @@ export function voltDeck(d: HtmlDeliverable, assets: RevealAssets): string {
 <div class="reveal"><div class="slides">
 ${[cover, contents, ...slides].filter(Boolean).join("\n")}
 </div></div>
-<nav class="vt-bar" aria-label="Deck"><a class="vt-toc" href="#/1">Contents</a><button type="button" data-static-toggle aria-pressed="false">Animation on</button><a href="?view=scroll" title="Every slide one under the other">Read as page</a><a href="?print-pdf" title="Open the print layout, then save as PDF">PDF</a></nav>
+<nav class="deck-bar" aria-label="Deck"><a class="vt-toc" href="#/1">Contents</a><button type="button" data-static-toggle aria-pressed="false">Animation on</button><a href="?view=scroll" title="Every slide one under the other">Read as page</a><a href="?print-pdf" title="Open the print layout, then save as PDF">PDF</a></nav>
 <script>${inline(assets.js)}</script><script>${inline(assets.notes)}</script>
 <script>${SCRIPT}</script><script>${DECK_SCRIPT}</script>
 </body></html>

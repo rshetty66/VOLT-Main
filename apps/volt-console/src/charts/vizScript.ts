@@ -477,7 +477,7 @@ export const VIZ_CSS = `
 .sn{font-size:12px;color:var(--vv-muted);margin-left:6px}
 .detail{display:none;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 18px;margin:0;padding:14px;background:var(--vv-panel);border-top:1px solid var(--vv-line)}
 .detail.show{display:grid}
-.detail{font-size:12.5px}.detail h4{grid-column:1/-1;margin:0;color:var(--vv-ink);font-weight:600;font-size:14px}
+.detail{font-size:12.5px}.detail h4{grid-column:1/-1;margin:0;font-family:inherit;color:var(--vv-ink);font-weight:600;font-size:14px}
 .detail dt{color:var(--vv-muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em}
 .detail dd{margin:2px 0 0;color:var(--vv-ink)}
 .detail .issue dd{color:var(--vv-bad);font-weight:600}
@@ -507,15 +507,15 @@ export const VIZ_CSS = `
 .walk .va-flow,.walk .va-tag{opacity:0;transition:opacity .3s}.walk .va-flow.seen,.walk .va-tag.seen{opacity:1}
 .va-flow.draw path{stroke-dasharray:1;stroke-dashoffset:1;animation:vadraw .6s ease-out forwards}
 @keyframes vadraw{to{stroke-dashoffset:0}}
-.va-list{display:none;margin:8px 0 0;padding-inline-start:1.4em;font-size:12.5px;color:var(--vv-ink);columns:2;column-gap:28px}
-.va-list li{margin:0 0 4px;break-inside:avoid}
+.va-x ol.va-list{display:none;margin:8px 0 0;padding-inline-start:1.4em;font-size:12.5px;color:var(--vv-ink);columns:2;column-gap:28px}
+.va-x ol.va-list li{margin:0 0 4px;break-inside:avoid}
 .vt-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px;font-size:12px;color:var(--vv-muted)}
 .vt-bar button[aria-pressed=false]{opacity:.45;text-decoration:line-through}
 .vt-bar input{background:var(--vv-tip-bg);border:1px solid var(--vv-line);color:var(--vv-ink);border-radius:4px;padding:4px 8px;font:inherit;min-inline-size:180px}
 .vt-act,.vt-proc{transition:opacity .2s}
-.static .va-list{display:block}
+.static .va-x ol.va-list{display:block}
 .static .va-modes .va-play,.static .va-x .cap{display:none}
-@media print{.va-modes,.vt-bar,.va-x .cap{display:none!important}.va-list{display:block}}
+@media print{.va-modes,.vt-bar,.va-x .cap{display:none!important}.va-x ol.va-list{display:block}}
 @media (prefers-reduced-motion:reduce){.va-flow.draw path{animation:none;stroke-dasharray:none}.va-chip,.walk .va-flow{transition:none}}
 `;
 
