@@ -4,6 +4,7 @@
 
 ### Added
 
+- 2026-11-27: Gyan Agents Phase 1 adds versioned finance workflow contracts and 20 profiles bound to existing VOLT identities. Agent Registry and Skill Finder move under one Reference destination. Studio storage is separate; no existing chat or ledger data is migrated.
 - 2026-11-27: Chat always optimizes first, then asks to confirm. Every first-person request that is not a command, lookup or quick ask is rewritten by Sonnet into an executive prompt (business ask, 3 to 5 key questions, persona, output format). You edit it, send it, send your original, or cancel. Live mode only; if the optimizer fails, your message is sent as written. Adds one Sonnet call per message.
 - 2026-11-27: `executive-prompt-optimizer` skill: turns a rough question into a copy-paste executive prompt with the business ask, 3 to 5 mandatory questions and an output format. Repo skill only; not yet wired to a chat `/optimize` command or to routing.
 

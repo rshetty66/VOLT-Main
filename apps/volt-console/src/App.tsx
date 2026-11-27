@@ -18,6 +18,7 @@ import { Console } from "./components/Console";
 import { Workflows } from "./components/Workflows";
 import { Agents, AgentDrawer } from "./components/Agents";
 import { SkillFinder } from "./components/SkillFinder";
+import { ReferenceNav, isReferenceView, referenceDefault, type ReferenceView } from "./components/ReferenceNav";
 import { Services } from "./components/Services";
 import { Analytics } from "./components/Analytics";
 import { Diagrams } from "./components/Diagrams";
@@ -30,7 +31,8 @@ import { setupProgress, setupSteps } from "./setup";
 import { kpiScorecard } from "./charts/results";
 import { errText } from "./netGuard";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads" | "ledger" | "projects" | "diagrams";
+export type View = "console" | "workflows" | ReferenceView | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads" | "ledger" | "projects" | "diagrams";
+type RailView = Exclude<View, ReferenceView> | "reference";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -254,11 +256,11 @@ export function App() {
   const spend = usageTotals(chatUsage([...history, ...runs.filter((r) => !history.some((h) => h.id === r.id))])).cost;
   const missing = catalog.health.missingSkills.length;
   // [view, rail label, full name, count shown in the tooltip]
-  const nav: [View, string, string, number | string][] = [
+  const activeRail: RailView = isReferenceView(view) ? "reference" : view;
+  const nav: [RailView, string, string, number | string][] = [
     ["console", "Console", "Agent Console", runs.length || ""],
     ["workflows", "Workflows", "Workflows", catalog.workflows.length],
-    ["agents", "Agents", "Agents", catalog.agents.length],
-    ["skills", "Skills", "Skill Finder", catalog.skills.length],
+    ["reference", "Reference", "Reference", ""],
     ["services", "Services", "Services", catalog.services.length],
     ["templates", "Templates", "Templates", templates.length || ""],
     ["analytics", "Analytics", "Analytics", catalog.benchmarks.length],
@@ -301,9 +303,6 @@ export function App() {
               <Ring done={progress.done} total={progress.total} /> ({progress.done}/{progress.total})
             </button>
           )}
-          <button className="pill icon" aria-label="Find a skill" title="Skill Finder" onClick={() => setView("skills")}>
-            <Icon name="search" size={16} />
-          </button>
           <button className="pill icon plus" aria-label="New chat" title="New chat" onClick={newChat}>
             <Icon name="plus" size={18} />
           </button>
@@ -373,10 +372,10 @@ export function App() {
         </button>
       </header>
       <nav className="nav rail" aria-label="Main">
-        {nav.filter(([id]) => !(present && (id === "usage" || id === "health" || id === "ledger"))).map(([id, label, full, count], i) => (
+        {nav.filter(([id]) => !(present && (id === "usage" || id === "health" || id === "ledger"))).map(([id, label, full, count]) => (
           <div key={id} style={{ display: "contents" }}>
-            {(i === 1 || i === 8) && <div className="sep" />}
-            <button className={view === id ? "active" : ""} onClick={() => setView(id)} title={id === "health" && missing > 0 ? `${missing} skills referenced by agents are missing from this build` : count !== "" ? `${full} (${count})` : full} aria-label={id === "health" && missing > 0 ? `${full}: ${missing} missing skills` : full}>
+            {(id === "workflows" || id === "history") && <div className="sep" />}
+            <button className={activeRail === id ? "active" : ""} aria-current={activeRail === id ? "page" : undefined} onClick={() => setView(id === "reference" ? referenceDefault : id)} title={id === "health" && missing > 0 ? `${missing} skills referenced by agents are missing from this build` : count !== "" ? `${full} (${count})` : full} aria-label={id === "health" && missing > 0 ? `${full}: ${missing} missing skills` : full}>
               <span className="rail-icon">
                 <Icon name={id} />
                 {id === "health" && missing > 0 && <span className="rail-badge count" aria-hidden="true">{missing > 99 ? "99+" : missing}</span>}
@@ -417,6 +416,7 @@ export function App() {
           <Console setup={steps} onNavigate={(v) => setView(v as View)} recent={history.slice(0, 3)} onOpenRecent={openRun} catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} userName={me} />
         )}
         {view === "workflows" && <Workflows catalog={catalog} onLaunch={start} onOpenAgent={setOpenAgent} />}
+        {isReferenceView(view) && <ReferenceNav view={view} onSelect={setView} />}
         {view === "agents" && <Agents catalog={catalog} onOpen={setOpenAgent} />}
         {view === "skills" && <SkillFinder catalog={catalog} onOpenAgent={setOpenAgent} />}
         {view === "services" && <Services catalog={catalog} onOpenAgent={setOpenAgent} onLaunch={start} />}

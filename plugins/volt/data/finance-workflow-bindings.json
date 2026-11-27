@@ -1,0 +1,22 @@
+{
+  "r2r_close_conductor": "period-close",
+  "r2r_je_drafter": "accounting-policy-engine",
+  "r2r_reconciler": "gl-capital-reconciliation",
+  "r2r_intercompany": "consolidation-reporting-agent",
+  "r2r_fixed_assets": "lease-accounting-agent",
+  "fpa_variance_flux": "budgeting-forecasting",
+  "fpa_rolling_forecast": "budgeting-forecasting",
+  "fpa_cash_flow_13w": "treasury-management-agent",
+  "fpa_workforce_cost": "epm-workforce-planning-lead",
+  "fpa_margin_leakage": "billing",
+  "p2p_ap_3way_match": "accounts-payable",
+  "o2c_cash_app": "accounts-receivable",
+  "o2c_collections": "accounts-receivable",
+  "p2p_vendor_compliance": "contracts-renewals",
+  "ctrl_sox_monitor": "internal-audit-agent",
+  "ctrl_te_policy": "internal-audit-agent",
+  "ctrl_indirect_tax": "tax-compliance",
+  "ctrl_finance_critic": "internal-audit-agent",
+  "exec_daily_briefing": "reports-dashboards",
+  "exec_board_packager": "consolidation-reporting-agent"
+}
