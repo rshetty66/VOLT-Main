@@ -22,6 +22,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
 import { assessDepth, CHAT_FORMAT, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, DIRECT_GUIDE, directAsk, QUICK_GUIDE, quickAsk, wantsDeliverable } from "./deliverable.js";
 import { CLIENT_OUTPUT, editorialBlocker, wantsLongReport } from "../shared/clientOutput.js";
+import { deliverablePatternGuide } from "./deliverablePatterns.js";
 import { SourceRegistry, WEB_RESEARCH_GUIDE, registerWebBlock, sourceForTool, webCitationKeys } from "./research.js";
 import { evidenceGates } from "../shared/research.js";
 import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
@@ -134,6 +135,7 @@ ${CHAT_FORMAT}
 ${CLIENT_OUTPUT}
 
 ${leadDeliverableGuide(undefined,wantsLongReport(request))}
+${deliverablePatternGuide(request)}
 ${ledgerEnabled() ? `\n${GOAL_GUIDE}\n\n${LEDGER_GUIDE}\n` : ""}
 When a request matches one of the VOLT workflows below, mention it by name so the user can launch it as a full multi-phase run.
 
@@ -144,7 +146,7 @@ ${workflows}
 ${rosterText(catalog)}`;
 }
 
-function specialistSystem(catalog: Catalog, agent: AgentDef): string {
+function specialistSystem(catalog: Catalog, agent: AgentDef, request=""): string {
   const shipped = agent.skills.filter((s) => catalog.skillById.has(s));
   return `${agent.systemPrompt}
 
@@ -154,6 +156,7 @@ You have been brought in on a workstream. Answer the brief with a practitioner-g
 
 ${CHAT_FORMAT}
 ${CLIENT_OUTPUT}
+${deliverablePatternGuide(request)}
 Use tools for numbers (apqc_benchmark, score_maturity, appraise_investment, build_value_case) and the Skill Finder (find_skills, load_skill) for VOLT method packs.\n${PCF_GUIDE}${shipped.length ? `\nYour registered VOLT skills: ${shipped.join(", ")}.` : ""}${specialistDeliverableGuide() ? `\n\n${specialistDeliverableGuide()}` : ""}`;
 }
 
@@ -497,7 +500,7 @@ async function runSpecialist(
     const text = await runAgentLoop({
       catalog,
       lane,
-      system: specialistSystem(catalog, agent),
+      system: specialistSystem(catalog, agent,brief),
       messages: [{ role: "user", content: brief }],
       tools: CONSULTED_TOOLS,
       // A brief in high-stakes finance work runs on Opus even when the lead's run was routed lower.
@@ -568,7 +571,7 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
     await runAgentLoop({
       catalog,
       lane: ORCHESTRATOR_LANE,
-      system: specialistSystem(catalog, agent),
+      system: specialistSystem(catalog, agent,req.prompt),
       messages: session.messages,
       tools: SPECIALIST_TOOLS,
       model: modelFor(req.opus || highStakes(req.prompt) ? "opus" : tierForStep("direct_agent")),

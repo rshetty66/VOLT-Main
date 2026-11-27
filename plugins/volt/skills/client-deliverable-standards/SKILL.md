@@ -12,6 +12,21 @@ interfaces and constraints, and a dataset should be usable without reading the c
 Keep evidence available for challenge, with material limitations beside the result;
 do not substitute an agent trace or research diary for the requested deliverable.
 
+## Select a deliverable pattern
+
+For a financial plan, scope change, savings review, service redesign, expenditure review,
+fiscal diagnostic, service profile, core service review, options appraisal or board summary,
+operating-model portfolio, RFP response, sourcing case, shock assessment, forecast-vintage
+guide or demand outlook, consult `references/deliverable-patterns.json`. Each entry gives a
+decision question, storyline, signature exhibit and depth checks, plus the original filename
+and PDF page locations for internal reference. When asked for ideas, recommend the smallest
+artifact that supports the decision. Use a second pattern only if it adds a distinct purpose.
+
+These are editorial patterns, not findings, data sources, branded presentation masters or
+permission to use the original firm's client results. Retain the client's own template and
+facts. A summary compresses a completed analysis; a proposal or change order defines work;
+an audit challenges claims rather than repeating them.
+
 ## Lead with the answer, at every level
 
 - Document, section, slide and paragraph each open with the takeaway. A reader who
