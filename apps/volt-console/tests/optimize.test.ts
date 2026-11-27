@@ -11,6 +11,17 @@ Key Questions to Answer
 1. Which fits better?`;
 
 describe("prompt optimizer", () => {
+  it("includes workflow scoping topics internally and keeps the entire rough request", async () => {
+    const ask = "Client request. ".repeat(500) + "Use only the attached trial balance.";
+    const client = { messages: { create: async (args: { system: string; messages: {content: string}[] }) => {
+      expect(args.system).toContain("do not present an intake questionnaire");
+      expect(args.system).toContain("Which ledgers are in scope?");
+      expect(args.messages[0].content).toBe(ask);
+      return { content: [{type: "text", text: REPLY}], usage: {input_tokens: 0, output_tokens: 0} };
+    } } } as never;
+    expect(await optimizePrompt(ask, new AbortController().signal, client,
+      { name: "Close", topics: ["Which ledgers are in scope?"] })).not.toBeNull();
+  });
   it("skips commands, lookups and short text", () => {
     expect(shouldOptimize("/help")).toBe(false);
     expect(shouldOptimize("hi there")).toBe(false);

@@ -415,11 +415,11 @@ export function App() {
         {view === "console" && (
           <Console setup={steps} onNavigate={(v) => setView(v as View)} recent={history.slice(0, 3)} onOpenRecent={openRun} catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} userName={me} />
         )}
-        {view === "workflows" && <Workflows catalog={catalog} onLaunch={start} onOpenAgent={setOpenAgent} />}
+        {view === "workflows" && <Workflows catalog={catalog} live={live} onLaunch={start} onOpenAgent={setOpenAgent} />}
         {isReferenceView(view) && <ReferenceNav view={view} onSelect={setView} />}
         {view === "agents" && <Agents catalog={catalog} onOpen={setOpenAgent} />}
         {view === "skills" && <SkillFinder catalog={catalog} onOpenAgent={setOpenAgent} />}
-        {view === "services" && <Services catalog={catalog} onOpenAgent={setOpenAgent} onLaunch={start} />}
+        {view === "services" && <Services catalog={catalog} live={live} onOpenAgent={setOpenAgent} onLaunch={start} />}
         {view === "templates" && <Templates templates={templates} refresh={refreshTemplates} activeTemplate={activeTemplate} setActiveTemplate={setActiveTemplate} />}
         {view === "analytics" && <Analytics catalog={catalog} />}
         {view === "history" && (

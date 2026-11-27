@@ -1,21 +1,28 @@
 import { useMemo, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
+import { WorkflowLauncher } from "./Workflows";
 
 interface Props {
   catalog: CatalogResponse;
+  live: boolean;
   onOpenAgent: (id: string) => void;
   onLaunch: (req: RunRequest, title: string, kind: RunKind) => void;
 }
 
 /** VOLT consulting services catalogue: practice → sub-practice → service, with agent/workflow coverage. */
-export function Services({ catalog, onOpenAgent, onLaunch }: Props) {
+export function Services({ catalog, live, onOpenAgent, onLaunch }: Props) {
   const [practice, setPractice] = useState("");
+  const [selection, setSelection] = useState<{workflow: string; service: string} | null>(null);
   const practices = useMemo(() => [...new Set(catalog.services.map((s) => s.practice))], [catalog]);
   const services = catalog.services.filter((s) => !practice || s.practice === practice);
   const bySub = new Map<string, typeof services>();
   for (const s of services) bySub.set(`${s.practice} › ${s.subPractice}`, [...(bySub.get(`${s.practice} › ${s.subPractice}`) ?? []), s]);
   const agentName = (id: string) => catalog.agents.find((a) => a.id === id)?.name ?? id;
   const wf = (id: string) => catalog.workflows.find((w) => w.id === id);
+  const selected = selection && wf(selection.workflow);
+  if (selection && selected) return <WorkflowLauncher catalog={catalog} live={live} wf={selected}
+    initialPrompt={`${selection.service}: `} backLabel="Back to services" onBack={() => setSelection(null)}
+    onOpenAgent={onOpenAgent} onLaunch={onLaunch} />;
 
   return (
     <div className="stack">
@@ -76,10 +83,7 @@ export function Services({ catalog, onOpenAgent, onLaunch }: Props) {
                           <button
                             key={w}
                             className="btn sm"
-                            onClick={() => {
-                              const prompt = window.prompt(`Describe the client situation for "${s.name}" (${wf(w)!.name})`);
-                              if (prompt?.trim()) onLaunch({ prompt: `${s.name}: ${prompt.trim()}`, workflowId: w }, `${wf(w)!.icon} ${wf(w)!.name}`, "workflow");
-                            }}
+                            onClick={() => setSelection({ workflow: w, service: s.name })}
                           >
                             ▸ {wf(w)!.name}
                           </button>
