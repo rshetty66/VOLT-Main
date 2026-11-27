@@ -14,8 +14,8 @@ export interface DiagramSpec {
   scenarios?: { name: string; steps: DiagramStep[] }[];
 }
 
-/** Model text goes into innerHTML in the renderer, so markup characters are removed from every string. */
-const clean = (s: unknown, max = 200): string => String(s ?? "").replace(/[<>&"'`]/g, "").slice(0, max);
+/** The renderer also escapes every string it inserts as HTML; angle brackets are removed here as a second layer. */
+const clean = (s: unknown, max = 200): string => String(s ?? "").replace(/[<>`]/g, "").slice(0, max);
 const rec = (v: unknown): Record<string, unknown> => (v && typeof v === "object" ? (v as Record<string, unknown>) : {});
 
 /** Validates and normalises a spec. Throws an Error with a message fit to show the user. */
@@ -47,7 +47,11 @@ export function validateSpec(raw: unknown): DiagramSpec {
       const p = rec(st);
       const list = (Array.isArray(p.edges) ? p.edges : [p.edge]).map(String);
       for (const k of list) if (!keys.has(k)) throw new Error(`A scenario step uses an edge that does not exist (${k}).`);
-      const payload = p.payload === undefined ? undefined : clean(typeof p.payload === "string" ? p.payload : JSON.stringify(p.payload), 300);
+      let payload: unknown = undefined;
+      if (p.payload !== undefined) {
+        const str = (typeof p.payload === "string" ? p.payload : JSON.stringify(p.payload)).replace(/[<>`]/g, "");
+        try { payload = typeof p.payload === "string" || str.length > 400 ? str.slice(0, 400) : JSON.parse(str); } catch { payload = str.slice(0, 400); }
+      }
       return list.length > 1 ? { edges: list, note: clean(p.note, 160), payload } : { edge: list[0], note: clean(p.note, 160), payload };
     });
     return { name: clean(o.name || "Scenario", 40), steps };

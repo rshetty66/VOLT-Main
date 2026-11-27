@@ -6,6 +6,10 @@
 
 - Diagram builder in the console: describe an agent system or process, get an interactive, animated diagram with typed nodes and edges and playable scenarios (Sonnet drafts it; demo mode shows a sample). Downloads as standalone HTML or JSON. Model text is stripped of markup, the frame is sandboxed, and the route is rate limited like runs.
 
+### Fixed
+
+- Diagram builder layout: group boxes replaced by a coloured stripe and tag on each node (no overlapping boxes), rows ordered to reduce crossings, long and return flows routed in lanes outside the nodes, flow labels shown on hover or when a step plays, return flows dimmed, and the diagram scales to fill the frame. The renderer HTML-escapes all text, and payloads keep their quotes.
+
 ### Changed
 
 - GateGuard first-touch denials ask questions that fit the target: by class (instruction, test, prose, config, code) on its project-relative path, and for code by what the change touches. An edit that changes no public declaration asks for the in-module call sites instead of importers and public API, and the data-schema question is dropped when the change handles no data. Changes the hook cannot read with confidence keep the original four questions word for word.
