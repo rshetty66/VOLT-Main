@@ -20,7 +20,7 @@ export default async function Home() {
         <p className="label eyebrow">Finance operations</p>
         <h1 id="page-title">Foundation status</h1>
         <p className="subtle">Check registry coverage here. Use VOLT to find finance skills.</p>
-        <a className="console-link" href={consoleUrl()}>Open VOLT console <span aria-hidden="true">↗</span></a>
+        <a className="console-link" href={consoleUrl()}>Open VOLT console</a>
       </section>
       {!catalog.ok ? (
         <section className="notice" aria-labelledby="error-title">
