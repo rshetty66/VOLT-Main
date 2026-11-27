@@ -369,6 +369,8 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
     if (wasRunning.current && run.state !== "running") setTimeout(() => scrollEndIntoView(run.id), 450);
     wasRunning.current = run.state === "running";
   }, [run.state, run.id]);
+  const [showAll, setShowAll] = useState(false);
+  const long = run.prompt.length > 280 || run.prompt.split("\n").length > 4;
   const [, tick] = useState(0);
   useEffect(() => {
     if (run.state !== "running") return;
@@ -384,10 +386,15 @@ function RunView({ run, onStop, onRegenerate }: { run: Run; onStop: () => void; 
           {RUN_STATUS_LABEL[status]}
         </span>
         <span className="micro">{run.title}</span>
-        <div className="prompt">
+        <div className={`prompt${long && !showAll ? " clamped" : ""}`}>
           {run.prompt}
           {run.attachments?.length ? <div className="muted" style={{ fontSize: "var(--fs-3)", fontWeight: 400 }}>Attached: {run.attachments.join(", ")}</div> : null}
         </div>
+        {long && (
+          <button className="prompt-more" onClick={() => setShowAll((v) => !v)}>
+            {showAll ? "Show less" : "Show full prompt"}
+          </button>
+        )}
         <span className="usage" title={models.length ? models.map((m) => `${modelName(m.model)}: ${m.tokens.toLocaleString()} tokens, est. ${cad(m.cost)}`).join("\n") : undefined}>
           {elapsed}s{run.mode === "demo" ? " · demo" : ""}
           {models.length > 0 && ` · ${modelsLine(models)} · est. ${cad(run.usage.cost ?? 0)}`}

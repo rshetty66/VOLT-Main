@@ -135,7 +135,8 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
     }
   }
   const top = y + 24;
-  const foot = spec.source ? 30 : 14;
+  const srcLines = spec.source ? wrapLabel(`Source: ${spec.source}`, W - 48, 11, 4) : [];
+  const foot = 14 + 16 * srcLines.length;
   let H = BASE_H;
 
   if (spec.type === "donut") donut();
@@ -143,7 +144,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
   else if (spec.type === "heatmap") heatmap();
   else cartesian();
 
-  if (spec.source) parts.push(text(24, H - 11, `Source: ${spec.source}`, { size: 11 }));
+  srcLines.forEach((ln, i) => parts.push(text(24, H - 11 - (srcLines.length - 1 - i) * 16, ln, { size: 11 })));
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-labelledby="${id}t ${id}d" style="font-variant-numeric:tabular-nums"><title id="${id}t">${esc(spec.title || "Chart")}</title><desc id="${id}d">${esc(describe(spec))}</desc><defs>${defs.join("")}</defs><rect width="${W}" height="${H}" fill="${p.bg}" rx="10"/>${parts.join("")}</svg>`;
 
   function donut() {
