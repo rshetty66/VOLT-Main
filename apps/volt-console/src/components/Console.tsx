@@ -198,10 +198,8 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
             <div className="starters">
               {STARTERS.map((st) => (
                 <button key={st.title} className="starter" onClick={() => fill(st.prompt)}>
-                  <span className="starter-icon" aria-hidden="true"><Icon name={st.icon} size={18} /></span>
-                  <span className="micro">{st.category}</span>
+                  <span className="starter-icon" aria-hidden="true"><Icon name={st.icon} size={14} /></span>
                   <span className="starter-title">{st.title}</span>
-                  <span className="starter-text">{st.prompt}</span>
                 </button>
               ))}
             </div>
