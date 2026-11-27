@@ -4,6 +4,8 @@
 
 ### Added
 
+- 2026-11-27: Move chat and workflow intake into the editable optimized prompt. Review or edit the brief once; optimizer errors do not launch a run.
+
 - 2026-11-27: Executive decks with the required finance views. Every finance transformation deck or page now carries a process flow, a process taxonomy (L1 to L4 with APQC PCF ids, new ```taxonomy view), a business and a technology reference architecture, and a product lifecycle view (new ```lifecycle view); the depth check and `create_file` refuse a deck without them or with more than 14 slides. Decks drop the click-by-click builds, lead with the KPI strip, use smaller type, put two charts side by side again (fixes continued slides) and skip a chat lead-in. Architecture connectors route around the cards with labels only in the gaps. Agent Stage counts a repeated hand-off (x3) and never cuts a number. Rakesh's Future of Finance master prompt is saved with the design-finance-architecture skill.
 - 2026-11-27: Gyan Agents Phase 1 adds versioned finance workflow contracts and 20 profiles bound to existing VOLT identities. Agent Registry and Skill Finder move under one Reference destination. Studio storage is separate; no existing chat or ledger data is migrated.
 - 2026-11-27: Chat always optimizes first, then asks to confirm. Every first-person request that is not a command, lookup or quick ask is rewritten by Sonnet into an executive prompt (business ask, 3 to 5 key questions, persona, output format). You edit it, send it, send your original, or cancel. Live mode only; if the optimizer fails, your message is sent as written. Adds one Sonnet call per message.
@@ -17,6 +19,8 @@
 - Diagram builder in the console: describe an agent system or process, get an interactive, animated diagram with typed nodes and edges and playable scenarios (Sonnet drafts it; demo mode shows a sample). Downloads as standalone HTML or JSON. Model text is stripped of markup, the frame is sandboxed, and the route is rate limited like runs.
 
 ### Fixed
+
+- 2026-11-27: Register the builder/reviewer loop, executive prompt optimizer, Uber skill evaluation, and VOLT release loop in their existing install modules so each skill is included exactly once.
 
 - Chat output formatting: a long prompt shows three lines with a Show full prompt toggle and uses the full width instead of a narrow column, answer text is 16px with an 80-character line, chart source lines wrap instead of clipping, and swimlane step names can use up to six lines instead of clipping.
 

@@ -25,6 +25,7 @@ import { Diagrams } from "./components/Diagrams";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
 import { TemplateContext } from "./exports";
+import { nextVersion } from "./versions";
 import { cad, chatUsage, modelName, setUsdCadRate, usageTotals } from "./usage";
 import { Icon, Ring } from "./components/Icon";
 import { setupProgress, setupSteps } from "./setup";
@@ -169,7 +170,7 @@ export function App() {
       const run = { ...newRun(req.prompt, title, kind), attachments: req.attachments?.map((a) => a.name), scorecard: kpiScorecard(req.scope?.kpis, catalog?.benchmarks ?? []), projectId };
       const controller = new AbortController();
       controllers.current.set(run.id, controller);
-      setRuns((rs) => [...rs, run]);
+      setRuns((rs) => [...rs, { ...run, version: nextVersion(rs, req.prompt) }]);
       setView("console");
       const update = (fn: (r: Run) => Run) => setRuns((rs) => rs.map((r) => (r.id === run.id ? fn(r) : r)));
       try {
@@ -415,11 +416,11 @@ export function App() {
         {view === "console" && (
           <Console setup={steps} onNavigate={(v) => setView(v as View)} recent={history.slice(0, 3)} onOpenRecent={openRun} catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} userName={me} />
         )}
-        {view === "workflows" && <Workflows catalog={catalog} onLaunch={start} onOpenAgent={setOpenAgent} />}
+        {view === "workflows" && <Workflows catalog={catalog} live={live} onLaunch={start} onOpenAgent={setOpenAgent} />}
         {isReferenceView(view) && <ReferenceNav view={view} onSelect={setView} />}
         {view === "agents" && <Agents catalog={catalog} onOpen={setOpenAgent} />}
         {view === "skills" && <SkillFinder catalog={catalog} onOpenAgent={setOpenAgent} />}
-        {view === "services" && <Services catalog={catalog} onOpenAgent={setOpenAgent} onLaunch={start} />}
+        {view === "services" && <Services catalog={catalog} live={live} onOpenAgent={setOpenAgent} onLaunch={start} />}
         {view === "templates" && <Templates templates={templates} refresh={refreshTemplates} activeTemplate={activeTemplate} setActiveTemplate={setActiveTemplate} />}
         {view === "analytics" && <Analytics catalog={catalog} />}
         {view === "history" && (

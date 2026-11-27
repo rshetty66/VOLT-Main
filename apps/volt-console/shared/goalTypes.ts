@@ -30,8 +30,8 @@ export const GOAL_TYPES: GoalType[] = [
     label: "Market and competitor research",
     hint: "A market, its players, prices and deals",
     questions: [
-      { key: "market", label: "Which market?", multi: true, options: rec({ consulting: "Consulting and advisory", banking: "Banking", insurance: "Insurance", wealth: "Asset and wealth", pensions: "Pensions", tech: "Finance technology" }) },
-      { key: "need", label: "What do you need?", multi: true, options: rec({ size: "Size and growth", players: "Competitor landscape", pricing: "Pricing and fees", buyers: "Buyer needs", deals: "Recent deals" }) },
+      { key: "market", label: "Which markets should the research cover?", multi: true, options: rec({ banking: "Banking", insurance: "Insurance", wealth: "Asset and wealth management", pensions: "Pensions", consulting: "Consulting and advisory", tech: "Finance technology" }) },
+      { key: "need", label: "What should the research answer?", multi: true, options: rec({ size: "Market size and growth", players: "Who the competitors are", pricing: "Pricing and fees", buyers: "What buyers want", deals: "Recent deals and moves", regulation: "Regulatory change" }) },
     ],
   },
   {
@@ -39,8 +39,8 @@ export const GOAL_TYPES: GoalType[] = [
     label: "Business development",
     hint: "Targets, deals, proposals, pitches",
     questions: [
-      { key: "stage", label: "Which stage?", multi: false, options: rec({ targets: "Find targets", qualify: "Qualify a deal", proposal: "Write a proposal", pitch: "Prepare a pitch" }) },
-      { key: "client", label: "For which client?", multi: false, options: rec(CLIENT_TYPES) },
+      { key: "stage", label: "Where is the opportunity today?", multi: false, options: rec({ targets: "Finding targets", qualify: "Qualifying a lead", proposal: "Writing the proposal", pitch: "Preparing the pitch", orals: "Orals or final defence" }) },
+      { key: "client", label: "Who is the client?", multi: true, options: rec(CLIENT_TYPES) },
     ],
   },
   {
@@ -48,8 +48,8 @@ export const GOAL_TYPES: GoalType[] = [
     label: "Strategy and board advice",
     hint: "Options, recommendations, board papers",
     questions: [
-      { key: "audience", label: "Who is it for?", multi: false, options: rec({ board: "Board", cfo: "CFO", exec: "Executive team", investors: "Investors" }) },
-      { key: "form", label: "What form?", multi: false, options: rec({ options: "Options paper", recommendation: "Recommendation", risk: "Risk view", brief: "One-page brief" }) },
+      { key: "audience", label: "Who will read it?", multi: true, options: rec({ board: "Board", cfo: "CFO", exec: "Executive team", audit: "Audit committee", investors: "Investors", regulator: "Regulator" }) },
+      { key: "form", label: "What decision should it support?", multi: false, options: rec({ options: "Choose between options", recommendation: "Approve a recommendation", risk: "Understand a risk", brief: "Be briefed on a topic" }) },
     ],
   },
   {
@@ -57,8 +57,8 @@ export const GOAL_TYPES: GoalType[] = [
     label: "Accounting or regulatory question",
     hint: "A treatment, a disclosure, a capital rule",
     questions: [
-      { key: "basis", label: "Which basis?", multi: true, options: { ...BASES } },
-      { key: "topic", label: "Topic", multi: false, options: rec({ recognition: "Recognition and measurement", disclosure: "Disclosure", capital: "Regulatory capital", consolidation: "Consolidation", hedging: "Hedging", leases: "Leases" }) },
+      { key: "basis", label: "Which reporting basis applies?", multi: true, options: { ...BASES } },
+      { key: "topic", label: "Which topics does it touch?", multi: true, options: rec({ recognition: "Recognition and measurement", ecl: "Expected credit loss (IFRS 9)", insurance: "Insurance contracts (IFRS 17)", hedging: "Hedge accounting", consolidation: "Consolidation", leases: "Leases", disclosure: "Disclosure", capital: "Regulatory capital" }) },
     ],
   },
   {
@@ -66,8 +66,8 @@ export const GOAL_TYPES: GoalType[] = [
     label: "Data and analysis",
     hint: "Work on figures you have",
     questions: [
-      { key: "data", label: "Which data?", multi: true, options: rec({ attached: "Files I attach", kb: "Knowledge base", public: "Public data" }) },
-      { key: "output", label: "What back?", multi: true, options: rec({ table: "Table", chart: "Chart", workbook: "Workbook", narrative: "Narrative" }) },
+      { key: "data", label: "Which data should VOLT use?", multi: true, options: rec({ attached: "Files I attach", kb: "Knowledge base", public: "Public data" }) },
+      { key: "output", label: "What do you want back?", multi: true, options: rec({ table: "Table", chart: "Chart", workbook: "Workbook", narrative: "Written findings" }) },
     ],
   },
   {
@@ -75,8 +75,8 @@ export const GOAL_TYPES: GoalType[] = [
     label: "Technology or vendor selection",
     hint: "ERP, EPM, hub, data, AI",
     questions: [
-      { key: "area", label: "Which area?", multi: true, options: rec({ erp: "ERP", epm: "EPM and close", hub: "Accounting hub", data: "Data platform", ai: "AI and automation" }) },
-      { key: "stage", label: "Which stage?", multi: false, options: rec({ long: "Long list", short: "Short list", case: "Business case", plan: "Implementation plan" }) },
+      { key: "area", label: "Which part of the stack?", multi: true, options: rec({ erp: "ERP", epm: "EPM, close and consolidation", hub: "Accounting hub", data: "Data platform", ai: "AI and automation" }) },
+      { key: "stage", label: "How far along is the decision?", multi: false, options: rec({ long: "Building a long list", short: "Comparing a short list", case: "Making the business case", plan: "Planning the implementation" }) },
     ],
   },
   {
@@ -84,8 +84,8 @@ export const GOAL_TYPES: GoalType[] = [
     label: "Shape an idea into a brief",
     hint: "Outcome, scope and success measures before any build",
     questions: [
-      { key: "mode", label: "What back?", multi: false, options: rec(DISCOVERY_MODES) },
-      { key: "sources", label: "Which evidence?", multi: false, options: rec(DISCOVERY_SOURCES) },
+      { key: "mode", label: "What should VOLT hand back?", multi: false, options: rec(DISCOVERY_MODES) },
+      { key: "sources", label: "Which evidence should it use?", multi: false, options: rec(DISCOVERY_SOURCES) },
     ],
   },
   { id: "other", label: "Something else", hint: "Say it in your own words", questions: [] },
@@ -105,16 +105,24 @@ export function validGoalAnswers(goal: string | undefined, answers: Record<strin
   });
 }
 
-/** "- Which market?: Banking, Insurance" lines for the scope block; a recommend answer asks VOLT to choose. */
-export function goalLines(goal: string | undefined, answers: Record<string, string[]> | undefined): string[] {
+/** The key under which the free-text answer to "Something else" is kept in Scope.other. */
+export const OTHER_GOAL = "goal";
+
+/**
+ * "- Which markets should the research cover: Banking, Insurance" lines for the scope block. A recommend answer asks
+ * VOLT to choose; an Other answer adds the client's own words.
+ */
+export function goalLines(goal: string | undefined, answers: Record<string, string[]> | undefined, other: Record<string, string> = {}): string[] {
   const g = goalType(goal);
   if (!g) return [];
   const lines = [`- Goal: ${g.label}`];
+  if (other[OTHER_GOAL]?.trim()) lines.push(`- What the chat is for (client's words): ${other[OTHER_GOAL].trim()}`);
   for (const q of g.questions) {
     const a = answers?.[q.key] ?? [];
-    if (!a.length) continue;
+    const own = other[q.key]?.trim();
     const label = q.label.replace(/\?$/, "");
-    lines.push(a.includes(RECOMMEND) ? `- ${label}: not set; recommend what fits and say why in one line` : `- ${label}: ${a.map((o) => q.options[o]).join(", ")}`);
+    if (a.includes(RECOMMEND)) lines.push(`- ${label}: not set; recommend what fits and say why in one line`);
+    else if (a.length || own) lines.push(`- ${label}: ${[...a.map((o) => q.options[o]), ...(own ? [`${own} (client's words)`] : [])].join(", ")}`);
   }
   return lines;
 }

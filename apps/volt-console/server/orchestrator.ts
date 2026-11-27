@@ -20,7 +20,7 @@ import { MAX_HANDBACKS, wantsReviewInText } from "../shared/review.js";
 import { independentReview } from "./reviewer.js";
 import Anthropic from "@anthropic-ai/sdk";
 import type { AgentDef, Catalog, WorkflowDef } from "./catalog.js";
-import { assessDepth, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, DIRECT_GUIDE, directAsk, QUICK_GUIDE, quickAsk, wantsDeliverable } from "./deliverable.js";
+import { assessDepth, CHAT_FORMAT, leadDeliverableGuide, MIN_WORDS, specialistDeliverableGuide, strengthenPrompt, DIRECT_GUIDE, directAsk, QUICK_GUIDE, quickAsk, wantsDeliverable } from "./deliverable.js";
 import { SourceRegistry, WEB_RESEARCH_GUIDE, registerWebBlock, sourceForTool, webCitationKeys } from "./research.js";
 import { evidenceGates } from "../shared/research.js";
 import { GOAL_GUIDE, PLAN_TOOL, goalToolDefs, planGoal } from "./goals.js";
@@ -129,6 +129,8 @@ You lead a bench of VOLT specialist agents. For any request that spans more than
 
 Write the final answer as an executive-grade consulting deliverable in Markdown: a one-paragraph answer first, then structured sections and tables. Where a picture clarifies an architecture, process, roadmap or prioritisation, include Mermaid diagrams (up to four) in \`\`\`mermaid code blocks (flowchart, gantt, quadrantChart or pie; short plain labels, no styling); the console draws them and carries them into downloads. State assumptions and data gaps plainly instead of inventing client facts. If a simple question needs no delegation, answer it directly.
 
+${CHAT_FORMAT}
+
 ${leadDeliverableGuide()}
 ${ledgerEnabled() ? `\n${GOAL_GUIDE}\n\n${LEDGER_GUIDE}\n` : ""}
 When a request matches one of the VOLT workflows below, mention it by name so the user can launch it as a full multi-phase run.
@@ -147,6 +149,8 @@ function specialistSystem(catalog: Catalog, agent: AgentDef): string {
 ## Working inside VOLT
 You are the ${agent.name} agent (${agent.layer}). ${agent.description}
 You have been brought in on a workstream. Answer the brief with a practitioner-grade deliverable in Markdown, typically 700 to 1,000 words, at the depth of a senior practitioner's client workpaper: quantified findings with the arithmetic, options with their trade-offs, risks with mitigations, assumptions and data gaps, and at least two exhibits (tables with a Source line). You may add up to two short Mermaid diagrams (flowchart, gantt, quadrantChart or pie) in \`\`\`mermaid blocks when they clarify a flow or a plan. Lead with the answer. Be explicit about assumptions, risks and the data you would need to firm up the view.
+
+${CHAT_FORMAT}
 Use tools for numbers (apqc_benchmark, score_maturity, appraise_investment, build_value_case) and the Skill Finder (find_skills, load_skill) for VOLT method packs.\n${PCF_GUIDE}${shipped.length ? `\nYour registered VOLT skills: ${shipped.join(", ")}.` : ""}${specialistDeliverableGuide() ? `\n\n${specialistDeliverableGuide()}` : ""}`;
 }
 

@@ -17,7 +17,7 @@ React UI (Vite) --SSE--> Node API (Express) --> Claude Messages API (streaming t
 | View | What it does |
 |---|---|
 | Agent Console | Rudra routes a request across the 236 agents, runs specialists in parallel and synthesises one deliverable. You can also chat with any single agent |
-| Workflows | The 35 VOLT workflows with their intake questions. Phases run in order, agents in parallel within a phase, then Rudra synthesises |
+| Workflows | Describe the request in one box. VOLT folds relevant scoping questions into an editable brief before launch. Phases run in order, agents in parallel within a phase, then Rudra synthesises |
 | Reference | Browse specialists in Agent Registry or find matching skill packs by task in Skill Finder. Both directories open only from Reference; the chat composer still has its own agent picker |
 | Services | The 60-service catalogue with coverage ratings; each service launches its workflow |
 | Analytics | APQC benchmark positioning and a finance transformation value case. Agents call the same deterministic tools for every figure |

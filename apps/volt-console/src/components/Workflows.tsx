@@ -1,20 +1,21 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { CatalogResponse, RunKind, RunRequest } from "../../shared/events";
 
 type Workflow = CatalogResponse["workflows"][number];
 
 interface Props {
   catalog: CatalogResponse;
+  live?: boolean;
   onLaunch: (req: RunRequest, title: string, kind: RunKind) => void;
   onOpenAgent: (id: string) => void;
 }
 
-export function Workflows({ catalog, onLaunch, onOpenAgent }: Props) {
+export function Workflows({ catalog, live, onLaunch, onOpenAgent }: Props) {
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<Workflow | null>(null);
   const filtered = catalog.workflows.filter((w) => `${w.name} ${w.description} ${w.id}`.toLowerCase().includes(q.toLowerCase()));
 
-  if (selected) return <WorkflowLauncher catalog={catalog} wf={selected} onBack={() => setSelected(null)} onLaunch={onLaunch} onOpenAgent={onOpenAgent} />;
+  if (selected) return <WorkflowLauncher catalog={catalog} live={live} wf={selected} onBack={() => setSelected(null)} onLaunch={onLaunch} onOpenAgent={onOpenAgent} />;
 
   return (
     <div className="stack">
@@ -55,17 +56,57 @@ export function Workflows({ catalog, onLaunch, onOpenAgent }: Props) {
   );
 }
 
-function WorkflowLauncher({ catalog, wf, onBack, onLaunch, onOpenAgent }: { catalog: CatalogResponse; wf: Workflow; onBack: () => void } & Omit<Props, "catalog">) {
-  const questions = catalog.intake[wf.id] ?? catalog.intake["default"] ?? [];
-  const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [prompt, setPrompt] = useState("");
+type ReadyPreview = { kind: "optimized" | "original"; text: string };
+type Preview = ReadyPreview | { kind: "loading" | "error" };
+
+export async function prepareWorkflowPreview(prompt: string, workflowId: string, live: boolean, signal: AbortSignal): Promise<ReadyPreview> {
+  if (!live) return { kind: "original", text: prompt };
+  const response = await fetch("/api/optimize", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt, workflowId }),
+    signal,
+  });
+  if (!response.ok) throw new Error("Workflow prompt optimization failed.");
+  const result = await response.json();
+  if (result?.demo === true && result.optimized === null) return { kind: "original", text: prompt };
+  if (typeof result?.optimized?.prompt !== "string" || !result.optimized.prompt.trim()) throw new Error("No optimized prompt returned.");
+  return { kind: "optimized", text: result.optimized.prompt };
+}
+
+type LauncherProps = Props & { wf: Workflow; onBack: () => void; initialPrompt?: string; backLabel?: string };
+
+export function WorkflowLauncher({ catalog, live = catalog.mode === "live", wf, onBack, onLaunch, onOpenAgent, initialPrompt = "", backLabel = "All workflows" }: LauncherProps) {
+  const [prompt, setPrompt] = useState(initialPrompt);
+  const [preview, setPreview] = useState<Preview | null>(null);
+  const pending = useRef<AbortController | null>(null);
+  useEffect(() => () => pending.current?.abort(), []);
+  const cancel = () => {
+    pending.current?.abort();
+    pending.current = null;
+    setPreview(null);
+  };
+  const review = async () => {
+    pending.current?.abort();
+    const controller = new AbortController();
+    pending.current = controller;
+    setPreview({ kind: "loading" });
+    try {
+      const ready = await prepareWorkflowPreview(prompt, wf.id, live, controller.signal);
+      if (!controller.signal.aborted) setPreview(ready);
+    } catch {
+      if (!controller.signal.aborted) setPreview({ kind: "error" });
+    } finally {
+      if (pending.current === controller) pending.current = null;
+    }
+  };
   const name = (id: string) => catalog.agents.find((a) => a.id === id);
   const agentCalls = wf.phases.reduce((n, p) => n + p.agents.length, 0);
 
   return (
     <div className="stack" style={{ maxWidth: 900 }}>
       <button className="btn ghost sm" style={{ alignSelf: "flex-start" }} onClick={onBack}>
-        ← All workflows
+        ← {backLabel}
       </button>
       <div>
         <h1 className="page-title">
@@ -97,35 +138,30 @@ function WorkflowLauncher({ catalog, wf, onBack, onLaunch, onOpenAgent }: { cata
       </div>
 
       <div className="card stack">
-        <div className="micro">Engagement intake</div>
-        {questions.map((q) => (
-          <label key={q.key} className="stack" style={{ gap: 6 }}>
-            <span className="body">{q.question}</span>
-            {q.options?.length ? (
-              <select className="select" value={answers[q.key] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.key]: e.target.value })}>
-                <option value="">— choose —</option>
-                {q.options.map((o) => (
-                  <option key={o}>{o}</option>
-                ))}
-              </select>
-            ) : (
-              <input className="input" value={answers[q.key] ?? ""} onChange={(e) => setAnswers({ ...answers, [q.key]: e.target.value })} />
-            )}
+        {!preview ? <>
+          <label className="stack" style={{ gap: 6 }}>
+            <span className="body">Client situation and request</span>
+            <textarea className="textarea" rows={5} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Client, industry, scale, platforms, pain points, what the deliverable must answer…" />
           </label>
-        ))}
-        <label className="stack" style={{ gap: 6 }}>
-          <span className="body">Client situation and request</span>
-          <textarea className="textarea" rows={5} value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Client, industry, scale, platforms, pain points, what the deliverable must answer…" />
-        </label>
-        <div className="row" style={{ justifyContent: "flex-end" }}>
-          <button
-            className="btn primary"
-            disabled={!prompt.trim()}
-            onClick={() => onLaunch({ prompt: prompt.trim(), workflowId: wf.id, intake: answers }, `${wf.icon} ${wf.name}`, "workflow")}
-          >
-            Launch workflow
-          </button>
-        </div>
+          <div className="row" style={{ justifyContent: "flex-end" }}>
+            <button type="button" className="btn primary" disabled={!prompt.trim()} onClick={review}>Review workflow prompt</button>
+          </div>
+        </> : <>
+          <div className="micro">Workflow prompt preview</div>
+          {preview.kind === "loading" && <div role="status">Preparing the prompt for {wf.name}…</div>}
+          {preview.kind === "error" && <div role="alert">The optimizer could not prepare a prompt. Nothing has launched.</div>}
+          {"text" in preview && <label className="stack" style={{ gap: 6 }}>
+            <span className="body">{preview.kind === "original" ? "Original prompt" : "Optimized prompt"} · review and edit before launching</span>
+            <textarea className="textarea" rows={12} value={preview.text} onChange={(e) => setPreview({ ...preview, text: e.target.value })} />
+          </label>}
+          <div className="row" style={{ justifyContent: "flex-end" }}>
+            <button type="button" className="btn" onClick={cancel}>Cancel</button>
+            {preview.kind === "error" && <button type="button" className="btn" onClick={review}>Retry optimizer</button>}
+            {(preview.kind === "error" || preview.kind === "optimized") && <button type="button" className="btn" onClick={() => setPreview({ kind: "original", text: prompt })}>Review original instead</button>}
+            {"text" in preview && <button type="button" className="btn primary" disabled={!preview.text.trim()}
+              onClick={() => onLaunch({ prompt: preview.text, workflowId: wf.id }, `${wf.icon} ${wf.name}`, "workflow")}>Confirm and launch workflow</button>}
+          </div>
+        </>}
       </div>
     </div>
   );
