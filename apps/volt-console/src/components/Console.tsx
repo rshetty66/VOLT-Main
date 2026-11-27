@@ -205,15 +205,15 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               ))}
             </div>
             {recent.length > 0 && (
-              <div className="stack" style={{ gap: "var(--sp-2)" }}>
+              <section className="recent-list" aria-label="Recent chats">
                 <div className="micro">Recent chats</div>
                 {recent.map((r) => (
                   <button key={r.id} className="recent" onClick={() => onOpenRecent?.(r)}>
                     <span className="recent-title">{r.prompt}</span>
-                    <span className="muted">{new Date(r.startedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
+                    <time className="muted" dateTime={new Date(r.startedAt).toISOString()}>{new Date(r.startedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</time>
                   </button>
                 ))}
-              </div>
+              </section>
             )}
             {setup && setup.some((s) => !s.done) && (
               <GetStarted
