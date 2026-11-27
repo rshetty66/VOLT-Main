@@ -20,6 +20,7 @@ import { Agents, AgentDrawer } from "./components/Agents";
 import { SkillFinder } from "./components/SkillFinder";
 import { Services } from "./components/Services";
 import { Analytics } from "./components/Analytics";
+import { Diagrams } from "./components/Diagrams";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
 import { TemplateContext } from "./exports";
@@ -29,7 +30,7 @@ import { setupProgress, setupSteps } from "./setup";
 import { kpiScorecard } from "./charts/results";
 import { errText } from "./netGuard";
 
-export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads" | "ledger" | "projects";
+export type View = "console" | "workflows" | "agents" | "skills" | "services" | "templates" | "analytics" | "health" | "history" | "usage" | "uploads" | "ledger" | "projects" | "diagrams";
 
 export function App() {
   const [catalog, setCatalog] = useState<CatalogResponse | null>(null);
@@ -247,6 +248,7 @@ export function App() {
     ["history", "Chats", "Chats", history.length || ""],
     ["uploads", "Knowledge", "Knowledge base", uploadCount || ""],
     ["ledger", "Ledger", "Ledger review", ""],
+    ["diagrams", "Diagrams", "Diagram builder", ""],
     ["usage", "Usage", "Token usage", ""],
     ["health", "Health", "Capability Health", missing],
   ];
@@ -406,6 +408,7 @@ export function App() {
             }}
           />
         )}
+        {view === "diagrams" && <Diagrams />}
         {view === "health" && <Health catalog={catalog} onOpenAgent={setOpenAgent} />}
       </main>
       </TemplateContext.Provider>
