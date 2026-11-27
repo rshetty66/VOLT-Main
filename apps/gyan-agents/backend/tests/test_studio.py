@@ -1,11 +1,13 @@
 import base64
 import io
+import json
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 from fastapi.testclient import TestClient
 from openpyxl import Workbook
 from gyan_agents import db
+from gyan_agents import studio
 from gyan_agents.api import create_app
 from gyan_agents.studio import isolated
 
@@ -99,3 +101,61 @@ def test_critic_rejects_unsupported_figure_and_unbalanced_journal():
     with pytest.raises(Exception,match="Unsupported figure"):isolated(task|{"operation":"verify","result":result})
     inputs["gl"]["rows"][0].update(journal_id="J",debit="10.25",credit="0")
     with pytest.raises(Exception,match="Unbalanced journal"):isolated(task|{"operation":"calculate"})
+
+
+def assert_failed_simulation(client, dag, expected_error):
+    assert post(client, "drafts", dag).is_success
+    response = post(client, "simulate", {"id": dag["id"], "version": dag["version"], "key": "failure-case"})
+    assert response.is_success
+    run = response.json()
+    assert run["status"] == "failed"
+    assert expected_error in run["document"]["error"]
+    assert run["document"]["results"] == {}
+    assert run["document"]["write_back"] is False
+
+    path = f"/studio/runs/{run['id']}/trace"
+    trace = client.get(path, headers=headers())
+    assert trace.is_success
+    events = [json.loads(line[6:]) for line in trace.text.splitlines() if line.startswith("data: ")]
+    assert any(e["node"] == "calculate" and e["status"] == "failed" for e in events)
+    assert events[-1]["status"] == "failed"
+    assert not {"verified", "approval_required", "awaiting_hitl", "completed"} & {e["status"] for e in events}
+
+    decision = post(client, f"runs/{run['id']}/decision", {"choice": "approve", "artifact_hash": run["artifact_hash"]},
+                    headers(actor="independent-controller", role="controller"))
+    assert decision.status_code == 409
+
+
+@pytest.mark.parametrize("credit", ["9000.00", "9999.99"], ids=["CAD-6000-over-materiality", "first-cent-over-CAD-5000-limit"])
+def test_material_unbalanced_journal_fails_before_approval(client, credit):
+    dag = post(client, "template/close").json()
+    csv = ("reference,amount,currency,journal_id,debit,credit\n"
+           "A,15000.00,CAD,J1,15000.00,0.00\n"
+           f"B,-{credit},CAD,J1,0.00,{credit}\n").encode()
+    uploaded = post(client, "sources", {"name": "journal.csv", "content": base64.b64encode(csv).decode()})
+    assert uploaded.is_success
+    next(n for n in dag["nodes"] if n["id"] == "gl")["snapshot_id"] = uploaded.json()[0]["id"]
+    assert_failed_simulation(client, dag, "Unbalanced journal")
+
+
+def test_correct_figure_without_source_evidence_fails_independent_verification(client, monkeypatch):
+    dag = post(client, "template/close").json()
+    # A material figure that matches exactly in both sources: only provenance is faulty.
+    for source in ("bank", "gl"):
+        raw = f"reference,amount,currency,source\nA,15000.00,CAD,{source}\n".encode()
+        uploaded = post(client, "sources", {"name": f"{source}.csv", "content": base64.b64encode(raw).decode()})
+        assert uploaded.is_success
+        next(n for n in dag["nodes"] if n["id"] == source)["snapshot_id"] = uploaded.json()[0]["id"]
+
+    def drop_evidence_after_calculation(task):
+        # Both subprocesses are real. Only the handoff is fault-injected: preserve
+        # the numbers and remove the pinned row references from one matched line.
+        result = isolated(task)
+        if task["operation"] == "calculate":
+            line = next(r for r in result["lines"] if r["status"] == "matched")
+            assert line["evidence"]
+            line["evidence"] = []
+        return result
+
+    monkeypatch.setattr(studio, "isolated", drop_evidence_after_calculation)
+    assert_failed_simulation(client, dag, "Unsupported figure or source reference")
