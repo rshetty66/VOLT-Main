@@ -42,6 +42,8 @@ export interface RunRequest {
   demo?: boolean;
   /** Run every step on the Opus-tier model (the "Opus" switch): overrides the router for this run and the rest of the chat. */
   opus?: boolean;
+  /** Run the independent reviewer on the answer, up to three hand-backs (shared/review.ts). */
+  review?: boolean;
   /** Which provider the specialist workstreams run on: Claude (default), Auto (cross-provider), GPT or Grok. The lead always runs on Claude. */
   engine?: "claude" | "auto" | "gpt" | "grok";
   /** Uploaded template whose formatting guide the agents apply (see shared/templates.ts). */

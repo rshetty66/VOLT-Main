@@ -58,6 +58,7 @@ export function App() {
   const [forceDemo, setForceDemo] = useState(false);
   /** "Opus" switch: every step of the next runs on Opus, and the chat stays there (see server/router.ts). */
   const [forceOpus, setForceOpus] = useState(false);
+  const [review, setReview] = useState(false);
   // The top bar's Settings menu closes on a click outside it or on Escape.
   const settings = useRef<HTMLDetailsElement>(null);
   useEffect(() => {
@@ -170,7 +171,7 @@ export function App() {
       setView("console");
       const update = (fn: (r: Run) => Run) => setRuns((rs) => rs.map((r) => (r.id === run.id ? fn(r) : r)));
       try {
-        for await (const e of streamRun({ ...req, projectId, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined, opus: forceOpus || undefined, engine: engine !== "claude" ? engine : undefined, templateId: activeTemplate || undefined }, controller.signal)) {
+        for await (const e of streamRun({ ...req, projectId, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined, opus: forceOpus || undefined, review: review || undefined, engine: engine !== "claude" ? engine : undefined, templateId: activeTemplate || undefined }, controller.signal)) {
           if (e.type === "done") {
             sessions.current.set(sessionKey, e.sessionId);
             // Follow-ups to Rudra continue from a finished workflow's synthesis.
@@ -187,7 +188,7 @@ export function App() {
         controllers.current.delete(run.id);
       }
     },
-    [forceDemo, forceOpus, activeTemplate, projectId, catalog],
+    [forceDemo, forceOpus, review, activeTemplate, projectId, catalog],
   );
 
   const openRun = (run: Run) => {
@@ -322,6 +323,11 @@ export function App() {
             {live && (
               <label className="row body" title="A chat that has used Opus stays on Opus.">
                 <input type="checkbox" checked={forceOpus} onChange={(e) => setForceOpus(e.target.checked)} /> Run every step on Opus
+              </label>
+            )}
+            {live && (
+              <label className="row body" title="A separate reviewer model checks the answer against your request and hands back gaps. At most three hand-backs, then it stops and says what is left.">
+                <input type="checkbox" checked={review} onChange={(e) => setReview(e.target.checked)} /> Independent review (max 3 rounds)
               </label>
             )}
             {live && (catalog.engines?.gpt || catalog.engines?.grok) && (
