@@ -1,6 +1,20 @@
 # Gyan Studio: design and simulation
 
-Open **Workflows → Gyan Agents**. There is no second Diagrams rail item. Use the canvas for authoring, Play diagram for a visual walkthrough, or Visual library for the existing freeform diagram designer and exports. None of these starts a finance run. Diagrams intentionally contain design labels, not source records; the export limit is 14 nodes per illustrated subsystem.
+Open **Diagrams** in the VOLT navigation for standalone diagram design, playback and exports. **Workflows → Gyan Agents → Diagrams** opens the same designer. In Gyan, **Play diagram** previews the current workflow without starting a simulation.
+
+Choose **Architecture** for a five-chapter visual tour of bank reconciliation, actual vs budget, or three-way matching. Each chapter explains the finance role, its control and the evidence passed forward. Use Play for timed captions, select a layer directly, or enable spoken narration if the browser offers a local English voice. No audio or finance data is sent to a speech provider.
+
+## Local VOLT + Gyan (no Render service)
+
+From the repository root on macOS/Linux, use Node 22.12+ and `uv` with Python 3.12–3.14:
+
+```sh
+(cd apps/gyan-agents/backend && uv sync --locked)
+(cd apps/volt-console && npm ci && npm run build)
+python3 apps/gyan-agents/scripts/local-studio.py
+```
+
+At first launch, choose a local designer password in the terminal. Open `http://127.0.0.1:8941`, sign in as `designer`, select the General project, and choose **Workflows → Gyan Agents → Bank reconciliation → Validate and save v1 → Run simulation**. Inspect the exception and its source-row references in Run evidence; reopen it later from Runs. Close the launcher with Ctrl+C. Drafts and evidence stay in `~/.volt-gyan-local` across restarts; neither existing sandbox nor hosted runs are imported. No controller is provisioned, no ERP postings are enabled, and no model key is required. For separate controller provisioning, see Private setup.
 
 ## Private setup
 

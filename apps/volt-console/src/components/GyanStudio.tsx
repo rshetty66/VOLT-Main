@@ -4,6 +4,7 @@ import "@xyflow/react/dist/style.css";
 import {Diagrams,diagramHtml} from "./Diagrams";
 import {validateSpec} from "../../shared/diagram";
 import {downloadText} from "../download";
+import {FinanceArchitecture} from "./FinanceArchitecture";
 
 type Kind="source"|"agent"|"router"|"approval";
 type Step={id:string;kind:Kind;label?:string;position?:{x:number;y:number};resource_id?:string;snapshot_id?:string;agent_id?:string;agent_version?:number;definition_ref?:string;skill_refs?:string[];required_role?:string;action?:string;field?:string;operator?:string;threshold?:number};
@@ -19,7 +20,11 @@ const ports:Record<string,string[]>={r2r_reconciler:["bank","gl"],fpa_variance_f
 const outputs:Record<string,string>={r2r_reconciler:"bank_gl_matches",fpa_variance_flux:"variances",p2p_ap_3way_match:"line_matches"};
 const captions:Record<Kind,string>={source:"Source",agent:"Finance agent",router:"Branch",approval:"Human approval"};
 const colors:Record<Kind,string>={source:"#76b7d4",agent:"#74d4bc",router:"#d7b56f",approval:"#c79cdf"};
-function illustrative():Dag{
+function illustrative(key="close"):Dag{
+  if(key!=="close"){
+    const variance=key==="variance",profile=variance?"fpa_variance_flux":"p2p_ap_3way_match",inputs=ports[profile];
+    return {...blank(),name:variance?"Actual vs budget":"Three-way match",nodes:[...inputs.map((id,i)=>({id,kind:"source" as const,label:id,resource_id:id,position:{x:0,y:i*95}})),{id:"calc",kind:"agent",agent_id:profile,agent_version:1,label:variance?"Compare actual vs budget":"Match invoice, PO and receipt",position:{x:225,y:55}},{id:"hold",kind:"approval",label:"Controller review",required_role:"controller",action:"review",position:{x:455,y:55}}],edges:[...inputs.map(id=>({source:id,target:"calc",source_port:"rows",target_port:id})),{source:"calc",target:"hold",source_port:outputs[profile],target_port:"proposal"}]};
+  }
   const id=blank();return {...id,name:"Bank reconciliation",nodes:[{id:"bank",kind:"source",label:"Bank statement",resource_id:"bank",position:{x:0,y:0}},{id:"gl",kind:"source",label:"Ledger cash",resource_id:"gl",position:{x:0,y:110}},{id:"calc",kind:"agent",agent_id:"r2r_reconciler",agent_version:1,label:"Reconcile",position:{x:230,y:55}},{id:"hold",kind:"approval",label:"Controller review",required_role:"controller",action:"review",position:{x:460,y:55}}],edges:[{source:"bank",target:"calc",source_port:"rows",target_port:"bank"},{source:"gl",target:"calc",source_port:"rows",target_port:"gl"},{source:"calc",target:"hold",source_port:"bank_gl_matches",target_port:"proposal"}]};
 }
 function storyboard(d:Dag){
@@ -42,6 +47,7 @@ export function GyanStudio({project,back}:{project:string;back:()=>void}){
   const [policy,setPolicy]=useState("require_evidence");
   const key=useRef(uid()), locked=useRef(false);const node=dag.nodes.find(n=>n.id===selected);
   const writable=role==="designer"||role==="controller";
+  const sourceNodes=dag.nodes.filter(n=>n.kind==="source"),pinned=sourceNodes.filter(n=>n.snapshot_id).length;
   async function api<T,>(path:string,body?:unknown):Promise<T>{
     const res=await fetch(`/api/gyan/${path}`,{method:body===undefined?"GET":"POST",headers:{"content-type":"application/json","x-volt-project":project},body:body===undefined?undefined:JSON.stringify(body)});
     const data=await res.json();if(!res.ok)throw Error(typeof data.detail==="string"?data.detail:data.error||"Request rejected by Studio policy");return data;
@@ -79,10 +85,11 @@ export function GyanStudio({project,back}:{project:string;back:()=>void}){
   }
   const choose=(d:Dag)=>{change(d);select(d.nodes.find(n=>n.kind==="agent")?.id||d.nodes[0]?.id||"");setTab("Design")};
   return <section className="stack gyan" aria-label="Gyan Agents studio">
-    <div><button className="btn" onClick={back}>Back to Workflows</button><h1 className="page-title">Gyan Agents</h1><p className="page-sub">Design a workflow, inspect its evidence, then decide whether to simulate. Playback never starts a run.</p></div>
-    <div className="row gyan-wrap gyan-modes">{["Design","Creator","Runs","Visual library"].map(t=><button key={t} className="btn" aria-pressed={tab===t} onClick={()=>{setTab(t);if(t==="Runs"&&role)void act(async()=>{setRuns(await api<Run[]>("runs"));setVersions(await api<Dag[]>("drafts"));})}}>{t}</button>)}</div>
+    <header className="gyan-head"><div><button className="btn sm" onClick={back}>Back to Workflows</button><h1 className="page-title">Gyan Agents</h1><p className="page-sub">Build on the canvas. Pin the evidence. Simulate before controller review.</p></div><span className="gyan-badge">{role?`Runtime connected · ${role}`:"Design only"}</span></header>
+    <div className="row gyan-wrap gyan-modes">{["Design","Architecture","Creator","Runs","Diagrams"].map(t=><button key={t} className="btn" aria-pressed={tab===t} onClick={()=>{setTab(t);if(t==="Runs"&&role)void act(async()=>{setRuns(await api<Run[]>("runs"));setVersions(await api<Dag[]>("drafts"));})}}>{t}</button>)}</div>
     <div className="muted" role="status">{status}</div>
-    {tab==="Visual library"?<Diagrams/>:tab==="Runs"?<div className="stack">
+    {!role&&tab!=="Diagrams"&&<details className="card"><summary>How to connect a local simulation runtime</summary><p>Run VOLT and Gyan together on your computer. A hosted console cannot reach your laptop’s localhost. From the repository root, after installing the dependencies in the local guide, run:</p><code>python3 apps/gyan-agents/scripts/local-studio.py</code><p>Open the local VOLT address printed in your terminal, sign in as the designer, then choose a synthetic template. Local and hosted runs are separate.</p></details>}
+    {tab==="Architecture"?<FinanceArchitecture profile={dag.nodes.find(n=>n.kind==="agent")?.agent_id}/>:tab==="Diagrams"?<Diagrams/>:tab==="Runs"?<div className="stack">
       <h2>Saved versions and simulations</h2>{!versions.length&&!runs.length&&<p>No saved versions or simulations loaded for this project.</p>}
       {versions.map(d=><button className="btn" key={d.id+d.version} onClick={()=>choose({...d,version:d.version+1})}>Edit {d.name} · v{d.version}</button>)}
       {runs.map(r=><button className="btn" key={r.id} onClick={()=>void act(()=>loadRun(r))}>{r.id.slice(0,8)} · {r.status}</button>)}
@@ -94,18 +101,18 @@ export function GyanStudio({project,back}:{project:string;back:()=>void}){
       <label>Execution guardrail <select value={policy} onChange={e=>setPolicy(e.target.value)}><option value="require_evidence">Require verified evidence</option><option value="block_exceptions">Block unresolved exceptions</option><option value="controller_review">Require controller review</option></select></label>
       <button className="btn primary" disabled={!writable||busy||name.trim().length<2||instructions.trim().length<12} onClick={()=>void act(async()=>{const v=await api<{created:boolean;definition:Definition}>("definitions",{name:name.trim(),kind,instructions,policy,profile:kind==="agent"?node?.agent_id:undefined});setMatches([v.definition]);setStatus(v.created?"Created one project definition. Select Reuse to attach it.":"Already exists. Reuse the pinned definition shown.");})}>Create or reuse definition</button></div>:
     <>
-      <div className="card stack"><div className="row gyan-wrap gyan-template-list"><button className="btn" onClick={()=>choose(blank())}>Blank canvas</button>{[["close","Bank reconciliation"],["variance","Variance pack"],["match","Three-way match"]].map(([k,v])=><button key={k} className="btn" disabled={!writable||busy} onClick={()=>void act(async()=>choose(await api<Dag>("template/"+k,{})))}>{v}</button>)}</div>
+      <div className="card stack"><strong>Start a workflow</strong><div className="row gyan-wrap gyan-template-list"><button className="btn" onClick={()=>choose(blank())}>Blank canvas</button>{[["close","Bank reconciliation"],["variance","Variance pack"],["match","Three-way match"]].map(([k,v])=><button key={k} className="btn" disabled={busy} onClick={()=>void act(async()=>{choose(writable?{...await api<Dag>("template/"+k,{}),name:v}:illustrative(k));setStatus(writable?"Synthetic sources pinned. Inspect the canvas, then validate and save.":"Preview only. No snapshots are pinned and no simulation has run.")})}>{v}</button>)}</div>
       <details><summary>Design from a prompt</summary><label>Workflow brief<textarea className="input" value={brief} onChange={e=>{setBrief(e.target.value);setReview(null)}}/></label>
         <button className="btn" disabled={!writable||busy||!brief.trim()} onClick={()=>void act(async()=>{const r=await fetch("/api/optimize",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({prompt:brief})});const x=await r.json();
           if(!r.ok||!x.optimized?.prompt){setOriginal(true);setReview(brief);setStatus("Optimization unavailable. Review the original or cancel.");}else{setOriginal(false);setReview(x.optimized.prompt)}})}>Optimize brief</button>
         {review!==null&&<><textarea className="input" aria-label="Review brief" value={review} onChange={e=>setReview(e.target.value)}/><button className="btn" disabled={busy||!review.trim()} onClick={()=>void act(async()=>{const v=await api<{dag:Dag}>("confirmed-draft",{prompt:review,choice:original?"original":"edited"});choose(v.dag);setReview(null);setStatus("Draft created. Verify source bindings before simulation.");})}>Confirm brief and draft only</button><button className="btn" onClick={()=>setReview(null)}>Cancel</button></>}</details></div>
-      <label>Workflow name<input className="input" maxLength={120} value={dag.name} onChange={e=>change({...dag,name:e.target.value})}/></label>
+      <div className="gyan-workbench"><div className="gyan-surface stack"><div className="gyan-kicker">Workflow canvas · v{dag.version}</div><label>Workflow name<input className="input" maxLength={120} value={dag.name} onChange={e=>change({...dag,name:e.target.value})}/></label>
       <div className="row gyan-wrap">{(["source","agent","router","approval"] as Kind[]).map(k=><button key={k} className="btn" onClick={()=>add(k)}>Add {captions[k]}</button>)}</div>
       <div className="gyan-canvas"><ReactFlow fitView fitViewOptions={{maxZoom:1.15,padding:.15}} colorMode="dark" nodes={dag.nodes.map(n=>({id:n.id,sourcePosition:Position.Right,targetPosition:Position.Left,position:n.position||{x:0,y:0},data:{label:<><small>{captions[n.kind]}</small><br/>{n.label||n.id}</>},style:{borderColor:colors[n.kind],background:"#080808",color:"#eee"},selected:n.id===selected}))}
         edges={dag.edges.map((e,i)=>({id:`edge${i}`,type:"smoothstep",source:e.source,target:e.target,label:e.target_port,markerEnd:{type:MarkerType.ArrowClosed}}))}
         onNodesChange={cs=>{const moves=new Map(cs.flatMap(c=>c.type==="position"&&c.position?[[c.id,c.position] as const]:[]));if(moves.size)change({...dag,nodes:dag.nodes.map(n=>moves.has(n.id)?{...n,position:moves.get(n.id)}:n)})}}
         onNodeClick={(_,n)=>select(n.id)} onConnect={(c:Connection)=>connect(c.source,c.target)} deleteKeyCode={null}><Background/><Controls/></ReactFlow></div>
-      <div className="card stack"><label>Inspect step <select value={selected} onChange={e=>select(e.target.value)}><option value="">Select step</option>{dag.nodes.map(n=><option key={n.id} value={n.id}>{n.label||n.id}</option>)}</select></label>
+      </div><aside className="gyan-inspector stack"><div className="gyan-kicker">Inspector</div><strong>{node?.label|| (node?captions[node.kind]:"Choose a step")}</strong><small>{pinned} / {sourceNodes.length} sources pinned · {saved?"Version saved":"Unsaved draft"}</small><label>Inspect step <select value={selected} onChange={e=>select(e.target.value)}><option value="">Select step</option>{dag.nodes.map(n=><option key={n.id} value={n.id}>{n.label||n.id}</option>)}</select></label>
         {node&&<><label>Step label <input className="input" value={node.label||""} onChange={e=>patch({label:e.target.value})}/></label>
           {node.kind==="agent"&&<><label>Execution profile <select value={node.agent_id} onChange={e=>patch({agent_id:e.target.value})}>{Object.keys(ports).map(x=><option key={x}>{x}</option>)}</select></label>
             <small>Design references: {[node.definition_ref,...(node.skill_refs||[])].filter(Boolean).join(", ")||"none"}</small><button className="btn" onClick={()=>setTab("Creator")}>Find or create agent / skill</button></>}
@@ -117,7 +124,7 @@ export function GyanStudio({project,back}:{project:string;back:()=>void}){
           const items=await api<Source[]>("sources",{name:f.name,content:data});setSources(items);if(items.length===1)patch({snapshot_id:items[0].id});setStatus("Source snapshot captured. Select the sheet to bind.");})}}/></label>
           {sources.length>0&&<label>Sheet <select value={node.snapshot_id||""} onChange={e=>patch({snapshot_id:e.target.value})}><option value="">Choose sheet</option>{sources.map(s=><option key={s.id} value={s.id}>{s.sheet} · {s.count} rows</option>)}</select></label>}</>}
           <button className="btn" onClick={()=>{change({...dag,nodes:dag.nodes.filter(n=>n.id!==selected),edges:dag.edges.filter(e=>e.source!==selected&&e.target!==selected)});select("")}}>Remove step from draft</button></>}
-      </div>
+      </aside></div>
       <details className="card"><summary>Connect steps without dragging</summary><div className="row gyan-wrap">{[[from,setFrom,"From"],[to,setTo,"To"]].map(([v,set,title])=><label key={String(title)}>{String(title)} <select value={String(v)} onChange={e=>(set as typeof setFrom)(e.target.value)}><option value="">Select</option>{dag.nodes.map(n=><option key={n.id} value={n.id}>{n.label||n.id}</option>)}</select></label>)}
       <label>Target port <input value={port} placeholder="Auto" onChange={e=>setPort(e.target.value)}/></label><label>Router output <select value={branch} onChange={e=>setBranch(e.target.value)}><option>true</option><option>false</option></select></label><button className="btn" onClick={()=>connect(from,to,port)}>Connect</button></div>
       {dag.edges.map((e,i)=><button className="btn" key={i} onClick={()=>change({...dag,edges:dag.edges.filter((_,j)=>i!==j)})}>Disconnect {e.source} → {e.target}:{e.target_port}</button>)}</details>
@@ -129,7 +136,12 @@ export function GyanStudio({project,back}:{project:string;back:()=>void}){
         <button className="btn primary" disabled={!writable||!saved||busy} onClick={()=>void act(simulate)}>Run simulation</button></div>
       {html&&<iframe title="Gyan design playback" srcDoc={html} sandbox="allow-scripts allow-downloads allow-modals" className="gyan-playback"/>}
     </>}
-    {last&&(tab==="Design"||tab==="Runs")&&<details className="card" open><summary>Run evidence · {last.status}</summary><pre>{JSON.stringify(last.document,null,2)}</pre><details><summary>Event replay</summary><pre>{trace}</pre></details>
+    {last&&(tab==="Design"||tab==="Runs")&&<details className="card" open><summary>Run evidence · {last.status}</summary><Evidence run={last}/><details><summary>Full evidence document</summary><pre>{JSON.stringify(last.document,null,2)}</pre></details><details><summary>Event replay</summary><pre>{trace}</pre></details>
       {role==="controller"&&last.status==="awaiting_hitl"&&["approve","reject"].map(choice=><button className="btn" key={choice} disabled={busy} onClick={()=>void act(async()=>{const v=await api<{status:string}>(`runs/${last.id}/decision`,{choice,artifact_hash:last.artifact_hash});await loadRun({...last,status:v.status});setStatus("Controller decision recorded. No posting.");})}>{choice} simulation</button>)}</details>}
   </section>;
+}
+
+function Evidence({run}:{run:Run}){
+  const doc=run.document as {error?:string;results?:Record<string,{exceptions?:number;critic?:{verified:boolean};lines?:{reference:string;currency:string;status:string;difference_cents:number;evidence:string[]}[]}>};
+  return <div className="stack"><small>Run {run.id}</small>{doc?.error&&<p role="alert">{doc.error}</p>}{Object.entries(doc?.results||{}).filter(([,r])=>Array.isArray(r?.lines)).map(([id,r])=><div key={id}><p><b>{r.exceptions} exceptions</b> · {r.critic?.verified?"Independently verified":"Not verified"}</p><div className="gyan-table"><table><caption>Reconciliation lines · difference in minor currency units (cents for CAD)</caption><thead><tr><th>Reference</th><th>Status</th><th>Currency</th><th>Difference</th><th>Evidence</th></tr></thead><tbody>{r.lines!.map(l=><tr key={l.reference+":"+l.currency}><td>{l.reference}</td><td>{l.status}</td><td>{l.currency}</td><td>{l.difference_cents}</td><td><details><summary>{l.evidence.length} rows</summary>{l.evidence.map(e=><code key={e}>{e}</code>)}</details></td></tr>)}</tbody></table></div></div>)}</div>;
 }
