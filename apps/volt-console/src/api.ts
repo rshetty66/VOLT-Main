@@ -37,7 +37,7 @@ export async function extractAttachment(file: File): Promise<{ name: string; tex
   return body;
 }
 
-export interface UploadMeta { id: string; name: string; ext: string; bytes: number; chars: number; truncated: boolean; createdAt: number; uses: number; projectId?: string; url?: string }
+export interface UploadMeta { id: string; name: string; ext: string; bytes: number; chars: number; truncated: boolean; createdAt: number; uses: number; projectId?: string; url?: string; readAt?: number }
 
 /** Reads a file and keeps it in the active project's knowledge base (the uploads library); returns its text and library id. */
 export async function uploadAttachment(file: File): Promise<{ id: string; name: string; text: string; chars: number; truncated: boolean }> {
@@ -62,6 +62,13 @@ export async function getUpload(id: string): Promise<UploadMeta & { text: string
   const r = await fetch(`/api/uploads/${id}`);
   if (!r.ok) throw new Error("That upload is no longer in the library.");
   return r.json();
+}
+/** Reads a web source in the knowledge base again; the old copy stays if that fails. */
+export async function refreshUpload(id: string): Promise<UploadMeta> {
+  const r = await fetch(`/api/uploads/${id}/refresh`, { method: "POST" });
+  const body = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(body.error ?? `Could not read that page again (${r.status})`);
+  return body;
 }
 export async function deleteUpload(id: string): Promise<void> {
   await fetch(`/api/uploads/${id}`, { method: "DELETE" });

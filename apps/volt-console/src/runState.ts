@@ -200,3 +200,18 @@ export function summariseWork(run: Run): WorkSummary {
     errors: items.filter((a) => a.isError).map((a) => a.text),
   };
 }
+
+export type RunStatus = "working" | "completed" | "stopped" | "failed";
+export const RUN_STATUS_LABEL: Record<RunStatus, string> = { working: "Working", completed: "Completed", stopped: "Stopped", failed: "Failed" };
+
+/**
+ * What the run's status pill says. A run that ended with an error from the lead, or with errors and no answer, failed;
+ * a specialist's error alone does not fail a run the lead still answered.
+ */
+export function runStatus(run: Run): RunStatus {
+  if (run.state === "running") return "working";
+  if (run.state === "stopped") return "stopped";
+  const leadError = run.activity.some((a) => a.kind === "error");
+  const anyError = summariseWork(run).errors.length > 0;
+  return leadError || (anyError && !run.text.trim()) ? "failed" : "completed";
+}
