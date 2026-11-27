@@ -520,89 +520,47 @@ html, body, #root { height: 100%; }
 .settings-menu > summary { list-style: none; cursor: pointer; }
 .settings-menu > summary::-webkit-details-marker { display: none; }
 /* Agent Stage: live agents under a running chat (src/components/AgentStage.tsx). Hard-coded hues match the stage art on both themes. */
-.agent-stage { display: grid; grid-template-columns: minmax(0, 1fr) 260px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #171b29; color: #e6eaf2; }
-.as-shell { position: relative; overflow: hidden; min-width: 0; background: radial-gradient(120% 90% at 50% 10%, rgba(0, 229, 255, 0.08), transparent 60%), radial-gradient(80% 60% at 50% 100%, rgba(212, 175, 55, 0.06), transparent 70%), #171b29; }
-.as-world { position: absolute; top: 0; width: 640px; height: 420px; transform-origin: 0 0; }
-.as-tilt { position: absolute; inset: 0; transition: transform 0.4s ease-out; }
-.as-floor { position: absolute; left: 0; top: 0; overflow: visible; }
-.as-ring { stroke: rgba(0, 229, 255, 0.25); transition: stroke 0.6s; }
-.ring-on .as-ring { stroke: rgba(0, 229, 255, 0.7); }
-.as-label { position: absolute; transform: translateX(-50%); font-size: 11px; color: #a9b1c7; white-space: nowrap; pointer-events: none; background: rgba(23, 27, 41, 0.8); padding: 1px 7px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.1); }
-.as-icon { position: absolute; transform: translate(-50%, -50%); width: 26px; height: 26px; color: #8c95ae; transition: color 0.3s, filter 0.3s; }
-.as-icon svg { display: block; }
-.as-icon.live { color: #00e5ff; filter: drop-shadow(0 0 6px rgba(0, 229, 255, 0.8)); }
-.as-icon.as-web.live svg { animation: spin 3s linear infinite; }
-.as-icon.live:not(.as-web) svg { animation: as-bounce 0.8s ease-in-out infinite; }
-@keyframes as-bounce { 50% { transform: translateY(-3px); } }
-.as-bot { position: absolute; width: 0; height: 0; transition: left 0.9s cubic-bezier(0.45, 0.05, 0.3, 1), top 0.9s cubic-bezier(0.45, 0.05, 0.3, 1); animation: as-enter 0.5s ease-out both; }
-@keyframes as-enter { from { opacity: 0; } }
-.as-bot .shadow { position: absolute; left: -13px; top: -5px; width: 26px; height: 10px; border-radius: 50%; background: rgba(0, 0, 0, 0.45); }
-.as-bot .ring { position: absolute; left: -18px; top: -8px; width: 36px; height: 16px; border-radius: 50%; border: 2px solid var(--c); opacity: 0; }
-.as-bot.working .ring { animation: as-ring 1.2s ease-out infinite; }
-@keyframes as-ring { 0% { opacity: 0.9; transform: scale(0.5); } 100% { opacity: 0; transform: scale(1.4); } }
-.as-bot .fig { position: absolute; left: -12px; top: -46px; width: 24px; height: 46px; perspective: 260px; transform-origin: 50% 100%; }
-.as-bot.working .fig { animation: as-hop 0.3s ease-in-out 3 alternate; }
-@keyframes as-hop { to { transform: translateY(-4px); } }
-.as-bot.lead .fig { transform: scale(1.35); }
-.as-bot.lead.working .fig { animation: none; }
-.as-bot .body { position: absolute; left: 4px; top: 22px; width: 16px; height: 20px; border-radius: 7px 7px 9px 9px; background: linear-gradient(160deg, #3a4466, #1d2236 70%); border: 1px solid rgba(255, 255, 255, 0.18); box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.3); }
-.as-bot .body::after { content: ""; position: absolute; left: 4px; top: 6px; width: 6px; height: 6px; border-radius: 2px; background: var(--c); box-shadow: 0 0 6px var(--c); }
-.as-bot .head { position: absolute; left: 3px; top: 2px; width: 18px; height: 18px; transform-style: preserve-3d; transform: rotateX(-22deg) rotateY(40deg); animation: as-look 4s ease-in-out infinite; }
-.as-bot.thinking .head { animation: as-think 1.4s linear infinite; }
-@keyframes as-look { 50% { transform: rotateX(-22deg) rotateY(-20deg); } }
-@keyframes as-think { to { transform: rotateX(-22deg) rotateY(400deg); } }
-.as-bot .head i { position: absolute; inset: 0; background: linear-gradient(150deg, #4a5580, #232a44); border: 1px solid rgba(255, 255, 255, 0.22); border-radius: 3px; }
-.as-bot .head .f1 { transform: translateZ(9px); }
-.as-bot .head .f2 { transform: rotateY(180deg) translateZ(9px); }
-.as-bot .head .f3 { transform: rotateY(90deg) translateZ(9px); }
-.as-bot .head .f4 { transform: rotateY(-90deg) translateZ(9px); }
-.as-bot .head .f5 { transform: rotateX(90deg) translateZ(9px); background: #56628f; }
-.as-bot .head .f6 { transform: rotateX(-90deg) translateZ(9px); }
-.as-bot .head .f1::after { content: ""; position: absolute; left: 3px; right: 3px; top: 6px; height: 4px; border-radius: 2px; background: var(--c); box-shadow: 0 0 8px var(--c); }
-.as-bot .name { position: absolute; top: 8px; left: 0; transform: translateX(-50%); max-width: 120px; overflow: hidden; text-overflow: ellipsis; font-size: 10.5px; color: #e6eaf2; white-space: nowrap; background: rgba(10, 13, 20, 0.75); border: 1px solid rgba(255, 255, 255, 0.1); padding: 0 6px; border-radius: 5px; }
-.as-bot .bubble { position: absolute; bottom: 56px; left: 0; transform: translateX(-50%); width: max-content; max-width: 190px; font-size: 11.5px; line-height: 1.3; color: #e6eaf2; background: rgba(38, 44, 68, 0.96); border: 1px solid var(--c); border-radius: 8px; padding: 5px 8px; pointer-events: none; animation: as-bubble 4s ease both; }
-.as-bot.lead .bubble { bottom: 72px; }
-.as-bot.done .bubble, .as-bot.failed .bubble { animation-duration: 2.5s; }
-@keyframes as-bubble { 0% { opacity: 0; transform: translateX(-50%) translateY(4px); } 8%, 85% { opacity: 1; transform: translateX(-50%); } 100% { opacity: 0; } }
-.as-bot.lead .bubble { animation-name: as-bubble-stay; }
-@keyframes as-bubble-stay { from { opacity: 0; transform: translateX(-50%) translateY(4px); } to { opacity: 1; transform: translateX(-50%); } }
-.as-bot .badge { position: absolute; left: 8px; top: -58px; width: 16px; height: 16px; border-radius: 50%; display: grid; place-items: center; font-size: 11px; font-weight: 700; color: #0a0d14; background: #00e5ff; }
-.as-bot.lead .badge { top: -72px; }
-.as-bot.failed .badge { background: #ff5722; }
-.as-bot.done:not(.lead) .fig { opacity: 0.55; }
-.as-bot.done:not(.lead) .bubble { display: none; }
-.as-bot.alert .fig { animation: as-shake 0.4s 2; }
-@keyframes as-shake { 25% { transform: translateX(-3px); } 75% { transform: translateX(3px); } }
-.as-bot .dots { position: absolute; left: -2px; top: -66px; display: none; gap: 3px; }
-.as-bot.lead .dots { top: -80px; }
-.as-bot.thinking .dots { display: flex; }
-.as-bot .dots b { width: 4px; height: 4px; border-radius: 50%; background: var(--c); animation: pulse 1s infinite; }
-.as-bot .dots b:nth-child(2) { animation-delay: 0.2s; }
-.as-bot .dots b:nth-child(3) { animation-delay: 0.4s; }
-.as-packet { position: absolute; width: 8px; height: 8px; margin: -4px 0 0 -4px; border-radius: 50%; background: #00e5ff; box-shadow: 0 0 10px #00e5ff; transition: left 0.7s ease-in, top 0.7s ease-in; pointer-events: none; z-index: 999; }
-.as-filechip { position: absolute; transform: translate(-50%, -50%); font: 600 10px var(--mono); padding: 3px 6px; border-radius: 4px; background: #d4af37; color: #0a0d14; transition: top 1.1s ease-out, opacity 1.1s ease-in; pointer-events: none; z-index: 999; }
-.as-shell.paused * { animation-play-state: paused !important; }
-.as-now { list-style: none; margin: 0; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; border-left: 1px solid rgba(255, 255, 255, 0.1); overflow: auto; font-size: 12.5px; }
-.as-now li { display: grid; grid-template-columns: 10px 1fr; gap: 0 8px; color: #a9b1c7; }
-.as-now li i { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; background: #00e5ff; grid-row: span 2; }
-.as-now li.done i { background: #8c95ae; }
-.as-now li.failed i { background: #ff5722; }
-.as-now li b { color: #e6eaf2; font-weight: 600; }
-.as-rail { display: none; gap: 10px; overflow-x: auto; padding: 12px; scroll-snap-type: x mandatory; }
-.as-card { flex: 0 0 200px; scroll-snap-align: start; background: #262c44; border: 1px solid #3a4262; border-radius: 10px; padding: 10px; display: grid; grid-template-columns: 30px 1fr; gap: 8px; font-size: 12px; color: #a9b1c7; }
-.as-card.running { border-color: var(--c); }
-.as-card.failed { border-color: #ff5722; }
-.as-card.done { opacity: 0.7; }
-.as-card b { display: block; font-size: 12.5px; color: #e6eaf2; }
-.as-card .mini { width: 20px; height: 20px; margin: 4px; border-radius: 5px; background: linear-gradient(150deg, #4a5580, #232a44); position: relative; transform: rotate(45deg); }
-.as-card .mini::after { content: ""; position: absolute; left: 4px; right: 4px; top: 8px; height: 3px; background: var(--c); box-shadow: 0 0 6px var(--c); }
-@media (max-width: 760px) {
-  .agent-stage { display: block; }
-  .as-shell { display: none; }
-  .as-rail { display: flex; }
-  .as-now { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); padding: 0; border: 0; }
+/* Agent Stage: a compact agent-flow graph under a running chat (AgentStage.tsx). Each node keeps its colour in --c. */
+.agent-stage { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: #050608; color: #e6eaf2; }
+.as-flow { display: block; width: 100%; height: auto; max-height: 260px; }
+.as-col { font: 600 7px var(--font); letter-spacing: 0.12em; fill: #8c95ae; }
+.as-edge { fill: none; stroke: rgba(255, 255, 255, 0.14); stroke-width: 1.3; }
+.as-edge.on { stroke: var(--c); stroke-dasharray: 5 5; animation: as-flow 0.8s linear infinite; }
+.as-edge.done { stroke: var(--c); stroke-opacity: 0.45; }
+@keyframes as-flow { to { stroke-dashoffset: -20; } }
+.as-pin { fill: #6b7180; }
+.as-node { opacity: 0.3; transition: opacity 0.4s; }
+.as-node.done, .as-node.failed { opacity: 0.7; }
+.as-node.active { opacity: 1; }
+.as-ring { fill: #0b0d12; stroke: var(--c); stroke-width: 1.4; transition: fill 0.4s; }
+.as-node.active .as-ring { fill: color-mix(in srgb, var(--c) 18%, #0b0d12); filter: drop-shadow(0 0 6px var(--c)); }
+.as-ico { fill: none; stroke: var(--c); stroke-linecap: round; stroke-linejoin: round; }
+.as-halo { fill: none; stroke: var(--c); stroke-width: 2; opacity: 0; }
+.as-node.active .as-halo { animation: as-halo 1.3s ease-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes as-halo { from { opacity: 0.7; transform: scale(1); } to { opacity: 0; transform: scale(1.8); } }
+.as-think { fill: none; stroke: var(--c); stroke-width: 1.1; stroke-dasharray: 3 3; opacity: 0; }
+.as-think-l { font: italic 7px var(--font); fill: var(--c); opacity: 0; }
+.as-node.active .as-think, .as-node.active .as-think-l { opacity: 1; }
+.as-node.active .as-think { animation: as-flow 1.2s linear infinite; }
+.as-node text { paint-order: stroke; stroke: #050608; stroke-width: 3px; stroke-linejoin: round; }
+.as-name { font: 600 8.5px var(--font); fill: #e6eaf2; }
+.as-cap { font: 400 7.5px var(--font); fill: #a9b1c7; }
+.as-tick { font: 700 9px var(--font); fill: var(--c); }
+.as-node.failed .as-tick { fill: #ff5722; }
+.as-dot { fill: var(--c); filter: drop-shadow(0 0 4px var(--c)); }
+.as-ticker { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+.as-hand { font-size: 11px; color: #a9b1c7; background: #1a1e2e; border: 1px solid #3a4262; border-radius: 999px; padding: 2px 9px; animation: as-pop 0.35s ease-out; }
+.as-hand b { color: #e6eaf2; font-weight: 600; }
+@keyframes as-pop { from { opacity: 0; transform: translateY(4px); } }
+.agent-stage .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); margin: 0; padding: 0; border: 0; }
+.agent-stage.paused * { animation-play-state: paused !important; }
+/* Phone: the same flow, scaled down; names grow so they stay readable and the captions drop. */
+@media (max-width: 640px) {
+  .as-name { font-size: 15px; }
+  .as-cap, .as-think-l { display: none; }
+  .as-col { font-size: 11px; }
 }
-/* Reduced motion: agents jump instead of walking and nothing spins or pulses; the words still update. */
+/* Reduced motion: no flowing links, halos or dots; the lights and the words still update. */
 @media (prefers-reduced-motion: reduce) {
   .agent-stage *, .agent-stage *::before, .agent-stage *::after { animation: none !important; transition: none !important; }
 }
