@@ -13,6 +13,8 @@ export function plain(text: string): string {
     .replace(/(\*\*|__)(.+?)\1/g, "$2")
     .replace(/(^|\W)[*_](\S[^*_]*?)[*_](?=\W|$)/g, "$1$2")
     .replace(/`([^`]+)`/g, "$1")
+    // Source keys and evidence tags read as noise in a short point; the full answer shows them as chips.
+    .replace(/\s*\[(S\d{2,3}|INFERENCE|ASSUMPTION|ESTIMATE|SINGLE SOURCE)\]/g, "")
     .replace(/\s+/g, " ")
     .trim();
 }
