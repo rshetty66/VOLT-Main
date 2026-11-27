@@ -10,9 +10,9 @@ h1{font-size:16px;margin:0 auto 0 0}select,button{background:var(--panel);color:
 button.on{border-color:var(--core);color:var(--core)}main{display:grid;grid-template-columns:1fr 280px;gap:0;height:calc(100dvh - 53px)}
 @media(max-width:800px){main{grid-template-columns:1fr;grid-template-rows:60% 40%}}
 #stage{overflow:auto;padding:8px}#side{border-left:1px solid var(--line);padding:12px;overflow:auto;background:var(--panel)}
-svg{width:100%;height:auto;min-width:640px}.node rect{fill:var(--panel);stroke-width:1.2}.node text{fill:var(--tx);font-size:12px}.node .sub{fill:var(--mu);font-size:10px}.node .ty{font-size:9px;letter-spacing:.06em;text-transform:uppercase}
+#stage{display:flex}svg{width:100%;height:100%;min-width:640px}.edge.bk path:not(.hit){opacity:.45}.edge.hot path:not(.hit){opacity:1}.node rect{fill:var(--panel);stroke-width:1.2}.node text{fill:var(--tx);font-size:12px}.node .sub{fill:var(--mu);font-size:10px}.node .ty{font-size:9px;letter-spacing:.06em;text-transform:uppercase}
 .node{cursor:pointer;transition:opacity .2s}.dim .node,.dim .edge{opacity:.25}.dim .node.hot,.dim .edge.hot{opacity:1}.node.hot rect{stroke-width:2.4}
-.edge path{fill:none;stroke:var(--mu);stroke-width:1.3}.edge text{fill:var(--mu);font-size:10px;paint-order:stroke;stroke:var(--bg);stroke-width:3px}.edge.hot path{stroke:var(--core);stroke-width:2.4}
+.edge path{fill:none;stroke:var(--mu);stroke-width:1.3}.edge text{fill:var(--tx);font-size:10px;paint-order:stroke;stroke:var(--bg);stroke-width:4px;opacity:0;transition:opacity .15s;pointer-events:none}.edge:hover text,.edge.hot text{opacity:1}.edge path.hit{stroke:transparent;stroke-width:12;fill:none;marker-end:none}.edge.hot path:not(.hit){stroke:var(--core);stroke-width:2.4}
 .k-response path{stroke-dasharray:6 4}.k-async path{stroke-dasharray:2 4}.k-error path{stroke:var(--err);stroke-dasharray:6 3}.k-event path{stroke-dasharray:10 3 2 3}.k-streaming path{stroke-dasharray:4 3}
 @media(prefers-reduced-motion:no-preference){.k-streaming.hot path{animation:fl .6s linear infinite}@keyframes fl{to{stroke-dashoffset:-14}}}
 .grp{fill:none;stroke:var(--line);stroke-dasharray:3 4}.grp-l{fill:var(--mu);font-size:10px}
@@ -30,7 +30,7 @@ pre{white-space:pre-wrap;background:var(--bg);padding:6px;border-radius:6px;font
 const SPEC=__SPEC__;
 const COL={core:'var(--core)',data:'var(--data)',infra:'var(--infra)',human:'var(--human)'};
 const CAT={agent:'core',tool:'core',model:'core',prompt:'core',skill:'core',output:'core',user:'human',human:'human',memory:'data',knowledge:'data',environment:'data',aggregator:'data',gateway:'infra',router:'infra',channel:'infra',trigger:'infra',guardrail:'infra',observability:'infra'};
-const W=164,H=54,GX=96,GY=28,PAD=40;const NS='http://www.w3.org/2000/svg';
+const W=164,H=54,GX=96,GY=28,PAD=40;const NS='http://www.w3.org/2000/svg';const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const N=Object.fromEntries(SPEC.nodes.map(n=>[n.id,n]));const E=SPEC.edges.map((e,i)=>({...e,i,k:e.kind||'request'}));
 // layering: longest path, back edges (found by DFS) ignored
 const adj={};SPEC.nodes.forEach(n=>adj[n.id]=[]);E.forEach(e=>adj[e.from].push(e));
@@ -38,31 +38,45 @@ const state={},back=new Set();function dfs(u){state[u]=1;for(const e of adj[u]){
 SPEC.nodes.forEach(n=>{if(!state[n.id])dfs(n.id)});
 const L={};SPEC.nodes.forEach(n=>L[n.id]=n.col??0);
 for(let it=0;it<SPEC.nodes.length;it++)E.forEach(e=>{if(!back.has(e.i)&&N[e.to].col==null)L[e.to]=Math.max(L[e.to],L[e.from]+1)});
+const eps={};
 const cols={};SPEC.nodes.forEach(n=>(cols[L[n.id]]??=[]).push(n));
+const gIdx={};(SPEC.groups||[]).forEach((g,i)=>g.nodes.forEach(id=>gIdx[id]??=i));
+// order rows: keep group members together, then reduce crossings with barycenter sweeps
+const pos={};const place=()=>Object.values(cols).forEach(c=>c.forEach((n,i)=>pos[n.id]=i));
+Object.values(cols).forEach(c=>c.sort((a,b)=>(gIdx[a.id]??99)-(gIdx[b.id]??99)));place();
+const nb=(n,dir)=>E.filter(e=>!back.has(e.i)&&(dir<0?e.to===n.id:e.from===n.id)).map(e=>pos[dir<0?e.from:e.to]);
+for(let it=0;it<6;it++){const ks=Object.keys(cols).map(Number).sort((a,b)=>a-b);(it%2?ks.reverse():ks).forEach(k=>{const dir=it%2?1:-1;
+ const bc=n=>{const v=nb(n,dir);return v.length?v.reduce((a,b)=>a+b)/v.length:pos[n.id]};
+ cols[k].sort((a,b)=>(bc(a)-bc(b))||((gIdx[a.id]??99)-(gIdx[b.id]??99)));place()})}
 const nc=Math.max(...Object.keys(cols).map(Number))+1,maxR=Math.max(...Object.values(cols).map(c=>c.length));
-const VW=PAD*2+nc*W+(nc-1)*GX,VH=PAD*2+maxR*H+(maxR-1)*GY+60;
-SPEC.nodes.forEach(n=>{const c=cols[L[n.id]];const i=n.row??c.indexOf(n);const h=c.length*H+(c.length-1)*GY;n.x=PAD+L[n.id]*(W+GX);n.y=PAD+(maxR*H+(maxR-1)*GY-h)/2+i*(H+GY)});
+const skip=E.filter(e=>!back.has(e.i)&&L[e.to]-L[e.from]>1),bks=E.filter(e=>back.has(e.i)||L[e.to]<=L[e.from]);
+const TOP=PAD+Math.ceil(skip.length/2)*10+10,BOT=Math.ceil((bks.length+skip.length/2))*10+36;
+const RH=maxR*H+(maxR-1)*GY,VW=PAD*2+nc*W+(nc-1)*GX,VH=TOP+RH+BOT+PAD/2;
+SPEC.nodes.forEach(n=>{const c=cols[L[n.id]];const i=n.row??c.indexOf(n);const h=c.length*H+(c.length-1)*GY;n.x=PAD+L[n.id]*(W+GX);n.y=TOP+(RH-h)/2+i*(H+GY)});
 const svg=document.getElementById('svg');svg.setAttribute('viewBox',`0 0 ${VW} ${VH}`);
-svg.innerHTML=`<title>${SPEC.title}</title><defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs><g id="gg"></g><g id="ge"></g><g id="gn"></g><g id="gp"></g>`;
+svg.innerHTML=`<title>${esc(SPEC.title)}</title><defs><marker id="ar" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5"/></marker></defs><g id="ge"></g><g id="gn"></g><g id="gp"></g>`;
 const el=(t,a,p)=>{const e=document.createElementNS(NS,t);for(const k in a)e.setAttribute(k,a[k]);p&&p.appendChild(e);return e};
-(SPEC.groups||[]).forEach(g=>{const m=g.nodes.map(i=>N[i]);const x=Math.min(...m.map(n=>n.x))-14,y=Math.min(...m.map(n=>n.y))-24,x2=Math.max(...m.map(n=>n.x+W))+14,y2=Math.max(...m.map(n=>n.y+H))+14;
- el('rect',{class:'grp',x,y,width:x2-x,height:y2-y,rx:10},gg);const t=el('text',{class:'grp-l',x:x+8,y:y+14},gg);t.textContent=g.label});
-const eps={};E.forEach(e=>{const a=N[e.from],b=N[e.to];const bk=back.has(e.i)||L[e.to]<=L[e.from];let d,mx,my;
- if(bk){const x1=a.x+W/2,y1=a.y+H,x2=b.x+W/2,y2=b.y+H,dy=Math.max(a.y,b.y)+H+34+(e.i%3)*8;d=`M${x1} ${y1}C${x1} ${dy},${x2} ${dy},${x2} ${y2+2}`;mx=(x1+x2)/2;my=dy-6}
+const GC=['#19c3b1','#e0b44c','#8b7cf6','#ff8a4c','#5aa9ff','#e86fb0'];
+let tl=0,bl=0;const botY=TOP+RH+16;
+E.forEach(e=>{const a=N[e.from],b=N[e.to];let d,mx,my;
+ if(back.has(e.i)||L[e.to]<=L[e.from]){const x1=a.x+W/2+(e.i%3)*10-10,y1=a.y+H,x2=b.x+W/2+(e.i%3)*10-10,y2=b.y+H,dy=botY+(bl++)*10;d=`M${x1} ${y1}C${x1} ${dy+12},${x2} ${dy+12},${x2} ${y2+2}`;mx=(x1+x2)/2;my=dy+8}
+ else if(L[e.to]-L[e.from]>1){const up=(tl+bl)%2===0;const x1=a.x+W,y1=a.y+H/2,x2=b.x,y2=b.y+H/2;const ly=up?TOP-14-(tl++)*10:botY+(bl++)*10;d=`M${x1} ${y1}C${x1+50} ${ly},${x2-50} ${ly},${x2-2} ${y2}`;mx=(x1+x2)/2;my=up?ly+4:ly+8}
  else{const x1=a.x+W,y1=a.y+H/2,x2=b.x,y2=b.y+H/2,c=(x2-x1)/2;d=`M${x1} ${y1}C${x1+c} ${y1},${x2-c} ${y2},${x2-2} ${y2}`;mx=(x1+x2)/2;my=(y1+y2)/2-5}
- const g=el('g',{class:'edge k-'+e.k},ge);const p=el('path',{d,'marker-end':'url(#ar)'},g);if(e.label){const t=el('text',{x:mx,y:my,'text-anchor':'middle'},g);t.textContent=e.label}
+ const g=el('g',{class:'edge k-'+e.k+(back.has(e.i)||L[e.to]<=L[e.from]?' bk':'')},ge);const p=el('path',{d,'marker-end':'url(#ar)'},g);el('path',{d,class:'hit'},g);
+ if(e.label){const t=el('text',{x:mx,y:my,'text-anchor':'middle'},g);t.textContent=e.label;const tt=el('title',{},g);tt.textContent=`${e.from} to ${e.to}: ${e.label}`}
  e.g=g;e.p=p;eps[e.from+'>'+e.to]=e});
 const T=n=>n.type||'agent';
 SPEC.nodes.forEach(n=>{const c=COL[CAT[T(n)]||'core'];const g=el('g',{class:'node',tabindex:0,role:'button','aria-label':n.label},gn);
  el('rect',{x:n.x,y:n.y,width:W,height:H,rx:8,stroke:c},g);const a=el('text',{class:'ty',x:n.x+10,y:n.y+16,fill:c},g);a.textContent=T(n);a.style.fill=c;
  const b=el('text',{x:n.x+10,y:n.y+33},g);b.textContent=n.label;if(n.sub){const s=el('text',{class:'sub',x:n.x+10,y:n.y+47},g);s.textContent=n.sub}
- n.g=g;const sel=()=>{det.innerHTML=`<b>${n.label}</b> <span class="sub">(${T(n)})</span><p>${n.detail||n.sub||''}</p>`};g.onclick=sel;g.onkeydown=e=>{if(e.key==='Enter')sel()}});
+ const gi=gIdx[n.id];if(gi!=null){el('rect',{x:n.x,y:n.y+6,width:3,height:H-12,rx:1.5,fill:GC[gi%6]},g);const gt=el('text',{class:'sub',x:n.x+W-8,y:n.y+16,'text-anchor':'end'},g);{const gl=SPEC.groups[gi].label;gt.textContent=gl.length>13?gl.slice(0,12)+'…':gl}gt.style.fill=GC[gi%6]}
+ n.g=g;const sel=()=>{det.innerHTML=`<b>${esc(n.label)}</b> <span class="sub">(${esc(T(n))})</span><p>${esc(n.detail||n.sub||'')}</p>`};g.onclick=sel;g.onkeydown=e=>{if(e.key==='Enter')sel()}});
 const lg=document.getElementById('lg');[['core','Agent, tool, model'],['data','Memory, knowledge'],['infra','Router, guardrail, gateway'],['human','People']].forEach(([k,t])=>lg.insertAdjacentHTML('beforeend',`<span><i style="background:${COL[k]}"></i>${t}</span>`));
 // scenarios
 const SC=SPEC.scenarios||[];const sc=document.getElementById('sc');SC.forEach((s,i)=>sc.add(new Option(s.name,i)));
 let cur=0,step=-1,timer=null;const log=document.getElementById('log'),det=document.getElementById('det');
 const stepEdges=s=>(s.edges||[s.edge]).map(x=>eps[x]).filter(Boolean);
-function render(){log.innerHTML='';(SC[cur]?.steps||[]).forEach((s,i)=>log.insertAdjacentHTML('beforeend',`<li class="${i===step?'cur':''}" data-i="${i}">${i+1}. ${s.note||s.edge||''}${s.payload&&i===step?`<pre>${typeof s.payload==='string'?s.payload:JSON.stringify(s.payload,null,1)}</pre>`:''}</li>`));
+function render(){log.innerHTML='';(SC[cur]?.steps||[]).forEach((s,i)=>log.insertAdjacentHTML('beforeend',`<li class="${i===step?'cur':''}" data-i="${i}">${i+1}. ${esc(s.note||s.edge||'')}${s.payload&&i===step?`<pre>${esc(typeof s.payload==='string'?s.payload:JSON.stringify(s.payload,null,1))}</pre>`:''}</li>`));
  svg.classList.toggle('dim',step>=0);document.querySelectorAll('.hot').forEach(x=>x.classList.remove('hot'));const s=SC[cur]?.steps[step];if(!s)return;
  stepEdges(s).forEach(e=>{e.g.classList.add('hot');N[e.from].g.classList.add('hot');N[e.to].g.classList.add('hot');packet(e)})}
 function packet(e){const gp=document.getElementById('gp');const c=el('circle',{r:5,fill:e.k==='error'?'var(--err)':'var(--core)'},gp);const len=e.p.getTotalLength(),dur=900*+sp.value,t0=performance.now();
