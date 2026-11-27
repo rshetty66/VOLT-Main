@@ -250,7 +250,7 @@ export function App() {
     ["usage", "Usage", "Token usage", ""],
     ["health", "Health", "Capability Health", missing],
   ];
-  const banner = !present && !bannerOff ? (!live ? { text: "VOLT is in demo mode: routing is real, the written analysis is simulated.", cta: "", go: undefined } : missing > 0 ? { text: `${missing} skills that agents refer to are not shipped in this build.`, cta: "Review", go: () => setView("health") } : null) : null;
+  const banner = !present && !bannerOff ? (!live ? { text: "VOLT is in demo mode: routing is real, the written analysis is simulated.", cta: "", go: undefined } : null) : null;
 
   return (
     <div className="app">
