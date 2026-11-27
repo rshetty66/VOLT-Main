@@ -53,7 +53,7 @@ export function Projects({ projects, projectId, onChange }: Props) {
       </div>
       <div className="card stack">
         <div className="row">
-          <select className="select" value={kind} onChange={(e) => setKind(e.target.value as MemoryKind)}>
+          <select className="select" aria-label="Memory type" value={kind} onChange={(e) => setKind(e.target.value as MemoryKind)}>
             {MEMORY_KINDS.map((k) => (
               <option key={k} value={k}>
                 {MEMORY_KIND_LABEL[k]}

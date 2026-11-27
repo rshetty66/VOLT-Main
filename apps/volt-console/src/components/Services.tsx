@@ -54,7 +54,7 @@ export function Services({ catalog, onOpenAgent, onLaunch }: Props) {
                   <tr key={s.code}>
                     <td style={{ minWidth: 240 }}>
                       <b>{s.name}</b> <span className="muted">{s.code}</span>
-                      <div className="body" style={{ fontSize: 12 }}>
+                      <div className="body" style={{ fontSize: "var(--fs-3)" }}>
                         {s.description}
                       </div>
                     </td>

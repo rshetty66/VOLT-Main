@@ -100,7 +100,7 @@ function Section({ title, note, children }: { title: string; note?: string; chil
   return (
     <div className="card stack" style={{ gap: 8 }}>
       <b>{title}</b>
-      {note && <div className="muted" style={{ fontSize: 12 }}>{note}</div>}
+      {note && <div className="muted" style={{ fontSize: "var(--fs-3)" }}>{note}</div>}
       {children}
     </div>
   );
