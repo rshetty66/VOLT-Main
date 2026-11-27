@@ -10,6 +10,20 @@ import { textWidth, wrapLabel } from "./specChart";
 const LANE_W = 150;
 const HEAD = 34;
 const GAP = 8;
+const NAME_SIZE = 12.5;
+const NAME_LINE = 15;
+/** Bold text runs about 8% wider than the regular-weight estimate. */
+const BOLD = 1.08;
+
+/** Cuts any line wider than `maxW` with an ellipsis, so a label never spills out of its card. */
+export function fitLines(lines: string[], maxW: number, size: number): string[] {
+  return lines.map((ln) => {
+    if (textWidth(ln, size) <= maxW) return ln;
+    let t = ln;
+    while (t.length > 1 && textWidth(`${t}\u2026`, size) > maxW) t = t.slice(0, -1);
+    return `${t.trimEnd()}\u2026`;
+  });
+}
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const n1 = (v: number) => +v.toFixed(1);
 
@@ -31,8 +45,9 @@ export function processSvg(spec: ProcessSpec, p: Palette): string {
   const W = LANE_W + 24 + total * unit;
   const colX = units.map((_, c) => LANE_W + 12 + units.slice(0, c).reduce((x, y) => x + y, 0) * unit);
   const boxW = (i: number) => (units[spec.steps[i].stage] * unit - 12 - (share[i] - 1) * 8) / share[i];
-  const names = spec.steps.map((s, i) => wrapLabel(s.name, boxW(i) - 38, 14, 3));
-  const BOX_H = 34 + Math.max(2, ...names.map((l) => l.length)) * 17;
+  // Step names wrap inside their card; a line that still does not fit (bold runs wide) is cut with an ellipsis.
+  const names = spec.steps.map((s, i) => fitLines(wrapLabel(s.name, (boxW(i) - 34) / BOLD, NAME_SIZE, 3), (boxW(i) - 34) / BOLD, NAME_SIZE));
+  const BOX_H = 30 + Math.max(2, ...names.map((l) => l.length)) * NAME_LINE;
 
   let y = 32;
   if (spec.title) parts.push(text(24, y, spec.title, { size: 17, fill: p.ink, weight: 650 }));
@@ -90,7 +105,7 @@ export function processSvg(spec: ProcessSpec, p: Palette): string {
       `<g class="vp-step" style="--vp-i:${s.stage}" data-step="${i}" tabindex="0" role="button" aria-label="${esc(tip)}"><title>${esc(tip)}</title>`,
       `<rect x="${n1(x)}" y="${n1(by)}" width="${n1(boxW)}" height="${BOX_H}" rx="8" fill="${p.bg}"/><rect class="vp-card" x="${n1(x)}" y="${n1(by)}" width="${n1(boxW)}" height="${BOX_H}" rx="8" fill="${fill}" fill-opacity="${tint}" stroke="${stroke}" stroke-width="${s.issue ? 2 : 1.2}"/>`,
       text(x + 10, by + 18, `${i + 1}`, { size: 11, fill: p.muted, weight: 700 }),
-      ...lines.map((ln, k) => text(x + 24, by + 19 + k * 17, ln, { size: 14, fill: p.ink, weight: 600 })),
+      ...lines.map((ln, k) => text(x + 24, by + 18 + k * NAME_LINE, ln, { size: NAME_SIZE, fill: p.ink, weight: 600 })),
       system && textWidth(system, 12) <= boxW - 20 - tagW ? text(x + 10, by + BOX_H - 10, system, { size: 12 }) : "",
       tag ? text(x + boxW - 8, by + BOX_H - 10, tag, { size: 11.5, anchor: "end", fill: p.ink, weight: 600 }) : "",
       s.issue ? `<circle cx="${n1(x + boxW - 2)}" cy="${n1(by + 2)}" r="8" fill="${p.negative}"/>` + text(x + boxW - 2, by + 6, "!", { size: 11, anchor: "middle", fill: "#ffffff", weight: 800 }) : "",
