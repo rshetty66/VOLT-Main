@@ -4,6 +4,8 @@
 
 ### Added
 
+- `uber-agent-skills` skill: how to build, run, measure, evaluate and improve agent skills like production infrastructure, distilled from Uber Engineering's skills article. The description's colons are quoted so it parses as YAML.
+
 - Diagram builder in the console: describe an agent system or process, get an interactive, animated diagram with typed nodes and edges and playable scenarios (Sonnet drafts it; demo mode shows a sample). Downloads as standalone HTML or JSON. Model text is stripped of markup, the frame is sandboxed, and the route is rate limited like runs.
 
 ### Fixed
