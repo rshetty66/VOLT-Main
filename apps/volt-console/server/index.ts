@@ -11,6 +11,7 @@
  *   GET  /api/templates/:id/original   the uploaded file
  *   DELETE /api/templates/:id
  *   POST /api/export               build a Word, PowerPoint or Excel download from a deliverable
+ *   POST /api/optimize             rough request in, executive prompt out (the user confirms it before it runs)
  *   POST /api/diagrams             description in, validated diagram spec out
  *   GET  /api/healthz
  *   GET  /api/ledger/review        VOLT Ledger review queue (people only; never a model tool)
@@ -30,6 +31,7 @@ import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { z } from "zod";
+import { optimizePrompt } from "./optimize.js";
 import { loadCatalog, loadSkillBody, rankSkills } from "./catalog.js";
 import { runLocalTool, schemas, type ToolName } from "./tools.js";
 import { benchmarks } from "./analytics.js";
@@ -512,6 +514,19 @@ app.post("/api/diagrams", express.json({ limit: "8kb" }), async (req, res) => {
     res.json(await generateDiagram(description, mode === "live", controller.signal));
   } catch (err) {
     res.status(502).json({ error: err instanceof Error ? err.message : "Could not build the diagram." });
+  }
+});
+
+app.post("/api/optimize", express.json({ limit: "16kb" }), async (req, res) => {
+  const prompt = typeof req.body?.prompt === "string" ? req.body.prompt.trim() : "";
+  if (!prompt) return void res.status(400).json({ error: "Nothing to optimize." });
+  if (mode !== "live") return void res.json({ optimized: null, demo: true });
+  const controller = new AbortController();
+  res.on("close", () => controller.abort());
+  try {
+    res.json({ optimized: await optimizePrompt(prompt, controller.signal) });
+  } catch {
+    res.json({ optimized: null });
   }
 });
 

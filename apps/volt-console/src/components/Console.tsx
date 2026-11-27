@@ -15,6 +15,7 @@ import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../ap
 import { scopeLabel, type Scope } from "../../shared/scope";
 import { directAsk, quickAsk } from "../../shared/asks";
 import { IntakeCard } from "./IntakeCard";
+import { shouldOptimize, type Optimized } from "../../shared/optimize";
 import { AgentPicker } from "./AgentPicker";
 import { GetStarted } from "./GetStarted";
 import { Icon } from "./Icon";
@@ -69,6 +70,28 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   // The chat's scope: asked once before the first message of each chat, then sent with every message.
   const [scope, setScope] = useState<Scope | null>(null);
   const [scoping, setScoping] = useState<{ draft: Scope; pending?: string } | null>(null);
+  // Every message that is not a lookup or a quick ask is rewritten into an executive prompt first; the user confirms it, edits it or sends the original.
+  const [optimizing, setOptimizing] = useState<{ original: string; chosen: Scope | null | undefined; result?: Optimized; text: string } | null>(null);
+  const optimized = useRef("");
+  const optimize = (text: string, chosen: Scope | null | undefined) => {
+    setOptimizing({ original: text, chosen, text: "" });
+    fetch("/api/optimize", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ prompt: text }) })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { optimized: Optimized | null } | null) => {
+        if (j?.optimized) setOptimizing((o) => (o && o.original === text ? { ...o, result: j.optimized as Optimized, text: (j.optimized as Optimized).prompt } : o));
+        else {
+          // No rewrite available (demo mode or a failed call): send the message as written.
+          setOptimizing(null);
+          optimized.current = text;
+          submit(text, chosen);
+        }
+      })
+      .catch(() => {
+        setOptimizing(null);
+        optimized.current = text;
+        submit(text, chosen);
+      });
+  };
   useEffect(() => {
     if (runs.length === 0) setScope(null);
   }, [runs.length]);
@@ -144,6 +167,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
 
   const submit = (text = prompt, chosen: Scope | null | undefined = scope) => {
     if (!text.trim() || reading > 0) return;
+    if (live && target === "rudra" && shouldOptimize(text) && text !== optimized.current) return void optimize(text, chosen);
     // First message of a chat: run the intake before any work starts, unless it is a lookup or a quick ask, which VOLT
     // answers straight away. Skip sends without a scope: the intake is already open then, so it must not reopen.
     if (chosen === null && !scoping?.pending && runs.length === 0 && !directAsk(text) && !quickAsk(text)) return void setScoping((s) => ({ draft: s?.draft ?? {}, pending: text }));
@@ -199,6 +223,46 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
         <RunView key={run.id} run={run} onStop={() => onStop(run.id)} onRegenerate={running ? undefined : () => regenerate(run.prompt)} />
       ))}
       <div ref={composer} className={`composer ${runs.length === 0 ? "home" : ""}`}>
+        {optimizing && (
+          <div className="card optimize-card" role="region" aria-label="Optimized prompt">
+            <div className="micro">Optimized prompt</div>
+            {!optimizing.result ? (
+              <div className="muted" role="status"><span className="spinner" style={{ width: 10, height: 10 }} /> Sharpening your question...</div>
+            ) : (
+              <>
+                <div className="body"><strong>Business ask:</strong> {optimizing.result.ask}</div>
+                {optimizing.result.assumptions.length > 0 && <div className="muted">Assumed: {optimizing.result.assumptions.join("; ")}. Edit below if wrong.</div>}
+                <textarea className="textarea" aria-label="Optimized prompt" rows={12} value={optimizing.text} onChange={(e) => setOptimizing({ ...optimizing, text: e.target.value })} />
+                <div className="row">
+                  <button
+                    className="btn primary"
+                    disabled={!optimizing.text.trim()}
+                    onClick={() => {
+                      const { text, chosen } = optimizing;
+                      setOptimizing(null);
+                      optimized.current = text.trim();
+                      submit(text.trim(), chosen);
+                    }}
+                  >
+                    Send optimized
+                  </button>
+                  <button
+                    className="btn"
+                    onClick={() => {
+                      const { original, chosen } = optimizing;
+                      setOptimizing(null);
+                      optimized.current = original;
+                      submit(original, chosen);
+                    }}
+                  >
+                    Send my original
+                  </button>
+                  <button className="btn ghost" onClick={() => setOptimizing(null)}>Cancel</button>
+                </div>
+              </>
+            )}
+          </div>
+        )}
         {scoping && (
           <IntakeCard
             key={scoping.pending ? "start" : "edit"}
@@ -239,7 +303,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) submit();
+              if (e.key === "Enter" && (e.metaKey || e.ctrlKey) && !optimizing) submit();
             }}
           />
           {(files.length > 0 || reading > 0 || fileError) && (
@@ -311,7 +375,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               <button className="btn" disabled={running || files.length >= ATTACH_MAX_FILES} onClick={() => fileInput.current?.click()} title="PDF, JPEG, PNG, Word, Excel, PowerPoint, CSV, text, Markdown or JSON, up to 4 MB each. Kept in Uploads for other chats.">
                 Attach files
               </button>
-              <button className="btn primary" disabled={!prompt.trim() || running || reading > 0} onClick={() => submit()}>
+              <button className="btn primary" disabled={!prompt.trim() || running || reading > 0 || Boolean(optimizing)} onClick={() => submit()}>
                 {running ? "Working…" : "Run"}
               </button>
             </div>
