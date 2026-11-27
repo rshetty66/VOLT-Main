@@ -27,13 +27,13 @@ export function Services({ catalog, onOpenAgent, onLaunch }: Props) {
         </p>
       </div>
       <div className="row">
-        <span className={`chip click`} style={!practice ? { borderColor: "var(--accent)" } : {}} onClick={() => setPractice("")}>
+        <button type="button" className={`chip click${!practice ? " on" : ""}`} aria-pressed={!practice} onClick={() => setPractice("")}>
           All
-        </span>
+        </button>
         {practices.map((p) => (
-          <span key={p} className="chip click" style={practice === p ? { borderColor: "var(--accent)" } : {}} onClick={() => setPractice(p)}>
+          <button type="button" key={p} className={`chip click${practice === p ? " on" : ""}`} aria-pressed={practice === p} onClick={() => setPractice(p)}>
             {p}
-          </span>
+          </button>
         ))}
       </div>
       {[...bySub.entries()].map(([group, list]) => (
@@ -64,9 +64,9 @@ export function Services({ catalog, onOpenAgent, onLaunch }: Props) {
                     <td>
                       <div className="row">
                         {s.agents.map((a) => (
-                          <span key={a} className="chip click" onClick={() => onOpenAgent(a)}>
+                          <button type="button" key={a} className="chip click" onClick={() => onOpenAgent(a)}>
                             {agentName(a)}
-                          </span>
+                          </button>
                         ))}
                       </div>
                     </td>

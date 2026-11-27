@@ -64,3 +64,22 @@ describe("token usage per chat", () => {
     expect(chatUsage([run({ sessionId: "old" })])[0].models).toEqual([]);
   });
 });
+
+describe("cost over time and sortable tables", () => {
+  it("adds up cost and tokens per day, oldest first", async () => {
+    const { costByDay } = await import("../src/usage");
+    const run = (t: string, cost: number) => ({ startedAt: new Date(t).getTime(), usage: { input: 100, output: 50, cacheRead: 0, cost } }) as never;
+    expect(costByDay([run("2026-11-26T15:00:00", 0.5), run("2026-11-25T10:00:00", 0.25), run("2026-11-26T18:00:00", 0.25)])).toEqual([
+      { day: "2026-11-25", cost: 0.25, tokens: 150 },
+      { day: "2026-11-26", cost: 0.75, tokens: 300 },
+    ]);
+  });
+
+  it("sorts numbers and text both ways and keeps missing values last", async () => {
+    const { sortRows } = await import("../src/useSort");
+    const rows = [{ n: 2, s: "b" }, { n: undefined, s: "a" }, { n: 10, s: "c" }];
+    expect(sortRows(rows, (r) => r.n, "desc").map((r) => r.n)).toEqual([10, 2, undefined]);
+    expect(sortRows(rows, (r) => r.n, "asc").map((r) => r.n)).toEqual([2, 10, undefined]);
+    expect(sortRows(rows, (r) => r.s, "asc").map((r) => r.s)).toEqual(["a", "b", "c"]);
+  });
+});

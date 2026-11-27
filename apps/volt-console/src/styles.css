@@ -559,3 +559,23 @@ button.rail-avatar { cursor: pointer; font: inherit; padding: 0; }
 .steps li.bad { color: var(--warn); }
 .steps li.pending { color: var(--muted); }
 .md blockquote { background: var(--tint-04); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: var(--sp-2) var(--sp-3); }
+/* Ledger review: bulk bar and confidence indicator. */
+.ledger-bulk { align-items: center; gap: var(--sp-3); }
+.confidence { position: relative; display: flex; align-items: center; gap: var(--sp-2); font-size: var(--fs-3); color: var(--muted); }
+.confidence::before { content: ""; width: 120px; height: 6px; border-radius: 3px; background: var(--tint-08); }
+.confidence i { position: absolute; left: 0; top: 50%; height: 6px; margin-top: -3px; border-radius: 3px; background: var(--accent); }
+.confidence i.low { background: var(--warn); }
+/* Usage charts and sortable headers. */
+.usage-charts { display: grid; grid-template-columns: 2fr 1fr; gap: var(--sp-3); }
+@media (max-width: 1000px) { .usage-charts { grid-template-columns: 1fr; } }
+.usage-chart { margin: 0; display: grid; gap: var(--sp-2); }
+.usage-chart svg { width: 100%; height: auto; }
+.usage-chart .bar { fill: var(--accent); }
+.usage-chart text { fill: var(--muted); font-size: 10px; }
+.usage-model { display: grid; grid-template-columns: 90px 1fr auto; gap: var(--sp-2); align-items: center; font-size: var(--fs-4); }
+.sort-btn { background: none; border: 0; padding: 0; color: inherit; font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+.sort-btn:hover { color: var(--primary); }
+/* A whole card that opens something: a real button, equal height in its grid row, with hover and focus states. */
+.card-btn { width: 100%; height: 100%; text-align: left; font: inherit; color: inherit; justify-content: flex-start; }
+.card.interactive:hover, .card.interactive:focus-visible { border-color: var(--accent); }
+button.chip { font: inherit; font-size: var(--fs-3); }
