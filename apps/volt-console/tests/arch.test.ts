@@ -60,7 +60,7 @@ describe("architecture spec", () => {
 });
 
 describe("architecture drawing", () => {
-  it("draws a stack of slabs in both palettes with no bad numbers", () => {
+  it("draws a full-width stack of slabs in both palettes with no bad numbers", () => {
     const spec = parseArchSpec(JSON.stringify(good))!;
     for (const p of [DARK, LIGHT]) {
       const svg = archSvg(spec, p);
@@ -70,12 +70,16 @@ describe("architecture drawing", () => {
       expect(svg).toContain("Recommended");
       expect(svg).not.toContain("NaN");
       expect(svg).not.toContain("undefined");
-      // three polygons (top and two sides) per layer, plus one tile per system (no flows or statuses here, so no legend)
-      expect((svg.match(/<polygon/g) ?? []).length).toBe(spec.layers.length * 3 + spec.layers.reduce((n, l) => n + l.items.length, 0));
+      // Each layer is a slab (two depth faces) with an icon, built in from the top; every system is a chip.
+      expect((svg.match(/<polygon/g) ?? []).length).toBe(spec.layers.length * 2);
+      expect((svg.match(/class="va-band"/g) ?? []).length).toBe(spec.layers.length);
+      expect(svg).toContain(`style="--va-i:0"`);
+      for (const l of spec.layers) for (const it of l.items) expect(svg).toContain(`>${it.name.replace(/&/g, "&amp;")}</text>`);
+      expect(svg).toContain('viewBox="0 0 1160');
     }
   });
 
-  it("numbers systems across the whole stack, colours them by status, and draws each flow with its arrowhead and a legend", () => {
+  it("marks systems by status, and draws each flow with its arrowhead, a legend and a list", () => {
     const spec = parseArchSpec(
       JSON.stringify({
         title: "Option B",
@@ -88,11 +92,10 @@ describe("architecture drawing", () => {
     )!;
     for (const p of [DARK, LIGHT]) {
       const svg = archSvg(spec, p);
-      expect(svg).toContain("3 OneStream (new)");
-      expect(svg).toContain("1 SAP ECC (retire)");
-      expect(svg).toContain("1 SAP ECC -&gt; 3 OneStream: journals");
-      expect(svg).toContain("#ff5722"); // a retired tile
-      expect(svg).toContain("#00e5ff"); // a new tile
+      expect(svg).toContain("Consolidation: OneStream (new)");
+      expect(svg).toContain("Sources: SAP ECC (retire), Oracle EBS (kept)");
+      expect(svg).toContain("SAP ECC -&gt; OneStream: journals");
+      expect(svg).toMatch(/<line [^>]*stroke="#(ff5722|e64a19)"/); // a retired system is struck through
       expect(svg).toContain("Data flow");
       expect((svg.match(/<path d="M [^"]+" fill="none"/g) ?? []).length).toBe(4); // two flows, each a halo and a line
       expect(svg).not.toContain("NaN");
@@ -106,6 +109,16 @@ describe("architecture drawing", () => {
     expect(svg).toContain("a&amp;b");
     const seven = parseArchSpec(JSON.stringify({ ...good, layers: Array.from({ length: 7 }, (_, i) => ({ name: `Layer ${i}`, items: ["x", "y"] })) }))!;
     expect(archSvg(seven, LIGHT)).not.toContain("NaN");
+  });
+
+  it("keeps long system names whole, two chips to a row when one row is too tight", () => {
+    const long = "Enterprise performance management consolidation";
+    const spec = parseArchSpec(JSON.stringify({ title: "T", layers: [{ name: "Sources", items: [long, long + " two", long + " three", long + " four"] }, { name: "GL", items: ["Ledger"] }] }))!;
+    const svg = archSvg(spec, DARK);
+    expect(svg).not.toContain("...");
+    expect(svg).toContain(">Enterprise performance management consolidation</text>");
+    const ys = new Set([...svg.matchAll(/<rect x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="39" rx="5"/g)].map((m) => m[1]));
+    expect(ys.size).toBe(3); // two rows of chips in Sources, one in GL
   });
 });
 

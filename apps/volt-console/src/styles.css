@@ -506,6 +506,22 @@ html, body, #root { height: 100%; }
   .topbar > .usage, .topbar > .badge { display: none; }
 }
 
+/* Architecture stacks and process flows build in when they appear in the chat, like the charts: layers from the top,
+   process steps stage by stage. Downloads carry no CSS, so files are always drawn complete. */
+.mermaid-svg .va-band,
+.mermaid-svg .vp-step {
+  animation: diagram-build 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.mermaid-svg .va-band { animation-delay: calc(var(--va-i, 0) * 110ms); }
+.mermaid-svg .vp-step { animation-delay: calc(var(--vp-i, 0) * 90ms); }
+@keyframes diagram-build {
+  from { opacity: 0; transform: translateY(10px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mermaid-svg .va-band,
+  .mermaid-svg .vp-step { animation: none; }
+}
+
 /* Top bar Settings menu: the admin run toggles, out of the main bar. */
 .settings-menu { position: relative; }
 .settings-menu > summary { list-style: none; cursor: pointer; }

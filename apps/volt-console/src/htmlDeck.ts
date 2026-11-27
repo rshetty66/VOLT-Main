@@ -36,13 +36,15 @@ html,body,.reveal-viewport{background:var(--bg);color:var(--tx)}
 .measuring .reveal .slides{position:static;inline-size:1280px;block-size:auto;transform:none}
 .measuring .reveal .slides>section{display:block!important;position:relative!important;inset:auto!important;inline-size:1280px;block-size:720px;transform:none!important;opacity:1!important;visibility:visible!important}
 .reveal .slides>section.cover{display:flex!important;flex-direction:column;justify-content:center;background:radial-gradient(900px 520px at 85% 15%,#0f2a33 0,transparent 70%)}
-.reveal h1,.reveal h2{font-family:Georgia,"Times New Roman",serif;font-weight:400;color:var(--tx);text-transform:none;letter-spacing:0;text-wrap:balance;margin:0}
-.reveal h1{font-size:52px;line-height:1.12;max-inline-size:1000px}
-.reveal h2{font-size:32px;line-height:1.2;max-inline-size:1080px}
+/* One sans family for titles and text (Rakesh, 2026-11-27); the PowerPoint export keeps its own fonts. */
+.reveal h1,.reveal h2{font-family:inherit;color:var(--tx);text-transform:none;letter-spacing:-.01em;text-wrap:balance;margin:0}
+.reveal .detail h4{font-family:inherit;font-weight:650}
+.reveal h1{font-size:54px;font-weight:750;line-height:1.08;max-inline-size:1040px}
+.reveal h2{font-size:29px;font-weight:650;line-height:1.22;max-inline-size:1100px}
 .reveal .slide>p,.reveal .slide>blockquote{max-inline-size:1000px}
 .reveal p.cap{font-weight:600;color:var(--mu);font-size:14px;text-transform:uppercase;letter-spacing:.08em;margin:18px 0 8px}
 .reveal .head{display:flex;gap:16px;align-items:baseline;border-bottom:1px solid var(--bd);padding-bottom:12px;margin-bottom:22px}
-.reveal .head .kick{display:block;font-size:13px;text-transform:uppercase;letter-spacing:.1em;color:var(--mu);font-weight:600;margin-bottom:6px}
+.reveal .head .kick{display:block;font-size:12.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--cyan);font-weight:700;margin-bottom:6px}
 .reveal .head .cont{color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0}
 .reveal .head .no{color:var(--gold);font-weight:700;font-size:16px;letter-spacing:.08em}
 .reveal .lede{font-size:22px;color:var(--cyan);margin:16px 0 6px}
@@ -58,8 +60,28 @@ html,body,.reveal-viewport{background:var(--bg);color:var(--tx)}
 .reveal .kpi .l{font-size:16px}
 .reveal .card b{font-size:19px}
 .reveal .card p{font-size:16px}
-.reveal figure.chart,.reveal figure.arch,.reveal figure.diagram{max-inline-size:1000px}
-.reveal figure svg{inline-size:100%}
+/* Exhibits use the full slide width; the drawing keeps its shape and is capped in height so labels stay readable. */
+.reveal figure{margin:6px 0;overflow:hidden}
+.reveal figure.chart,.reveal figure.arch,.reveal figure.diagram,.reveal figure.flow{max-inline-size:none}
+.reveal figure svg{inline-size:100%;block-size:auto;max-block-size:var(--fig-h,470px)}
+.reveal .flow svg{min-inline-size:0}
+.reveal .flow .dots{display:none}
+.reveal .flow .cap{padding:8px 14px;margin-top:6px}
+.reveal .figs{grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr))}
+.reveal .figs svg{--fig-h:440px}
+/* A hero figure: the number a list leads with, shown large beside it. */
+.reveal .herosplit{display:grid;grid-template-columns:330px 1fr;gap:44px;align-items:center;margin:6px 0 10px}
+.reveal .hero .hv{display:block;font-size:104px;font-weight:800;line-height:1;letter-spacing:-.03em;color:var(--cyan)}
+.reveal .hero .hv small{font-size:26px;font-weight:600;color:var(--mu);letter-spacing:0;margin-left:8px}
+.reveal .hero .hl{display:block;color:var(--mu);font-size:19px;margin-top:12px}
+.reveal .herosplit ul,.reveal .herosplit ol{margin:0}
+.reveal .kpi{padding:18px 18px;border-top-width:4px}
+.reveal .nb{padding-block-end:6px;background-size:var(--w) 4px}
+/* Diagrams build in when their slide opens: layers from the top, process steps stage by stage. */
+.reveal .present .va-band,.reveal .present .vp-step{animation:build .6s var(--ease) both}
+.reveal .present .va-band{animation-delay:calc(var(--va-i,0) * 110ms)}
+.reveal .present .vp-step{animation-delay:calc(var(--vp-i,0) * 90ms)}
+@media (prefers-reduced-motion:reduce){.reveal .present .va-band,.reveal .present .vp-step{animation:none}}
 .reveal .progress{color:var(--cyan);block-size:4px}
 .reveal .slide-number{background:transparent;color:var(--dim);font-size:12px}
 .reveal .controls{color:var(--cyan)}
@@ -94,7 +116,7 @@ const DECK_SCRIPT = `
       var limit = slide.getBoundingClientRect().top + slide.clientHeight - parseFloat(getComputedStyle(slide).paddingBottom);
       var box = slide.querySelector('.body'), room = limit - box.getBoundingClientRect().top, need = box.scrollHeight;
       // A slight overflow shrinks the slide's text a little rather than leaving a near-empty continued slide.
-      if (need > room && room / need >= 0.82) { box.style.zoom = (room / need).toFixed(3); return; }
+      if (need > room && room / need >= 0.78) { box.style.zoom = (room / need).toFixed(3); return; }
       var body = kids(slide), i = 0;
       while (i < body.length && bottom(body[i]) <= limit + 1) i++;
       if (i >= body.length) return;
@@ -121,18 +143,46 @@ const DECK_SCRIPT = `
           if (!moved.length) return;
         }
       }
+      // Never leave a near-empty "continued" slide: when all that would move is a source line or a few short lines,
+      // shrink this slide a little more instead.
+      var movedH = moved.reduce(function(a, n){ return a + n.getBoundingClientRect().height; }, 0);
+      if (moved.every(function(n){ return n.classList.contains('src'); }) || movedH < 90) { box.style.zoom = Math.max(0.6, room / need).toFixed(3); return; }
       var ns = next(slide);
       var nb = ns.querySelector('.body');
       moved.forEach(function(n){ nb.appendChild(n); });
       slide = ns;
     }
   }
-  Array.prototype.slice.call(document.querySelectorAll('.reveal .slides > section.slide')).forEach(fit);
+  // Each exhibit grows into the height its slide has left (below its heading, above what follows it), so a wide
+  // diagram is drawn as large as the slide allows instead of at a fixed size.
+  function grow(slide){
+    var limit = slide.getBoundingClientRect().top + slide.clientHeight - parseFloat(getComputedStyle(slide).paddingBottom);
+    var box = slide.querySelector('.body');
+    Array.prototype.forEach.call(box.querySelectorAll('figure > svg'), function(svg){
+      if (svg.closest('.figs')) return;
+      var after = box.getBoundingClientRect().bottom - svg.getBoundingClientRect().bottom;
+      svg.style.maxBlockSize = Math.max(240, Math.floor(limit - svg.getBoundingClientRect().top - after - 4)) + 'px';
+    });
+  }
+  Array.prototype.slice.call(document.querySelectorAll('.reveal .slides > section.slide')).forEach(function(s){ grow(s); fit(s); });
   root.classList.remove('measuring');
   var build = '.slide .body > ul > li, .slide .body > ol > li, .slide .body > .cards > .card, .slide .kgrid > .kpi';
   if (!/print-pdf/.test(location.search)) Array.prototype.forEach.call(document.querySelectorAll(build), function(el){ el.classList.add('fragment', 'fade-up'); });
-  function draw(slide){ Array.prototype.forEach.call(slide.querySelectorAll('figure.chart'), function(f, i){ setTimeout(function(){ f.classList.add('in'); }, reduce ? 0 : 120 * i); }); }
-  Reveal.initialize({ hash: true, width: 1280, height: 720, margin: 0.04, center: false, slideNumber: 'c/t', transition: reduce ? 'none' : 'fade',
+  function draw(slide){ Array.prototype.forEach.call(slide.querySelectorAll('figure.chart'), function(f, i){ setTimeout(function(){ f.classList.add('in'); }, reduce ? 0 : 120 * i); }); count(slide); }
+  // Big numbers count up to their value when their slide opens (KPI tiles and hero figures).
+  function count(slide){
+    Array.prototype.forEach.call(slide.querySelectorAll('.kpi .v, .hero .hv'), function(el){
+      var node = el.firstChild; if (!node || node.nodeType !== 3) return;
+      var full = node.__v || (node.__v = node.nodeValue), m = /-?\\d[\\d,]*(?:\\.\\d+)?/.exec(full); if (!m) return;
+      var to = parseFloat(m[0].replace(/,/g, '')), dec = (m[0].split('.')[1] || '').length, comma = m[0].indexOf(',') >= 0;
+      var put = function(v){ var s = v.toFixed(dec); if (comma) s = Number(s).toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec }); node.nodeValue = full.slice(0, m.index) + s + full.slice(m.index + m[0].length); };
+      if (reduce) return put(to);
+      var t0 = performance.now();
+      (function step(t){ var k = Math.min(1, (t - t0) / 900); put(to * (1 - Math.pow(1 - k, 3))); if (k < 1) requestAnimationFrame(step); })(t0);
+    });
+  }
+  // The address tracks the slide, except in a sandboxed preview (an about:srcdoc frame), which forbids replaceState.
+  Reveal.initialize({ hash: !/^about:/.test(location.href), width: 1280, height: 720, margin: 0.04, center: false, slideNumber: 'c/t', transition: reduce ? 'none' : 'fade',
     pdfSeparateFragments: false, plugins: [RevealNotes] });
   Reveal.on('ready', function(e){ draw(e.currentSlide); });
   Reveal.on('slidechanged', function(e){ draw(e.currentSlide); });
@@ -162,13 +212,29 @@ export function sectionSlides(title: string, html: string): { kicker: string; he
     .filter((s) => s.html.trim() || s.headline !== section);
 }
 
+const HERO = /^((?:USD|CAD|EUR|GBP)\s?)?([-\u2212]?\d[\d,]*(?:\.\d+)?)\s?(%|[MBK]\b|bn\b|x\b|days?\b|hours?\b|weeks?\b|months?\b|FTEs?\b|pts?\b|bps\b)?\s*([\s\S]*)$/i;
+
+/**
+ * Hero figures: a list whose first item opens with a bold lead that starts with a number ("7 days removed by six
+ * levers") shows that number large beside the list, with the rest of the lead under it.
+ */
+export function heroes(html: string): string {
+  return html.replace(/<(ul|ol)>\s*<li>(?:<p>)?<strong>((?:(?!<\/?strong>)[\s\S])*?)<\/strong>[\s\S]*?<\/\1>/, (list: string, _t: string, lead: string) => {
+    const m = HERO.exec(lead.replace(/<[^>]+>/g, "").trim());
+    if (!m || !m[2]) return list;
+    const unit = [m[1]?.trim(), m[3]].filter(Boolean).join(" ");
+    const label = m[4].replace(/[.:;,\s]+$/, "");
+    return `<div class="herosplit"><div class="hero"><b class="hv">${esc(m[2])}${unit ? `<small>${esc(unit)}</small>` : ""}</b>${label ? `<span class="hl">${esc(label)}</span>` : ""}</div>${list}</div>`;
+  });
+}
+
 /** The full deck: a cover, then each section's slides. Pages carry trusted, already-rendered HTML, as in voltHtml. */
 export function voltDeck(d: HtmlDeliverable, assets: RevealAssets): string {
   const slides = d.pages.flatMap((p, i) =>
     sectionSlides(p.title, i === 0 ? withSoWhat(p.html) : p.html).map((s) => {
       const { html, notes } = speakerNotes(s.html);
       const head = `<div class="head"><span class="no">${String(i + 1).padStart(2, "0")}</span><div>${s.kicker ? `<span class="kick">${s.kicker}</span>` : ""}<h2>${s.headline}</h2></div></div>`;
-      return `<section class="slide">${head}<div class="body">${referenceLayout(html)}</div>${notes ? `<aside class="notes">${notes}</aside>` : ""}</section>`;
+      return `<section class="slide">${head}<div class="body">${heroes(referenceLayout(html))}</div>${notes ? `<aside class="notes">${notes}</aside>` : ""}</section>`;
     }),
   );
   const cover = `<section class="cover"><div class="brand"><span class="mark" aria-hidden="true">V</span><b>VOLT</b></div><h1>${esc(d.title)}</h1>${d.subtitle ? `<p class="lede">${esc(d.subtitle)}</p>` : ""}<p class="meta">Prepared with VOLT</p></section>`;

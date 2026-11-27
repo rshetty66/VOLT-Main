@@ -33,6 +33,20 @@ export function textWidth(s: string, size = 12): number {
   for (const ch of s) w += /[ilj.,:;'|!]/.test(ch) ? 0.28 : /[ftr() -]/.test(ch) ? 0.36 : /[MWmw@%]/.test(ch) ? 0.86 : /[A-Z0-9#$&]/.test(ch) ? 0.64 : 0.54;
   return w * size;
 }
+/**
+ * Split a label over at most `lines` lines that each fit `maxW` px at `size`. Words are never cut: a word longer than
+ * the line takes a line of its own, and a label that needs more lines keeps them (the caller sizes the axis to fit).
+ */
+export function wrapLabel(s: string, maxW: number, size = 12, lines = 3): string[] {
+  const out: string[] = [];
+  for (const w of s.split(/\s+/).filter(Boolean)) {
+    const last = out[out.length - 1];
+    if (last !== undefined && textWidth(`${last} ${w}`, size) <= maxW) out[out.length - 1] = `${last} ${w}`;
+    else out.push(w);
+  }
+  // Too many lines: join the overflow onto the last line rather than drop words.
+  return out.length > lines ? [...out.slice(0, lines - 1), out.slice(lines - 1).join(" ")] : out;
+}
 const signed = (v: number) => (v > 0 ? `+${fmt(v)}` : fmt(v));
 
 /** A "nice" axis range and step, so gridlines land on round numbers. */
@@ -207,11 +221,14 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
     const rows = spec.series.length, cols = spec.labels.length;
     const left = Math.min(200, 32 + Math.max(...spec.series.map((s) => s.name.length)) * 6.6);
     const cellW = (W - left - 24) / cols, cellH = Math.min(40, Math.max(26, 260 / rows));
-    const gridTop = top + 22;
+    // Column heads wrap (bottom-aligned over their column) instead of being cut.
+    const heads = spec.labels.map((l) => wrapLabel(l, cellW - 6, 11.5));
+    const headLines = Math.max(1, ...heads.map((h) => h.length));
+    const gridTop = top + 22 + (headLines - 1) * 13;
     H = gridTop + rows * cellH + foot + 30;
     const all = spec.series.flatMap((s) => s.values);
     const lo = Math.min(...all), hi = Math.max(...all);
-    spec.labels.forEach((l, j) => parts.push(text(left + cellW * (j + 0.5), gridTop - 8, l.length > 14 && cols > 6 ? `${l.slice(0, 13)}...` : l, { size: 11.5, anchor: "middle", fill: spec.highlight === j ? p.ink : p.muted, weight: spec.highlight === j ? 700 : undefined })));
+    heads.forEach((h, j) => h.forEach((ln, k) => parts.push(text(left + cellW * (j + 0.5), gridTop - 8 - (h.length - 1 - k) * 13, ln, { size: 11.5, anchor: "middle", fill: spec.highlight === j ? p.ink : p.muted, weight: spec.highlight === j ? 700 : undefined }))));
     spec.series.forEach((s, i) => {
       const cy = gridTop + i * cellH;
       parts.push(text(left - 10, cy + cellH / 2 + 4, s.name, { size: 12, anchor: "end", fill: p.ink }));
@@ -268,7 +285,13 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
     const sc = spec.type === "line" ? zoom(Math.min(...range), Math.max(...range)) : spec.type === "waterfall" ? zoom(Math.min(...levels), Math.max(...range)) : niceScale(Math.min(...range), Math.max(...range));
     const sc2 = spec.type === "combo" ? niceScale(Math.min(...spec.series[1].values), Math.max(...spec.series[1].values)) : null;
     const left = horizontal ? Math.min(220, 40 + Math.max(...spec.labels.map((l) => l.length)) * 6.4) : 60;
-    const x0 = left, x1 = W - (sc2 ? 64 : 30), y0 = top, y1 = H - foot - (horizontal ? 22 : 36);
+    // Category labels under vertical bars wrap onto as many as three lines instead of being cut, and the plot gives
+    // up the room they need.
+    const xBand = (W - (sc2 ? 64 : 30) - left) / n;
+    const xLabels = horizontal ? [] : spec.labels.map((l) => wrapLabel(l, xBand - 8, 12));
+    const xLines = Math.max(1, ...xLabels.map((l) => l.length));
+    H += (xLines - 1) * 14;
+    const x0 = left, x1 = W - (sc2 ? 64 : 30), y0 = top, y1 = H - foot - (horizontal ? 22 : 36) - (xLines - 1) * 14;
     const val = (v: number, s = sc) => (horizontal ? x0 + ((v - s.lo) / (s.hi - s.lo || 1)) * (x1 - x0) : y1 - ((v - s.lo) / (s.hi - s.lo || 1)) * (y1 - y0));
 
     for (const tk of ticksOf(sc)) {
@@ -285,7 +308,7 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
     spec.labels.forEach((label, i) => {
       const bold = spec.highlight === i ? 700 : undefined;
       if (horizontal) parts.push(text(x0 - 10, mid(i) + 4, label, { size: 12, anchor: "end", fill: p.ink, weight: bold }));
-      else parts.push(text(mid(i), y1 + 18, label.length > 14 && n > 6 ? `${label.slice(0, 13)}...` : label, { size: 12, anchor: "middle", fill: p.ink, weight: bold }));
+      else xLabels[i].forEach((ln, k) => parts.push(text(mid(i), y1 + 18 + k * 14, ln, { size: 12, anchor: "middle", fill: p.ink, weight: bold })));
     });
 
     const lines = spec.type === "line" ? spec.series.map((_, i) => i) : spec.type === "combo" ? [1] : [];
@@ -373,7 +396,9 @@ export function specSvg(spec: ChartSpec, p: Palette, o: DrawOptions = {}): strin
     }
 
     if (spec.target && t >= 0.6) {
-      const tv = spec.target.value, label = `${spec.target.label ?? "Target"} ${fmt(tv)}${unit}`;
+      const tv = spec.target.value, named = spec.target.label ?? "Target";
+      // "Target 5 days" already carries its value; do not print it twice.
+      const label = named.includes(fmt(tv)) ? named : `${named} ${fmt(tv)}${unit}`;
       if (horizontal) parts.push(`<line x1="${n1(val(tv))}" y1="${y0 - 6}" x2="${n1(val(tv))}" y2="${y1}" stroke="${p.series2}" stroke-width="2" stroke-dasharray="6 4"/>`, pill(val(tv), y0 - 8, label, p.series2));
       else parts.push(`<line x1="${x0}" y1="${n1(val(tv))}" x2="${x1}" y2="${n1(val(tv))}" stroke="${p.series2}" stroke-width="2" stroke-dasharray="6 4"/>`, pill(x1, val(tv) - 6, label, p.series2, "end"));
     }

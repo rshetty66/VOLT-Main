@@ -1,8 +1,10 @@
 import { readFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { describe, expect, it } from "vitest";
-import { sectionSlides, speakerNotes, voltDeck } from "../src/htmlDeck";
-import { splitPages } from "../src/htmlTemplate";
+import { heroes, sectionSlides, speakerNotes, voltDeck } from "../src/htmlDeck";
+import { barTables, cellNumber, splitPages } from "../src/htmlTemplate";
+import { specSvg, wrapLabel } from "../src/charts/specChart";
+import { DARK } from "../src/charts/palette";
 import { FILE_FORMATS, FILE_LABEL } from "../shared/files";
 
 const require = createRequire(import.meta.url);
@@ -51,5 +53,42 @@ describe("HTML slide deck", () => {
   it("is offered as its own file format", () => {
     expect(FILE_FORMATS).toContain("slides");
     expect(FILE_LABEL.slides).toBe("HTML slide deck");
+  });
+
+  it("uses one sans font for titles, works in a sandboxed preview, and never leaves a near-empty continued slide", () => {
+    expect(html).toContain(".reveal h1,.reveal h2{font-family:inherit");
+    expect(html).toContain(".reveal .detail h4{font-family:inherit");
+    expect(html).toContain("hash: !/^about:/.test(location.href)");
+    expect(html).toContain("movedH < 90");
+    expect(html).toContain("max-block-size:var(--fig-h,470px)");
+  });
+
+  it("shows the number a list leads with as a hero figure", () => {
+    const out = heroes("<ul><li><strong>7 days removed by six levers.</strong> Today is 12.</li><li>Other</li></ul>");
+    expect(out).toContain('<b class="hv">7<small>days</small></b><span class="hl">removed by six levers</span>');
+    expect(heroes("<ul><li><strong>USD 3.5M invested</strong></li></ul>")).toContain('<b class="hv">3.5<small>USD M</small></b>');
+    expect(heroes("<ul><li><strong>Fix the GL</strong></li></ul>")).not.toContain("hero");
+  });
+});
+
+describe("Exhibit readability", () => {
+  it("wraps long bridge labels instead of cutting them", () => {
+    const svg = specSvg({ type: "waterfall", title: "Bridge", unit: "days", labels: ["Current close", "ECL & valuations pre-close", "Sub-ledger feeds", "Risk-tiered recs", "Intercompany", "FTP off close path", "Single consol run", "Target close"], series: [{ name: "Days", values: [12, -2, -1.5, -1.5, -1, -0.5, -0.5, 5] }], target: { value: 5, label: "Target 5 days" } }, DARK);
+    expect(svg).not.toContain("...");
+    expect(svg).toContain(">pre-close</text>");
+    expect(svg).toContain(">Target 5 days</text>");
+    expect(svg).not.toContain("Target 5 days 5");
+    expect(wrapLabel("Auto-reconciliation and matching", 90, 12)).toEqual(["Auto-reconciliation", "and matching"]);
+  });
+
+  it("puts a data bar on number columns of a table", () => {
+    const t = "<table><thead><tr><th>Case</th><th>NPV</th><th>Note</th></tr></thead><tbody><tr><td>Low</td><td>−2,393,243</td><td>a</td></tr><tr><td>Base</td><td>1,577,030</td><td>b</td></tr><tr><td>High</td><td>5,047,304</td><td>c</td></tr></tbody></table>";
+    const out = barTables(t);
+    expect(out).toContain('<span class="nb neg" style="--w:47%">−2,393,243</span>');
+    expect(out).toContain('<span class="nb" style="--w:100%">5,047,304</span>');
+    expect(out).toContain("<td>a</td>");
+    expect(cellNumber("22.95%")).toBe(22.95);
+    expect(cellNumber("USD 3.5M")).toBe(3.5e6);
+    expect(cellNumber("2.36 (Defined)")).toBeNull();
   });
 });
