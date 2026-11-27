@@ -631,3 +631,12 @@ button.rail-avatar { cursor: pointer; font: inherit; padding: 0; }
 .card-btn { width: 100%; height: 100%; text-align: left; font: inherit; color: inherit; justify-content: flex-start; }
 .card.interactive:hover, .card.interactive:focus-visible { border-color: var(--accent); }
 button.chip { font: inherit; font-size: var(--fs-3); }
+
+/* Interactive charts and animated flows (src/charts/vizScript.ts): the shared script's colours, from the theme. */
+:root {
+  --vv-accent: var(--accent); --vv-on-accent: var(--on-light); --vv-ink: var(--heading); --vv-muted: var(--muted);
+  --vv-line: var(--border); --vv-panel: var(--surface-2); --vv-tip-bg: var(--elevated); --vv-bad: var(--orange);
+}
+.vv-host { display: grid; gap: var(--sp-2); min-width: 0; }
+.flow-host { gap: 0; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.flow-host .mermaid-svg { padding: 8px; }

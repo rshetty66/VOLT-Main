@@ -7,6 +7,8 @@ import { archSvg } from "./specArch";
 import { specSvg } from "./specChart";
 import { voltFileName, downloadBlob, downloadText, svgToPng } from "../download";
 import { chartGif } from "./gif";
+import { installViz } from "./vizScript";
+import type { ChartSpec, ProcessSpec } from "../../shared/viz";
 
 /** Light-palette SVG markup for a chart, used by every download. */
 export async function chartSvg(render: (p: Palette) => ReactElement): Promise<string> {
@@ -180,7 +182,7 @@ export function SpecChart({ code }: { code: string }) {
     );
   return (
     <figure ref={fig} className="visual spec-chart">
-      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: specSvg(spec, screenPalette(), { t }) }} />
+      <ChartHost spec={spec} svg={specSvg(spec, screenPalette(), { t, interactive: true })} />
       <DownloadButtons name={spec.title || "chart"} svg={async () => specSvg(spec, LIGHT)} gif={() => chartGif((f) => specSvg(spec, LIGHT, { t: f }))} onReplay={() => setReplay((n) => n + 1)} />
     </figure>
   );
@@ -236,8 +238,60 @@ export function SpecProcess({ code }: { code: string }) {
     );
   return (
     <figure className="visual spec-process">
-      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: processSvg(spec, screenPalette()) }} />
+      <FlowHost spec={spec} svg={processSvg(spec, screenPalette())} />
       <DownloadButtons name={spec.title || "process"} svg={async () => processSvg(spec, LIGHT)} />
     </figure>
   );
+}
+
+/**
+ * The SVG of a chart with the shared interaction script (vizScript.ts) attached: tooltips, legend toggles, focus, a
+ * data table and drill-down, the same as in the HTML deliverable. Keyed by the spec, so a new answer rewires it.
+ */
+function ChartHost({ spec, svg }: { spec: ChartSpec; svg: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const key = JSON.stringify(spec);
+  useEffect(() => {
+    if (ref.current) installViz()?.chart(ref.current, spec, { render: (s) => specSvg(s as ChartSpec, screenPalette(), { interactive: true }) });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return (
+    <div key={key} ref={ref} className="vv-host">
+      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: svg }} />
+    </div>
+  );
+}
+
+/** A process flow with the walkthrough, travelling hand-offs, lane focus and pain-point filter of the HTML deliverable. */
+function FlowHost({ spec, svg }: { spec: ProcessSpec; svg: string }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const key = JSON.stringify(spec);
+  useEffect(() => {
+    if (ref.current) installViz()?.flow(ref.current, flowSteps(spec));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key]);
+  return (
+    <div key={key} ref={ref} className="vv-host flow-host">
+      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: svg }} />
+    </div>
+  );
+}
+
+/** What the walkthrough shows for each step. */
+export const flowSteps = (spec: ProcessSpec) =>
+  spec.steps.map((st, i) => ({
+    receives: handOffs(spec, i, "in"),
+    handsOff: handOffs(spec, i, "out"),
+    name: st.name, lane: spec.lanes[st.lane], stage: spec.stages[st.stage], system: st.system, control: st.control, owner: st.owner, duration: st.duration, status: st.status, issue: st.issue, detail: st.detail, pcf: st.pcf }));
+
+/** A step's hand-offs in one direction, for the walkthrough panel: "trial balance from 10. Prepare entity trial balance". */
+function handOffs(spec: ProcessSpec, i: number, dir: "in" | "out"): string | undefined {
+  const items = spec.links
+    .filter((l) => (dir === "in" ? l.to : l.from) === i)
+    .map((l) => {
+      const other = dir === "in" ? l.from : l.to;
+      const who = `${other + 1}. ${spec.steps[other].name}`;
+      return l.label ? `${l.label} ${dir === "in" ? "from" : "to"} ${who}` : who;
+    });
+  return items.length ? items.join("; ") : undefined;
 }
