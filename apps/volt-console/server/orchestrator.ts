@@ -29,6 +29,8 @@ import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerTo
 import { CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, QUICK_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 import { scopeBrief } from "../shared/scope.js";
+import { ProviderError, runResponsesLoop } from "./responsesLoop.js";
+import { markBroken, providerOf, specialistModel, type Engine } from "./providers.js";
 import { estimateCost, higher, highStakes, modelFor, scopeOpusReason, routingEnabled, ruleRoute, tierForStep, tierName, triage, type Route, type Tier } from "./router.js";
 
 export type Emit = (e: VoltEvent) => void;
@@ -170,6 +172,7 @@ interface LoopOptions {
  * turn and tool result) and returns the agent's final text.
  */
 async function runAgentLoop(opts: LoopOptions): Promise<string> {
+  if (providerOf(opts.model) !== "anthropic") return runOtherProvider(opts);
   const { catalog, lane, emit, signal, messages } = opts;
   // Haiku has neither progress-update thinking nor server-side fallbacks.
   const haiku = opts.model.includes("haiku");
@@ -293,6 +296,47 @@ async function runAgentLoop(opts: LoopOptions): Promise<string> {
 }
 
 /**
+ * A specialist on GPT or Grok. Their brief is a single message, so the loop needs no Claude session. If the
+ * provider refuses before any text appears (bad key, retired model id), the step reruns on Claude and the model
+ * is skipped for the rest of the process, so a wrong id never fails a run.
+ */
+async function runOtherProvider(opts: LoopOptions): Promise<string> {
+  const { catalog, lane, emit, signal, messages } = opts;
+  const first = messages[0]?.content;
+  const brief = typeof first === "string" ? first : (first ?? []).map((b) => (b.type === "text" ? b.text : "")).join("\n");
+  let started = false;
+  const tools = [...toolDefs(opts.tools), ...(opts.registry.knowledgeProject ? [knowledgeToolDef()] : [])];
+  emit({ type: "status", lane, text: `Running on ${opts.model}` });
+  try {
+    const text = await runResponsesLoop({
+      model: opts.model,
+      system: opts.system,
+      input: brief,
+      tools,
+      effort: opts.effort,
+      maxTurns: MAX_TURNS,
+      signal,
+      onText: (t) => {
+        started = true;
+        emit({ type: "text_delta", lane, text: t });
+      },
+      onUsage: (u) => emit({ type: "usage", lane, ...u, model: opts.model, costUsd: estimateCost(opts.model, u) }),
+      execute: async (c) => {
+        const r = await executeTool(catalog, lane, { type: "tool_use", id: c.id, name: c.name, input: c.input } as Anthropic.Beta.BetaToolUseBlock, emit, signal, opts.registry, opts.specialistTier);
+        return { content: typeof r.content === "string" ? r.content : JSON.stringify(r.content), isError: r.is_error };
+      },
+    });
+    messages.push({ role: "assistant", content: [{ type: "text", text }] });
+    return text;
+  } catch (err) {
+    if (signal.aborted || started || !(err instanceof ProviderError) || ![400, 401, 403, 404].includes(err.status)) throw err;
+    if (err.status !== 400) markBroken(opts.model);
+    emit({ type: "status", lane, text: `${opts.model} was refused (${err.message.slice(0, 120)}); running this step on Claude instead` });
+    return runAgentLoop({ ...opts, model: modelFor("sonnet") });
+  }
+}
+
+/**
  * After a mid-output fallback, blocks before the last `fallback` marker other
  * than text are not echoed back (and their tool calls are never executed).
  */
@@ -383,6 +427,13 @@ async function executeTool(
   return { type: "tool_result", tool_use_id: tu.id, content: `${body}\n\n[Source key: ${record.key}] Cite this result as [${record.key}].` };
 }
 
+/** The specialist's model after the engine choice; logs which one when it is not Claude. */
+function pickModel(registry: SourceRegistry, brief: string, claude: string, emit: Emit, lane: string): string {
+  const { model, why } = specialistModel(registry.engine, brief, claude);
+  if (model !== claude) emit({ type: "status", lane, text: `Engine: ${why} (${model})` });
+  return model;
+}
+
 async function runSpecialist(
   catalog: Catalog,
   agent: AgentDef,
@@ -403,7 +454,8 @@ async function runSpecialist(
       messages: [{ role: "user", content: brief }],
       tools: CONSULTED_TOOLS,
       // A brief in high-stakes finance work runs on Opus even when the lead's run was routed lower.
-      model: modelFor(highStakes(brief) ? "opus" : tier),
+      // The engine selector can move the other briefs to GPT or Grok (never the lead, never Opus work).
+      model: pickModel(registry, brief, modelFor(highStakes(brief) ? "opus" : tier), emit, lane),
       effort: SPECIALIST_EFFORT,
       emit,
       signal,
@@ -443,6 +495,7 @@ export function getSession(id?: string): Session {
 
 export async function runLive(catalog: Catalog, input: RunInput, session: Session, emit: Emit, signal: AbortSignal) {
   const registry = new SourceRegistry(input.prompt);
+  registry.engine = input.engine;
   // The knowledge base is used only when the request asks for it; otherwise sources come from the tools and the web.
   if (input.projectId && asksForKnowledge(input.projectId, input.prompt)) registry.knowledgeProject = input.projectId;
   // Each attached file is client data in the source register, so the answer can cite it.

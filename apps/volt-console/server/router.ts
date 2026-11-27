@@ -9,6 +9,7 @@
  * changed with VOLT_MODEL_HAIKU, VOLT_MODEL_SONNET and VOLT_MODEL_OPUS (VOLT_MODEL still sets the Opus tier).
  */
 import Anthropic from "@anthropic-ai/sdk";
+import { EXTRA_PRICES } from "./providers.js";
 
 export type Tier = "haiku" | "sonnet" | "opus";
 const ORDER: Tier[] = ["haiku", "sonnet", "opus"];
@@ -146,7 +147,7 @@ export interface TokenCounts {
 
 /** Estimated cost in USD; 0 for a model with no listed price (it is still logged by name). */
 export function estimateCost(model: string, t: TokenCounts): number {
-  const p = PRICES[model];
+  const p = PRICES[model] ?? EXTRA_PRICES[model];
   if (!p) return 0;
   return (t.inputTokens * p.input + (t.cacheWriteTokens ?? 0) * p.input * 1.25 + t.outputTokens * p.output + t.cacheReadTokens * p.cacheRead) / 1e6;
 }

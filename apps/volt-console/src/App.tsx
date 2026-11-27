@@ -54,6 +54,9 @@ export function App() {
   const [forceDemo, setForceDemo] = useState(false);
   /** "Opus" switch: every step of the next runs on Opus, and the chat stays there (see server/router.ts). */
   const [forceOpus, setForceOpus] = useState(false);
+  /** Which provider the specialist workstreams run on; the lead stays on Claude. */
+  const [engine, setEngine] = useState<"claude" | "auto" | "gpt" | "grok">(() => (localStorage.getItem("volt.engine") as "claude" | "auto" | "gpt" | "grok") || "claude");
+  useEffect(() => localStorage.setItem("volt.engine", engine), [engine]);
   const [openAgent, setOpenAgent] = useState<string | null>(null);
   const [templates, setTemplates] = useState<TemplateSummary[]>([]);
   const [activeTemplate, setActiveTemplate] = useState("");
@@ -148,7 +151,7 @@ export function App() {
       setView("console");
       const update = (fn: (r: Run) => Run) => setRuns((rs) => rs.map((r) => (r.id === run.id ? fn(r) : r)));
       try {
-        for await (const e of streamRun({ ...req, projectId, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined, opus: forceOpus || undefined, templateId: activeTemplate || undefined }, controller.signal)) {
+        for await (const e of streamRun({ ...req, projectId, sessionId: sessions.current.get(sessionKey), demo: forceDemo || undefined, opus: forceOpus || undefined, engine: engine !== "claude" ? engine : undefined, templateId: activeTemplate || undefined }, controller.signal)) {
           if (e.type === "done") {
             sessions.current.set(sessionKey, e.sessionId);
             // Follow-ups to Rudra continue from a finished workflow's synthesis.
@@ -296,6 +299,17 @@ export function App() {
         {live && (
           <label className="row body admin-only" style={{ fontSize: 12 }} title="Run every step on Opus instead of letting VOLT pick the model. A chat that has used Opus stays on Opus.">
             <input type="checkbox" checked={forceOpus} onChange={(e) => setForceOpus(e.target.checked)} /> Opus
+          </label>
+        )}
+        {live && (catalog.engines?.gpt || catalog.engines?.grok) && (
+          <label className="row body template-pick admin-only" style={{ fontSize: 12 }} title="Which provider runs the specialist workstreams. The lead and high-stakes finance work stay on Claude.">
+            Specialists
+            <select className="select" value={engine} onChange={(e) => setEngine(e.target.value as typeof engine)}>
+              <option value="claude">Claude</option>
+              <option value="auto">Auto (best across)</option>
+              {catalog.engines?.gpt && <option value="gpt">GPT</option>}
+              {catalog.engines?.grok && <option value="grok">Grok</option>}
+            </select>
           </label>
         )}
         <label className="row body template-pick" style={{ fontSize: 12 }}>
