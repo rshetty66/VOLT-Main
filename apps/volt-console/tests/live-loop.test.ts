@@ -73,9 +73,9 @@ describe("live agent loop (mocked Messages API)", () => {
     const review = mock.requests.find((r) => typeof r.body.messages.at(-1)?.content === "string" && String(r.body.messages.at(-1).content).startsWith("Partner review"));
     expect(review).toBeTruthy();
     const text = String(review!.body.messages.at(-1).content);
-    expect(text).toContain("Contradictions and tensions");
-    expect(text).toContain("Residue");
-    expect(text).toContain("Scope and method");
+    expect(text).toContain("accountable role");
+    expect(text).not.toContain("Residue");
+    expect(text).not.toContain("Scope and method");
   });
 
   it("gives the lead the evidence rules and the specialists the short form", () => {
@@ -83,7 +83,8 @@ describe("live agent loop (mocked Messages API)", () => {
     const lead = mock.requests.find((r) => r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;
     const specialist = mock.requests.find((r) => !r.body.tools.some((t: { name: string }) => t.name === "consult_agent"))!;
     expect(system(lead)).toContain("Cite by source key");
-    expect(system(lead)).toContain("## 6. Evidence and method");
+    expect(system(lead)).toContain("Keep material assumptions");
+    expect(system(lead)).not.toContain("## 6. Evidence and method");
     expect(system(specialist)).toContain("Cite the source key");
   });
 

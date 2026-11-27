@@ -155,11 +155,12 @@ describe("the run's research record", () => {
     expect(run.sources.map((s) => s.key)).toEqual(["S01", "S02", "S03"]);
   });
 
-  it("appends the source register to every download's text, so each key resolves", async () => {
+  it("resolves cited keys in client references without internal scores", async () => {
     const { runDeliverable } = await import("../src/exports");
     const d = runDeliverable(await fold(), false);
-    expect(d.markdown).toContain("## Source register");
-    expect(d.markdown).toContain("| S03 |");
+    expect(d.markdown).toContain("## References");
+    expect(d.markdown).toContain("- [S03]");
+    expect(d.markdown).not.toContain("| Authority |");
   });
 
   it("adds no register to a run that recorded no evidence", async () => {

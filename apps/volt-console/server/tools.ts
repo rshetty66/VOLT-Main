@@ -13,6 +13,8 @@ import { BENCHMARKS, appraiseInvestment, buildValueCase, compareToBenchmark, MAT
 import { templateStore } from "./templates.js";
 import { lookupPcf, PCF_VERSION } from "./pcf.js";
 import { FILE_FORMATS, FILE_LABEL, type FileSpec } from "../shared/files.js";
+import { cleanTitle, editorialBlocker } from "../shared/clientOutput.js";
+import { citedKeys,type SourceRecord } from "../shared/research.js";
 import { checkHub, hubSchema } from "../shared/accountingHub.js";
 import { hubPage, hubTitle } from "../shared/accountingHubPage.js";
 
@@ -170,7 +172,7 @@ export const CONSULTED_TOOLS: ToolName[] = SPECIALIST_TOOLS.filter((t) => t !== 
 export type LocalResult = { ok: true; data: unknown; summary: string; reply?: string } | { ok: false; error: string };
 
 /** Runs every tool except consult_agent. Input must already be validated. */
-export function runLocalTool(catalog: Catalog, name: Exclude<ToolName, "consult_agent">, input: unknown): LocalResult {
+export function runLocalTool(catalog: Catalog, name: Exclude<ToolName, "consult_agent">, input: unknown, sources?:SourceRecord[]): LocalResult {
   switch (name) {
     case "find_agents": {
       const { query, limit } = input as z.infer<typeof schemas.find_agents>;
@@ -268,8 +270,15 @@ export function runLocalTool(catalog: Catalog, name: Exclude<ToolName, "consult_
       // Excel and CSV files also get this run's analytics results as data sheets (added by the console), so they may come with no content of their own.
       if (f.format !== "csv" && f.format !== "xlsx" && !f.markdown.trim() && !f.tables?.length) return { ok: false, error: "The file has no content: give markdown or tables." };
       if (f.template_id && !templateStore().get(f.template_id)) return { ok: false, error: `No template '${f.template_id}'. Use list_templates to see the uploaded templates.` };
-      const spec: FileSpec = { format: f.format, title: f.title, subtitle: f.subtitle, markdown: f.markdown, tables: f.tables, templateId: f.template_id };
-      const label = `${FILE_LABEL[f.format]}: ${f.title}`;
+      const content=[f.title,f.subtitle,f.markdown,JSON.stringify(f.tables??[])].join("\n");
+      const blocker=editorialBlocker(content);
+      if(blocker)return {ok:false,error:blocker};
+      if(sources){const known=new Set(sources.map(s=>s.key)),missing=citedKeys(content).filter(k=>!known.has(k));
+        if(missing.length)return {ok:false,error:`Unknown source keys: ${missing.join(", ")}. Verify the underlying claims against retrieved sources or state the limitation before producing the file.`};}
+      const title=cleanTitle(f.title);
+      if(!title)return {ok:false,error:"Give the file a meaningful plain-text title."};
+      const spec: FileSpec = { format: f.format, title, subtitle: f.subtitle, markdown: f.markdown, tables: f.tables, templateId: f.template_id };
+      const label = `${FILE_LABEL[f.format]}: ${title}`;
       return { ok: true, data: spec, summary: label, reply: `${label} is ready as a download card in the chat. Do not repeat its content; summarise it in two or three lines.` };
     }
     case "build_accounting_hub": {

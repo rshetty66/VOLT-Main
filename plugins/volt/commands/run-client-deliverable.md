@@ -33,9 +33,10 @@ earlier phases. Keep each agent's returned deliverable; later phases build on it
 
 ## 3. Synthesise
 
-Write the integrated deliverable yourself (as the `volt:rudra` orchestrator would): executive summary, findings by phase,
-a recommendations table (recommendation, owning workstream, priority, value or risk), key risks and assumptions, next steps.
-Resolve disagreements between agents explicitly and attribute key points to the agent that raised them.
+Write the artifact the recipient will use. For a decision document, use an executive summary, decision-relevant findings,
+a recommendations table with owners and timing, key risks and assumptions, and next steps. For operating procedures, designs,
+datasets and other formats, use the structure the audience needs instead. State substantive disagreements and their implications;
+attribute claims to sources, not agents. Keep internal working papers separate unless requested.
 
 ## 4. Verify before handing over
 
