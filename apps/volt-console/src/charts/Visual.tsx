@@ -14,7 +14,7 @@ export async function chartSvg(render: (p: Palette) => ReactElement): Promise<st
   return renderToStaticMarkup(render(LIGHT));
 }
 
-export function DownloadButtons({ name, svg, gif }: { name: string; svg: () => Promise<string>; gif?: () => Promise<Blob> }) {
+export function DownloadButtons({ name, svg, gif, onReplay }: { name: string; svg: () => Promise<string>; gif?: () => Promise<Blob>; onReplay?: () => void }) {
   const [busy, setBusy] = useState(false);
   const run = async (kind: "svg" | "png" | "gif") => {
     setBusy(true);
@@ -29,6 +29,7 @@ export function DownloadButtons({ name, svg, gif }: { name: string; svg: () => P
   };
   return (
     <div className="visual-actions">
+      {onReplay && <button className="btn ghost sm" onClick={onReplay} aria-label={`Replay ${name} animation`}>Replay</button>}
       <button className="btn ghost sm" disabled={busy} onClick={() => run("svg")} aria-label={`Download ${name} as SVG`}>SVG</button>
       <button className="btn ghost sm" disabled={busy} onClick={() => run("png")} aria-label={`Download ${name} as PNG`}>PNG</button>
       {gif && <button className="btn ghost sm" disabled={busy} onClick={() => run("gif")} aria-label={`Download ${name} as an animated GIF`} title="Animated, for slides and email">GIF</button>}
@@ -38,8 +39,9 @@ export function DownloadButtons({ name, svg, gif }: { name: string; svg: () => P
 
 /** A chart on screen (in the console's theme) with SVG and PNG downloads (light). */
 export function ChartFrame({ name, render }: { name: string; render: (p: Palette) => ReactElement }) {
+  const [ref, reveal] = useReveal<HTMLElement>();
   return (
-    <figure className="visual">
+    <figure ref={ref} className={`visual ${reveal}`}>
       {render(screenPalette())}
       <DownloadButtons name={name} svg={() => chartSvg(render)} />
     </figure>
@@ -50,6 +52,7 @@ export function ChartFrame({ name, render }: { name: string; render: (p: Palette
 export function MermaidDiagram({ code }: { code: string }) {
   const [svg, setSvg] = useState("");
   const [error, setError] = useState("");
+  const [ref, reveal] = useReveal<HTMLElement>(!!svg);
   const mode = screenPalette() === LIGHT ? "default" : "dark";
   useEffect(() => {
     let live = true;
@@ -74,11 +77,36 @@ export function MermaidDiagram({ code }: { code: string }) {
       </figure>
     );
   return (
-    <figure className="visual mermaid">
+    <figure ref={ref} className={`visual mermaid ${reveal}`}>
       {svg ? <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: svg }} /> : <span className="muted"><span className="spinner" /> drawing diagram</span>}
       {svg && <DownloadButtons name="diagram" svg={() => renderMermaid(code, "default")} />}
     </figure>
   );
+}
+
+/**
+ * Wipes a chart or diagram in the first time it scrolls into view. Without IntersectionObserver it shows at once, so
+ * nothing stays hidden; with reduced motion the CSS only fades it.
+ */
+function useReveal<T extends HTMLElement>(ready = true): [React.RefObject<T | null>, string] {
+  const ref = useRef<T>(null);
+  const [cls, setCls] = useState("");
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!ready || !el || typeof IntersectionObserver !== "function") return;
+    setCls("reveal-wait");
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      setCls("reveal-in");
+      io.disconnect();
+    });
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      setCls("");
+    };
+  }, [ready]);
+  return [ref, cls];
 }
 
 /** Length of a chart's entrance: one authored moment, within Impeccable's 500 to 800 ms for a focal entrance. */
@@ -87,24 +115,37 @@ const ENTRANCE_MS = 800;
 /**
  * Plays a chart's entrance once, the first time it is drawn: returns the progress (0 to 1) to draw at. The chart is
  * fully drawn by default and on any interruption, so it never stays hidden; with reduced motion it only fades (CSS).
+ * It waits until the chart scrolls into view, so a chart drawn below the fold still animates when the reader gets there.
  */
-function useEntrance(key: string | null): number {
+function useEntrance(key: string | null, el: React.RefObject<HTMLElement | null>): number {
   const [t, setT] = useState(1);
   const played = useRef(false);
   useLayoutEffect(() => {
     if (!key || played.current) return;
     played.current = true;
     if (typeof matchMedia === "function" && matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const start = performance.now();
     let raf = 0;
-    const step = (now: number) => {
-      const x = Math.min(1, (now - start) / ENTRANCE_MS);
-      setT(x);
-      if (x < 1) raf = requestAnimationFrame(step);
+    const play = () => {
+      const start = performance.now();
+      const step = (now: number) => {
+        const x = Math.min(1, (now - start) / ENTRANCE_MS);
+        setT(x);
+        if (x < 1) raf = requestAnimationFrame(step);
+      };
+      raf = requestAnimationFrame(step);
     };
     setT(0);
-    raf = requestAnimationFrame(step);
+    let io: IntersectionObserver | undefined;
+    if (el.current && typeof IntersectionObserver === "function") {
+      io = new IntersectionObserver(([e]) => {
+        if (!e.isIntersecting) return;
+        io?.disconnect();
+        play();
+      });
+      io.observe(el.current);
+    } else play();
     return () => {
+      io?.disconnect();
       cancelAnimationFrame(raf);
       played.current = false;
       setT(1);
@@ -117,7 +158,9 @@ function useEntrance(key: string | null): number {
 export function SpecChart({ code }: { code: string }) {
   const [spec, setSpec] = useState(() => parseChartSpec(code));
   const [waited, setWaited] = useState(false);
-  const t = useEntrance(spec ? spec.title + spec.type : null);
+  const [replay, setReplay] = useState(0);
+  const fig = useRef<HTMLElement>(null);
+  const t = useEntrance(spec ? `${spec.title}${spec.type}${replay}` : null, fig);
   useEffect(() => {
     // Agent output streams in: wait for the block to stop changing before judging it.
     const t = setTimeout(() => {
@@ -136,9 +179,9 @@ export function SpecChart({ code }: { code: string }) {
       <span className="muted"><span className="spinner" /> drawing chart</span>
     );
   return (
-    <figure className="visual spec-chart">
+    <figure ref={fig} className="visual spec-chart">
       <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: specSvg(spec, screenPalette(), { t }) }} />
-      <DownloadButtons name={spec.title || "chart"} svg={async () => specSvg(spec, LIGHT)} gif={() => chartGif((f) => specSvg(spec, LIGHT, { t: f }))} />
+      <DownloadButtons name={spec.title || "chart"} svg={async () => specSvg(spec, LIGHT)} gif={() => chartGif((f) => specSvg(spec, LIGHT, { t: f }))} onReplay={() => setReplay((n) => n + 1)} />
     </figure>
   );
 }
