@@ -8,7 +8,7 @@ import { evidenceGates, registryJsonl, sectionOf, sourceRegisterMarkdown, type S
 import type { Run } from "./runState";
 import { chartFor } from "./charts/RunVisuals";
 import { chartableResults, type ChartableResult } from "./charts/results";
-import { chartSvg } from "./charts/Visual";
+import { chartSvg, flowSteps } from "./charts/Visual";
 import { renderMermaid } from "./charts/mermaid";
 import { isArchitecture, isChart, isMermaid, isProcess } from "./charts/mermaidBlock";
 import { processSvg } from "./charts/specProcess";
@@ -147,9 +147,6 @@ const CAPTION: Record<ChartableResult["kind"], (r: ChartableResult) => string> =
 };
 
 /** The steps of a process flow as the HTML walkthrough reads them. */
-const flowSteps = (spec: ProcessSpec) =>
-  spec.steps.map((st) => ({ name: st.name, lane: spec.lanes[st.lane], stage: spec.stages[st.stage], system: st.system, control: st.control, owner: st.owner, duration: st.duration, status: st.status, issue: st.issue, detail: st.detail }));
-
 /**
  * The HTML deliverable: VOLT's house template (src/htmlTemplate.ts), dark, with a tab per section. Charts, diagrams
  * and architectures are inline SVG in the console palette; process flows are interactive.
@@ -189,7 +186,12 @@ async function htmlPages(d: Deliverable) {
   const chart = (spec: ChartSpec | null | undefined) =>
     !spec ? figure("chart", "")
     : spec.type === "kpi" ? createElement("div", { className: "kpi-slot", dangerouslySetInnerHTML: { __html: kpiStrip(spec) } })
-    : figure("chart", specSvg(spec, DARK));
+    : createElement("figure", {
+        className: "chart",
+        "data-spec": JSON.stringify(spec),
+        // The drill breakdowns are drawn now, so the page opens them offline without a chart engine.
+        dangerouslySetInnerHTML: { __html: `<div class="svg">${specSvg(spec, DARK, { interactive: true })}</div>${Object.entries(spec.drill ?? {}).map(([i, child]) => `<template data-drill="${i}">${specSvg(child, DARK, { interactive: true })}</template>`).join("")}` },
+      });
   const flow = () => {
     const spec = procs[f++];
     if (!spec) return createElement("figure", null);
