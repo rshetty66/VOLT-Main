@@ -16,9 +16,10 @@ export async function generateDiagram(
   if (!live) return { spec: SAMPLE_SPEC, demo: true };
   const model = modelFor("sonnet");
   const msg = await client.messages.create(
-    { model, max_tokens: 4000, system: SYSTEM, messages: [{ role: "user", content: `<description>\n${description.slice(0, 4000)}\n</description>` }] },
+    { model, max_tokens: 8000, thinking: { type: "disabled" }, system: SYSTEM, messages: [{ role: "user", content: `<description>\n${description.slice(0, 4000)}\n</description>` }] },
     { signal, timeout: 60_000, maxRetries: 1 },
   );
   const text = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("");
+  if (msg.stop_reason === "max_tokens") throw new Error("That diagram was too large to finish. Describe one subsystem at a time.");
   return { spec: validateSpec(extractJson(text)), demo: false, model, inputTokens: msg.usage.input_tokens, outputTokens: msg.usage.output_tokens };
 }
