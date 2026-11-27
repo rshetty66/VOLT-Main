@@ -54,8 +54,18 @@ export interface Run {
   tier?: Tier;
   sources: SourceRecord[];
   state: "running" | "done" | "stopped";
+  /** Its version of the chat's deliverable (src/versions.ts); a lookup has none. */
+  version?: RunVersion;
   startedAt: number;
   finishedAt?: number;
+}
+
+export interface RunVersion {
+  n: number;
+  /** The deliverable's name from v1; v1 itself takes its own title. */
+  name?: string;
+  /** The message that asked for this version: the feedback it answers. */
+  feedback?: string;
 }
 
 export interface ModelUse {

@@ -1,5 +1,5 @@
 import { useContext, useState } from "react";
-import { TemplateContext, chartTables, downloadDeliverable, type Deliverable } from "../exports";
+import { TemplateContext, chartTables, downloadDeliverable, runFileVersion, type Deliverable } from "../exports";
 import { chartableResults } from "../charts/results";
 import type { ExportTable } from "../../shared/export";
 import { FILE_LABEL, type FileSpec } from "../../shared/files";
@@ -40,14 +40,14 @@ const COMPANION_FORMATS = ["pptx", "xlsx", "docx"] as const;
 type CompanionFormat = (typeof COMPANION_FORMATS)[number];
 
 /** The deliverable a card downloads. An HTML page also carries the run's other Office files, as links in its header. */
-export function cardDeliverable(spec: FileSpec, all: FileSpec[], templateId?: string): Deliverable {
-  const own = (s: FileSpec): Deliverable => ({ title: s.title, subtitle: s.subtitle, markdown: s.markdown, tables: s.tables, templateId: s.templateId || templateId, hub: s.hub });
+export function cardDeliverable(spec: FileSpec, all: FileSpec[], templateId?: string, version?: Deliverable["version"]): Deliverable {
+  const own = (s: FileSpec): Deliverable => ({ title: s.title, subtitle: s.subtitle, markdown: s.markdown, tables: s.tables, templateId: s.templateId || templateId, hub: s.hub, version });
   if (spec.format !== "html") return own(spec);
   const companions = all.filter((s): s is FileSpec & { format: CompanionFormat } => (COMPANION_FORMATS as readonly string[]).includes(s.format)).map((s) => ({ format: s.format, deliverable: own(s) }));
   return { ...own(spec), companions };
 }
 
-function FileCard({ spec, all }: { spec: FileSpec; all: FileSpec[] }) {
+function FileCard({ spec, all, version }: { spec: FileSpec; all: FileSpec[]; version?: Deliverable["version"] }) {
   const selected = useContext(TemplateContext);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -55,7 +55,7 @@ function FileCard({ spec, all }: { spec: FileSpec; all: FileSpec[] }) {
     setBusy(true);
     setError("");
     try {
-      await downloadDeliverable(spec.format, cardDeliverable(spec, all, selected || undefined));
+      await downloadDeliverable(spec.format, cardDeliverable(spec, all, selected || undefined, version));
     } catch (e) {
       setError(errorText(e));
     } finally {
@@ -95,7 +95,7 @@ export function FileCards({ run }: { run: Run }) {
   return (
     <div className="file-cards" aria-label="Files VOLT made">
       {files.map((f) => (
-        <FileCard key={f.id} spec={f.spec} all={files.map((x) => x.spec)} />
+        <FileCard key={f.id} spec={f.spec} all={files.map((x) => x.spec)} version={runFileVersion(run)} />
       ))}
     </div>
   );

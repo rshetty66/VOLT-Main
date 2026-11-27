@@ -25,6 +25,7 @@ import { Diagrams } from "./components/Diagrams";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
 import { TemplateContext } from "./exports";
+import { nextVersion } from "./versions";
 import { cad, chatUsage, modelName, setUsdCadRate, usageTotals } from "./usage";
 import { Icon, Ring } from "./components/Icon";
 import { setupProgress, setupSteps } from "./setup";
@@ -169,7 +170,7 @@ export function App() {
       const run = { ...newRun(req.prompt, title, kind), attachments: req.attachments?.map((a) => a.name), scorecard: kpiScorecard(req.scope?.kpis, catalog?.benchmarks ?? []), projectId };
       const controller = new AbortController();
       controllers.current.set(run.id, controller);
-      setRuns((rs) => [...rs, run]);
+      setRuns((rs) => [...rs, { ...run, version: nextVersion(rs, req.prompt) }]);
       setView("console");
       const update = (fn: (r: Run) => Run) => setRuns((rs) => rs.map((r) => (r.id === run.id ? fn(r) : r)));
       try {
