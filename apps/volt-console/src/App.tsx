@@ -21,7 +21,6 @@ import { SkillFinder } from "./components/SkillFinder";
 import { ReferenceNav, isReferenceView, referenceDefault, type ReferenceView } from "./components/ReferenceNav";
 import { Services } from "./components/Services";
 import { Analytics } from "./components/Analytics";
-import { Diagrams } from "./components/Diagrams";
 import { Health } from "./components/Health";
 import { Templates } from "./components/Templates";
 import { TemplateContext } from "./exports";
@@ -257,7 +256,7 @@ export function App() {
   const spend = usageTotals(chatUsage([...history, ...runs.filter((r) => !history.some((h) => h.id === r.id))])).cost;
   const missing = catalog.health.missingSkills.length;
   // [view, rail label, full name, count shown in the tooltip]
-  const activeRail: RailView = isReferenceView(view) ? "reference" : view;
+  const activeRail: RailView = isReferenceView(view) ? "reference" : view==="diagrams" ? "workflows" : view;
   const nav: [RailView, string, string, number | string][] = [
     ["console", "Console", "Agent Console", runs.length || ""],
     ["workflows", "Workflows", "Workflows", catalog.workflows.length],
@@ -269,7 +268,6 @@ export function App() {
     ["history", "Chats", "Chats", history.length || ""],
     ["uploads", "Knowledge", "Knowledge base", uploadCount || ""],
     ["ledger", "Ledger", "Ledger review", ""],
-    ["diagrams", "Diagrams", "Diagram builder", ""],
     ["usage", "Usage", "Token usage", ""],
     ["health", "Health", "Capability Health", missing],
   ];
@@ -416,7 +414,7 @@ export function App() {
         {view === "console" && (
           <Console setup={steps} onNavigate={(v) => setView(v as View)} recent={history.slice(0, 3)} onOpenRecent={openRun} catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} userName={me} />
         )}
-        {view === "workflows" && <Workflows catalog={catalog} live={live} onLaunch={start} onOpenAgent={setOpenAgent} />}
+        {(view === "workflows" || view === "diagrams") && <Workflows key={projectId} projectId={projectId} openStudio={view==="diagrams"} catalog={catalog} live={live} onLaunch={start} onOpenAgent={setOpenAgent} />}
         {isReferenceView(view) && <ReferenceNav view={view} onSelect={setView} />}
         {view === "agents" && <Agents catalog={catalog} onOpen={setOpenAgent} />}
         {view === "skills" && <SkillFinder catalog={catalog} onOpenAgent={setOpenAgent} />}
@@ -448,7 +446,6 @@ export function App() {
             }}
           />
         )}
-        {view === "diagrams" && <Diagrams />}
         {view === "health" && <Health catalog={catalog} onOpenAgent={setOpenAgent} />}
       </main>
       </TemplateContext.Provider>

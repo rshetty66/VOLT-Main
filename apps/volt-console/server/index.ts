@@ -30,6 +30,7 @@ import path from "node:path";
 import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import express from "express";
+import { gyanRouter } from "./gyan.js";
 import { z } from "zod";
 import { optimizePrompt } from "./optimize.js";
 import { loadCatalog, loadSkillBody, rankSkills } from "./catalog.js";
@@ -96,6 +97,7 @@ const mode = detectMode();
 app.use(requireToken(security));
 app.use(sameOriginWrites(security));
 app.use(limitCostly(security.rateLimitPerMinute));
+app.use("/api/gyan",gyanRouter(security));
 // Sign-in attempts are rate limited per client; the form posts here, the URL form still works.
 const loginLimit = rateLimit(10);
 app.get("/api/login", loginLimit, loginHandler(security));

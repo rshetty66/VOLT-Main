@@ -727,3 +727,14 @@ button.chip { font: inherit; font-size: var(--fs-3); }
   .run-tabs { flex-wrap: wrap; }
   .version-history li { grid-template-columns: 44px minmax(0, 1fr) auto; }
 }
+.gyan-wrap { flex-wrap: wrap; }
+@media(max-width:640px){
+  .gyan .gyan-template-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:3px; }
+  .gyan .gyan-modes { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:2px; }
+  .gyan .gyan-modes .btn,.gyan .gyan-template-list .btn { min-width:0; min-height:44px; white-space:normal; line-height:1.1; padding:3px; }
+}
+.gyan { min-width: 0; }
+.gyan select,.gyan input,.gyan textarea { max-width:100%; }
+.gyan small,.gyan pre { overflow-wrap:anywhere; }
+.gyan pre { max-height:22rem; overflow:auto; white-space:pre-wrap; }
+.gyan-canvas,.gyan-playback { width:100%; height:clamp(300px,48vh,560px); min-width:0; border:1px solid var(--line); border-radius:8px; background:#050505; }

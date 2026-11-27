@@ -1,6 +1,6 @@
 # Gyan Agents
 
-VOLT's finance workflow studio. Phase 1 gives a workflow designer real, versioned contracts and a database, not an autonomous finance runner. Nothing in this release invokes an ERP, performs a calculation, posts a journal or releases a payment.
+VOLT's finance workflow studio. The Phase 1 contracts and catalog are joined by a project-scoped, **simulation-only** runtime and a visual editor inside VOLT Workflows. The three supported execution adapters perform bank/GL reconciliation, actual/budget variance and invoice/PO/receipt comparison. Other catalog profiles remain design references, not runnable adapters. Nothing posts a journal, releases a payment or writes back to an ERP. See [operating instructions and rollout gates](RUNTIME.md).
 
 ## One front door
 
