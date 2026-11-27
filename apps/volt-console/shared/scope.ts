@@ -9,7 +9,10 @@
  */
 import { z } from "zod";
 
-export const RECOMMEND = "recommend";
+import { BASES, CLIENT_TYPES, RECOMMEND } from "./scope-options.js";
+import { GOAL_IDS, goalLines, goalType, validGoalAnswers } from "./goalTypes.js";
+
+export { BASES, CLIENT_TYPES, RECOMMEND };
 
 /** Outcomes, grouped for the intake card. Up to MAX_OUTCOMES may be picked. */
 export const OUTCOME_GROUPS = [
@@ -19,8 +22,6 @@ export const OUTCOME_GROUPS = [
   { label: "Transformation", options: { tom: "Target operating model", erp_epm: "ERP or EPM selection", ai: "AI and automation in finance", advisory: "Business case and roadmap" } },
 ] as const;
 
-export const CLIENT_TYPES: Record<string, string> = { bank: "Bank", insurer: "Insurer", credit_union: "Credit union", pension: "Pension fund", asset_manager: "Asset manager", other_fs: "Other FS", outside_fs: "Outside FS" };
-export const BASES: Record<string, string> = { ifrs: "IFRS", us_gaap: "US GAAP", local: "Local or statutory", regulatory: "Regulatory returns", [RECOMMEND]: "Not sure, recommend" };
 export const DELIVERABLES: Record<string, string> = { chat: "Answer in chat", html: "HTML report", deck: "HTML slide deck", pptx: "PowerPoint deck", docx: "Word document", xlsx: "Excel workbook" };
 export const DEPTHS: Record<string, string> = { quick: "Quick answer", standard: "Standard", deep: "Deep dive with evidence", [RECOMMEND]: "Not sure, recommend" };
 
@@ -49,6 +50,9 @@ export type Kpi = z.infer<typeof kpiSchema>;
 
 export const scopeSchema = z
   .object({
+    /** The kind of work (shared/goalTypes.ts) and the answers to that goal's own questions. */
+    goal: z.enum(GOAL_IDS).optional(),
+    goal_answers: z.record(short(40), z.array(short(40)).max(8)).optional(),
     client_type: keys(CLIENT_TYPES).optional(),
     outcomes: z.array(keys(OUTCOMES)).max(MAX_OUTCOMES).optional(),
     problem: short(300).optional(),
@@ -57,7 +61,8 @@ export const scopeSchema = z
     deliverables: z.array(keys(DELIVERABLES)).max(Object.keys(DELIVERABLES).length).optional(),
     depth: keys(DEPTHS).optional(),
   })
-  .strict();
+  .strict()
+  .refine((s) => validGoalAnswers(s.goal, s.goal_answers), { message: "Unknown goal answer", path: ["goal_answers"] });
 
 export type Scope = z.infer<typeof scopeSchema>;
 
@@ -68,6 +73,7 @@ const more = (list: string[]) => (list.length > 1 ? `${list[0]} +${list.length -
 export function scopeLabel(scope: Scope): string {
   const kpis = scope.kpis?.length ?? 0;
   return [
+    scope.goal && scope.goal !== "finance_transformation" ? goalType(scope.goal)?.label : undefined,
     scope.client_type && CLIENT_TYPES[scope.client_type],
     more(names(scope.outcomes, OUTCOMES)),
     kpis ? `${kpis} KPI${kpis === 1 ? "" : "s"}` : undefined,
@@ -95,7 +101,7 @@ const FILE: Record<string, string> = { html: "an HTML report", deck: "an HTML sl
 
 /** The scope block added to the brief. Stay inside it; it replaces the questions it answers. */
 export function scopeBrief(scope: Scope): string {
-  const lines: string[] = [];
+  const lines: string[] = goalLines(scope.goal, scope.goal_answers);
   if (scope.client_type) lines.push(`- Client type: ${CLIENT_TYPES[scope.client_type]}`);
   const outcomes = scope.outcomes ?? [];
   if (outcomes.includes(RECOMMEND)) lines.push("- Outcome: not set by the client; recommend the outcome that fits the request and say why in one line");

@@ -133,14 +133,8 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .intake-card { position: relative; overflow: hidden; display: grid; gap: var(--sp-1); margin-bottom: 10px; padding: 18px; border-color: var(--border); background: linear-gradient(180deg, var(--surface), var(--surface-2)); }
 .intake-card::before { content: ""; position: absolute; inset: 0 0 auto; height: 2px; background: linear-gradient(90deg, var(--accent), var(--gold)); }
 .intake-card h2 { margin: 2px 0 0; font-size: var(--fs-7); line-height: 1.3; font-weight: 650; color: var(--heading); }
-.intake-step { display: flex; align-items: center; gap: var(--sp-3); margin-bottom: 8px; }
-.intake-dots { display: flex; gap: var(--sp-2); }
-.intake-dots i { width: 26px; height: 4px; border-radius: 2px; background: var(--line-strong); }
-.intake-dots i.on { background: var(--accent); }
-.intake-dots i.done { background: var(--gold); }
-.intake-why { margin: 0 0 4px; color: var(--muted); font-size: var(--fs-4); }
 .intake-q { display: block; margin-top: 14px; }
-.intake-ql { display: flex; justify-content: space-between; align-items: baseline; gap: var(--sp-2); margin-bottom: 8px; }
+.intake-ql { display: flex; justify-content: flex-start; align-items: baseline; gap: var(--sp-2); margin-bottom: 8px; }
 .intake-ql b { font-weight: 600; color: var(--heading); }
 .intake-ql span, .intake-hint { font-size: var(--fs-3); color: var(--muted); }
 .intake-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: var(--sp-3); margin-bottom: 8px; }
@@ -155,15 +149,9 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .intake-table th { text-align: left; font-weight: 500; font-size: var(--fs-2); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding: 6px; }
 .intake-table td { padding: 6px; border-top: 1px solid var(--line); vertical-align: middle; }
 .intake-table .input { min-width: 64px; padding: 5px 8px; font-family: var(--mono); font-size: var(--fs-4); }
-.intake-unit, .intake-bm { font-size: var(--fs-2); color: var(--muted); }
-.intake-bm.on { color: var(--accent); }
-.intake-brief { display: grid; margin: 10px 0 0; }
-.intake-brief > div { display: grid; grid-template-columns: 120px 1fr; gap: var(--sp-3); padding: 8px 0; border-top: 1px solid var(--line); }
-.intake-brief dt { font-size: var(--fs-2); letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); padding-top: 2px; }
-.intake-brief dd { margin: 0; color: var(--heading); }
 .intake-actions { justify-content: flex-end; margin-top: 16px; }
 .intake-hint { flex: 1; min-width: 160px; }
-@media (max-width: 560px) { .intake-brief > div { grid-template-columns: 1fr; gap: 2px; } .intake-card h2 { font-size: var(--fs-7); } }
+
 @media (prefers-reduced-motion: no-preference) { .intake-card h2 { animation: intake-in 0.25s ease; } }
 @keyframes intake-in { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: none; } }
 .badge { font-size: var(--fs-1); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; padding: 2px 7px; border-radius: 5px; border: 1px solid var(--line-strong); }
@@ -534,3 +522,40 @@ html, body, #root { height: 100%; }
 .settings-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; min-width: 280px; display: grid; gap: var(--sp-3); padding: 12px 14px; font-size: var(--fs-4); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
 .field { display: grid; gap: var(--sp-1); }
 button.rail-avatar { cursor: pointer; font: inherit; padding: 0; }
+/* Intake: one card, a Skip on every question. */
+.intake-head { display: flex; align-items: baseline; gap: var(--sp-3); flex-wrap: wrap; }
+.intake-head h2 { margin: 0; }
+.intake-goals { margin: var(--sp-1) 0 var(--sp-2); }
+.intake-ql > button:last-child { margin-left: auto; }
+.intake-skipped { display: flex; align-items: center; gap: var(--sp-3); font-size: var(--fs-4); }
+/* Home: greeting, then the message box, then starters, recent chats and the setup checklist. */
+.home-greeting { order: -2; margin: var(--sp-5) 0 0; font-size: var(--fs-8); font-weight: 600; color: var(--heading); }
+.composer.home { order: -1; }
+.starters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
+@media (max-width: 1100px) { .starters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .starters { grid-template-columns: 1fr; } }
+.starter { display: grid; align-content: start; gap: var(--sp-1); text-align: left; padding: var(--sp-3) var(--sp-4); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--body); cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+.starter:hover, .starter:focus-visible { border-color: var(--accent); }
+@media (prefers-reduced-motion: no-preference) { .starter:hover { transform: translateY(-1px); } }
+.starter-icon { color: var(--accent); }
+.starter-title { font-weight: 600; color: var(--heading); }
+.starter-text { font-size: var(--fs-3); color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.ideas { position: relative; }
+.ideas-pop { position: absolute; bottom: calc(100% + 6px); right: 0; z-index: 30; width: min(520px, 90vw); max-height: 360px; overflow-y: auto; padding: var(--sp-2); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
+.composer.home .ideas-pop { bottom: auto; top: calc(100% + 6px); }
+.ideas-group { padding: var(--sp-2) var(--sp-2) var(--sp-1); }
+.ideas-item { display: block; width: 100%; text-align: left; padding: var(--sp-2); background: none; border: 0; border-radius: 6px; color: var(--body); font-size: var(--fs-4); cursor: pointer; }
+.ideas-item:hover, .ideas-item:focus-visible { background: var(--tint-06); color: var(--primary); }
+/* Answer cards: actions and sources under the answer, a collapsible step timeline, figures quoted as callouts. */
+.answer-foot { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); }
+.source-chips { display: flex; flex-wrap: wrap; gap: var(--sp-1); margin-left: auto; }
+.source-drawer { width: min(480px, 100vw); }
+.source-meta { display: grid; grid-template-columns: auto 1fr; gap: var(--sp-1) var(--sp-4); margin: var(--sp-3) 0 var(--sp-4); }
+.source-meta dt { color: var(--muted); }
+.source-meta dd { margin: 0; color: var(--heading); }
+.steps { border: 1px solid var(--line); border-radius: 8px; padding: var(--sp-2) var(--sp-3); font-size: var(--fs-4); }
+.steps summary { cursor: pointer; color: var(--body); }
+.steps ol { margin: var(--sp-2) 0 0; padding-left: var(--sp-5); display: grid; gap: var(--sp-1); }
+.steps li.bad { color: var(--warn); }
+.steps li.pending { color: var(--muted); }
+.md blockquote { background: var(--tint-04); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: var(--sp-2) var(--sp-3); }

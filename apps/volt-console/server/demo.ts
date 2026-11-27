@@ -214,7 +214,7 @@ ${bench}
 ${skills.length ? skills.map((s) => `- \`${s.skill_id}\` — ${catalog.skillById.get(s.skill_id)?.description.slice(0, 160) ?? ""}`).join("\n") : "- No strong skill matches."}
 
 ### Recommended VOLT workflows
-${workflows.length ? workflows.map(({ w }) => `- **${w.icon} ${w.name}** (\`${w.id}\`): ${w.description}`).join("\n") : "- None matched this panel; ask Rudra in live mode for a tailored plan."}
+${workflows.length ? workflows.map(({ w }) => `- **${w.icon ? `${w.icon} ` : ""}${w.name}** (\`${w.id}\`): ${w.description}`).join("\n") : "- None matched this panel; ask Rudra in live mode for a tailored plan."}
 
 > Demo mode: routing, skill matching, benchmarks and workflow sequencing above are real VOLT logic; the narrative is assembled from the registry. Set \`ANTHROPIC_API_KEY\` for live multi-agent reasoning.
 `,
