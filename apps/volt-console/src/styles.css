@@ -554,6 +554,7 @@ html, body, #root { height: 100%; }
 .as-ticker { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
 .as-hand { font-size: 11px; color: #a9b1c7; background: #1a1e2e; border: 1px solid #3a4262; border-radius: 999px; padding: 2px 9px; animation: as-pop 0.35s ease-out; }
 .as-hand b { color: #e6eaf2; font-weight: 600; }
+.as-hand .as-count { color: #00e5ff; font-weight: 700; }
 @keyframes as-pop { from { opacity: 0; transform: translateY(4px); } }
 .agent-stage .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); margin: 0; padding: 0; border: 0; }
 .agent-stage.paused * { animation-play-state: paused !important; }

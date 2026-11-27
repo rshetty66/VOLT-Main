@@ -15,7 +15,8 @@ const X0 = 24;
 const X1 = W - 24;
 const NAME_W = 290;
 const DEPTH = 9;
-const GAP = 22;
+/** Space between slabs: the connectors and their labels run here, never across a system's card. */
+const GAP = 40;
 const CHIP_PAD = 46;
 const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 const n1 = (v: number) => +v.toFixed(1);
@@ -53,14 +54,15 @@ export function archSvg(spec: ArchSpec, p: Palette): string {
   // Chip sizes: each layer's systems share the width right of the name; a long name wraps onto a second line.
   // When a layer's systems do not fit one row in two lines each, they go two to a row.
   const room = X1 - 16 - (X0 + NAME_W);
-  const fits = (t: string[], cap: number) => t.length <= 2 && t.every((l) => textWidth(l, 14) <= cap);
+  // Chip text is measured a little wide (15.4 for 14 px): bold names and fallback fonts run wider than the estimate.
+  const fits = (t: string[], cap: number) => t.length <= 2 && t.every((l) => textWidth(l, 15.4) <= cap);
   const perRow = spec.layers.map((l) => {
     const cap = (room - (l.items.length - 1) * 12) / l.items.length - CHIP_PAD;
-    return l.items.every((it) => fits(wrapLabel(it.name, cap, 14, 2), cap)) ? l.items.length : 2;
+    return l.items.every((it) => fits(wrapLabel(it.name, cap, 15.4, 2), cap)) ? l.items.length : 2;
   });
   const chipText = spec.layers.map((l, i) => {
     const cap = (room - (perRow[i] - 1) * 12) / perRow[i] - CHIP_PAD;
-    return l.items.map((it) => wrapLabel(it.name, cap, 14, 3));
+    return l.items.map((it) => wrapLabel(it.name, cap, 15.4, 3));
   });
   const lines = Math.max(1, ...chipText.flat().map((t) => t.length));
   const chipH = 22 + lines * 17;
@@ -75,8 +77,9 @@ export function archSvg(spec: ArchSpec, p: Palette): string {
   const stackH = n * (BH + GAP) - GAP + DEPTH;
   const statuses = [...new Set(spec.layers.flatMap((l) => l.items.map((i) => i.status)))];
   const showLegend = statuses.some((s) => s !== "keep") || spec.flows.length > 0;
-  const footH = (showLegend ? 30 : 0) + (spec.flows.length ? 8 + spec.flows.length * 17 : 0) + (spec.note ? 24 : 0) + 12;
-  const H = top + stackH + 18 + footH;
+  // The foot (legend, the list of flows whose label did not fit, the note) is sized once the flows are routed.
+  const footOf = (listed: number) => (showLegend ? 30 : 0) + (listed ? 8 + listed * 17 : 0) + (spec.note ? 24 : 0) + 12;
+  let H = top + stackH + 32 + footOf(spec.flows.length);
 
   const parts: string[] = [`<rect width="${W}" height="${H}" fill="${p.bg}" rx="10"/>`];
   if (spec.title) parts.push(text(X0, 36, spec.title, { size: 17, fill: p.ink, weight: 650 }));
@@ -108,7 +111,7 @@ export function archSvg(spec: ArchSpec, p: Palette): string {
     layer.items.forEach((item, k) => {
       if (k && k % perRow[i] === 0) x = X0 + NAME_W;
       const t = chipText[i][k];
-      const w = Math.max(...t.map((l) => textWidth(l, 14))) + CHIP_PAD;
+      const w = Math.max(...t.map((l) => textWidth(l, 15.4))) + CHIP_PAD;
       const cy = y + (BH - block) / 2 + Math.floor(k / perRow[i]) * (chipH + 10);
       const c = statusColour[item.status];
       chips.set(item.name.toLowerCase(), { x, y: cy, w, h: chipH });
@@ -125,40 +128,156 @@ export function archSvg(spec: ArchSpec, p: Palette): string {
   });
   parts.push(...bands);
 
-  // Data flows: an arrow from chip to chip, leaving the edge that faces the other chip, labelled at its middle.
+  // Data flows, routed around the cards. A flow leaves its system through the top or bottom edge into the gap
+  // between slabs, runs along that gap to a lane that no card blocks in the slabs it has to cross, and enters the other
+  // system from the gap next to it. Systems on the same slab are joined through the gap below it. A label goes in a gap
+  // only where it clears every card and every other label; otherwise the flow gets a number, listed under the stack.
+  const clear = GAP - DEPTH;
+  const layerOf = new Map<string, number>();
+  spec.layers.forEach((l, i) => l.items.forEach((it) => layerOf.set(it.name.toLowerCase(), i)));
+  const below = (i: number) => bandY(i) + BH + DEPTH + clear / 2; // middle of the gap under slab i
+  const above = (i: number) => bandY(i) - clear / 2; // middle of the gap over slab i
+  const boxes: { x0: number; y0: number; x1: number; y1: number }[] = [...chips.values()].map((c) => ({ x0: c.x - 4, y0: c.y - 3, x1: c.x + c.w + 4, y1: c.y + c.h + 3 }));
+  const hits = (r: { x0: number; y0: number; x1: number; y1: number }) => boxes.some((b) => r.x0 < b.x1 && r.x1 > b.x0 && r.y0 < b.y1 && r.y1 > b.y0);
+  // Free x ranges on a slab: right of the layer name and clear of its cards.
+  const free = (i: number): [number, number][] => {
+    const cs = spec.layers[i].items.map((it) => chips.get(it.name.toLowerCase())!).sort((a, b) => a.x - b.x);
+    const out: [number, number][] = [];
+    let x = X0 + NAME_W - 10;
+    for (const c of cs) {
+      if (c.x - 8 > x + 6) out.push([x, c.x - 8]);
+      x = Math.max(x, c.x + c.w + 8);
+    }
+    if (X1 - 12 > x + 6) out.push([x, X1 - 12]);
+    return out;
+  };
+  const usedLanes: number[] = [];
+  const gapUse = new Map<number, number>();
+  const lane = (from: number, to: number, want: number): number => {
+    const crossed = spec.layers.map((_, i) => i).filter((i) => i > Math.min(from, to) && i < Math.max(from, to));
+    let ranges: [number, number][] = [[X0 + NAME_W - 10, X1 - 12]];
+    for (const i of crossed) {
+      const f = free(i);
+      ranges = ranges.flatMap(([a, b]) => f.map(([c, d]): [number, number] => [Math.max(a, c), Math.min(b, d)]).filter(([c, d]) => d - c > 8));
+    }
+    if (!ranges.length) return want;
+    const options = ranges.flatMap(([a, b]) => [Math.min(b - 4, Math.max(a + 4, want)), ...[-1, 1].map((k) => Math.min(b - 4, Math.max(a + 4, want + k * 12)))]);
+    options.sort((u, v) => Math.abs(u - want) + (usedLanes.some((l) => Math.abs(l - u) < 9) ? 400 : 0) - (Math.abs(v - want) + (usedLanes.some((l) => Math.abs(l - v) < 9) ? 400 : 0)));
+    usedLanes.push(options[0]);
+    return options[0];
+  };
+  // Each flow takes its own track in a gap, so two flows in one gap do not draw over each other.
+  const track = (y: number) => {
+    const k = gapUse.get(Math.round(y)) ?? 0;
+    gapUse.set(Math.round(y), k + 1);
+    return y + [0, -7, 7, -12, 12][k % 5];
+  };
+  const r6 = (pts: [number, number][]) => {
+    // An orthogonal path with small rounded corners.
+    let d = `M ${n1(pts[0][0])} ${n1(pts[0][1])}`;
+    for (let i = 1; i < pts.length - 1; i++) {
+      const [px, py] = pts[i - 1], [x, y] = pts[i], [nx, ny] = pts[i + 1];
+      const r = Math.min(6, Math.abs(x - px) / 2 + Math.abs(y - py) / 2, Math.abs(nx - x) / 2 + Math.abs(ny - y) / 2);
+      const ax = x - Math.sign(x - px) * r, ay = y - Math.sign(y - py) * r, bx = x + Math.sign(nx - x) * r, by = y + Math.sign(ny - y) * r;
+      d += ` L ${n1(ax)} ${n1(ay)} Q ${n1(x)} ${n1(y)} ${n1(bx)} ${n1(by)}`;
+    }
+    const [lx, ly] = pts[pts.length - 1];
+    return `${d} L ${n1(lx)} ${n1(ly)}`;
+  };
   const arrows: string[] = [];
-  spec.flows.forEach((f) => {
+  const tags: string[] = [];
+  const numbered: number[] = [];
+  // Ports: flows that share a card edge leave or enter it side by side, ordered by where they go, so they never
+  // start on one point and run over each other.
+  const sideOf = (f: ArchSpec["flows"][number], end: "from" | "to") => {
+    const la = layerOf.get(f.from.toLowerCase())!, lb = layerOf.get(f.to.toLowerCase())!;
+    const up = lb > la;
+    return la === lb ? "b" : (end === "from") === up ? "t" : "b";
+  };
+  const portUse = new Map<string, { k: number; toward: number }[]>();
+  spec.flows.forEach((f, k) => {
+    for (const end of ["from", "to"] as const) {
+      const other = chips.get((end === "from" ? f.to : f.from).toLowerCase())!;
+      const key = `${(end === "from" ? f.from : f.to).toLowerCase()}|${sideOf(f, end)}`;
+      portUse.set(key, [...(portUse.get(key) ?? []), { k, toward: other.x + other.w / 2 }]);
+    }
+  });
+  const port = (name: string, side: string, k: number) => {
+    const c = chips.get(name.toLowerCase())!;
+    const list = [...(portUse.get(`${name.toLowerCase()}|${side}`) ?? [])].sort((u, v) => u.toward - v.toward);
+    const i = list.findIndex((e) => e.k === k);
+    const step = Math.min(18, c.w / (list.length + 1));
+    return c.x + c.w / 2 + (i - (list.length - 1) / 2) * step;
+  };
+  spec.flows.forEach((f, k) => {
     const a = chips.get(f.from.toLowerCase())!;
     const b = chips.get(f.to.toLowerCase())!;
-    const up = b.y < a.y - 1, down = b.y > a.y + 1;
-    let sx: number, sy: number, ex: number, ey: number, d: string;
-    if (up || down) {
-      sx = a.x + a.w / 2;
-      ex = b.x + b.w / 2;
-      sy = up ? a.y : a.y + a.h;
-      ey = up ? b.y + b.h : b.y;
-      const my = (sy + ey) / 2;
-      d = `M ${n1(sx)} ${n1(sy)} C ${n1(sx)} ${n1(my)} ${n1(ex)} ${n1(my)} ${n1(ex)} ${n1(ey)}`;
+    const la = layerOf.get(f.from.toLowerCase())!, lb = layerOf.get(f.to.toLowerCase())!;
+    const sx = port(f.from, sideOf(f, "from"), k), ex = port(f.to, sideOf(f, "to"), k);
+    let pts: [number, number][];
+    let gaps: { y: number; x0: number; x1: number }[];
+    if (la === lb) {
+      const y = track(below(la));
+      pts = [[sx, a.y + a.h], [sx, y], [ex, y], [ex, b.y + b.h]];
+      gaps = [{ y, x0: Math.min(sx, ex), x1: Math.max(sx, ex) }];
     } else {
-      const right = b.x > a.x;
-      sx = right ? a.x + a.w : a.x;
-      ex = right ? b.x : b.x + b.w;
-      sy = ey = a.y + a.h / 2;
-      d = `M ${n1(sx)} ${n1(sy)} L ${n1(ex)} ${n1(ey)}`;
+      const up = lb > la; // layer 0 is the foundation, drawn at the bottom
+      const y1 = track(up ? above(la) : below(la));
+      const y2 = track(up ? below(lb) : above(lb));
+      const lx = Math.abs(lb - la) > 1 ? lane(la, lb, (sx + ex) / 2) : sx;
+      pts = Math.abs(lb - la) > 1
+        ? [[sx, up ? a.y : a.y + a.h], [sx, y1], [lx, y1], [lx, y2], [ex, y2], [ex, up ? b.y + b.h : b.y]]
+        : [[sx, up ? a.y : a.y + a.h], [sx, y1], [ex, y1], [ex, up ? b.y + b.h : b.y]];
+      gaps = Math.abs(lb - la) > 1
+        ? [{ y: y1, x0: Math.min(sx, lx), x1: Math.max(sx, lx) }, { y: y2, x0: Math.min(lx, ex), x1: Math.max(lx, ex) }]
+        : [{ y: y1, x0: Math.min(sx, ex), x1: Math.max(sx, ex) }];
     }
-    const dir = up ? -1 : 1;
-    const head = up || down ? `${n1(ex)},${n1(ey)} ${n1(ex - 5)},${n1(ey - dir * 9)} ${n1(ex + 5)},${n1(ey - dir * 9)}` : `${n1(ex)},${n1(ey)} ${n1(ex - Math.sign(ex - sx) * 9)},${n1(ey - 5)} ${n1(ex - Math.sign(ex - sx) * 9)},${n1(ey + 5)}`;
+    // Drop repeated points (a straight run) so the corners stay clean.
+    pts = pts.filter((pt, i) => i === 0 || Math.abs(pt[0] - pts[i - 1][0]) > 0.5 || Math.abs(pt[1] - pts[i - 1][1]) > 0.5);
+    const d = r6(pts);
+    const [hx, hy] = pts[pts.length - 1];
+    const [px, py] = pts[pts.length - 2];
+    const dir = Math.sign(hy - py) || 1;
+    const head = Math.abs(hx - px) > Math.abs(hy - py)
+      ? `${n1(hx)},${n1(hy)} ${n1(hx - Math.sign(hx - px) * 8)},${n1(hy - 4.5)} ${n1(hx - Math.sign(hx - px) * 8)},${n1(hy + 4.5)}`
+      : `${n1(hx)},${n1(hy)} ${n1(hx - 4.5)},${n1(hy - dir * 8)} ${n1(hx + 4.5)},${n1(hy - dir * 8)}`;
     arrows.push(
-      `<path d="${d}" fill="none" stroke="${p.bg}" stroke-width="5" stroke-linecap="round"/>`,
-      `<path d="${d}" fill="none" stroke="${p.ink}" stroke-width="1.8" stroke-linecap="round"/>`,
-      `<polygon points="${head}" fill="${p.ink}"/>`,
+      `<g><title>${esc(`${f.from} -> ${f.to}${f.label ? `: ${f.label}` : ""}`)}</title>`,
+      `<path d="${d}" fill="none" stroke="${p.bg}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>`,
+      `<path d="${d}" fill="none" stroke="${p.ink}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>`,
+      `<polygon points="${head}" fill="${p.ink}"/></g>`,
     );
-    if (f.label) arrows.push(text((sx + ex) / 2 + 8, (sy + ey) / 2 + 4, f.label, { size: 12, fill: p.ink, halo: true }));
+    // The label: on a gap run where it clears every card and label, else beside the run, else a number.
+    let placed = false;
+    if (f.label) {
+      const w = textWidth(f.label, 11.5) + 8;
+      for (const g of [...gaps].sort((u, v) => v.x1 - v.x0 - (u.x1 - u.x0))) {
+        const mid = (g.x0 + g.x1) / 2;
+        for (const cx of [mid, g.x1 + w / 2 + 6, g.x0 - w / 2 - 6]) {
+          const r = { x0: cx - w / 2, y0: g.y - 8, x1: cx + w / 2, y1: g.y + 7 };
+          if (r.x0 < X0 + NAME_W - 10 || r.x1 > X1 - 4 || hits(r)) continue;
+          boxes.push(r);
+          tags.push(`<rect x="${n1(r.x0)}" y="${n1(r.y0)}" width="${n1(w)}" height="15" rx="3" fill="${p.bg}"/>`, text(cx, g.y + 3.5, f.label, { size: 11.5, fill: p.ink, anchor: "middle" }));
+          placed = true;
+          break;
+        }
+        if (placed) break;
+      }
+    }
+    if (f.label && !placed) {
+      numbered.push(k);
+      const g = gaps[0];
+      const cx = (g.x0 + g.x1) / 2 || g.x0;
+      tags.push(`<circle cx="${n1(cx)}" cy="${n1(g.y)}" r="7.5" fill="${p.ink}"/>`, text(cx, g.y + 3.5, String(numbered.length), { size: 10, fill: p.bg, anchor: "middle", weight: 700 }));
+    }
   });
-  if (arrows.length) parts.push(`<g class="va-flows">${arrows.join("")}</g>`);
+  if (arrows.length) parts.push(`<g class="va-flows">${arrows.join("")}${tags.join("")}</g>`);
+  // Every label sits on the drawing, so only the numbered flows are listed under it (all of them stay in the title).
+  H = top + stackH + 32 + footOf(numbered.length);
+  parts[0] = `<rect width="${W}" height="${H}" fill="${p.bg}" rx="10"/>`;
 
   // Legend and the flow list under the stack.
-  let y = top + stackH + 30;
+  let y = top + stackH + 44;
   if (showLegend) {
     let x = X0;
     for (const s of (["new", "keep", "retire"] as ArchStatus[]).filter((s) => statuses.includes(s) && (s !== "keep" || statuses.length > 1))) {
@@ -168,7 +287,10 @@ export function archSvg(spec: ArchSpec, p: Palette): string {
     if (spec.flows.length) parts.push(`<path d="M ${x} ${y - 4} L ${x + 22} ${y - 4}" stroke="${p.ink}" stroke-width="1.8"/>`, `<polygon points="${x + 26},${y - 4} ${x + 18},${y - 8.5} ${x + 18},${y + 0.5}" fill="${p.ink}"/>`, text(x + 34, y, "Data flow", { size: 12.5, fill: p.ink }));
     y += 14;
   }
-  spec.flows.forEach((f, k) => parts.push(text(X0, y + 10 + k * 17, `${f.from} -> ${f.to}${f.label ? `: ${f.label}` : ""}`, { size: 12.5 })));
+  numbered.forEach((k, no) => {
+    const f = spec.flows[k];
+    parts.push(text(X0, y + 10 + no * 17, `(${no + 1}) ${f.from} -> ${f.to}: ${f.label}`, { size: 12.5 }));
+  });
   if (spec.note) parts.push(text(X0, H - 14, spec.note, { size: 12 }));
   return `<svg xmlns="http://www.w3.org/2000/svg" class="va" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="${esc(spec.title || "Architecture option")}">${parts.join("")}</svg>`;
 }

@@ -128,7 +128,7 @@ export function chartBlocks(markdown: string): (ChartSpec | null)[] {
 }
 
 /** Fenced visuals (charts and Mermaid diagrams) in a text: how many pictures the deliverable carries. */
-export const countVisuals = (markdown: string): number => (markdown.match(/^```(chart|mermaid|architecture|process)\b/gm) ?? []).length;
+export const countVisuals = (markdown: string): number => (markdown.match(/^```(chart|mermaid|architecture|process|taxonomy|lifecycle)\b/gm) ?? []).length;
 
 // ── Architecture options, drawn as a 3D (isometric) layered stack ──────────────────────────────────────────
 

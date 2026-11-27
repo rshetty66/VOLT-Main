@@ -31,7 +31,7 @@ describe("HTML slide deck", () => {
   });
 
   it("fits slides instead of scrolling them: a measuring pass paginates before reveal.js starts", () => {
-    expect(html).toContain(".reveal .slides>section{block-size:100%;padding:40px 56px 32px;overflow:hidden}");
+    expect(html).toContain(".reveal .slides>section{block-size:100%;padding:34px 52px 28px;overflow:hidden}");
     expect(html.indexOf("classList.add('measuring')")).toBeLessThan(html.lastIndexOf("Reveal.initialize({"));
     expect(html).toContain('<div class="body">');
   });

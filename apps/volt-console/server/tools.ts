@@ -7,6 +7,7 @@
  * agent loop; everything else is pure and runs here.
  */
 import { z } from "zod";
+import { isFinanceTransformation, missingViews } from "../shared/views.js";
 import type Anthropic from "@anthropic-ai/sdk";
 import { type Catalog, loadSkillBody, rankAgents, rankSkills } from "./catalog.js";
 import { BENCHMARKS, appraiseInvestment, buildValueCase, compareToBenchmark, MATURITY_DIMENSIONS, scoreMaturity } from "./analytics.js";
@@ -82,7 +83,7 @@ export const schemas = {
     markdown: z
       .string()
       .max(200_000)
-      .describe("The content as markdown: '##' sections, tables, and ```chart / ```process / ```architecture / ```mermaid blocks, which become native charts and diagrams. For pptx and slides each '##' is a slide; in slides a paragraph starting 'Notes:' becomes speaker notes."),
+      .describe("The content as markdown: '##' sections, tables, and ```chart / ```process / ```architecture / ```taxonomy / ```lifecycle / ```mermaid blocks, which become native charts and diagrams. For pptx and slides each '##' is a slide (14 at most, one idea each, headline numbers as a kpi chart first); in slides a paragraph starting 'Notes:' becomes speaker notes. A finance transformation deck or page must carry a ```process flow, a ```taxonomy, a business and a technology reference architecture (```architecture titled 'Business reference architecture: ...' and 'Technology reference architecture: ...') and a ```lifecycle view."),
     tables: z
       .array(
         z.object({
@@ -102,6 +103,9 @@ export const schemas = {
 } as const;
 
 export type ToolName = keyof typeof schemas;
+
+/** File formats that are read as a deck or a page, so they carry the required finance views. */
+const DECK_FORMATS: string[] = ["pptx", "slides", "html"];
 
 const descriptions: Record<ToolName, string> = {
   find_agents:
@@ -268,6 +272,15 @@ export function runLocalTool(catalog: Catalog, name: Exclude<ToolName, "consult_
       // Excel and CSV files also get this run's analytics results as data sheets (added by the console), so they may come with no content of their own.
       if (f.format !== "csv" && f.format !== "xlsx" && !f.markdown.trim() && !f.tables?.length) return { ok: false, error: "The file has no content: give markdown or tables." };
       if (f.template_id && !templateStore().get(f.template_id)) return { ok: false, error: `No template '${f.template_id}'. Use list_templates to see the uploaded templates.` };
+      // A finance transformation deck or page is checked before it is made: the four required views and a process
+      // flow, at most 14 slides, and no talk of the chat in the client's file.
+      if (DECK_FORMATS.includes(f.format) && isFinanceTransformation(`${f.title}\n${f.markdown.slice(0, 4000)}`)) {
+        const gaps = missingViews(f.markdown);
+        const slides = (f.markdown.match(/^## /gm) ?? []).length;
+        if (slides > 14) gaps.push(`it has ${slides} '##' slides; condense to 14 or fewer, one idea per slide, merging sections that make the same point`);
+        if (/\b(download card|card above|in this chat|interactive page is)\b/i.test(f.markdown)) gaps.push("it talks about the chat or the download card; the file is for the client, so say nothing about how it was delivered");
+        if (gaps.length) return { ok: false, error: `Before this file is made, add what it lacks and call again:\n${gaps.map((g) => `- ${g}`).join("\n")}` };
+      }
       const spec: FileSpec = { format: f.format, title: f.title, subtitle: f.subtitle, markdown: f.markdown, tables: f.tables, templateId: f.template_id };
       const label = `${FILE_LABEL[f.format]}: ${f.title}`;
       return { ok: true, data: spec, summary: label, reply: `${label} is ready as a download card in the chat. Do not repeat its content; summarise it in two or three lines.` };

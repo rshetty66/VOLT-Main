@@ -127,7 +127,7 @@ export function referenceLayout(html: string): string {
     })
     .replace(/<p><strong>So what:?<\/strong>:?\s*([\s\S]*?)<\/p>/g, (_m, p: string) => `<aside class="sowhat" aria-label="So what"><b>So what</b><p>${p}</p></aside>`)
     .replace(/<p>(?=(?:<(?:em|strong)>)?Sources?:)/g, '<p class="src">')
-    .replace(/(?:<figure class="chart">[\s\S]*?<\/figure>\s*){2,}/g, (run: string) => `<div class="figs">${run}</div>`);
+    .replace(/(?:<figure class="chart"[^>]*>[\s\S]*?<\/figure>\s*){2,}/g, (run: string) => `<div class="figs">${run}</div>`);
 }
 
 /** A KPI chart as the reference's strip of flat tiles: value, label, change against the comparison and a sparkline. */

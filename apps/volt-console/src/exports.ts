@@ -10,7 +10,9 @@ import { chartFor } from "./charts/RunVisuals";
 import { chartableResults, type ChartableResult } from "./charts/results";
 import { chartSvg, flowSteps } from "./charts/Visual";
 import { renderMermaid } from "./charts/mermaid";
-import { isArchitecture, isChart, isMermaid, isProcess } from "./charts/mermaidBlock";
+import { isArchitecture, isChart, isMermaid, isProcess, viewKind } from "./charts/mermaidBlock";
+import { viewSvg } from "./charts/specViews";
+import { viewBlocks } from "../shared/views";
 import { processSvg } from "./charts/specProcess";
 import { archSvg } from "./charts/specArch";
 import { specSvg } from "./charts/specChart";
@@ -127,7 +129,8 @@ async function pictures(d: Deliverable) {
   const specs = chartBlocks(d.markdown).map((spec) => (spec ? specSvg(spec, LIGHT) : ""));
   const archs = archBlocks(d.markdown).map((spec) => (spec ? archSvg(spec, LIGHT) : ""));
   const procs = processBlocks(d.markdown).map((spec) => (spec ? processSvg(spec, LIGHT) : ""));
-  return { charts, diagrams, specs, archs, procs };
+  const views = viewBlocks(d.markdown).map((v) => (v ? viewSvg(v, LIGHT) : ""));
+  return { charts, diagrams, specs, archs, procs, views };
 }
 
 async function asImage(ref: string, svg: string, caption?: string): Promise<ExportImage | null> {
@@ -177,6 +180,8 @@ async function htmlPages(d: Deliverable) {
   const specs = chartBlocks(d.markdown);
   const archs = archBlocks(d.markdown).map((spec) => (spec ? archSvg(spec, DARK) : ""));
   const procs = processBlocks(d.markdown);
+  const views = viewBlocks(d.markdown).map((v) => (v ? viewSvg(v, DARK) : ""));
+  let v = 0;
   let n = 0;
   let c = 0;
   let a = 0;
@@ -205,11 +210,12 @@ async function htmlPages(d: Deliverable) {
           const first = node?.children[0];
           const cls = first && first.type === "element" ? first.properties?.className : undefined;
           const name = Array.isArray(cls) ? cls.join(" ") : String(cls ?? "");
-          return isMermaid(name) || isChart(name) || isArchitecture(name) || isProcess(name) ? (children as ReactElement) : createElement("pre", null, children);
+          return isMermaid(name) || isChart(name) || isArchitecture(name) || isProcess(name) || viewKind(name) ? (children as ReactElement) : createElement("pre", null, children);
         },
         code: ({ className, children }) =>
           isProcess(className) ? flow()
           : isArchitecture(className) ? figure("arch", archs[a++] || "")
+          : viewKind(className) ? figure("view", views[v++] || "")
           : isChart(className) ? chart(specs[c++])
           : isMermaid(className) ? figure("diagram", diagrams[n++] || "")
           : createElement("code", { className }, children),
@@ -284,13 +290,14 @@ export async function downloadDeliverable(format: DownloadFormat, d: Deliverable
 async function exportBlob(format: ExportFormat, d: Deliverable): Promise<Blob> {
   const images: ExportImage[] = [];
   if (format !== "xlsx") {
-    const { charts, diagrams, specs, archs, procs } = await pictures(d);
+    const { charts, diagrams, specs, archs, procs, views } = await pictures(d);
     const made = await Promise.all([
       ...charts.map((svg, i) => asImage(`chart-${i}`, svg, d.charts?.[i] ? CAPTION[d.charts[i].kind](d.charts[i]) : undefined)),
       ...diagrams.map((svg, i) => asImage(`diagram-${i}`, svg)),
       ...specs.map((svg, i) => asImage(`viz-${i}`, svg)),
       ...archs.map((svg, i) => asImage(`arch-${i}`, svg)),
       ...procs.map((svg, i) => asImage(`proc-${i}`, svg)),
+      ...views.map((svg, i) => asImage(`view-${i}`, svg)),
     ]);
     images.push(...made.filter((x): x is ExportImage => !!x));
   }
