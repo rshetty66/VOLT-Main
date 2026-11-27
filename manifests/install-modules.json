@@ -630,7 +630,8 @@
         "skills/brand-discovery",
         "skills/competitive-platform-analysis",
         "skills/competitive-report-structure",
-        "skills/marketing-campaign"
+        "skills/marketing-campaign",
+        "skills/executive-prompt-optimizer"
       ],
       "targets": [
         "claude",
@@ -991,7 +992,10 @@
         "skills/orch-fix-defect",
         "skills/orch-pipeline",
         "skills/orch-refine-code",
-        "skills/plan-orchestrate"
+        "skills/plan-orchestrate",
+        "skills/builder-reviewer-loop",
+        "skills/uber-agent-skills",
+        "skills/volt-release-loop"
       ],
       "targets": [
         "claude",
