@@ -9,7 +9,6 @@ import { RunVisuals } from "../charts/RunVisuals";
 import { DownloadMenu } from "./DownloadMenu";
 import { addMemory } from "../projects";
 import { FileCards } from "./FileCards";
-import { PROMPT_IDEAS } from "../promptIdeas";
 import { runDeliverable } from "../exports";
 import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
 import { scopeLabel, type Scope } from "../../shared/scope";
@@ -19,13 +18,6 @@ import { AgentPicker } from "./AgentPicker";
 import { GetStarted } from "./GetStarted";
 import type { SetupStep } from "../setup";
 import { ATTACH_EXTENSIONS, ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../../shared/attachments";
-
-const EXAMPLES = [
-  { tag: "Close and cash", icon: "◷", text: "Our month-end close takes 12 days on SAP S/4HANA and DSO is 55. Build a plan to reach a 5-day close." },
-  { tag: "Regulatory", icon: "⚖", text: "We are a Canadian bank preparing our OSFI BCAR submission. Where are the biggest capital reporting risks?" },
-  { tag: "M&A", icon: "⇄", text: "Design the Day 1 finance readiness plan for a $2B acquisition with a 12-month TSA." },
-  { tag: "Value case", icon: "Σ", text: "Build a value case: 140 finance FTEs at $115K loaded cost, 25% automation, $6M one-time investment." },
-];
 
 interface Props {
   /** Setup checklist for the empty home screen, and where its steps lead. */
@@ -128,10 +120,6 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
     <div className="console">
       {runs.length === 0 && (
         <div className="stack">
-          <p className="body intro">
-            Describe a client situation in your own words. VOLT puts the right finance specialists on it and returns a written answer with
-            charts and benchmarks, ready to download as Word, PowerPoint or Excel. Before a piece of work starts, it asks up to three short rounds of questions: the result you want, how you will measure it, and what you need back. Simple questions get a direct answer.
-          </p>
           {setup && setup.some((s) => !s.done) && (
             <GetStarted
               steps={setup}
@@ -141,24 +129,6 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               }}
             />
           )}
-          <div className="starters">
-            {EXAMPLES.map((e) => (
-              <button
-                key={e.tag}
-                className="starter"
-                title="Put this example in the message box to edit it"
-                onClick={() => {
-                  setPrompt(e.text);
-                  promptBox.current?.focus();
-                }}
-              >
-                <span className="starter-tag">
-                  <span aria-hidden="true">{e.icon}</span> {e.tag}
-                </span>
-                <span>{e.text}</span>
-              </button>
-            ))}
-          </div>
           {recent.length > 0 && (
             <div className="stack" style={{ gap: 6 }}>
               <div className="micro">Pick up where you left off</div>
@@ -170,31 +140,6 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               ))}
             </div>
           )}
-          <details className="section prompt-ideas">
-            <summary>More prompt ideas</summary>
-            <div className="section-body stack">
-              {PROMPT_IDEAS.map((g) => (
-                <div key={g.group}>
-                  <div className="muted" style={{ marginBottom: 6 }}>{g.group}</div>
-                  <div className="examples">
-                    {g.ideas.map((idea) => (
-                      <button
-                        key={idea}
-                        className="btn ghost card"
-                        title="Put this idea in the message box to edit it"
-                        onClick={() => {
-                          setPrompt(idea);
-                          promptBox.current?.focus();
-                        }}
-                      >
-                        {idea}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </details>
         </div>
       )}
 
