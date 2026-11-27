@@ -379,12 +379,10 @@ a.btn { text-decoration: none; display: inline-flex; align-items: center; }
 .picker-empty { padding: 12px; color: var(--muted); font-size: var(--fs-4); }
 
 /* Home: starter cards and recent chats */
-.starters { display: grid; gap: var(--sp-3); grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
-.starter { display: flex; flex-direction: column; gap: var(--sp-2); align-items: flex-start; text-align: left; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--body); cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
-.starter:hover { border-color: var(--accent); transform: translateY(-1px); }
-.starter-tag { font-size: var(--fs-2); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--accent); }
-.recent-list { display: grid; gap: 2px; }
-.recent { display: flex; align-items: center; justify-content: space-between; gap: var(--sp-2); padding: var(--sp-1) var(--sp-2); background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--heading); text-align: left; cursor: pointer; }
+.recent-list { display: grid; grid-template-columns: minmax(0, 1fr); width: 100%; max-width: 46rem; min-width: 0; gap: 2px; }
+.recent { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; min-width: 0; gap: var(--sp-2); min-height: 29px; padding: 2px var(--sp-2); background: none; border: 0; border-radius: 4px; color: var(--body); text-align: left; cursor: pointer; font: inherit; }
+.recent:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (pointer: coarse), (max-width: 640px) { .recent { min-height: 44px; } }
 .recent time { flex: none; font-size: var(--fs-2); }
 .recent:hover { border-color: var(--line-strong); background: var(--tint-04); }
 .recent-title { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
@@ -593,15 +591,24 @@ button.rail-avatar { cursor: pointer; font: inherit; padding: 0; }
 /* Home: greeting, then the message box, then starters, recent chats and the setup checklist. */
 .home-greeting { order: -2; margin: var(--sp-5) 0 0; font-size: var(--fs-8); font-weight: 600; color: var(--heading); }
 .composer.home { order: -1; }
-.starters { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp-3); }
-@media (max-width: 1100px) { .starters { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 560px) { .starters { grid-template-columns: 1fr; } }
-.starter { display: grid; align-content: start; gap: var(--sp-1); text-align: left; padding: var(--sp-3) var(--sp-4); background: var(--surface); border: 1px solid var(--line); border-radius: 10px; color: var(--body); cursor: pointer; transition: border-color 0.15s, transform 0.15s; }
+.starters { display: flex; flex-wrap: wrap; gap: 5px; }
+.starter { display: flex; align-items: center; gap: 6px; min-width: 0; min-height: 30px; padding: 3px 9px; text-align: left; background: transparent; border: 1px solid var(--line); border-radius: 5px; color: var(--body); font: inherit; cursor: pointer; }
+.phone-only { display: none; }
+@media (max-width: 640px) {
+  .starters { display: grid; grid-template-columns: repeat(auto-fit, minmax(44px, 1fr)); max-width: 22rem; gap: 3px; }
+  .starter { justify-content: center; padding: 0 2px; }
+  .starter-icon, .starter-title { display: none; }
+  .phone-only { display: inline; }
+  .starter-short, .recent-title { font-size: 12px; line-height: 1.15; }
+  .recent-list { gap: 0; }
+  .recent { column-gap: 4px; padding: 0 2px; }
+  .recent-full-date { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+}
+@media (pointer: coarse), (max-width: 640px) { .starter { min-height: 44px; } }
 .starter:hover, .starter:focus-visible { border-color: var(--accent); }
-@media (prefers-reduced-motion: no-preference) { .starter:hover { transform: translateY(-1px); } }
-.starter-icon { color: var(--accent); }
-.starter-title { font-weight: 600; color: var(--heading); }
-.starter-text { font-size: var(--fs-3); color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.starter-icon { flex: none; color: var(--accent); }
+@media (min-width: 641px) { .starter-icon { display: flex; } }
+.starter-title { font-size: var(--fs-3); font-weight: 500; line-height: 1.25; }
 .ideas { position: relative; }
 .ideas-pop { position: absolute; bottom: calc(100% + 6px); right: 0; z-index: 30; width: min(520px, 90vw); max-height: 360px; overflow-y: auto; padding: var(--sp-2); background: var(--surface); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); }
 .composer.home .ideas-pop { bottom: auto; top: calc(100% + 6px); }
