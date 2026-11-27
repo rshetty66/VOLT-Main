@@ -30,6 +30,7 @@ import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerTo
 import { CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, QUICK_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 import { scopeBrief } from "../shared/scope.js";
+import { discoveryUsesDocs } from "../shared/discovery.js";
 import { PartialStreamError, ProviderError, runResponsesLoop } from "./responsesLoop.js";
 import { recordFailure, providerOf, specialistModel, type Engine } from "./providers.js";
 import { estimateCost, higher, highStakes, modelFor, scopeOpusReason, specialistOpusReason, routingEnabled, ruleRoute, tierForStep, tierName, triage, type Route, type Tier } from "./router.js";
@@ -44,7 +45,7 @@ export interface RunInput extends RunRequest {
 /** The user's request, with its attached files, the chat's scope answers and the selected template's formatting guide. */
 export function withTemplate(req: RunInput, text = req.prompt): string {
   const scope = req.scope ? scopeBrief(req.scope) : "";
-  const files = `${attachmentsBlock(req.attachments)}${scope ? `\n\n${scope}` : ""}${memoryBlock(req.projectId)}${asksForKnowledge(req.projectId, req.prompt) ? knowledgeNote(req.projectId) : ""}`;
+  const files = `${attachmentsBlock(req.attachments)}${scope ? `\n\n${scope}` : ""}${memoryBlock(req.projectId)}${(asksForKnowledge(req.projectId, req.prompt) || discoveryUsesDocs(req.scope)) ? knowledgeNote(req.projectId) : ""}`;
   if (!req.template) return `${text}${files}`;
   return `${text}${files}
 
@@ -537,7 +538,7 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
   // Decided on this turn alone; the session's lead tier (which only moves up) plays no part.
   registry.turnOpus = specialistOpusReason(input) !== null;
   // The knowledge base is used only when the request asks for it; otherwise sources come from the tools and the web.
-  if (input.projectId && asksForKnowledge(input.projectId, input.prompt)) registry.knowledgeProject = input.projectId;
+  if (input.projectId && (asksForKnowledge(input.projectId, input.prompt) || discoveryUsesDocs(input.scope))) registry.knowledgeProject = input.projectId;
   // Each attached file is client data in the source register, so the answer can cite it.
   const req: RunInput = { ...input, attachments: registerAttachments(registry, input.attachments) };
   emit({ type: "research", tier: registry.tier });

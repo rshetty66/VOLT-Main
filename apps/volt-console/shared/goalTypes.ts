@@ -4,6 +4,7 @@
  * each offers "Not sure, recommend".
  */
 import { BASES, CLIENT_TYPES, RECOMMEND } from "./scope-options.js";
+import { DISCOVERY, DISCOVERY_MODES, DISCOVERY_SOURCES } from "./discovery.js";
 
 export interface GoalQuestion {
   key: string;
@@ -76,6 +77,15 @@ export const GOAL_TYPES: GoalType[] = [
     questions: [
       { key: "area", label: "Which area?", multi: true, options: rec({ erp: "ERP", epm: "EPM and close", hub: "Accounting hub", data: "Data platform", ai: "AI and automation" }) },
       { key: "stage", label: "Which stage?", multi: false, options: rec({ long: "Long list", short: "Short list", case: "Business case", plan: "Implementation plan" }) },
+    ],
+  },
+  {
+    id: DISCOVERY,
+    label: "Shape an idea into a brief",
+    hint: "Outcome, scope and success measures before any build",
+    questions: [
+      { key: "mode", label: "What back?", multi: false, options: rec(DISCOVERY_MODES) },
+      { key: "sources", label: "Which evidence?", multi: false, options: rec(DISCOVERY_SOURCES) },
     ],
   },
   { id: "other", label: "Something else", hint: "Say it in your own words", questions: [] },
