@@ -1,7 +1,8 @@
 /** Diagram builder: turns a plain description into a validated diagram spec with one Sonnet call. */
 import Anthropic from "@anthropic-ai/sdk";
 import { modelFor } from "./router.js";
-import { EDGE_KINDS, MAX_NODES, NODE_TYPES, SAMPLE_SPEC, extractJson, validateSpec, type DiagramSpec } from "../shared/diagram.js";
+import {financeDiagram} from "../shared/financeStories.js";
+import { EDGE_KINDS, MAX_NODES, NODE_TYPES, extractJson, validateSpec, type DiagramSpec } from "../shared/diagram.js";
 
 const SYSTEM = `You design interactive architecture diagrams for AI agent systems and business processes. Reply with one JSON object and nothing else.
 Schema: {"title":str,"nodes":[{"id":str,"type":one of ${NODE_TYPES.join("|")},"label":str(max 20 chars),"sub":str?(max 30),"detail":str?}],"edges":[{"from":id,"to":id,"kind":one of ${EDGE_KINDS.join("|")},"label":str?(max 14)}],"groups":[{"id":str,"label":str,"nodes":[ids]}],"scenarios":[{"name":str,"steps":[{"edge":"from>to" or "edges":["from>to",...] for parallel,"note":str,"payload":object?}]}]}
@@ -13,10 +14,10 @@ export async function generateDiagram(
   signal: AbortSignal,
   client: Pick<Anthropic, "messages"> = new Anthropic(),
 ): Promise<{ spec: DiagramSpec; demo: boolean; model?: string; inputTokens?: number; outputTokens?: number }> {
-  if (!live) return { spec: SAMPLE_SPEC, demo: true };
+  if (!live) return { spec: financeDiagram("p2p_ap_3way_match"), demo: true };
   const model = modelFor("sonnet");
   const msg = await client.messages.create(
-    { model, max_tokens: 8000, system: SYSTEM, messages: [{ role: "user", content: `<description>\n${description.slice(0, 4000)}\n</description>` }] },
+    { model, max_tokens: 8000, system: SYSTEM + "\nNarrate a business decision, not a tour of components. Reflect named systems and mandatory business requirements in nodes, conditions and handoffs. Label any assumption as an assumption; do not imply a live integration. For each scenario use a recurring fictional record ID with labeled synthetic source fields and units, explain what the evidence supports at each handoff, and end with a named owner and next action. Include a materially different evidence-failure path. Keep each note within 160 characters. Never invent client metrics or calculate financial results; show source values and decision criteria only unless results came from a deterministic tool.", messages: [{ role: "user", content: `<description>\n${description}\n</description>` }] },
     { signal, timeout: 60_000, maxRetries: 1 },
   );
   const text = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("");

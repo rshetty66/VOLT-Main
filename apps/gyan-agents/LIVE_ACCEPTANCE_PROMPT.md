@@ -1,6 +1,6 @@
 # Gyan finance controls: live acceptance prompt
 
-Paste the prompt below into VOLT after the private Gyan runtime is connected. Use a disposable test project with a verified designer and a separate controller. If chat cannot operate Studio, follow the requested manual steps in Workflows → Gyan Agents; do not treat chat output as a run.
+This is an advanced backend acceptance exercise, not a custom authoring flow in the console. Use a disposable test project with a verified designer and a separate controller. The Gyan UI runs prepared synthetic templates only; custom source-binding and failure-injection steps require the backend test harness. Do not treat chat output as a run.
 
 ```text
 Test the deployed Gyan bank/GL reconciliation workflow in a disposable project.
