@@ -1,35 +1,63 @@
 import type { ActivityItem, Run } from "./runState";
 
 /**
- * The Agent Stage scene: where each agent stands and what it says, derived from the run state the console already
- * keeps (no extra events). Pure, so the component only draws it and the tests check it.
+ * The Agent Stage scene: a compact agent-flow graph (You, Rudra, the specialists, the tool agents, Verifier, Output)
+ * derived from the run state the console already keeps. It costs no tokens: no model call and no extra event, only
+ * what the run already streams. Pure, so the component only draws it and the tests check it.
  */
 
 export type StationId = "web" | "analytics" | "kb" | "files" | "gates";
+export type IconId = "user" | "bot" | "web" | "tool" | "brain" | "file" | "shield" | "out";
+export type NodeState = "idle" | "active" | "done" | "failed";
 
-/** A station on the 8 x 8 isometric floor: tile origin (i, j), footprint (w, d), height h, and where an agent stands to use it. */
-export interface Station {
-  id: StationId;
-  label: string;
-  i: number;
-  j: number;
-  w: number;
-  d: number;
-  h: number;
+export interface FlowNode {
+  id: string;
+  name: string;
+  caption: string;
+  x: number;
+  y: number;
+  icon: IconId;
   color: string;
-  stand: [number, number];
+  state: NodeState;
+  /** Agents that reason (Rudra, specialists) show a Think loop while active. */
+  agent: boolean;
+  /** Specialists sit 50 apart, so their labels go beside the node instead of under it. */
+  side: boolean;
 }
 
-export const STATIONS: Station[] = [
-  { id: "web", label: "Web research", i: 0, j: 0, w: 1, d: 1, h: 16, color: "#00e5ff", stand: [1.5, 1.4] },
-  { id: "analytics", label: "Analytics & benchmarks", i: 7, j: 0, w: 1, d: 1, h: 16, color: "#2dd4bf", stand: [6.7, 1.5] },
-  { id: "kb", label: "Skills & knowledge", i: 0, j: 7, w: 1, d: 1, h: 16, color: "#9b8cff", stand: [1.5, 6.7] },
-  { id: "files", label: "File builder", i: 7, j: 7, w: 1, d: 1, h: 16, color: "#d4af37", stand: [6.7, 6.7] },
-  { id: "gates", label: "Evidence gates", i: 7, j: 3, w: 1, d: 2, h: 10, color: "#00e5ff", stand: [6.6, 4] },
+export interface FlowEdge {
+  id: string;
+  from: string;
+  to: string;
+  state: "idle" | "on" | "done";
+  /** The sender's colour. */
+  color: string;
+}
+
+export interface Flow {
+  nodes: FlowNode[];
+  edges: FlowEdge[];
+}
+
+/** The SVG world the flow is drawn in. */
+export const FLOW_W = 760;
+export const FLOW_H = 230;
+export const COLUMNS: [number, string][] = [[36, "Query"], [130, "Plan"], [290, "Delegate"], [440, "Tools"], [575, "Verify"], [705, "Output"]];
+
+type Fixed = Omit<FlowNode, "caption" | "state" | "side"> & { role: string };
+const FIXED: Fixed[] = [
+  { id: "user", name: "You", role: "Asked", x: 36, y: 115, icon: "user", color: "#94a3b8", agent: false },
+  { id: "rudra", name: "Rudra", role: "Lead", x: 130, y: 115, icon: "bot", color: "#f5c542", agent: true },
+  { id: "web", name: "Researcher", role: "Web search", x: 440, y: 45, icon: "web", color: "#38bdf8", agent: false },
+  { id: "analytics", name: "Analyst", role: "Benchmarks", x: 440, y: 115, icon: "tool", color: "#2dd4bf", agent: false },
+  { id: "kb", name: "Memory", role: "Skills, knowledge", x: 440, y: 185, icon: "brain", color: "#a78bfa", agent: false },
+  { id: "files", name: "Builder", role: "Files", x: 575, y: 70, icon: "file", color: "#fb923c", agent: false },
+  { id: "gates", name: "Verifier", role: "Evidence gates", x: 575, y: 165, icon: "shield", color: "#4ade80", agent: false },
+  { id: "out", name: "Output", role: "Answer", x: 705, y: 115, icon: "out", color: "#f472b6", agent: false },
 ];
-export const HUB = { i: 3, j: 3, w: 2, d: 2, h: 18 };
-/** Desks around the hub, kept clear of the station labels and of Rudra's head. */
-export const SLOTS: [number, number][] = [[3.2, 1], [5.2, 1.6], [1.6, 5.2], [5.9, 5.9], [1, 3.2], [6.1, 4.6], [4, 6.3], [2.6, 6.6]];
+const SPEC_Y = [58, 108, 158, 206];
+const SPEC_COLORS = ["#00e5ff", "#e879f9", "#60a5fa", "#34d399"];
+const SPEC_X = 290;
 
 const TOOL_STATION: Record<string, StationId> = {
   web_search: "web",
@@ -56,133 +84,165 @@ export function toolStation(name: string): StationId | undefined {
 export function describeTool(name: string, detail = ""): string {
   const d = detail.trim();
   switch (name) {
-    case "web_search": return d ? `Searching the web: "${d}"` : "Searching the web";
+    case "web_search": return d ? `Search: ${d}` : "Searching the web";
     case "web_fetch": return "Reading a source";
-    case "apqc_benchmark": return d ? `Pulling APQC benchmark: ${d}` : "Pulling an APQC benchmark";
-    case "apqc_pcf": return d ? `Looking up APQC process: ${d}` : "Looking up an APQC process";
+    case "apqc_benchmark": return d ? `Benchmark: ${d}` : "Pulling a benchmark";
+    case "apqc_pcf": return d ? `Process: ${d}` : "Looking up a process";
     case "score_maturity": return "Scoring maturity";
-    case "build_value_case": return "Modelling the value case";
+    case "build_value_case": return "Value case model";
     case "appraise_investment": return "Appraising the investment";
     case "find_agents": return "Choosing specialists";
     case "find_skills": return "Finding playbooks";
-    case "load_skill": return d ? `Loading playbook: ${d}` : "Loading a playbook";
-    case "get_template": case "list_templates": return "Opening your templates";
+    case "load_skill": return d ? `Playbook: ${d}` : "Loading a playbook";
+    case "get_template": case "list_templates": return "Opening templates";
     case "create_file": return "Building the file";
-    case "build_accounting_hub": return "Building the Accounting Hub page";
+    case "build_accounting_hub": return "Building the hub page";
     case "consult_agent": return d ? `Briefing ${d}` : "Briefing a specialist";
     default: return name.replace(/_/g, " ");
   }
 }
 
-export type AgentState = "running" | "done" | "failed";
-
-export interface StageAgent {
-  id: string;
-  name: string;
-  lead: boolean;
-  color: string;
-  state: AgentState;
-  /** Floor position (x, y) and height z. */
-  pos: [number, number, number];
-  thinking: boolean;
-  working: boolean;
-  alert: boolean;
-  bubble: string;
-}
-
-export interface Scene {
-  agents: StageAgent[];
-  live: StationId[];
-}
-
-const LAYER_COLORS = ["#00e5ff", "#2dd4bf", "#9b8cff"];
-const GOLD = "#d4af37";
-
-function layerColor(layer: string): string {
-  let h = 0;
-  for (const c of layer) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return LAYER_COLORS[h % LAYER_COLORS.length];
-}
-
-const BUBBLE_MAX = 60;
-function clip(text: string): string {
+const CAPTION_MAX = 26;
+export function clip(text: string, max = CAPTION_MAX): string {
   const t = text.replace(/\s+/g, " ").trim();
-  return t.length > BUBBLE_MAX ? `${t.slice(0, BUBBLE_MAX - 1).trimEnd()}\u2026` : t;
+  return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
 }
 
-function last<T>(xs: T[]): T | undefined {
-  return xs[xs.length - 1];
+/** Status lines that are routing notes ("Model: Opus for the lead ...") say nothing about the work, so they are skipped. */
+const isNoise = (a: ActivityItem) => a.kind === "status" && /^Model:/i.test(a.text);
+
+/** What an agent is doing now, in a few words. */
+function caption(activity: ActivityItem[], fallback: string): string {
+  const items = activity.filter((a) => !isNoise(a));
+  const pending = [...items].reverse().find((a) => a.kind === "tool" && a.pending);
+  if (pending) return `Waiting on ${STATION_NAME[toolStation(pending.text) ?? "kb"]}`;
+  const a = items[items.length - 1];
+  if (!a) return fallback;
+  if (a.kind === "tool") return a.detail || describeTool(a.text);
+  if (a.kind === "fallback") return "Retrying on a backup model";
+  return a.text;
+}
+const STATION_NAME: Record<StationId, string> = { web: "Researcher", analytics: "Analyst", kb: "Memory", files: "Builder", gates: "Verifier" };
+
+/** A tool call seen in the run, with the node that made it. */
+export interface Call {
+  id: string;
+  from: string;
+  to: StationId;
+  pending: boolean;
+  label: string;
+  result: string;
 }
 
-/** What an agent is doing now: the station of its pending tool call (if any) and its bubble text. */
-function current(activity: ActivityItem[], fallback: string): { station?: StationId; bubble: string; working: boolean; alert: boolean } {
-  const pending = [...activity].reverse().find((a) => a.kind === "tool" && a.pending);
-  if (pending) return { station: toolStation(pending.text), bubble: describeTool(pending.text, pending.detail), working: true, alert: false };
-  const a = last(activity);
-  if (!a) return { bubble: fallback, working: false, alert: false };
-  if (a.kind === "tool") return { bubble: a.detail || describeTool(a.text), working: false, alert: !!a.isError };
-  if (a.kind === "fallback") return { bubble: "Retrying on a backup model", working: false, alert: true };
-  return { bubble: a.text, working: false, alert: a.kind === "error" };
+/** Every mapped tool call, Rudra's first, then each specialist's in start order. */
+export function toolCalls(run: Run): Call[] {
+  const out: Call[] = [];
+  const add = (from: string, items: ActivityItem[]) => {
+    for (const a of items) {
+      const to = a.kind === "tool" ? toolStation(a.text) : undefined;
+      if (to) out.push({ id: a.id, from, to, pending: !!a.pending, label: describeTool(a.text, a.detail), result: a.pending ? "" : a.detail || "" });
+    }
+  };
+  add("rudra", run.activity);
+  for (const id of run.laneOrder) if (run.lanes[id]) add(id, run.lanes[id].activity);
+  return out;
 }
 
 /**
- * Builds the scene for a run. Finished agents from earlier workflow phases leave the floor so the next phase has room.
- * `gates` is the client-side evidence-gate result, shown once the answer is finished.
+ * Builds the flow for a run. Finished specialists of earlier workflow phases leave the Delegate column so the next
+ * phase has room; at most four specialists show, the latest ones. `gates` is the client-side evidence-gate result,
+ * shown on the Verifier once the answer is finished.
  */
-export function stageScene(run: Run, gates?: { passed: number; total: number }): Scene {
+export function flowScene(run: Run, gates?: { passed: number; total: number }): Flow {
   const running = run.state === "running";
-  const live = new Set<StationId>();
-  const stationPos = (id: StationId): [number, number, number] => {
-    const s = STATIONS.find((x) => x.id === id)!;
-    return [s.stand[0], s.stand[1], 0];
+  const finished = run.state === "done";
+  const nodes = new Map<string, FlowNode>();
+  for (const f of FIXED) nodes.set(f.id, { ...f, caption: f.role, state: "idle", side: false });
+  const set = (id: string, patch: Partial<FlowNode>) => {
+    const n = nodes.get(id);
+    if (n) nodes.set(id, { ...n, ...patch });
+  };
+  const edges = new Map<string, FlowEdge>();
+  const edge = (from: string, to: string, state: FlowEdge["state"]) => {
+    const id = `${from}>${to}`;
+    const prev = edges.get(id);
+    // A link that is busy stays busy; one used once stays lit.
+    const rank = { idle: 0, done: 1, on: 2 };
+    if (prev && rank[prev.state] >= rank[state]) return;
+    edges.set(id, { id, from, to, state, color: nodes.get(from)?.color ?? "#94a3b8" });
   };
 
-  const lead = current(run.activity, running ? "Planning" : "Done");
-  if (lead.station) live.add(lead.station);
-  const showGates = !running && !!gates && gates.total > 0;
-  const rudra: StageAgent = {
-    id: "rudra",
-    name: "Rudra",
-    lead: true,
-    color: GOLD,
-    state: running ? "running" : run.state === "stopped" ? "failed" : "done",
-    pos: lead.station && running ? stationPos(lead.station) : [4, 4, HUB.h],
-    thinking: running && !lead.working,
-    working: running && lead.working,
-    alert: lead.alert,
-    bubble: showGates ? `${gates!.passed} of ${gates!.total} evidence gates passed` : running ? lead.bubble : run.state === "stopped" ? "Stopped" : "Done",
-  };
-  if (showGates) live.add("gates");
+  set("user", { state: "done" });
+  set("rudra", {
+    state: running ? "active" : run.state === "stopped" ? "failed" : "done",
+    caption: running ? caption(run.activity, "Planning") : run.state === "stopped" ? "Stopped" : "Done",
+  });
 
   const currentPhase = run.phases.length - 1;
   const lanes = run.laneOrder.map((id) => run.lanes[id]).filter(Boolean);
-  const onFloor = lanes.filter((l) => !(l.state !== "running" && l.phase !== undefined && l.phase < currentPhase));
-  const agents: StageAgent[] = onFloor.map((l, i) => {
-    const c = current(l.activity, l.brief || "Starting");
-    const isRunning = l.state === "running" && running;
-    if (c.station && isRunning) live.add(c.station);
-    const home = SLOTS[i % SLOTS.length];
-    return {
+  const onFloor = lanes.filter((l) => !(l.state !== "running" && l.phase !== undefined && l.phase < currentPhase)).slice(-SPEC_Y.length);
+  onFloor.forEach((l, i) => {
+    const live = l.state === "running" && running;
+    nodes.set(l.id, {
       id: l.id,
-      name: l.name,
-      lead: false,
-      color: layerColor(l.layer || l.name),
-      state: l.state === "running" && !running ? "done" : l.state,
-      pos: c.station && isRunning ? stationPos(c.station) : [home[0], home[1], 0],
-      thinking: isRunning && !c.working,
-      working: isRunning && c.working,
-      alert: c.alert,
-      bubble: l.state === "failed" ? "Failed" : l.state === "done" ? "Done" : c.bubble,
-    };
+      name: clip(l.name, 22),
+      caption: l.state === "failed" ? "Failed" : live ? caption(l.activity, l.brief || "Starting") : "Done",
+      x: SPEC_X,
+      y: SPEC_Y[i],
+      icon: "bot",
+      color: SPEC_COLORS[i % SPEC_COLORS.length],
+      state: l.state === "failed" ? "failed" : live ? "active" : "done",
+      agent: true,
+      side: true,
+    });
   });
-  // Bubbles are glanceable: long briefs and results are cut; the full text is in the answer and the sections.
-  const all = [rudra, ...agents].map((a) => ({ ...a, bubble: clip(a.bubble) }));
-  return { agents: all, live: [...live] };
+
+  // The faint routes every run can take, so the structure reads before anything happens.
+  edge("user", "rudra", "done");
+  for (const s of ["web", "analytics", "kb", "files", "gates"]) edge("rudra", s, "idle");
+  edge("files", "gates", "idle");
+  edge("gates", "out", "idle");
+  for (const l of onFloor) edge("rudra", l.id, nodes.get(l.id)!.state === "active" ? "on" : "done");
+
+  for (const c of toolCalls(run)) {
+    // Calls from specialists that already left the floor are drawn from Rudra, who briefed them.
+    const from = nodes.has(c.from) ? c.from : "rudra";
+    const live = c.pending && running;
+    edge(from, c.to, live ? "on" : "done");
+    const n = nodes.get(c.to)!;
+    if (live) set(c.to, { state: "active", caption: clip(c.label) });
+    else if (n.state !== "active") set(c.to, { state: "done", caption: clip(c.result || c.label) });
+    if (c.to === "files" && !c.pending) edge("files", "gates", "done");
+  }
+
+  if (!running && gates && gates.total > 0) {
+    set("gates", { state: gates.passed === gates.total ? "done" : "failed", caption: `${gates.passed} of ${gates.total} gates passed` });
+    if (!edges.get("files>gates") || edges.get("files>gates")!.state === "idle") edge("rudra", "gates", "done");
+  }
+  if (finished) {
+    set("out", { state: "done", caption: "Answer ready" });
+    // The answer always leaves through the Verifier column, so the line never cuts across the tool agents.
+    if (nodes.get("gates")!.state === "idle") edge("rudra", "gates", "done");
+    edge("gates", "out", "done");
+  }
+
+  for (const n of nodes.values()) n.caption = clip(n.caption);
+  return { nodes: [...nodes.values()], edges: [...edges.values()] };
 }
 
-/** Isometric projection of floor coordinates onto the 640 x 420 stage. */
-export const TILE_W = 64;
-export const TILE_H = 32;
-export function iso(x: number, y: number, z = 0): { x: number; y: number } {
-  return { x: 320 + ((x - y) * TILE_W) / 2, y: 112 + ((x + y) * TILE_H) / 2 - z };
+type Point = { x: number; y: number; id: string };
+
+/** Where a link meets the rim of each node. */
+export function edgeEnds(a: Point, b: Point): [[number, number], [number, number]] {
+  const ra = a.id === "rudra" ? 17 : 14;
+  const rb = b.id === "rudra" ? 17 : 14;
+  const dir = b.x >= a.x ? 1 : -1;
+  return [[a.x + ra * dir, a.y], [b.x - rb * dir, b.y]];
+}
+
+/** The path of a link: a soft S-curve between the rims of two nodes. */
+export function edgePath(a: Point, b: Point): string {
+  const [[x1, y1], [x2, y2]] = edgeEnds(a, b);
+  const mx = (x1 + x2) / 2;
+  return `M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
 }
