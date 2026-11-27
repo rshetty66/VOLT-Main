@@ -53,13 +53,20 @@ import { runBudgetMs } from "./budget.js";
 import { directAsk, quickAsk } from "./deliverable.js";
 import { startHeartbeat } from "./sse.js";
 import { generateDiagram } from "./diagrams.js";
-import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, rateLimit, requestUser, requireToken, sameOriginWrites, securityConfig } from "./security.js";
+import { assertSafeToListen, limitCostly, loginHandler, loginPostHandler, logoutHandler, rateLimit, requestUser, requireToken, sameOriginWrites, securityConfig } from "./security.js";
+import { bootstrapUsers, hasAccounts } from "./accounts.js";
 import { ledgerCoaExport, ledgerDataRequirementsExport, ledgerEnabled, ledgerPeople } from "./ledger.js";
 import { scopeSchema } from "../shared/scope.js";
 
 const catalog = loadCatalog();
 const security = securityConfig();
 assertSafeToListen(security);
+if (security.authMode === "password") {
+  // Names only in the log; the passwords stay in the environment and are stored hashed.
+  const added = bootstrapUsers(process.env.VOLT_BOOTSTRAP_USERS);
+  if (added.length) console.log(`[security] Added accounts: ${added.join(", ")}. Remove VOLT_BOOTSTRAP_USERS now that they exist.`);
+  if (!hasAccounts()) console.warn("[security] VOLT_AUTH_MODE=password but no accounts exist. Run npm run add-user -- <name>, or set VOLT_BOOTSTRAP_USERS.");
+}
 if (security.authMode === "username") console.warn("[security] VOLT_AUTH_MODE=username: sign-in needs only a name, with no secret. Anyone who can reach this URL can use the Claude API key.");
 const app = express();
 app.disable("x-powered-by");
@@ -91,6 +98,9 @@ app.use(limitCostly(security.rateLimitPerMinute));
 const loginLimit = rateLimit(10);
 app.get("/api/login", loginLimit, loginHandler(security));
 app.post("/api/login", loginLimit, express.json({ limit: "2kb" }), loginPostHandler(security));
+app.post("/api/logout", logoutHandler);
+// Who is signed in (password or username mode), for the greeting and the sign-out button.
+app.get("/api/me", (req, res) => void res.json({ username: requestUser(security, req) ?? null, auth: security.authMode }));
 
 // Downloads (Word, PowerPoint, Excel) carry images, so they get their own body limit ahead of the 1 MB JSON parser.
 app.use("/api/export", exportRouter((id) => templateStore().get(id)));

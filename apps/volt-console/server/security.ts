@@ -13,6 +13,7 @@
  */
 import crypto from "node:crypto";
 import type { NextFunction, Request, RequestHandler, Response } from "express";
+import { SESSION_COOKIE, makeSession, readSession, verifyPassword } from "./accounts.js";
 
 export const COOKIE = "volt_token";
 /** How long a sign-in lasts: 30 days, so the token is typed once per browser. VOLT_SESSION_DAYS changes it. */
@@ -22,8 +23,13 @@ const LOOPBACK = new Set(["127.0.0.1", "::1", "localhost"]);
 
 export interface SecurityConfig {
   host: string;
-  /** "token" (default): the shared access token. "username": a name with no secret; opt-in, see usernameLogin below. */
-  authMode: "token" | "username";
+  /**
+   * "token" (default): the shared access token. "password": named accounts with passwords (server/accounts.ts).
+   * "username": a name with no secret; opt-in, see usernameLogin below.
+   */
+  authMode: "token" | "username" | "password";
+  /** Signs password-mode sessions (VOLT_SESSION_SECRET, at least 32 characters). */
+  sessionSecret?: string;
   /** Optional allow-list of names for username mode (VOLT_ALLOWED_USERS, comma separated, case-insensitive). */
   allowedUsers: string[];
   token?: string;
@@ -36,7 +42,8 @@ export function securityConfig(env: NodeJS.ProcessEnv = process.env): SecurityCo
   const limit = Number(env.VOLT_RATE_LIMIT ?? 30);
   return {
     host: env.VOLT_HOST || "127.0.0.1",
-    authMode: env.VOLT_AUTH_MODE === "username" ? "username" : "token",
+    authMode: env.VOLT_AUTH_MODE === "username" ? "username" : env.VOLT_AUTH_MODE === "password" ? "password" : "token",
+    sessionSecret: env.VOLT_SESSION_SECRET || undefined,
     allowedUsers: (env.VOLT_ALLOWED_USERS ?? "").split(",").map((u) => u.trim().toLowerCase()).filter(Boolean),
     token: env.VOLT_ACCESS_TOKEN || undefined,
     production: env.NODE_ENV === "production",
@@ -47,7 +54,10 @@ export function securityConfig(env: NodeJS.ProcessEnv = process.env): SecurityCo
 
 /** Throws when the configuration would expose an unauthenticated API beyond this machine. */
 export function assertSafeToListen(cfg: SecurityConfig): void {
-  if (!LOOPBACK.has(cfg.host) && !cfg.token && cfg.authMode !== "username") {
+  if (cfg.authMode === "password" && (cfg.sessionSecret?.length ?? 0) < 32) {
+    throw new Error("VOLT_AUTH_MODE=password needs VOLT_SESSION_SECRET: a random value of at least 32 characters.");
+  }
+  if (!LOOPBACK.has(cfg.host) && !cfg.token && cfg.authMode === "token") {
     throw new Error(`Refusing to listen on ${cfg.host} without VOLT_ACCESS_TOKEN. Set a long random token, or keep VOLT_HOST=127.0.0.1.`);
   }
   if (cfg.token && cfg.token.length < 16) throw new Error("VOLT_ACCESS_TOKEN must be at least 16 characters.");
@@ -85,8 +95,9 @@ export function validUsername(cfg: SecurityConfig, name: unknown): name is strin
   return !cfg.allowedUsers.length || cfg.allowedUsers.includes(name.trim().toLowerCase());
 }
 
-/** The signed-in username on a request in username mode, or undefined. */
+/** The signed-in username on a request in username or password mode, or undefined. */
 export function requestUser(cfg: SecurityConfig, req: Pick<Request, "headers">): string | undefined {
+  if (cfg.authMode === "password") return cfg.sessionSecret ? readSession(cfg.sessionSecret, cookieValue(req.headers.cookie, SESSION_COOKIE)) : undefined;
   if (cfg.authMode !== "username") return undefined;
   const name = cookieValue(req.headers.cookie, USER_COOKIE)?.trim();
   return validUsername(cfg, name) ? name : undefined;
@@ -104,8 +115,7 @@ const setSession = (req: Request, res: Response, token: string) =>
 /** Login route: GET /api/login?token=... sets the cookie and redirects to the app. */
 export function loginHandler(cfg: SecurityConfig): RequestHandler {
   return (req, res) => {
-    if (cfg.authMode === "username") return void res.redirect("/");
-    if (!cfg.token) return void res.redirect("/");
+    if (cfg.authMode !== "token" || !cfg.token) return void res.redirect("/");
     const given = typeof req.query.token === "string" ? req.query.token : undefined;
     if (!tokenMatches(given, cfg.token)) return void res.status(401).json({ error: "Invalid access token." });
     setSession(req, res, cfg.token);
@@ -116,6 +126,12 @@ export function loginHandler(cfg: SecurityConfig): RequestHandler {
 /** Sign-in form: POST /api/login {"token": "..."} sets the same cookie, so the token never sits in a URL. */
 export function loginPostHandler(cfg: SecurityConfig): RequestHandler {
   return (req, res) => {
+    if (cfg.authMode === "password") {
+      const got = verifyPassword(req.body?.username, req.body?.password);
+      if (!got.ok) return void res.status(got.locked ? 429 : 401).json({ error: got.locked ? "Too many wrong passwords for this account. Try again in 15 minutes." : "That username or password is not right." });
+      res.cookie(SESSION_COOKIE, makeSession(cfg.sessionSecret!, got.username, SESSION_MS), { httpOnly: true, sameSite: "strict", secure: req.secure || req.get("x-forwarded-proto") === "https", maxAge: SESSION_MS, path: "/" });
+      return void res.json({ ok: true, username: got.username });
+    }
     if (cfg.authMode === "username") {
       const name = typeof req.body?.username === "string" ? req.body.username.trim() : undefined;
       if (!validUsername(cfg, name)) return void res.status(401).json({ error: cfg.allowedUsers.length ? "That username is not allowed." : "Enter a username: letters, numbers, space, . _ @ - (up to 40 characters)." });
@@ -130,13 +146,21 @@ export function loginPostHandler(cfg: SecurityConfig): RequestHandler {
   };
 }
 
-/** Rejects /api requests without the token. Health checks stay open. */
+/** Sign out: clears every sign-in cookie. */
+export const logoutHandler: RequestHandler = (_req, res) => {
+  for (const c of [COOKIE, USER_COOKIE, SESSION_COOKIE]) res.clearCookie(c, { path: "/" });
+  res.json({ ok: true });
+};
+
+/** Rejects /api requests without the token or a signed-in user. Health checks stay open. */
 export function requireToken(cfg: SecurityConfig): RequestHandler {
   return (req, res, next) => {
-    if ((!cfg.token && cfg.authMode !== "username") || req.path === "/api/healthz" || req.path === "/api/login" || !req.path.startsWith("/api")) return next();
+    const open = req.path === "/api/healthz" || req.path === "/api/login" || req.path === "/api/logout" || !req.path.startsWith("/api");
+    if ((!cfg.token && cfg.authMode === "token") || open) return next();
     if (cfg.token && tokenMatches(requestToken(req), cfg.token)) return next();
     if (requestUser(cfg, req)) return next();
-    res.status(401).json({ error: cfg.authMode === "username" ? "Sign in with a username." : "Access token required.", code: "unauthorized", auth: cfg.authMode });
+    const error = cfg.authMode === "password" ? "Sign in with your username and password." : cfg.authMode === "username" ? "Sign in with a username." : "Access token required.";
+    res.status(401).json({ error, code: "unauthorized", auth: cfg.authMode });
   };
 }
 
