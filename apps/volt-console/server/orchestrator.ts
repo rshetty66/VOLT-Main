@@ -29,9 +29,9 @@ import { LEDGER_GUIDE, checkLedgerFigures, isLedgerTool, ledgerEnabled, ledgerTo
 import { CONSULTED_TOOLS, ORCHESTRATOR_TOOLS, QUICK_TOOLS, SPECIALIST_TOOLS, type ToolName, runLocalTool, schemas, toolDefs } from "./tools.js";
 import { ORCHESTRATOR_LANE, type RunRequest, type VoltEvent } from "../shared/events.js";
 import { scopeBrief } from "../shared/scope.js";
-import { ProviderError, runResponsesLoop } from "./responsesLoop.js";
-import { markBroken, providerOf, specialistModel, type Engine } from "./providers.js";
-import { estimateCost, higher, highStakes, modelFor, scopeOpusReason, routingEnabled, ruleRoute, tierForStep, tierName, triage, type Route, type Tier } from "./router.js";
+import { PartialStreamError, ProviderError, runResponsesLoop } from "./responsesLoop.js";
+import { recordFailure, providerOf, specialistModel, type Engine } from "./providers.js";
+import { estimateCost, higher, highStakes, modelFor, scopeOpusReason, specialistOpusReason, routingEnabled, ruleRoute, tierForStep, tierName, triage, type Route, type Tier } from "./router.js";
 
 export type Emit = (e: VoltEvent) => void;
 
@@ -304,7 +304,6 @@ async function runOtherProvider(opts: LoopOptions): Promise<string> {
   const { catalog, lane, emit, signal, messages } = opts;
   const first = messages[0]?.content;
   const brief = typeof first === "string" ? first : (first ?? []).map((b) => (b.type === "text" ? b.text : "")).join("\n");
-  let started = false;
   const tools = [...toolDefs(opts.tools), ...(opts.registry.knowledgeProject ? [knowledgeToolDef()] : [])];
   emit({ type: "status", lane, text: `Running on ${opts.model}` });
   try {
@@ -316,11 +315,12 @@ async function runOtherProvider(opts: LoopOptions): Promise<string> {
       effort: opts.effort,
       maxTurns: MAX_TURNS,
       signal,
-      onText: (t) => {
-        started = true;
-        emit({ type: "text_delta", lane, text: t });
+      onText: (t) => emit({ type: "text_delta", lane, text: t }),
+      onUsage: (u) => {
+        const { reasoningTokens, ...counts } = u;
+        emit({ type: "usage", lane, ...counts, model: opts.model, costUsd: estimateCost(opts.model, counts) });
+        if (reasoningTokens) emit({ type: "status", lane, text: `${opts.model}: ${counts.inputTokens} in, ${counts.cacheReadTokens} cached, ${counts.outputTokens} out (${reasoningTokens} reasoning)` });
       },
-      onUsage: (u) => emit({ type: "usage", lane, ...u, model: opts.model, costUsd: estimateCost(opts.model, u) }),
       execute: async (c) => {
         const r = await executeTool(catalog, lane, { type: "tool_use", id: c.id, name: c.name, input: c.input } as Anthropic.Beta.BetaToolUseBlock, emit, signal, opts.registry, opts.specialistTier);
         return { content: typeof r.content === "string" ? r.content : JSON.stringify(r.content), isError: r.is_error };
@@ -329,10 +329,26 @@ async function runOtherProvider(opts: LoopOptions): Promise<string> {
     messages.push({ role: "assistant", content: [{ type: "text", text }] });
     return text;
   } catch (err) {
-    if (signal.aborted || started || !(err instanceof ProviderError) || ![400, 401, 403, 404].includes(err.status)) throw err;
-    if (err.status !== 400) markBroken(opts.model);
-    emit({ type: "status", lane, text: `${opts.model} was refused (${err.message.slice(0, 120)}); running this step on Claude instead` });
-    return runAgentLoop({ ...opts, model: modelFor("sonnet") });
+    if (signal.aborted || !(err instanceof ProviderError)) throw err;
+    // 401/403/404 and a retired model id: skipped for the process. 429 and 5xx: skipped for 60 seconds.
+    const kind = recordFailure(opts.model, err.status, err.message);
+    const fallbackModel = modelFor("sonnet");
+    if (err instanceof PartialStreamError) {
+      // The stream died after text reached the screen: Claude continues from that text, so the answer is never cut short.
+      emit({ type: "status", lane, text: `${opts.model} stopped mid-answer (${err.message.slice(0, 120)}); Claude is continuing from where it stopped` });
+      const partial = err.partial.trimEnd();
+      const seeded: Anthropic.Beta.BetaMessageParam[] = [
+        { role: "user", content: brief },
+        { role: "assistant", content: [{ type: "text", text: partial }] },
+        { role: "user", content: "Your answer above was cut off by a connection error. Continue exactly where it stops: do not repeat or summarise what is already written, and finish the answer, including every section the brief asked for." },
+      ];
+      const rest = await runAgentLoop({ ...opts, model: fallbackModel, messages: seeded });
+      messages.push({ role: "assistant", content: [{ type: "text", text: partial + rest }] });
+      return partial + rest;
+    }
+    if (kind === null && ![400].includes(err.status)) throw err;
+    emit({ type: "status", lane, text: `${opts.model} ${kind === "cooldown" ? "is busy (cooling down for 60 seconds)" : "was refused"} (${err.message.slice(0, 120)}); running this step on Claude instead` });
+    return runAgentLoop({ ...opts, model: fallbackModel });
   }
 }
 
@@ -428,8 +444,8 @@ async function executeTool(
 }
 
 /** The specialist's model after the engine choice; logs which one when it is not Claude. */
-function pickModel(registry: SourceRegistry, brief: string, claude: string, emit: Emit, lane: string): string {
-  const { model, why } = specialistModel(registry.engine, brief, claude);
+function pickModel(registry: SourceRegistry, brief: string, claude: string, guard: boolean, emit: Emit, lane: string): string {
+  const { model, why } = specialistModel(registry.engine, brief, claude, guard);
   if (model !== claude) emit({ type: "status", lane, text: `Engine: ${why} (${model})` });
   return model;
 }
@@ -446,6 +462,7 @@ async function runSpecialist(
   tier: Tier = tierForStep("specialist"),
 ): Promise<string> {
   emit({ type: "agent_start", lane, parentLane, agentId: agent.id, name: agent.name, layer: agent.layer, icon: agent.icon, brief });
+  const guard = highStakes(brief) || registry.turnOpus || tier === "opus";
   try {
     const text = await runAgentLoop({
       catalog,
@@ -455,7 +472,8 @@ async function runSpecialist(
       tools: CONSULTED_TOOLS,
       // A brief in high-stakes finance work runs on Opus even when the lead's run was routed lower.
       // The engine selector can move the other briefs to GPT or Grok (never the lead, never Opus work).
-      model: pickModel(registry, brief, modelFor(highStakes(brief) ? "opus" : tier), emit, lane),
+      // The guard is this turn's (the brief's wording, or the turn's scope or Opus switch), never the session lead's tier.
+      model: pickModel(registry, brief, modelFor(guard ? "opus" : tier), guard, emit, lane),
       effort: SPECIALIST_EFFORT,
       emit,
       signal,
@@ -496,6 +514,8 @@ export function getSession(id?: string): Session {
 export async function runLive(catalog: Catalog, input: RunInput, session: Session, emit: Emit, signal: AbortSignal) {
   const registry = new SourceRegistry(input.prompt);
   registry.engine = input.engine;
+  // Decided on this turn alone; the session's lead tier (which only moves up) plays no part.
+  registry.turnOpus = specialistOpusReason(input) !== null;
   // The knowledge base is used only when the request asks for it; otherwise sources come from the tools and the web.
   if (input.projectId && asksForKnowledge(input.projectId, input.prompt)) registry.knowledgeProject = input.projectId;
   // Each attached file is client data in the source register, so the answer can cite it.
@@ -552,7 +572,7 @@ export async function runLive(catalog: Catalog, input: RunInput, session: Sessio
     signal,
     registry,
     ledger: true,
-    specialistTier: req.opus || highStakes(req.prompt) ? "opus" : tierForStep("specialist"),
+    specialistTier: registry.turnOpus ? "opus" : tierForStep("specialist"),
   };
   const draft = await runAgentLoop(lead);
   // A quick or direct ask still gets the ledger check, but not the full-deliverable depth review.
@@ -587,7 +607,7 @@ async function routeLead(req: RunInput, quick: boolean, session: Session, emit: 
   session.leadTier = tier;
   const kept = tier !== route.tier ? `; kept on ${tierName(tier)} for this conversation` : "";
   const how = route.by === "triage" ? "Haiku triage" : "routing rule";
-  const specialists = req.opus || highStakes(prompt) ? "Opus" : `${tierName(tierForStep("specialist"))} (Opus for high-stakes finance briefs)`;
+  const specialists = specialistOpusReason(req) ? "Opus" : `${tierName(tierForStep("specialist"))} (Opus for high-stakes finance briefs)`;
   emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Model: ${tierName(route.tier)} for the lead (${how}: ${route.reason})${kept}. Specialists run on ${specialists}.` });
   return tier;
 }
@@ -655,7 +675,7 @@ function intakeText(catalog: Catalog, wf: WorkflowDef, answers: Record<string, s
 async function runWorkflow(catalog: Catalog, wf: WorkflowDef, req: RunInput, session: Session, emit: Emit, signal: AbortSignal, registry: SourceRegistry) {
   const context = withTemplate(req, `${req.prompt}${intakeText(catalog, wf, req.intake)}`);
   const outputs: { phase: string; agent: AgentDef; text: string }[] = [];
-  const phaseTier: Tier = req.opus || highStakes(context) ? "opus" : tierForStep("workflow_phase");
+  const phaseTier: Tier = registry.turnOpus || highStakes(context) ? "opus" : tierForStep("workflow_phase");
   if (routingEnabled()) emit({ type: "status", lane: ORCHESTRATOR_LANE, text: `Model: ${tierName(phaseTier)} for each phase, ${tierName(tierForStep("synthesis"))} for the synthesis.` });
 
   for (const [index, phase] of wf.phases.entries()) {

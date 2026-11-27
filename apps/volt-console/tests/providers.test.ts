@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { codeLike, providerOf, resetBroken, markBroken, specialistModel } from "../server/providers";
+import { codeLike, COOLDOWN_MS, isHealthy, providerOf, recordFailure, resetBroken, markBroken, setClock, specialistModel } from "../server/providers";
+import { specialistOpusReason } from "../server/router";
 import { estimateCost } from "../server/router";
 
 const SONNET = "claude-sonnet-5-5";
@@ -65,13 +66,60 @@ describe("specialistModel", () => {
 
 describe("codeLike and prices", () => {
   it("spots coding briefs", () => {
-    expect(codeLike("fix the SQL query")).toBe(true);
+    expect(codeLike("fix the SQL query and the python ETL")).toBe(true);
+    expect(codeLike("run ```select * from gl```")).toBe(true);
+    expect(codeLike("SELECT id FROM ledger WHERE x = 1")).toBe(true);
     expect(codeLike("design the target operating model")).toBe(false);
+    expect(codeLike("price the API and the pricing schema for the client")).toBe(false);
+    expect(codeLike("review the json export")).toBe(false);
   });
   it("prices the new models", () => {
     const t = { inputTokens: 1_000_000, outputTokens: 1_000_000, cacheReadTokens: 0 };
     expect(estimateCost("gpt-6.2-sol", t)).toBeCloseTo(12);
     expect(estimateCost("grok-4.3", t)).toBeCloseTo(3.75);
     expect(estimateCost("claude-sonnet-5-5", t)).toBeCloseTo(12);
+  });
+});
+
+describe("per-turn guardrail", () => {
+  it("keeps Opus work on Claude only when the turn says so", () => {
+    process.env.OPENAI_API_KEY = "k";
+    expect(specialistModel("gpt", "a plain brief", OPUS, false).model).toBe("gpt-6.2-sol");
+    expect(specialistModel("gpt", "a plain brief", OPUS, true).model).toBe(OPUS);
+    expect(specialistModel("gpt", "a plain brief", SONNET, true).model).toBe(SONNET);
+  });
+  it("decides from this turn's wording, scope and switch, not the session", () => {
+    expect(specialistOpusReason({ prompt: "what is a payback period?" })).toBeNull();
+    expect(specialistOpusReason({ prompt: "ASC 606 treatment" })).toMatch(/high-stakes/);
+    expect(specialistOpusReason({ prompt: "x", scope: { depth: "deep" } })).toMatch(/Deep/);
+    expect(specialistOpusReason({ prompt: "x", scope: { deliverables: ["pptx"] } })).toMatch(/pptx/);
+    expect(specialistOpusReason({ prompt: "x", opus: true })).toMatch(/switch/);
+  });
+});
+
+describe("model health", () => {
+  it("skips a retired model for good and a throttled one for 60 seconds", () => {
+    let now = 1_000;
+    setClock(() => now);
+    expect(recordFailure("grok-code-fast-1", 404)).toBe("permanent");
+    expect(recordFailure("grok-4.3", 429)).toBe("cooldown");
+    expect(recordFailure("gpt-6.2-sol", 400, "The model `x` does not exist")).toBe("permanent");
+    expect(recordFailure("gpt-6.1-terra", 400, "bad tool schema")).toBeNull();
+    expect(isHealthy("grok-4.3")).toBe(false);
+    now += COOLDOWN_MS - 1;
+    expect(isHealthy("grok-4.3")).toBe(false);
+    now += 1;
+    expect(isHealthy("grok-4.3")).toBe(true);
+    now += 10 * COOLDOWN_MS;
+    expect(isHealthy("grok-code-fast-1")).toBe(false);
+    expect(isHealthy("gpt-6.1-terra")).toBe(true);
+    setClock(() => Date.now());
+  });
+  it("routes a burst to the next usable engine while one cools down", () => {
+    process.env.OPENAI_API_KEY = "k";
+    process.env.XAI_API_KEY = "k";
+    recordFailure("gpt-6.2-sol", 503);
+    expect(specialistModel("auto", "a plain brief", SONNET).model).toBe("grok-4.3");
+    resetBroken();
   });
 });

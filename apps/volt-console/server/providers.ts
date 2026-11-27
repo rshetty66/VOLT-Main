@@ -23,10 +23,50 @@ export const keyFor = (p: "openai" | "xai") => (p === "openai" ? process.env.OPE
 /** Which non-Claude providers have a key, for the console's engine selector. */
 export const availableProviders = () => ({ gpt: !!keyFor("openai"), grok: !!keyFor("xai") });
 
-/** Models that answered 404/401 this process lifetime: skipped, so one bad id costs one failed call, not one per specialist. */
-const broken = new Set<string>();
-export const markBroken = (model: string) => void broken.add(model);
-export const resetBroken = () => broken.clear();
+/**
+ * Model health, in memory. Two states:
+ *  - permanent: 401/403/404, or a 400 that says the model id is invalid or retired. Skipped for the process lifetime.
+ *  - cooldown: 429 or 5xx. Skipped for COOLDOWN_MS, so a burst of specialists goes to the next usable engine
+ *    instead of each one waiting on a provider that is throttling or down.
+ */
+export const COOLDOWN_MS = 60_000;
+const PERMANENT = Number.POSITIVE_INFINITY;
+const health = new Map<string, number>(); // model -> epoch ms until which it is skipped
+let clock = () => Date.now();
+/** Test hook: replace the clock. */
+export const setClock = (fn: () => number) => void (clock = fn);
+
+export type Failure = "permanent" | "cooldown" | null;
+const BAD_MODEL = /(model|deprecat|retired|not found|does not exist|unknown|invalid|unsupported|not supported|no access)/i;
+/** How a provider status (and message, for a 400) should affect the model's health; null when it should not. */
+export function classifyFailure(status: number, message = ""): Failure {
+  if (status === 401 || status === 403 || status === 404) return "permanent";
+  if (status === 400) return BAD_MODEL.test(message) && /model/i.test(message) ? "permanent" : null;
+  if (status === 429 || status >= 500) return "cooldown";
+  return null;
+}
+
+export const markBroken = (model: string) => void health.set(model, PERMANENT);
+export const markCooling = (model: string, ms = COOLDOWN_MS) => {
+  if (health.get(model) !== PERMANENT) health.set(model, clock() + ms);
+};
+/** Records a failure by its status; returns how it was classified. */
+export function recordFailure(model: string, status: number, message = ""): Failure {
+  const f = classifyFailure(status, message);
+  if (f === "permanent") markBroken(model);
+  else if (f === "cooldown") markCooling(model);
+  return f;
+}
+export const isHealthy = (model: string) => {
+  const until = health.get(model);
+  if (until === undefined) return true;
+  if (until !== PERMANENT && clock() >= until) {
+    health.delete(model);
+    return true;
+  }
+  return false;
+};
+export const resetBroken = () => health.clear();
 
 const model = {
   gpt: () => process.env.VOLT_MODEL_GPT || "gpt-6.2-sol",
@@ -34,23 +74,32 @@ const model = {
   grokCode: () => process.env.VOLT_MODEL_GROK_CODE || "grok-code-fast-1",
 };
 
-/** A brief about code, data plumbing or scripting: the work a coding model is built for. */
-const CODE_LIKE = /\b(sql|python|javascript|typescript|script(?:s|ing)?|regex|etl|api|json|schema|data model|data pipeline|integration code|macro|vba|code|refactor)\b/i;
-export const codeLike = (text: string) => CODE_LIKE.test(text);
+/** Syntax that only appears in code: fences, braces, statements, SQL. */
+const CODE_SYNTAX = /```|\{[^}]*\}|\([^)]*\);|\bselect\b[\s\S]{1,200}?\bfrom\b/i;
+/** Technical words; one alone ("api", "schema", "json" in a pricing brief) proves nothing, two do. */
+const CODE_TOKENS = /\b(sql|python|javascript|typescript|script|scripts|scripting|regex|etl|endpoint|endpoints|json|migration|macro|vba|refactor|unit tests?|stack trace)\b/gi;
+/** A brief about code or data plumbing: the work a coding model is built for. */
+export function codeLike(text: string): boolean {
+  if (CODE_SYNTAX.test(text)) return true;
+  const found = new Set((text.match(CODE_TOKENS) ?? []).map((t) => t.toLowerCase().replace(/s$/, "")));
+  return found.size >= 2;
+}
 
 const usable = (m: string) => {
   const p = providerOf(m);
-  return p !== "anthropic" && !!keyFor(p) && !broken.has(m);
+  return p !== "anthropic" && !!keyFor(p) && isHealthy(m);
 };
 
 /**
  * The model for one specialist. `claude` is the model the Claude router chose; it stays whenever the engine is
  * Claude, the brief is high-stakes (claude is Opus), or the chosen provider has no key.
  */
-export function specialistModel(engine: Engine | undefined, brief: string, claude: string): { model: string; why: string } {
+export function specialistModel(engine: Engine | undefined, brief: string, claude: string, guard?: boolean): { model: string; why: string } {
   const stay = { model: claude, why: "Claude" };
   if (!engine || engine === "claude") return stay;
-  if (/opus/i.test(claude)) return { model: claude, why: "Claude (Opus is kept for high-stakes finance work)" };
+  // `guard` is the per-turn high-stakes decision (this turn's wording, scope or Opus switch), made by the caller.
+  // Without it, fall back to the model's name. The chat's lead tier never decides this.
+  if (guard ?? /opus/i.test(claude)) return { model: claude, why: "Claude (Opus is kept for high-stakes finance work)" };
   const code = codeLike(brief);
   const gpt = model.gpt();
   const grok = code ? model.grokCode() : model.grok();

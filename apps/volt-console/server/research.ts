@@ -23,6 +23,8 @@ export class SourceRegistry {
   knowledgeProject?: string;
   /** Which provider the specialists run on (see providers.ts); the lead always runs on Claude. */
   engine?: "claude" | "auto" | "gpt" | "grok";
+  /** This turn alone asked for Opus-grade specialists (high-stakes wording, Deep or file scope, Opus switch). Not sticky across turns. */
+  turnOpus = false;
 
   constructor(prompt: string) {
     this.tier = classifyDepth(prompt);
