@@ -9,6 +9,7 @@ import { RunVisuals } from "../charts/RunVisuals";
 import { DownloadMenu } from "./DownloadMenu";
 import { addMemory } from "../projects";
 import { FileCards } from "./FileCards";
+import { AgentStage } from "./AgentStage";
 import { runDeliverable } from "../exports";
 import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../api";
 import { scopeLabel, type Scope } from "../../shared/scope";
@@ -120,8 +121,8 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
   const submit = (text = prompt, chosen: Scope | null | undefined = scope) => {
     if (!text.trim() || reading > 0) return;
     // First message of a chat: run the intake before any work starts, unless it is a lookup or a quick ask, which VOLT
-    // answers straight away. Skip sends without a scope.
-    if (chosen === null && runs.length === 0 && !directAsk(text) && !quickAsk(text)) return void setScoping((s) => ({ draft: s?.draft ?? {}, pending: text }));
+    // answers straight away. Skip sends without a scope: the intake is already open then, so it must not reopen.
+    if (chosen === null && !scoping?.pending && runs.length === 0 && !directAsk(text) && !quickAsk(text)) return void setScoping((s) => ({ draft: s?.draft ?? {}, pending: text }));
     setScoping(null);
     const agentMode = target !== "rudra";
     onStart({ prompt: text.trim(), agentId: agentMode ? target : undefined, scope: chosen ?? undefined, attachments: files.length ? files.map(({ name, text, id }) => ({ name, text, uploadId: id })) : undefined }, agentMode ? targetAgent?.name ?? target : "All specialists", agentMode ? "agent" : "orchestrate");
@@ -286,6 +287,7 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
   // The research engine's gates, run on the finished answer against the run's source register.
   const gates = run.state !== "running" && run.tier && run.text.trim() ? evidenceGates(run.text, run.sources, run.tier) : [];
   const openGates = gates.filter((g) => !g.pass);
+  const stage = useStageOpen(run.state === "running");
   // Each specialist's finished workstream, readable while the lead is still writing the summary.
   const readySections = run.laneOrder.map((id) => run.lanes[id]).filter((l) => l && l.state === "done" && l.text.trim());
   const elapsed = Math.round(((run.finishedAt ?? Date.now()) - run.startedAt) / 1000);
@@ -348,7 +350,7 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
         )}
       </div>
       <div className="run-body single">
-        {(work.specialists > 0 || work.toolCalls > 0 || run.tier) && (
+        {(run.state === "running" || work.specialists > 0 || work.toolCalls > 0 || run.tier) && (
           <div className="work-strip" role="status">
             {run.state === "running" ? <span className="spinner" style={{ width: 12, height: 12 }} /> : <span className="dot done" />}
             <span className="work-text">{workLine(work, run.state === "running")}</span>
@@ -358,8 +360,12 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
                 {gates.length ? ` · ${gates.length - openGates.length}/${gates.length} gates` : ""}
               </span>
             )}
+            <button className="btn ghost sm stage-toggle" aria-expanded={stage.open} onClick={stage.toggle}>
+              {stage.open ? "Hide agents" : "Show agents"}
+            </button>
           </div>
         )}
+        {stage.open && <AgentStage run={run} gates={gates.length ? { passed: gates.length - openGates.length, total: gates.length } : undefined} />}
         {work.errors.length > 0 && (
           <div className="run-errors" role="alert">
             {work.errors.map((m, i) => (
@@ -399,6 +405,47 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
       </div>
     </section>
   );
+}
+
+const STAGE_PREF = "volt.agentStage";
+
+/**
+ * Whether the Agent Stage shows under a run: open while the run works (unless the user hid it, which is remembered),
+ * folded 2.5 s after it finishes, and closed for runs loaded from history until the user opens it.
+ */
+function useStageOpen(running: boolean): { open: boolean; toggle: () => void } {
+  const pref = () => {
+    try {
+      return localStorage.getItem(STAGE_PREF) !== "off";
+    } catch {
+      return true;
+    }
+  };
+  const [open, setOpen] = useState(() => running && pref());
+  const wasRunning = useRef(running);
+  useEffect(() => {
+    if (running) {
+      wasRunning.current = true;
+      return;
+    }
+    if (!wasRunning.current) return;
+    const t = setTimeout(() => {
+      wasRunning.current = false;
+      setOpen(false);
+    }, 2500);
+    return () => clearTimeout(t);
+  }, [running]);
+  const toggle = () => {
+    const next = !open;
+    setOpen(next);
+    if (running)
+      try {
+        localStorage.setItem(STAGE_PREF, next ? "on" : "off");
+      } catch {
+        /* storage blocked: the choice lasts for this run only */
+      }
+  };
+  return { open, toggle };
 }
 
 /** "Consulting 3 of 6 specialists: Oracle GL, SAP FI" while running; "Consulted 6 specialists · 4 tool calls" when done. */
