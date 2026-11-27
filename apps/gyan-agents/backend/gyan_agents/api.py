@@ -39,6 +39,8 @@ def create_app(engine: Engine | None = None) -> FastAPI:
             store.dispose()
 
     app = FastAPI(title="Gyan Agents", version="0.1.0", lifespan=lifespan)
+    from .studio import router
+    app.include_router(router)
 
     @app.get("/health")
     def health():

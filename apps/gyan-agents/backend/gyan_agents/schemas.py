@@ -108,6 +108,8 @@ class AgentNode(NodeBase):
     kind: Literal["agent"]
     agent_id: Id
     agent_version: Version
+    definition_ref: Label | None = None
+    skill_refs: list[Label] = Field(default_factory=list, max_length=12)
 
 
 class RouterNode(NodeBase):

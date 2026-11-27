@@ -1,0 +1,30 @@
+name: Gyan Studio checks
+on:
+  pull_request:
+    paths:
+      - "apps/gyan-agents/**"
+      - "apps/volt-console/src/components/GyanStudio.tsx"
+      - "apps/volt-console/server/gyan.ts"
+      - "plugins/volt/data/**"
+      - ".github/workflows/gyan-studio.yml"
+permissions:
+  contents: read
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - run: python -m pip install uv==0.13.4 playwright
+      - run: uv sync --locked && uv run --locked pytest -q
+        working-directory: apps/gyan-agents/backend
+      - run: npm ci && npm run build
+        working-directory: apps/volt-console
+      - run: python -m playwright install --with-deps chromium
+      - run: python apps/gyan-agents/scripts/browser-smoke.py
