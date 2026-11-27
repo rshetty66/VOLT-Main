@@ -857,6 +857,7 @@
       "paths": [
         "skills/blender-motion-state-inspection",
         "skills/fal-ai-media",
+        "skills/agentic-diagrams",
         "skills/manim-video",
         "skills/remotion-video-creation",
         "skills/ui-demo",
