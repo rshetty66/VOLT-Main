@@ -218,7 +218,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
                 </span>
               ))}
               {reading > 0 && (
-                <span className="muted" style={{ fontSize: 12 }} role="status">
+                <span className="muted" style={{ fontSize: "var(--fs-3)" }} role="status">
                   <span className="spinner" style={{ width: 10, height: 10 }} /> Reading...
                 </span>
               )}
@@ -232,7 +232,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
           {library && (
             <div className="stack" style={{ gap: 4 }}>
               {library.length === 0 ? (
-                <span className="muted" style={{ fontSize: 12 }}>The uploads library is empty. Attach a file first.</span>
+                <span className="muted" style={{ fontSize: "var(--fs-3)" }}>The uploads library is empty. Attach a file first.</span>
               ) : (
                 library.map((u) => (
                   <button key={u.id} className="btn ghost sm" style={{ justifyContent: "flex-start", textAlign: "left" }} onClick={() => void useUpload(u)}>
@@ -243,7 +243,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
             </div>
           )}
           <div className="row" style={{ justifyContent: "space-between" }}>
-            <span className="muted" style={{ fontSize: 12 }}>
+            <span className="muted" style={{ fontSize: "var(--fs-3)" }}>
               Ctrl/⌘ + Enter to send{runs.length > 0 ? " · follow-ups keep the conversation" : ""}
             </span>
             <div className="row">
@@ -327,7 +327,7 @@ function RunView({ run, onStop }: { run: Run; onStop: () => void }) {
         <span className="micro">{run.title}</span>
         <div className="prompt">
           {run.prompt}
-          {run.attachments?.length ? <div className="muted" style={{ fontSize: 12, fontWeight: 400 }}>Attached: {run.attachments.join(", ")}</div> : null}
+          {run.attachments?.length ? <div className="muted" style={{ fontSize: "var(--fs-3)", fontWeight: 400 }}>Attached: {run.attachments.join(", ")}</div> : null}
         </div>
         <span className="usage" title={models.length ? models.map((m) => `${modelName(m.model)}: ${m.tokens.toLocaleString()} tokens, est. ${cad(m.cost)}`).join("\n") : undefined}>
           {elapsed}s{run.mode === "demo" ? " · demo" : ""}

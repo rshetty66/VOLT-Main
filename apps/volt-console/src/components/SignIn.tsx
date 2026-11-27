@@ -41,7 +41,7 @@ export function SignIn({ onSignedIn, mode = "token" }: { onSignedIn: () => void;
         <button className="btn primary" type="submit" disabled={!ready || busy}>
           {busy ? "Signing in..." : "Sign in"}
         </button>
-        {withPassword && <p className="muted" style={{ fontSize: 12, margin: 0 }}>Forgot your password? Ask the console administrator to set a new one.</p>}
+        {withPassword && <p className="muted" style={{ fontSize: "var(--fs-3)", margin: 0 }}>Forgot your password? Ask the console administrator to set a new one.</p>}
       </form>
     </div>
   );

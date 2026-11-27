@@ -63,7 +63,7 @@ export function Templates({ templates, refresh, activeTemplate, setActiveTemplat
                 </span>
               </div>
               <Swatches colors={t.theme?.colors} slots={ACCENTS} size={22} />
-              <div className="muted" style={{ fontSize: 12 }}>
+              <div className="muted" style={{ fontSize: "var(--fs-3)" }}>
                 {t.theme ? `${t.theme.fonts.major || "-"} / ${t.theme.fonts.minor || "-"}` : "No theme"} · {t.fileName} · {kb(t.sizeBytes)}
               </div>
             </div>
@@ -131,7 +131,7 @@ function UploadZone({ onUploaded }: { onUploaded: (p: TemplateProfile, openIt: b
       ) : (
         <>
           <b>Drop a template here</b>
-          <span className="muted" style={{ fontSize: 12 }}>
+          <span className="muted" style={{ fontSize: "var(--fs-3)" }}>
             Word (.docx, .dotx), Excel (.xlsx, .xltx) or PowerPoint (.pptx, .potx), up to 25 MB. Macro-enabled files are not accepted.
           </span>
           <button className="btn" onClick={() => input.current?.click()}>
@@ -213,7 +213,7 @@ function TemplateDetail({ id, onBack, refresh, activeTemplate, setActiveTemplate
       </div>
 
       {p.warnings.length > 0 && (
-        <div className="card body" style={{ fontSize: 13 }}>
+        <div className="card body" style={{ fontSize: "var(--fs-4)" }}>
           {p.warnings.map((w) => (
             <div key={w}>{w}</div>
           ))}
@@ -338,8 +338,8 @@ function TemplateDetail({ id, onBack, refresh, activeTemplate, setActiveTemplate
                     ))}
                   </div>
                   <div className="row" style={{ justifyContent: "space-between" }}>
-                    <span style={{ fontSize: 12 }}>{l.name}</span>
-                    {l.usedBySlides > 0 && <span className="muted" style={{ fontSize: 11 }}>{l.usedBySlides} slide{l.usedBySlides > 1 ? "s" : ""}</span>}
+                    <span style={{ fontSize: "var(--fs-3)" }}>{l.name}</span>
+                    {l.usedBySlides > 0 && <span className="muted" style={{ fontSize: "var(--fs-2)" }}>{l.usedBySlides} slide{l.usedBySlides > 1 ? "s" : ""}</span>}
                   </div>
                 </div>
               ))}
@@ -396,7 +396,7 @@ function FontSample({ label, font }: { label: string; font: string }) {
   return (
     <div className="stat">
       <span className="micro">{label}</span>
-      <span style={{ fontFamily: `"${font}", var(--font)`, fontSize: 20 }}>{font || "-"}</span>
+      <span style={{ fontFamily: `"${font}", var(--font)`, fontSize: "var(--fs-8)" }}>{font || "-"}</span>
     </div>
   );
 }
@@ -405,7 +405,7 @@ function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="stat">
       <span className="micro">{label}</span>
-      <span style={{ fontSize: 15, fontWeight: 600 }}>{value}</span>
+      <span style={{ fontSize: "var(--fs-5)", fontWeight: 600 }}>{value}</span>
     </div>
   );
 }
@@ -440,7 +440,7 @@ function StyleTable({ styles, spacing }: { styles: TextStyle[]; spacing?: boolea
             <tr key={s.name}>
               <td>
                 {s.name}
-                {s.used && <span className="muted" style={{ fontSize: 11 }}> · used</span>}
+                {s.used && <span className="muted" style={{ fontSize: "var(--fs-2)" }}> · used</span>}
               </td>
               <td style={{ fontFamily: s.font ? `"${s.font}", var(--font)` : undefined }}>{s.font ?? "-"}</td>
               <td>{s.sizePt !== undefined ? `${s.sizePt} pt` : "-"}</td>

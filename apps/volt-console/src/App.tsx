@@ -37,8 +37,9 @@ export function App() {
   const [loadError, setLoadError] = useState("");
   const [theme, setTheme] = useState<"dark" | "light">(() => (localStorage.getItem("volt.theme") === "light" ? "light" : "dark"));
   const [present, setPresent] = useState(() => localStorage.getItem("volt.present") === "on");
+  // Set during render, so charts drawn in this same render pick the matching palette (see screenPalette).
+  document.documentElement.dataset.theme = theme;
   useEffect(() => {
-    document.documentElement.dataset.theme = theme;
     document.documentElement.dataset.present = present ? "on" : "off";
     localStorage.setItem("volt.theme", theme);
     localStorage.setItem("volt.present", present ? "on" : "off");
@@ -312,7 +313,7 @@ export function App() {
         <details className="settings-menu admin-only" ref={settings}>
           <summary className="btn ghost sm" aria-label="Run settings">Settings</summary>
           <div className="settings-pop" role="group" aria-label="Run settings">
-            <div className="row"><span className={`badge ${live ? "live" : ""}`}>{live ? "Live" : "Demo"}</span><span className="muted" style={{ fontSize: 12 }}>Default model: {catalog.model}</span></div>
+            <div className="row"><span className={`badge ${live ? "live" : ""}`}>{live ? "Live" : "Demo"}</span><span className="muted" style={{ fontSize: "var(--fs-3)" }}>Default model: {catalog.model}</span></div>
             {catalog.mode === "live" && (
               <label className="row body">
                 <input type="checkbox" checked={forceDemo} onChange={(e) => setForceDemo(e.target.checked)} /> Demo mode (simulated answers, no model spend)
@@ -336,7 +337,7 @@ export function App() {
             )}
           </div>
         </details>
-        <label className="row body template-pick" style={{ fontSize: 12 }}>
+        <label className="row body template-pick" style={{ fontSize: "var(--fs-3)" }}>
           Project
           <select className="select" value={projectId} onChange={(e) => void switchProject(e.target.value)}>
             {(projects.length ? projects : [{ id: projectId, name: "General" }]).map((p) => (
@@ -347,7 +348,7 @@ export function App() {
             <option value="new">+ New project…</option>
           </select>
         </label>
-        <label className="row body template-pick" style={{ fontSize: 12 }}>
+        <label className="row body template-pick" style={{ fontSize: "var(--fs-3)" }}>
           Template
           <select className="select" value={activeTemplate} onChange={(e) => setActiveTemplate(e.target.value)}>
             <option value="">None</option>

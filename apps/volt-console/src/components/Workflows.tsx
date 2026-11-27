@@ -35,7 +35,7 @@ export function Workflows({ catalog, onLaunch, onOpenAgent }: Props) {
               </b>
               <span className="micro">{w.phases.length} phases</span>
             </div>
-            <div className="body" style={{ fontSize: 13 }}>
+            <div className="body" style={{ fontSize: "var(--fs-4)" }}>
               {w.description}
             </div>
             <div className="row">
@@ -45,7 +45,7 @@ export function Workflows({ catalog, onLaunch, onOpenAgent }: Props) {
                 </span>
               ))}
             </div>
-            <div className="muted" style={{ fontSize: 12 }}>
+            <div className="muted" style={{ fontSize: "var(--fs-3)" }}>
               {new Set(w.phases.flatMap((p) => p.agents)).size} agents
             </div>
           </div>

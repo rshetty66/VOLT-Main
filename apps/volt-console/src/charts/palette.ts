@@ -67,3 +67,8 @@ export const LIGHT: Palette = {
   cats: ["#1a1e2e", "#0097a7", "#a8841c", "#e64a19", "#5c6bc0", "#6b7280"],
   font,
 };
+
+/** The palette for charts drawn on screen: follows the console's theme (light or dark). Downloads always use LIGHT. */
+export function screenPalette(): Palette {
+  return typeof document !== "undefined" && document.documentElement.dataset.theme === "light" ? LIGHT : DARK;
+}

@@ -50,7 +50,7 @@ function BenchmarkTool({ catalog }: { catalog: CatalogResponse }) {
         />
       </div>
       <div className="row" style={{ flexWrap: "nowrap" }}>
-        <select className="select" value={metric} onChange={(e) => setMetric(e.target.value)}>
+        <select className="select" aria-label="Benchmark" value={metric} onChange={(e) => setMetric(e.target.value)}>
           {catalog.benchmarks.map((x) => (
             <option key={x.key} value={x.key}>
               {x.metric}
@@ -67,7 +67,7 @@ function BenchmarkTool({ catalog }: { catalog: CatalogResponse }) {
         <Stat label="Client position" value={result?.quartile ?? "—"} />
         <Stat label="Gap to top quartile" value={result ? `${result.gapToTop25} ${b.unit}` : "—"} />
       </div>
-      <div className="muted" style={{ fontSize: 12 }}>
+      <div className="muted" style={{ fontSize: "var(--fs-3)" }}>
         {b.lowerIsBetter ? "Lower is better." : "Higher is better."} Source: APQC Open Standards Benchmarking (built-in sample set).
       </div>
     </div>

@@ -86,11 +86,11 @@ export function SkillFinder({ catalog, onOpenAgent }: { catalog: CatalogResponse
                 <span className="usage">score {m.score}</span>
               </span>
             </div>
-            <div className="body" style={{ fontSize: 13, margin: "6px 0" }}>
+            <div className="body" style={{ fontSize: "var(--fs-4)", margin: "6px 0" }}>
               {m.description}
             </div>
             <div className="row">
-              {m.resources.length > 0 && <span className="muted" style={{ fontSize: 12 }}>{m.resources.length} reference files</span>}
+              {m.resources.length > 0 && <span className="muted" style={{ fontSize: "var(--fs-3)" }}>{m.resources.length} reference files</span>}
               {m.usedBy.slice(0, 6).map((a) => (
                 <span
                   key={a}
