@@ -507,9 +507,10 @@ const RunBody = z.object({
     .optional(),
 });
 
-app.post("/api/diagrams", express.json({ limit: "8kb" }), async (req, res) => {
+app.post("/api/diagrams", express.json({ limit: "64kb" }), async (req, res) => {
   const description = typeof req.body?.description === "string" ? req.body.description.trim() : "";
   if (description.length < 10) return void res.status(400).json({ error: "Describe the system in a sentence or two." });
+  if (description.length > 10000) return void res.status(400).json({error:"The reviewed diagram prompt exceeds 10,000 characters."});
   const controller = new AbortController();
   res.on("close", () => controller.abort());
   try {

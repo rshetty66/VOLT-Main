@@ -29,7 +29,7 @@ export function Workflows({ catalog, live, onLaunch, onOpenAgent, projectId="gen
           earlier phases, and Rudra synthesises the final deliverable.
         </p>
       </div>
-      <button className="card interactive card-btn" onClick={()=>setStudio(true)}><strong>Gyan Agents</strong><span className="muted"> · Design, play through and simulate a finance workflow</span></button>
+      <button className="card interactive card-btn" onClick={()=>setStudio(true)}><strong>Gyan Agents</strong><span className="muted"> · Narrated finance architecture and synthetic simulations</span></button>
       <input className="input" aria-label="Filter workflows" placeholder="Filter workflows…" value={q} onChange={(e) => setQ(e.target.value)} />
       <div className="grid">
         {filtered.map((w) => (

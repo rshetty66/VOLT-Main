@@ -1,6 +1,6 @@
 # Gyan Studio: design and simulation
 
-Open **Diagrams** in the VOLT navigation for standalone diagram design, playback and exports. **Workflows → Gyan Agents → Diagrams** opens the same designer. In Gyan, **Play diagram** previews the current workflow without starting a simulation.
+Open **Diagrams** in the VOLT navigation for narrated business scenarios, playback and exports. For a custom diagram, enter the business decision, named systems and mandatory requirements; review the optimized prompt and its assumptions, then confirm. Diagram playback does not start a simulation.
 
 Choose **Architecture** for a five-chapter visual tour of bank reconciliation, actual vs budget, or three-way matching. Each chapter explains the finance role, its control and the evidence passed forward. Use Play for timed captions, select a layer directly, or enable spoken narration if the browser offers a local English voice. No audio or finance data is sent to a speech provider.
 
@@ -14,7 +14,7 @@ From the repository root on macOS/Linux, use Node 22.12+ and `uv` with Python 3.
 python3 apps/gyan-agents/scripts/local-studio.py
 ```
 
-At first launch, choose a local designer password in the terminal. Open `http://127.0.0.1:8941`, sign in as `designer`, select the General project, and choose **Workflows → Gyan Agents → Bank reconciliation → Validate and save v1 → Run simulation**. Inspect the exception and its source-row references in Run evidence; reopen it later from Runs. Close the launcher with Ctrl+C. Drafts and evidence stay in `~/.volt-gyan-local` across restarts; neither existing sandbox nor hosted runs are imported. No controller is provisioned, no ERP postings are enabled, and no model key is required. For separate controller provisioning, see Private setup.
+At first launch, choose a local designer password in the terminal. Open `http://127.0.0.1:8941`, sign in as `designer`, select General, and choose **Workflows → Gyan Agents → Simulations → Bank reconciliation → Run synthetic simulation**. Inspect the exception and its source references; reopen it from Project runs. Close the launcher with Ctrl+C. Existing data stays in `~/.volt-gyan-local`; neither sandbox nor hosted runs are imported. No controller is provisioned, no ERP postings are enabled, and no model key is required.
 
 ## Private setup
 
@@ -31,17 +31,17 @@ The private service accepts only a trusted gateway token and server-issued proje
 - Synthetic templates deliberately contain one unmatched bank item, an actual/budget variance, and an overbilled invoice. Each number is generated in a fixed offline Python/SQLite process and reperformed from pinned rows in a separate critic process. No caller SQL, generated Python, or model math is executed.
 - An operator may configure read-only MCP endpoints using a private JSON file named by `GYAN_MCP_CONFIG`. Each project has a mapping from server ID to transport settings, a `read_allowlist` and operator-fixed `queries`. For stdio set `command`, `args`, optional `env_allowlist`. For SSE set an `https` URL and `token_env`. Only the intersection of actual discovery and the allowlist is exposed. `POST /studio/remote-snapshot` currently expects tabular CSV text from the approved tool. No provider is connected by default.
 
-## Author, run, and review
+## Run and review
 
-Start blank, use a pinned synthetic template, or optimize a brief and explicitly confirm a draft. Drag or keyboard-connect typed source, finance, branch and controller steps. Select a source sheet; choose a profile and an optional branch threshold; review the diagram. Saving checks pins, allowed ports, graph cycles, and source ownership. Reopen a version to make a new one, never overwrite history.
+The console runs prepared synthetic templates. The editable graph and agent/skill creator are retired. Existing drafts, definitions and backend compatibility APIs have not been deleted or migrated.
 
 The default planner is deterministic. `GYAN_PLANNER=claude|openai|local` plus `GYAN_PLANNER_MODEL` opts into a structured planning adapter; use a secret-store `GYAN_PLANNER_KEY` as needed and `GYAN_LOCAL_BASE_URL` for a local OpenAI-compatible server. Only the confirmed brief is sent, not uploaded rows. These adapters select a supported contract; they are not financial calculators.
 
-Running is a separate, explicitly confirmed operation. The browser streams typed node events and the terminal artifact. Immutable event replay is also available. The result is bound to the immutable workflow version, artifact hash and idempotency key. All simulation drafts need a different authenticated controller to approve or reject, even if the designer deletes the approval node. Repeating an approved job never posts anything. Production approval is not authorization for a later ERP posting.
+Running is a separate, explicit operation. The console displays the result and source references. The runtime retains the immutable event trace, workflow version, artifact hash and idempotency key. A different authenticated controller must approve or reject. Approval does not authorize ERP posting.
 
-## Definitions without copies
+## Existing definitions (compatibility APIs only)
 
-The creator searches the VOLT registry, aliases the 20 Gyan execution profiles back to their canonical agents, and searches private definitions in the active project. Search includes approximate names. Creation catches normalized ID/name collisions, existing profile aliases, and identical normalized instructions; database uniqueness prevents concurrent duplicate creates. Semantic paraphrases are suggestions for human review, not guaranteed duplicates.
+The legacy definitions API resolves registry aliases and project definitions. It is no longer exposed through a creator screen.
 
 Custom definitions are declarative. Selecting one stores an immutable reference on a node, not a new global VOLT identity. Built-ins are content-pinned; project definitions are pinned at v1. Each custom definition can require evidence, block unresolved exceptions, or require controller review. Free-form instructions document intent, not arbitrary executable code. References cannot increase tool permissions or bypass the independent reviewer.
 
