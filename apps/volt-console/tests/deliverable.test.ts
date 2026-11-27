@@ -167,7 +167,8 @@ describe("depth check", () => {
   });
 
   it("puts the depth and differentiation standard in the lead's instructions", () => {
-    expect(leadDeliverableGuide()).toContain(DEPTH_STANDARD);
+    expect(leadDeliverableGuide()).not.toContain(DEPTH_STANDARD);
+    expect(leadDeliverableGuide(undefined,true)).toContain(DEPTH_STANDARD);
     expect(DEPTH_STANDARD).toContain("3,500 to 6,000 words");
     expect(DEPTH_STANDARD).toContain("Never invent credentials");
     expect(DEPTH_STANDARD).toContain("gantt");

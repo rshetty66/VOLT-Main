@@ -387,7 +387,7 @@ function RunView({ run, versions = [], onStop, onRegenerate }: { run: Run; versi
   const work = summariseWork(run);
   const status = runStatus(run);
   // The research engine's gates, run on the finished answer against the run's source register.
-  const gates = run.state !== "running" && run.tier && run.text.trim() ? evidenceGates(run.text, run.sources, run.tier) : [];
+  const gates = run.state !== "running" && run.tier && run.text.trim() ? evidenceGates(run.text, run.sources, run.tier,false) : [];
   const openGates = gates.filter((g) => !g.pass);
   const stage = useStageOpen(run.state === "running");
   // Every specialist, shown as a card of key points once its workstream is finished.

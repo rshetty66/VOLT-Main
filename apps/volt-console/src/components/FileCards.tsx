@@ -3,6 +3,8 @@ import { TemplateContext, chartTables, downloadDeliverable, runFileVersion, type
 import { chartableResults } from "../charts/results";
 import type { ExportTable } from "../../shared/export";
 import { FILE_LABEL, type FileSpec } from "../../shared/files";
+import { clientReferences } from "../../shared/research";
+import { cleanTitle } from "../../shared/clientOutput";
 import { errorText } from "../download";
 import type { ActivityItem, Run } from "../runState";
 
@@ -19,7 +21,8 @@ export function runFiles(run: Run): { id: string; spec: FileSpec }[] {
     .map((it) => {
       const spec = it.data as FileSpec;
       const data = spec.format === "xlsx" || spec.format === "csv" ? [...(spec.tables ?? []), ...results] : spec.tables;
-      return { id: it.id, spec: { ...spec, tables: data?.length ? data : undefined } };
+      const references=spec.hub||spec.format==="xlsx"||spec.format==="csv"?"":clientReferences(spec.markdown,run.sources??[]);
+      return { id: it.id, spec: { ...spec,title:cleanTitle(spec.title),markdown:spec.markdown+references, tables: data?.length ? data : undefined } };
     });
 }
 
