@@ -226,6 +226,8 @@ export function missingViews(markdown: string): string[] {
   if (!titles.some((t) => /business reference architecture/i.test(t))) gaps.push('a business reference architecture: an ```architecture block titled "Business reference architecture: ..." whose layers hold capabilities');
   if (!titles.some((t) => /technology reference architecture/i.test(t))) gaps.push('a technology reference architecture: an ```architecture block titled "Technology reference architecture: ..." whose layers hold the systems and the data flows between them');
   if (!/^```lifecycle\b/m.test(markdown)) gaps.push("a product lifecycle view: a ```lifecycle block showing, stage by stage, the finance touchpoints and what the transformation changes");
+  if (!titles.some((t) => /^AI finance lens/i.test(t))) gaps.push('the AI finance lens: an ```architecture block titled "AI finance lens: ..." with operating model, core finance tech and data, AI-powered finance decisions and stakeholder engagement layers');
+  if (!titles.some((t) => /^Agentic finance platform/i.test(t))) gaps.push('the agentic finance platform: an ```architecture block titled "Agentic finance platform: ..." with enterprise systems, integration (MCP), core finance, agentic framework, automation, finance actors and agentic governance layers');
   if (!/^```fim\b/m.test(markdown)) gaps.push("the finance information model: a ```fim block tracing a key GL balance to its instruments and source, with adjustments at instrument and GL level and the keys carried end to end");
   return gaps;
 }

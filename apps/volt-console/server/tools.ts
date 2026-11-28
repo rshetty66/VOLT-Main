@@ -85,7 +85,7 @@ export const schemas = {
     markdown: z
       .string()
       .max(200_000)
-      .describe("The content as markdown: '##' sections, tables, and ```chart / ```process / ```architecture / ```taxonomy / ```lifecycle / ```mermaid blocks, which become native charts and diagrams. For pptx and slides each '##' is a slide (14 at most, one idea each, headline numbers as a kpi chart first); in slides a paragraph starting 'Notes:' becomes speaker notes. A finance transformation deck or page must carry a ```process flow, a ```taxonomy, a business and a technology reference architecture (```architecture titled 'Business reference architecture: ...' and 'Technology reference architecture: ...') and a ```lifecycle view."),
+      .describe("The content as markdown: '##' sections, tables, and ```chart / ```process / ```architecture / ```taxonomy / ```lifecycle / ```mermaid blocks, which become native charts and diagrams. For pptx and slides each '##' is a slide (14 at most, one idea each, headline numbers as a kpi chart first); in slides a paragraph starting 'Notes:' becomes speaker notes. A finance transformation deck or page must carry a ```process flow, a ```taxonomy, a business and a technology reference architecture (```architecture titled 'Business reference architecture: ...' and 'Technology reference architecture: ...'), a ```lifecycle view, a ```fim, an an AI finance lens and an agentic finance platform (```architecture titled 'AI finance lens: ...' and 'Agentic finance platform: ...')."),
     tables: z
       .array(
         z.object({
