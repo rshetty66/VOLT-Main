@@ -3,12 +3,16 @@
  * Supported: txt, md, csv, tsv, json, xlsx, docx, pptx, pdf (text layer), jpg/jpeg/png (read once by Claude vision into text).
  * A scanned PDF with no text layer is refused with a clear message: there is no OCR on this host.
  * An attachment is the client's data, not instructions: the framing tells the model so.
+ *
+ * The knowledge base (extractForLibrary) keeps any file: zips are unpacked in memory and their documents read; audio,
+ * video and other files are stored with a label, since this host has no transcription.
  */
 import Anthropic from "@anthropic-ai/sdk";
 import ExcelJS from "exceljs";
 import { extractText, getDocumentProxy } from "unpdf";
 import { unzipSync, strFromU8 } from "fflate";
 import { ATTACH_EXTENSIONS, ATTACH_MAX_CHARS_FILE, type Attachment } from "../shared/attachments.js";
+import { htmlText } from "./knowledge.js";
 import type { SourceRegistry } from "./research.js";
 
 export class AttachmentError extends Error {
@@ -25,6 +29,8 @@ export interface Extracted {
   text: string;
   chars: number;
   truncated: boolean;
+  /** Set when the file is stored but its content was not (fully) read, e.g. "Video: stored, not transcribed". */
+  note?: string;
 }
 
 const decodeXml = (s: string) => s.replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, "&");
@@ -128,6 +134,106 @@ export async function extractAttachment(fileName: string, bytes: Uint8Array, max
   text = text.replace(/\r\n?/g, "\n").replace(/\u0000/g, "").trim();
   if (!text) throw new AttachmentError("empty", "No readable text was found in that file.");
   return limitText(name, text, maxChars);
+}
+
+const AUDIO = ["mp3", "wav", "m4a", "aac", "ogg", "oga", "opus", "flac", "wma", "aif", "aiff", "amr"];
+const VIDEO = ["mov", "mp4", "m4v", "avi", "mkv", "webm", "wmv", "mpg", "mpeg", "3gp", "flv"];
+/** Read as plain text in the knowledge base, on top of ATTACH_EXTENSIONS. */
+const PLAIN = ["xml", "yaml", "yml", "log", "sql", "ini", "toml"];
+const IMAGES = ["jpg", "jpeg", "png"];
+
+/** Zip limits: entries looked at, declared unpacked bytes in all and per entry. fflate never unpacks past an entry's declared size. */
+export const ZIP_LIMITS = { entries: 300, totalBytes: 60 * 1024 * 1024, entryBytes: 25 * 1024 * 1024 };
+
+const extOf = (name: string) => (name.includes(".") ? name.split(".").pop()!.toLowerCase() : "");
+const mb = (b: number) => (b >= 1048576 ? `${(b / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(b / 1024))} KB`);
+
+/** The searchable stand-in for a file whose content VOLT cannot read: its name, kind and size, and what to do instead. */
+function stored(name: string, bytes: number, note: string, why: string): Extracted {
+  const text = `[${note}: "${name}", ${mb(bytes)}. ${why} The original is kept in the knowledge base for download. To make its content searchable, add a transcript or summary as a document.]`;
+  return { name, text, chars: text.length, truncated: false, note };
+}
+
+/** An entry name for display only (nothing is ever written to disk from a zip): no drive, root or "..", printable, short. */
+function entryName(raw: string): string {
+  const parts = raw.replace(/\\/g, "/").split("/").filter((p) => p && p !== "." && p !== "..");
+  return parts.join("/").replace(/[\u0000-\u001f\u007f]/g, "").slice(-200) || "entry";
+}
+
+/** Unpacks a zip in memory, within ZIP_LIMITS, and reads each document in it. Images, media and nested zips are listed, not read. */
+async function zipText(name: string, bytes: Uint8Array, maxChars: number): Promise<Extracted> {
+  const listed: string[] = [];
+  let seen = 0;
+  let declared = 0;
+  let skipped = 0;
+  let files: Record<string, Uint8Array>;
+  try {
+    files = unzipSync(bytes, {
+      filter: (f) => {
+        if (f.name.endsWith("/") || /(^|\/)(__MACOSX|\.DS_Store)/.test(f.name)) return false;
+        seen += 1;
+        const ext = extOf(f.name);
+        const readable = (ATTACH_EXTENSIONS as readonly string[]).includes(ext) || PLAIN.includes(ext) || ext === "html" || ext === "htm";
+        const fits = seen <= ZIP_LIMITS.entries && f.originalSize <= ZIP_LIMITS.entryBytes && declared + f.originalSize <= ZIP_LIMITS.totalBytes;
+        if (!readable || IMAGES.includes(ext)) {
+          listed.push(`- ${entryName(f.name)} (${mb(f.originalSize)}, stored in the zip, not read)`);
+          return false;
+        }
+        if (!fits) {
+          skipped += 1;
+          listed.push(`- ${entryName(f.name)} (${mb(f.originalSize)}, not read: over the zip limits)`);
+          return false;
+        }
+        declared += f.originalSize;
+        return true;
+      },
+    });
+  } catch {
+    return stored(name, bytes.length, "Zip: stored, could not be opened", "It may be damaged, encrypted or use an unsupported compression.");
+  }
+  const parts: string[] = [];
+  for (const [raw, data] of Object.entries(files)) {
+    const entry = entryName(raw);
+    try {
+      const got = await extractForLibrary(entry, data, maxChars, { inZip: true });
+      parts.push(`## File: ${entry}\n${got.text}`);
+      listed.push(`- ${entry} (${mb(data.length)}, read)`);
+    } catch {
+      listed.push(`- ${entry} (${mb(data.length)}, could not be read)`);
+    }
+  }
+  const head = `[Zip archive "${name}", ${mb(bytes.length)}: ${seen} file${seen === 1 ? "" : "s"}, ${parts.length} read${skipped ? `, ${skipped} skipped by the zip limits` : ""}.]\n${listed.sort().join("\n")}`;
+  const note = parts.length ? (parts.length < seen ? `Zip: ${parts.length} of ${seen} files read` : undefined) : "Zip: stored, no readable documents inside";
+  return { ...limitText(name, [head, ...parts].join("\n\n"), maxChars), ...(note ? { note } : {}) };
+}
+
+/**
+ * Reads any file for the knowledge base. Documents are read as in a chat; zips are unpacked and read; audio, video and
+ * any other type, or a document with no readable text, is kept with a searchable label instead of being refused.
+ */
+export async function extractForLibrary(fileName: string, bytes: Uint8Array, maxChars: number, opts: { inZip?: boolean } = {}): Promise<Extracted> {
+  const name = fileName.replace(/[\\/]/g, "_").slice(0, 200) || "file";
+  const ext = extOf(name);
+  if (bytes.length === 0) throw new AttachmentError("empty", "That file is empty.");
+  if (ext === "zip" && !opts.inZip) return zipText(name, bytes, maxChars);
+  if (AUDIO.includes(ext)) return stored(name, bytes.length, "Audio: stored, not transcribed", "VOLT cannot listen to audio on this host.");
+  if (VIDEO.includes(ext)) return stored(name, bytes.length, "Video: stored, not transcribed", "VOLT cannot watch video on this host.");
+  if (ext === "html" || ext === "htm") {
+    const page = htmlText(new TextDecoder("utf-8").decode(bytes));
+    if (page.text.trim()) return limitText(name, page.text.trim(), maxChars);
+  } else if (PLAIN.includes(ext)) {
+    const text = new TextDecoder("utf-8").decode(bytes).replace(/\r\n?/g, "\n").replace(/\u0000/g, "").trim();
+    if (text) return limitText(name, text, maxChars);
+  } else if ((ATTACH_EXTENSIONS as readonly string[]).includes(ext)) {
+    try {
+      return await extractAttachment(name, bytes, maxChars);
+    } catch (err) {
+      if (!(err instanceof AttachmentError) || opts.inZip) throw err;
+      return stored(name, bytes.length, "Stored, text not read", err.message);
+    }
+  }
+  if (opts.inZip) throw new AttachmentError("unsupported_type", "not readable");
+  return stored(name, bytes.length, `${ext ? `.${ext} file` : "File"}: stored, not read`, "VOLT reads documents, spreadsheets, slides, PDFs, images, text and zips; this type is kept as is.");
 }
 
 /** Cuts text to `max` characters with a visible marker, e.g. a long knowledge-base document attached to one chat. */
