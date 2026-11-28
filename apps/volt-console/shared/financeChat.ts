@@ -123,16 +123,15 @@ function applyOne(m: FinanceModel, c: ModelChange): string | null {
 }
 
 /**
- * Applies changes in order to a copy of the model. A change is kept only if it applies and adds no validation
- * error; otherwise it is reported in rejected with the reason. The input model is never mutated.
+ * Applies changes in order to a copy of the model. A change is kept only if it applies and the model then has no
+ * validation error at all; otherwise it is reported in rejected with the reason. The input model is never mutated.
  */
 export function applyChanges(model: FinanceModel, changes: ModelChange[]): { model: FinanceModel; applied: string[]; rejected: string[] } {
   let m = structuredClone(model);
-  const before = new Set(validateFinanceModel(m));
   const applied: string[] = [], rejected: string[] = [];
   for (const c of changes) {
     const next = structuredClone(m);
-    const err = applyOne(next, c) ?? validateFinanceModel(next).find((e) => !before.has(e)) ?? null;
+    const err = applyOne(next, c) ?? validateFinanceModel(next)[0] ?? null;
     if (err) rejected.push(`${describeChange(c, m)}: ${err}`);
     else {
       applied.push(describeChange(c, m));

@@ -13,6 +13,7 @@
  *   POST /api/export               build a Word, PowerPoint or Excel download from a deliverable
  *   POST /api/optimize             rough request in, executive prompt out (the user confirms it before it runs)
  *   POST /api/diagrams             description in, validated diagram spec out
+ *   POST /api/finance-model/chat   scenario turn: finance model + message in, answer + validated model changes out
  *   GET  /api/healthz
  *   GET  /api/ledger/review        VOLT Ledger review queue (people only; never a model tool)
  *   POST /api/ledger/review        record an engagement-lead or client decision
@@ -31,6 +32,7 @@ import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { gyanRouter } from "./gyan.js";
+import { checkClientModel, scenarioTurn } from "./financeChat.js";
 import { z } from "zod";
 import { optimizePrompt } from "./optimize.js";
 import { loadCatalog, loadSkillBody, rankSkills } from "./catalog.js";
@@ -46,12 +48,12 @@ import { TemplateError, templateStore } from "./templates.js";
 import { exportRouter } from "./export/route.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
-import { AttachmentError, extractAttachment, limitText } from "./attachments.js";
-import { listUploads, originalPath, readUpload, removeUpload, saveUpload, uploadMeta } from "./uploads.js";
+import { AttachmentError, extractAttachment, extractForLibrary, limitText } from "./attachments.js";
+import { UploadsFullError, listUploads, originalPath, readUpload, removeUpload, saveUpload, updateUpload, uploadMeta } from "./uploads.js";
 import { createProject, deleteChat, isProjectId, listChats, listProjects, restoreChat, saveChat, updateProject } from "./projects.js";
 import { WEB_MAX_BYTES, WebSourceError, checkUrl, fetchPublic, htmlText, renderPage, renderingEnabled, shouldRender } from "./knowledge.js";
 import { DEFAULT_PROJECT_ID, MEMORY_KINDS } from "../shared/projects.js";
-import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../shared/attachments.js";
+import { ATTACH_MAX_BYTES, KB_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../shared/attachments.js";
 import { runBudgetMs } from "./budget.js";
 import { directAsk, quickAsk } from "./deliverable.js";
 import { startHeartbeat } from "./sse.js";
@@ -214,8 +216,9 @@ app.post("/api/attachments/extract", express.raw({ type: () => true, limit: ATTA
 const KB_MAX_CHARS = 2_000_000;
 const projectParam = (v: unknown) => (isProjectId(v) ? v : DEFAULT_PROJECT_ID);
 
-// A file attached in a chat (4 MB, as before) or added to a project's knowledge base (up to 25 MB).
-app.post("/api/uploads", express.raw({ type: () => true, limit: WEB_MAX_BYTES }), async (req, res) => {
+// A file attached in a chat (4 MB, chat file types) or added on the Knowledge base page (X-Knowledge-Base: 1): any type up to
+// KB_MAX_FILE_MB. Zips are read in memory; audio, video and other types are kept with a label (no transcription on this host).
+app.post("/api/uploads", express.raw({ type: () => true, limit: KB_MAX_BYTES }), async (req, res) => {
   const data = Buffer.isBuffer(req.body) ? new Uint8Array(req.body) : new Uint8Array(0);
   if (data.length === 0) return void res.status(400).json({ error: "Send the file as the request body.", code: "empty" });
   let name = req.get("x-file-name") ?? "attachment";
@@ -225,11 +228,20 @@ app.post("/api/uploads", express.raw({ type: () => true, limit: WEB_MAX_BYTES })
     /* keep the raw header */
   }
   try {
-    const extracted = await extractAttachment(name, data, KB_MAX_CHARS);
-    const meta = saveUpload(extracted, data, { projectId: projectParam(req.get("x-project-id")) });
-    res.json({ ...limitText(extracted.name, extracted.text), id: meta.id });
+    const library = req.get("x-knowledge-base") === "1";
+    if (!library && data.length > WEB_MAX_BYTES) return void res.status(413).json({ error: "That upload or request is larger than this endpoint allows." });
+    const extracted = library ? await extractForLibrary(name, data, KB_MAX_CHARS) : await extractAttachment(name, data, KB_MAX_CHARS);
+    let folder: string | undefined;
+    try {
+      folder = decodeURIComponent(req.get("x-folder") ?? "") || undefined;
+    } catch {
+      /* no folder */
+    }
+    const meta = saveUpload(extracted, data, { projectId: projectParam(req.get("x-project-id")), folder });
+    res.json({ ...limitText(extracted.name, extracted.text), id: meta.id, ...(meta.note ? { note: meta.note } : {}) });
   } catch (err) {
     if (err instanceof AttachmentError) return void res.status(err.code === "unsupported_type" ? 415 : 422).json({ error: err.message, code: err.code });
+    if (err instanceof UploadsFullError) return void res.status(507).json({ error: err.message, code: "full" });
     console.error("Upload failed", err);
     res.status(500).json({ error: "That file could not be read.", code: "unreadable" });
   }
@@ -270,6 +282,7 @@ async function readUrlSource(url: string): Promise<{ extracted: Awaited<ReturnTy
 
 function urlSourceFailed(res: express.Response, err: unknown) {
   if (err instanceof UrlSourceError) return void res.status(err.status).json({ error: err.message });
+  if (err instanceof UploadsFullError) return void res.status(507).json({ error: err.message });
   if (err instanceof WebSourceError || err instanceof AttachmentError) return void res.status(422).json({ error: err.message });
   console.error("URL source failed", err);
   res.status(500).json({ error: "That page could not be read." });
@@ -298,8 +311,18 @@ app.post("/api/uploads/:id/refresh", async (req, res) => {
   }
 });
 
+// With a project: its knowledge base (own files plus those shared with all projects), active or with archived=1 archived.
 app.get("/api/uploads", (req, res) => {
-  res.json(listUploads(typeof req.query.projectId === "string" ? projectParam(req.query.projectId) : undefined));
+  res.json(listUploads(typeof req.query.projectId === "string" ? projectParam(req.query.projectId) : undefined, { archived: req.query.archived === "1" }));
+});
+
+// Folder, "use in all projects" and archive or restore.
+app.patch("/api/uploads/:id", express.json({ limit: "2kb" }), (req, res) => {
+  const body = z.object({ folder: z.string().max(200).nullable().optional(), allProjects: z.boolean().optional(), archived: z.boolean().optional() }).strict().safeParse(req.body);
+  if (!body.success) return void res.status(400).json({ error: "Send folder, allProjects or archived." });
+  const meta = updateUpload(req.params.id, body.data);
+  if (!meta) return void res.status(404).json({ error: "unknown upload" });
+  res.json(meta);
 });
 
 app.get("/api/uploads/:id", (req, res) => {
@@ -517,6 +540,23 @@ app.post("/api/diagrams", express.json({ limit: "64kb" }), async (req, res) => {
     res.json(await generateDiagram(description, mode === "live", controller.signal));
   } catch (err) {
     res.status(502).json({ error: err instanceof Error ? err.message : "Could not build the diagram." });
+  }
+});
+
+app.post("/api/finance-model/chat", express.json({ limit: "512kb" }), async (req, res) => {
+  const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+  if (message.length < 3 || message.length > 4000) return void res.status(400).json({ error: "Describe the scenario in up to 4,000 characters." });
+  const model = checkClientModel(req.body?.model);
+  if (!model) return void res.status(400).json({ error: "The finance model is not valid. Reset the views and try again." });
+  const history = (Array.isArray(req.body?.history) ? req.body.history : [])
+    .filter((t: { role?: unknown; text?: unknown }) => (t?.role === "user" || t?.role === "assistant") && typeof t.text === "string")
+    .slice(-8);
+  const controller = new AbortController();
+  res.on("close", () => controller.abort());
+  try {
+    res.json(await scenarioTurn(model, history, message, mode === "live", controller.signal));
+  } catch (err) {
+    res.status(502).json({ error: err instanceof Error ? err.message : "The scenario assistant could not answer." });
   }
 });
 

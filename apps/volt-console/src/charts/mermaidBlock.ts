@@ -6,3 +6,5 @@ export const isChart = (className: string | undefined) => /(^|\s)language-chart(
 /** A ```process block: a process flow as JSON, drawn as swimlanes (see shared/viz.ts). */
 export const isProcess = (className: string | undefined) => /(^|\s)language-process(\s|$)/.test(className ?? "");
 export const isArchitecture = (className: string | undefined) => /(^|\s)language-architecture(\s|$)/.test(className ?? "");
+/** A ```taxonomy or ```lifecycle block: an executive view as JSON (see shared/views.ts). Returns the fence name. */
+export const viewKind = (className: string | undefined) => /(^|\s)language-(taxonomy|lifecycle|fim)(\s|$)/.exec(className ?? "")?.[2];

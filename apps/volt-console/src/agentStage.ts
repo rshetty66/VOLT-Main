@@ -103,9 +103,36 @@ export function describeTool(name: string, detail = ""): string {
 }
 
 const CAPTION_MAX = 26;
+/**
+ * Shorten a caption without cutting a word or a number in half ("NPV $99..." is worse than nothing): end at the last
+ * clause ("Saving $2.52M/yr, NPV $991k" becomes "Saving $2.52M/yr…"), else at the last whole word.
+ */
 export function clip(text: string, max = CAPTION_MAX): string {
   const t = text.replace(/\s+/g, " ").trim();
-  return t.length > max ? `${t.slice(0, max - 1).trimEnd()}…` : t;
+  if (t.length <= max) return t;
+  const head = t.slice(0, max + 1); // one more, so a word that ends exactly at the limit is kept
+  const clause = Math.max(head.lastIndexOf(", "), head.lastIndexOf("; "), head.lastIndexOf(" - "));
+  const space = head.lastIndexOf(" ");
+  const cut = clause >= max * 0.4 ? clause : space > 0 ? space : max - 1;
+  return `${t.slice(0, cut).replace(/[\s,;:.\-]+$/, "")}…`;
+}
+
+/** A hand-off chip under the flow; the same hand-off said again counts up instead of taking another chip. */
+export interface HandoffChip {
+  key: string;
+  from: string;
+  to: string;
+  label: string;
+  count: number;
+}
+
+export function mergeHandoffs(prev: HandoffChip[], fresh: Omit<HandoffChip, "count">[], max = 4): HandoffChip[] {
+  let out = [...prev];
+  for (const h of fresh) {
+    const same = out.find((c) => c.from === h.from && c.to === h.to && c.label === h.label);
+    out = same ? [{ ...same, count: same.count + 1 }, ...out.filter((c) => c !== same)] : [{ ...h, count: 1 }, ...out];
+  }
+  return out.slice(0, max);
 }
 
 /** Status lines that are routing notes ("Model: Opus for the lead ...") say nothing about the work, so they are skipped. */

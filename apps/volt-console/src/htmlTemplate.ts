@@ -127,7 +127,7 @@ export function referenceLayout(html: string): string {
     })
     .replace(/<p><strong>So what:?<\/strong>:?\s*([\s\S]*?)<\/p>/g, (_m, p: string) => `<aside class="sowhat" aria-label="So what"><b>So what</b><p>${p}</p></aside>`)
     .replace(/<p>(?=(?:<(?:em|strong)>)?Sources?:)/g, '<p class="src">')
-    .replace(/(?:<figure class="chart">[\s\S]*?<\/figure>\s*){2,}/g, (run: string) => `<div class="figs">${run}</div>`);
+    .replace(/(?:<figure class="chart"[^>]*>[\s\S]*?<\/figure>\s*){2,}/g, (run: string) => `<div class="figs">${run}</div>`);
 }
 
 /** A KPI chart as the reference's strip of flat tiles: value, label, change against the comparison and a sparkline. */
@@ -240,21 +240,69 @@ figure svg{max-inline-size:100%;block-size:auto;display:block}
 .files a:hover{background:var(--gold);color:var(--bg)}
 footer{border-top:1px solid var(--bd);padding:14px 28px;color:var(--mu);font-size:12px;text-align:center}
 @media (max-width:1100px){main{padding:20px 16px}h1,h2.pt{font-size:28px}.top{padding:10px 16px;gap:12px}.cap{grid-template-columns:1fr}}
+/* Static view: nothing moves, everything is drawn in full. */
+.static *,.static *::before,.static *::after{animation:none!important;transition:none!important}
+html.static figure.chart svg{clip-path:none!important}
+.tools{display:flex;gap:6px;margin-left:auto}
+.tools a,.tools button{border:1px solid var(--bd);padding:6px 10px;font-size:12.5px;border-radius:2px;color:var(--mu);text-decoration:none;background:var(--p1)}
+.tools a:hover,.tools button:hover{color:var(--tx);border-color:var(--cyan)}
+.tools button[aria-pressed=true]{color:var(--cyan);border-color:var(--cyan)}
+/* Contents: every section and subsection, one click away. */
+.toc{background:var(--p1);border:1px solid var(--bd);padding:14px 18px;margin:0 0 26px;columns:2 300px;column-gap:36px}
+.toc b{display:block;column-span:all;color:var(--cyan);text-transform:uppercase;letter-spacing:.1em;font-size:12px;margin-bottom:10px}
+.toc .sec{break-inside:avoid;margin:0 0 10px}
+.toc .sec>a{color:var(--tx);text-decoration:none;font-weight:600}
+.toc .sec>a span{color:var(--gold);font-weight:700;margin-right:8px}
+.toc ul{margin:4px 0 0 26px;padding:0;list-style:none;font-size:12.5px}
+.toc li{margin:0 0 2px}.toc li a{color:var(--mu);text-decoration:none}
+.toc a:hover,.toc li a:hover{color:var(--cyan)}
+.page>h3{scroll-margin-top:70px}
+.page .vt-col,.page .vl-stage,.page .vf-col{animation:build .6s var(--ease) both;animation-delay:calc(var(--vp-i,0) * 80ms)}
 ${VIZ_CSS}
 @media (prefers-reduced-motion:reduce){.page,.page .va-band,.page .vp-step{animation:none}.js figure.chart svg{clip-path:none!important;transition:opacity .2s}.vp-link.on path{animation:none}}
-@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact}.top,.ctl,.dots,.files{display:none!important}.page,.page[hidden]{display:block!important;break-after:page}main{max-inline-size:none;padding:12px}.js figure.chart svg{clip-path:none}figure,.card,.kpi{break-inside:avoid}}
+@media print{*{-webkit-print-color-adjust:exact;print-color-adjust:exact;animation:none!important}.top,.ctl,.dots,.files,.toc{display:none!important}.page,.page[hidden]{display:block!important;break-after:page}main{max-inline-size:none;padding:12px}.js figure.chart svg{clip-path:none}figure,.card,.kpi{break-inside:avoid}}
 `;
 
 /** Tabs, chart reveal and the process walkthrough. Plain ES2017, no dependencies; the page reads fine without it. */
-export const SCRIPT = `${VIZ_SCRIPT}
+export const SCRIPT = `
+(function(){
+  // Static view: ?static in the address, or the toolbar's Animation button (remembered on this browser).
+  var root = document.documentElement, KEY = 'volt-static', saved = null;
+  try { saved = localStorage.getItem(KEY); } catch (e) {}
+  function label(){ Array.prototype.forEach.call(document.querySelectorAll('[data-static-toggle]'), function(b){ var on = root.classList.contains('static'); b.setAttribute('aria-pressed', on); b.textContent = on ? 'Animation off' : 'Animation on'; }); }
+  root.classList.toggle('static', /[?&]static\\b/.test(location.search) || saved === '1');
+  document.addEventListener('DOMContentLoaded', label);
+  document.addEventListener('click', function(e){
+    var b = e.target.closest && e.target.closest('[data-static-toggle]'); if (!b) return;
+    var on = !root.classList.contains('static'); root.classList.toggle('static', on);
+    try { localStorage.setItem(KEY, on ? '1' : '0'); } catch (err) {}
+    label(); document.dispatchEvent(new Event('voltstatic'));
+  });
+  label();
+})();
+${VIZ_SCRIPT}
 (function(){
   document.documentElement.classList.add('js');
-  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var still = function(){ return (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) || document.documentElement.classList.contains('static'); };
+  var reduce = still();
+  document.addEventListener('voltstatic', function(){ reduce = still(); });
   var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   function reveal(page){
     $$('figure.chart', page).forEach(function(f, i){ setTimeout(function(){ f.classList.add('in'); }, reduce ? 0 : 120 * i); });
   }
   var tabs = $$('.tab'), pages = $$('.page');
+  // Contents links name a section (#s3) or a subsection in it (#s3-2): open its page, then scroll to the subsection.
+  function go(id){
+    var t = document.getElementById(id); if (!t) return false;
+    var page = t.classList.contains('page') ? t : t.closest('.page'); if (!page) return false;
+    show(page.id);
+    if (t !== page) setTimeout(function(){ t.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' }); if (history.replaceState) history.replaceState(null, '', '#' + id); }, 30);
+    return true;
+  }
+  document.addEventListener('click', function(e){
+    var a = e.target.closest && e.target.closest('a[href^="#s"]'); if (!a) return;
+    if (go(a.getAttribute('href').slice(1))) e.preventDefault();
+  });
   function show(id, focus){
     tabs.forEach(function(t){ var on = t.getAttribute('aria-controls') === id; t.setAttribute('aria-selected', on); t.tabIndex = on ? 0 : -1; if (on && focus) t.focus(); });
     pages.forEach(function(p){ p.hidden = p.id !== id; if (p.id === id) reveal(p); });
@@ -268,14 +316,15 @@ export const SCRIPT = `${VIZ_SCRIPT}
       if (k) { e.preventDefault(); show(tabs[(i + k + tabs.length) % tabs.length].getAttribute('aria-controls'), true); }
     });
   });
-  var start = location.hash && document.getElementById(location.hash.slice(1));
-  if (pages.length) show(start && start.classList.contains('page') ? start.id : pages[0].id);
+  if (pages.length && !(location.hash && go(location.hash.slice(1)))) show(pages[0].id);
 
   var viz = window.voltViz;
   $$('.flow').forEach(function(flow){
     var data; try { data = JSON.parse(flow.getAttribute('data-steps') || '[]'); } catch (e) { return; }
     viz.flow(flow, data);
   });
+  $$('figure.arch').forEach(function(fig){ viz.arch(fig); });
+  $$('figure.view').forEach(function(fig){ viz.tax(fig); });
   $$('figure.chart[data-spec]').forEach(function(fig){
     var spec; try { spec = JSON.parse(fig.getAttribute('data-spec')); } catch (e) { return; }
     viz.chart(fig, spec);
@@ -295,11 +344,27 @@ export function voltHtml(d: HtmlDeliverable): string {
   const tabs = many
     ? `<nav class="tabs" role="tablist" aria-label="Sections">${d.pages.map((p, i) => `<button class="tab" role="tab" id="t-${id(i)}" aria-controls="${id(i)}" aria-selected="${i === 0}" title="${esc(plain(p.title))}"><span>${String(i + 1).padStart(2, "0")}</span>${esc(tabLabel(p.title))}</button>`).join("")}</nav>`
     : "";
+  // Subsections get ids (s2-1, s2-2, ...) so the contents can link straight to them.
+  const pagesHtml = d.pages.map((p, i) => {
+    let k = 0;
+    return p.html.replace(/<h3>/g, () => `<h3 id="${id(i)}-${++k}">`);
+  });
+  const toc = many
+    ? `<nav class="toc" aria-label="Contents"><b>Contents</b>${d.pages
+        .map((p, i) => {
+          const subs = [...pagesHtml[i].matchAll(/<h3 id="([^"]+)">([\s\S]*?)<\/h3>/g)].map((m) => `<li><a href="#${m[1]}">${m[2].replace(/<[^>]+>/g, "")}</a></li>`);
+          return `<div class="sec"><a href="#${id(i)}"><span>${String(i + 1).padStart(2, "0")}</span>${esc(plain(p.title))}</a>${subs.length ? `<ul>${subs.join("")}</ul>` : ""}</div>`;
+        })
+        .join("")}</nav>`
+    : "";
   const files = d.files?.length ? `<nav class="files" aria-label="Files">${d.files.map((f) => `<a href="${esc(f.href)}" download="${esc(f.name)}">Download ${esc(f.label)}</a>`).join("")}</nav>` : "";
   const body = d.pages
     .map((p, i) => {
       const head = i === 0 ? `<h1>${esc(d.title)}</h1>${d.subtitle ? `<p class="lede">${esc(d.subtitle)}</p>` : ""}${files}` : `<h2 class="pt">${esc(plain(p.title))}</h2>`;
-      const html = referenceLayout(i === 0 ? withSoWhat(p.html) : p.html.replace(/^\s*<p>/, '<p class="lede">'));
+      const src = pagesHtml[i];
+      let html = referenceLayout(i === 0 ? withSoWhat(src) : src.replace(/^\s*<p>/, '<p class="lede">'));
+      // The contents sit on the first page, under the answer.
+      if (i === 0 && toc) html = /<\/aside>/.test(html) ? html.replace(/<\/aside>/, () => `</aside>${toc}`) : toc + html;
       return `<section class="page" id="${id(i)}"${many ? ` role="tabpanel" aria-labelledby="t-${id(i)}"` : ""}${i > 0 ? " hidden" : ""}>${head}${html}</section>`;
     })
     .join("\n");
@@ -308,7 +373,7 @@ export function voltHtml(d: HtmlDeliverable): string {
 <meta name="generator" content="VOLT Console">
 <title>${esc(d.title)}</title>
 <style>${CSS}</style></head><body>
-<header class="top"><div class="brand"><span class="mark" aria-hidden="true">V</span><b>VOLT</b><small>Vision, Orchestrate, Launch, Transform</small></div>${tabs}</header>
+<header class="top"><div class="brand"><span class="mark" aria-hidden="true">V</span><b>VOLT</b><small>Vision, Orchestrate, Launch, Transform</small></div>${tabs}<div class="tools">${many ? '<a href="#s1">Contents</a>' : ""}<button type="button" data-static-toggle aria-pressed="false">Animation on</button><button type="button" onclick="window.print()">Print</button></div></header>
 <main>
 ${body}
 </main>

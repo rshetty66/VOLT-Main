@@ -86,3 +86,17 @@ describe("scenarioTurn", () => {
     expect(modelBrief(REFERENCE_MODEL)).toContain("PCF 9.3.2.6");
   });
 });
+
+describe("scenario assistant guards", () => {
+  it("rate-limits the chat route as a cost-bearing model call", async () => {
+    const { COSTLY } = await import("../server/security");
+    expect(COSTLY.some((re) => re.test("/api/finance-model/chat"))).toBe(true);
+  });
+  it("applies nothing to a model that is already invalid", () => {
+    const bad = structuredClone(REFERENCE_MODEL);
+    bad.agents[0].on = ["ghost"];
+    const r = applyChanges(bad, [{ op: "rate_activity", activity: "Run depreciation", impact: "moderate" }]);
+    expect(r.applied).toEqual([]);
+    expect(r.rejected[0]).toMatch(/ghost/);
+  });
+});
