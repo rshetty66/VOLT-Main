@@ -26,6 +26,16 @@ services:
         value: "off"
       - key: BUILDER_EXECUTION_ENABLED
         value: "false"
+      - key: GYAN_INTERNAL_HOSTPORT
+        fromService:
+          type: pserv
+          name: volt-gyan-runtime
+          property: hostport
+      - key: GYAN_INTERNAL_TOKEN
+        fromService:
+          type: pserv
+          name: volt-gyan-runtime
+          envVarKey: GYAN_INTERNAL_TOKEN
       - key: VOLT_HOST
         value: 0.0.0.0
       - key: VOLT_TRUST_PROXY
@@ -59,3 +69,22 @@ services:
         generateValue: true
       - key: PORT
         value: "8790"
+
+  # Opt in by approving this infrastructure change. The private runtime is billed
+  # separately and starts with no project memberships and no vendor credentials.
+  - type: pserv
+    name: volt-gyan-runtime
+    runtime: docker
+    dockerfilePath: ./apps/gyan-agents/Dockerfile
+    dockerContext: .
+    numInstances: 1
+    plan: starter
+    disk:
+      name: gyan-state
+      mountPath: /state
+      sizeGB: 1
+    envVars:
+      - key: GYAN_INTERNAL_TOKEN
+        generateValue: true
+      - key: PORT
+        value: "8000"

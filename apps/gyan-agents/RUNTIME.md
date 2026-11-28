@@ -24,6 +24,8 @@ Set `GYAN_INTERNAL_TOKEN` on the private service and console via the host's secr
 
 The private service accepts only a trusted gateway token and server-issued project, actor and role. The console proxy never forwards user-supplied identity headers; it resolves the signed login and the server-owned access map. Provisioning a new service, changing sign-in, and connecting actual financial systems are separate operator actions.
 
+On Render the repository Blueprint declares a single `volt-gyan-runtime` private Starter instance and a new 1 GB `/state` disk. Check the existing environment for an equivalent service before applying, review the new recurring charge, and do not create another instance if one already exists. `GYAN_INTERNAL_HOSTPORT` resolves the private address and the console references the runtime's generated secret; no secret needs to be copied into chat. `GYAN_INTERNAL_URL` still takes precedence for other deployments. This change does not assign any account or alter existing sign-in. After provisioning, verify private `/health` from the console, then use an independently approved password-mode rollout and per-project membership list to test the protected catalog and acceptance prompt. A `403` in username mode means access remains closed, not that simulation is ready.
+
 ## Data and verification
 
 - Import a project Knowledge file or upload CSV, TSV, structured TXT, XLSX (separate visible sheets), or a text PDF. The API also accepts `widths` for fixed-width TXT, `delimiter`, or `text_mode:"notes"`. Formula workbooks, encrypted/image-only PDFs, ambiguous inputs, or oversized files are rejected without becoming usable snapshots. Free text is evidence, not a verified money table.
