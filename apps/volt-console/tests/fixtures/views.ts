@@ -113,11 +113,45 @@ const fim = {
   source: "Illustrative [ASSUMPTION]",
 };
 
+const aiLens = {
+  title: "AI finance lens: finance owns the data spine AI depends on",
+  layers: [
+    { name: "Finance operating model", items: [{ name: "AI control tower", status: "new" }, { name: "Value capture office", status: "new" }] },
+    { name: "Core finance technology and data", items: [{ name: "Accounting hub and subledger", status: "new" }, { name: "Lineage and data quality", status: "new" }, { name: "LLM gateway", status: "new" }] },
+    { name: "AI-powered finance decisions", badge: "Biggest prize", items: [{ name: "Reconciliation matcher", status: "new" }, { name: "Journal entry reviewer", status: "new" }, { name: "Balance-sheet twin", status: "new" }] },
+    { name: "Stakeholder engagement", items: [{ name: "Ask-the-ledger copilot", status: "new" }, { name: "Living board and ALCO packs", status: "new" }] },
+  ],
+  flows: [
+    { from: "Lineage and data quality", to: "Reconciliation matcher", label: "trusted data" },
+    { from: "Reconciliation matcher", to: "Ask-the-ledger copilot", label: "answers" },
+  ],
+  note: "No lineage, no regulator-ready AI",
+};
+
+const agentic = {
+  title: "Agentic finance platform: agents inside finance platforms, one control plane",
+  layers: [
+    { name: "Enterprise systems and data", items: [{ name: "Core banking", status: "keep" }, { name: "Finance lakehouse", status: "new" }] },
+    { name: "Integration", items: [{ name: "APIs and events", status: "keep" }, { name: "MCP gateway", status: "new" }] },
+    { name: "Core finance", items: [{ name: "GL and accounting hub", status: "keep" }, { name: "Reconciliation and close", status: "keep" }] },
+    { name: "Agentic framework", items: [{ name: "Embedded agents", status: "new" }, { name: "Human handoff and sign-off", status: "new" }] },
+    { name: "Automation", items: [{ name: "Close task manager", status: "keep" }] },
+    { name: "Finance actors and experience", items: [{ name: "Controllers and FP&A", status: "keep" }, { name: "CFO copilot", status: "new" }] },
+    { name: "Agentic governance", items: [{ name: "Agent control plane", status: "new" }, { name: "Evaluations against the ledger", status: "new" }] },
+  ],
+  flows: [
+    { from: "Core banking", to: "MCP gateway", label: "balances" },
+    { from: "MCP gateway", to: "Embedded agents", label: "context" },
+    { from: "Embedded agents", to: "GL and accounting hub", label: "proposals" },
+    { from: "GL and accounting hub", to: "CFO copilot", label: "answers" },
+  ],
+};
+
 const block = (lang: string, o: unknown) => "```" + lang + "\n" + JSON.stringify(o) + "\n```\n";
 
-export const VIEWS = { process, taxonomy, business, technology, lifecycle, fim };
+export const VIEWS = { process, taxonomy, business, technology, lifecycle, fim, aiLens, agentic };
 
-/** The six views as deliverable markdown, one "##" section each. */
+/** The eight views as deliverable markdown, one "##" section each. */
 export const VIEWS_MD = `
 ## Process view: seven close steps move before month-end
 
@@ -136,4 +170,10 @@ ${block("architecture", technology)}
 ${block("lifecycle", lifecycle)}
 ## Finance information model: the mortgage balance ties to its contracts
 
-${block("fim", fim)}`;
+${block("fim", fim)}
+## AI finance lens: recon and journal agents come first, on a clean data spine
+
+${block("architecture", aiLens)}
+## Agentic finance platform: agents sit inside the ledger, under one control plane
+
+${block("architecture", agentic)}`;
