@@ -31,6 +31,8 @@ export interface UploadMeta {
   url?: string;
   /** For a web source: when the page was last read (added or refreshed). */
   readAt?: number;
+  /** Set when the file is kept but its content was not (fully) read: audio, video, other types, part of a zip. */
+  note?: string;
 }
 
 const projectOf = (m: UploadMeta) => m.projectId ?? DEFAULT_PROJECT_ID;
@@ -75,7 +77,7 @@ export function saveUpload(extracted: Extracted, original: Uint8Array, opts: { p
   for (const m of listUploads(projectId)) if (opts.url ? m.url === opts.url : !m.url && m.name === extracted.name) removeUpload(m.id);
   const id = opts.keep?.id ?? crypto.randomUUID();
   const ext = opts.url ? "url" : extracted.name.includes(".") ? extracted.name.split(".").pop()!.toLowerCase() : "";
-  const meta: UploadMeta = { id, name: extracted.name, ext, bytes: original.length, chars: extracted.chars, truncated: extracted.truncated, createdAt: opts.keep?.createdAt ?? Math.max(Date.now(), (listUploads()[0]?.createdAt ?? 0) + 1), uses: opts.keep?.uses ?? 0, projectId, ...(opts.url ? { url: opts.url, readAt: Date.now() } : {}) };
+  const meta: UploadMeta = { id, name: extracted.name, ext, bytes: original.length, chars: extracted.chars, truncated: extracted.truncated, createdAt: opts.keep?.createdAt ?? Math.max(Date.now(), (listUploads()[0]?.createdAt ?? 0) + 1), uses: opts.keep?.uses ?? 0, projectId, ...(extracted.note ? { note: extracted.note } : {}), ...(opts.url ? { url: opts.url, readAt: Date.now() } : {}) };
   fs.writeFileSync(path.join(root(), `${id}.bin`), original);
   fs.writeFileSync(path.join(root(), `${id}.txt`), extracted.text);
   fs.writeFileSync(path.join(root(), `${id}.json`), JSON.stringify(meta));

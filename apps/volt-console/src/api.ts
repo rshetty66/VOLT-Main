@@ -38,11 +38,12 @@ export async function extractAttachment(file: File): Promise<{ name: string; tex
   return body;
 }
 
-export interface UploadMeta { id: string; name: string; ext: string; bytes: number; chars: number; truncated: boolean; createdAt: number; uses: number; projectId?: string; url?: string; readAt?: number }
+export interface UploadMeta { id: string; name: string; ext: string; bytes: number; chars: number; truncated: boolean; createdAt: number; uses: number; projectId?: string; url?: string; readAt?: number; note?: string }
 
 /** Reads a file and keeps it in the active project's knowledge base (the uploads library); returns its text and library id. */
-export async function uploadAttachment(file: File): Promise<{ id: string; name: string; text: string; chars: number; truncated: boolean }> {
-  const r = await fetch("/api/uploads", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name), "X-Project-Id": activeProject() }, body: file });
+/** `library` is the Knowledge base page: any file type, up to KB_MAX_FILE_MB. A chat attachment stays to the chat types. */
+export async function uploadAttachment(file: File, opts: { library?: boolean } = {}): Promise<{ id: string; name: string; text: string; chars: number; truncated: boolean; note?: string }> {
+  const r = await fetch("/api/uploads", { method: "POST", headers: { "Content-Type": "application/octet-stream", "X-File-Name": encodeURIComponent(file.name), "X-Project-Id": activeProject(), ...(opts.library ? { "X-Knowledge-Base": "1" } : {}) }, body: file });
   const body = await r.json().catch(() => ({}));
   if (!r.ok) throw new Error(body.error ?? (r.status === 413 ? "That file is too large." : `Could not read that file (${r.status})`));
   return body;

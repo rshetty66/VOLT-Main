@@ -46,12 +46,12 @@ import { TemplateError, templateStore } from "./templates.js";
 import { exportRouter } from "./export/route.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
-import { AttachmentError, extractAttachment, limitText } from "./attachments.js";
+import { AttachmentError, extractAttachment, extractForLibrary, limitText } from "./attachments.js";
 import { listUploads, originalPath, readUpload, removeUpload, saveUpload, uploadMeta } from "./uploads.js";
 import { createProject, deleteChat, isProjectId, listChats, listProjects, restoreChat, saveChat, updateProject } from "./projects.js";
 import { WEB_MAX_BYTES, WebSourceError, checkUrl, fetchPublic, htmlText, renderPage, renderingEnabled, shouldRender } from "./knowledge.js";
 import { DEFAULT_PROJECT_ID, MEMORY_KINDS } from "../shared/projects.js";
-import { ATTACH_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../shared/attachments.js";
+import { ATTACH_MAX_BYTES, KB_MAX_BYTES, ATTACH_MAX_CHARS_FILE, ATTACH_MAX_CHARS_TOTAL, ATTACH_MAX_FILES } from "../shared/attachments.js";
 import { runBudgetMs } from "./budget.js";
 import { directAsk, quickAsk } from "./deliverable.js";
 import { startHeartbeat } from "./sse.js";
@@ -214,8 +214,9 @@ app.post("/api/attachments/extract", express.raw({ type: () => true, limit: ATTA
 const KB_MAX_CHARS = 2_000_000;
 const projectParam = (v: unknown) => (isProjectId(v) ? v : DEFAULT_PROJECT_ID);
 
-// A file attached in a chat (4 MB, as before) or added to a project's knowledge base (up to 25 MB).
-app.post("/api/uploads", express.raw({ type: () => true, limit: WEB_MAX_BYTES }), async (req, res) => {
+// A file attached in a chat (4 MB, chat file types) or added on the Knowledge base page (X-Knowledge-Base: 1): any type up to
+// KB_MAX_FILE_MB. Zips are read in memory; audio, video and other types are kept with a label (no transcription on this host).
+app.post("/api/uploads", express.raw({ type: () => true, limit: KB_MAX_BYTES }), async (req, res) => {
   const data = Buffer.isBuffer(req.body) ? new Uint8Array(req.body) : new Uint8Array(0);
   if (data.length === 0) return void res.status(400).json({ error: "Send the file as the request body.", code: "empty" });
   let name = req.get("x-file-name") ?? "attachment";
@@ -225,9 +226,11 @@ app.post("/api/uploads", express.raw({ type: () => true, limit: WEB_MAX_BYTES })
     /* keep the raw header */
   }
   try {
-    const extracted = await extractAttachment(name, data, KB_MAX_CHARS);
+    const library = req.get("x-knowledge-base") === "1";
+    if (!library && data.length > WEB_MAX_BYTES) return void res.status(413).json({ error: "That upload or request is larger than this endpoint allows." });
+    const extracted = library ? await extractForLibrary(name, data, KB_MAX_CHARS) : await extractAttachment(name, data, KB_MAX_CHARS);
     const meta = saveUpload(extracted, data, { projectId: projectParam(req.get("x-project-id")) });
-    res.json({ ...limitText(extracted.name, extracted.text), id: meta.id });
+    res.json({ ...limitText(extracted.name, extracted.text), id: meta.id, ...(meta.note ? { note: meta.note } : {}) });
   } catch (err) {
     if (err instanceof AttachmentError) return void res.status(err.code === "unsupported_type" ? 415 : 422).json({ error: err.message, code: err.code });
     console.error("Upload failed", err);
