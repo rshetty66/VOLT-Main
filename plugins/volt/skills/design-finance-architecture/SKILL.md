@@ -49,6 +49,13 @@ Read [references/mortgage-lifecycle.md](references/mortgage-lifecycle.md) for le
 [references/sources.md](references/sources.md) and refresh authoritative sources when decisions depend on current
 releases, regulations or standards.
 
+For an executive deck or page, read
+[references/future-of-finance-pages-prompt.md](references/future-of-finance-pages-prompt.md): the reference
+architecture layers (source systems, provisioning area, accounting and analytical engines, analysis and reporting) and
+the L1-L4 process taxonomy. Every finance transformation deliverable shows five views: a process flow, the process
+taxonomy with APQC PCF ids, a business reference architecture, a technology reference architecture and a product
+lifecycle view of what changes at each stage.
+
 Use `assets/event.schema.json`, `assets/rule.schema.json` and `assets/result.schema.json` as canonical contracts. Use
 `assets/mortgage-demo.json` and `assets/mapping-demo.json` only as synthetic validation data. Run, from this skill's
 folder:

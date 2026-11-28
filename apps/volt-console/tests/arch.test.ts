@@ -116,8 +116,9 @@ describe("architecture drawing", () => {
     const spec = parseArchSpec(JSON.stringify({ title: "T", layers: [{ name: "Sources", items: [long, long + " two", long + " three", long + " four"] }, { name: "GL", items: ["Ledger"] }] }))!;
     const svg = archSvg(spec, DARK);
     expect(svg).not.toContain("...");
-    expect(svg).toContain(">Enterprise performance management consolidation</text>");
-    const ys = new Set([...svg.matchAll(/<rect x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="39" rx="5"/g)].map((m) => m[1]));
+    expect(svg).toContain(">Enterprise performance management</text>");
+    expect(svg).toContain(">consolidation</text>");
+    const ys = new Set([...svg.matchAll(/<rect x="[\d.]+" y="([\d.]+)" width="[\d.]+" height="56" rx="5"/g)].map((m) => m[1]));
     expect(ys.size).toBe(3); // two rows of chips in Sources, one in GL
   });
 });

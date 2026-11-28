@@ -14,7 +14,10 @@
 export const VIZ_SCRIPT = `
 (function(){
   if (window.voltViz) return;
-  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var reduce0 = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  // Reduced motion, or the static view the page and deck toolbars switch on: no tokens, draws or timers that move.
+  function still(){ return reduce0 || document.documentElement.classList.contains('static'); }
+  var reduce = reduce0;
   var $$ = function(s, r){ return Array.prototype.slice.call((r || document).querySelectorAll(s)); };
   function esc(s){ return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
   function fmt(v){
@@ -214,7 +217,7 @@ export const VIZ_SCRIPT = `
     }
     // A token runs along each hand-off into the current step, so the reader sees the work move.
     function travel(l){
-      var path = l.querySelector('path'); if (!path || reduce || !path.getTotalLength) return;
+      var path = l.querySelector('path'); if (!path || still() || !path.getTotalLength) return;
       var len = path.getTotalLength(), dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       dot.setAttribute('r', '6'); dot.setAttribute('class', 'vp-token');
       l.appendChild(dot);
@@ -276,7 +279,141 @@ export const VIZ_SCRIPT = `
     });
   }
 
-  window.voltViz = { chart: chart, flow: flow };
+  /*
+   * The reference architecture, explorable and played step by step (the master prompt's 7.3 to 7.5), from the SVG's
+   * data attributes: data-steps on the drawing, and on each system data-n (name), data-l (layer), data-s (status),
+   * data-f (flow), data-k (chart-of-accounts layers), data-c (solution component) and data-d (its role).
+   * Modes: Full, Accounting flow, Risk flow, COA layers, Solution components, each shown only when the data has it.
+   * The walkthrough lights the step's systems and draws a flow from the step in which both of its ends are lit; going
+   * back rebuilds the state from step 1, so it is always exact. Keys: Left, Right, Space, Home.
+   */
+  var COA = { thin: ['#5f8a54', 'Thin GL segment'], thick: ['#c99a2e', 'Thick sub-ledger dimension'], analytical: ['#d9cfb0', 'Analytical dimension'] };
+  var GROUP = ['#2c5f6e', '#a63a02', '#8c6400', '#9c2f45', '#4f6b2f'];
+  function arch(fig){
+    var svg = fig.querySelector('svg.va'); if (!svg || fig.__arch) return; fig.__arch = 1;
+    var json = function(a, d){ try { return JSON.parse(svg.getAttribute(a) || d); } catch (e) { return JSON.parse(d); } };
+    var data = json('data-steps', '[]'), groups = json('data-groups', '[]'), ribbons = json('data-ribbons', '{}');
+    var chips = $$('.va-chip', svg), flows = $$('.va-flow', svg), tags = $$('.va-tag', svg);
+    var has = function(a){ return chips.some(function(c){ return c.hasAttribute(a); }); };
+    var modes = [['full', 'Full architecture']];
+    if (has('data-f')) modes.push(['a', 'Accounting flow'], ['r', 'Risk flow']);
+    if (has('data-k')) modes.push(['k', 'COA layers']);
+    if (has('data-c') && groups.length) modes.push(['c', 'Solution components']);
+    if (!data.length && modes.length < 2 && !chips.some(function(c){ return c.hasAttribute('data-d'); })) return;
+    fig.classList.add('va-x');
+    flows.forEach(function(f){ $$('path', f).forEach(function(p){ p.setAttribute('pathLength', '1'); }); });
+    var bar = el('div', 'va-modes'); bar.setAttribute('role', 'toolbar'); bar.setAttribute('aria-label', 'Explore the architecture');
+    if (data.length) { var pb = el('button', 'va-play'); pb.type = 'button'; pb.textContent = 'Play guided walkthrough'; bar.appendChild(pb); }
+    var mbs = modes.map(function(m){ var b = el('button'); b.type = 'button'; b.textContent = m[1]; b.setAttribute('data-mode', m[0]); b.setAttribute('aria-pressed', m[0] === 'full'); bar.appendChild(b); return b; });
+    var rib = el('div', 'va-ribbon'), legend = el('div', 'va-legend');
+    fig.insertBefore(bar, svg); fig.insertBefore(rib, svg); fig.insertBefore(legend, svg);
+    var cap = null, t, x, dots, play, sn, dotEls = [], cur = -1, timer = 0;
+    if (data.length) {
+      cap = el('div', 'cap', '<div><span class="t"></span><span class="x" aria-live="polite"></span></div><div class="ctl"><button type="button" class="first">Restart</button><button type="button" class="back">Back</button><button type="button" class="play">Play</button><button type="button" class="next">Next</button></div><div class="dots"></div>');
+      fig.appendChild(cap);
+      t = cap.querySelector('.t'); x = cap.querySelector('.x'); dots = cap.querySelector('.dots'); play = cap.querySelector('.play');
+      data.forEach(function(s, i){ var b = el('button'); b.type = 'button'; b.setAttribute('aria-label', 'Step ' + (i + 1) + ': ' + s.t); b.addEventListener('click', function(){ stop(); go(i); }); dots.appendChild(b); });
+      dotEls = $$('button', dots); sn = el('span', 'sn'); dots.appendChild(sn);
+      // The steps as text, for the static view and print, where nothing plays.
+      var ol = el('ol', 'va-list'); data.forEach(function(s){ var li = el('li'); li.innerHTML = '<b>' + esc(s.t) + '</b> ' + esc(s.x); ol.appendChild(li); }); fig.appendChild(ol);
+    }
+    var detail = el('dl', 'detail'); fig.appendChild(detail);
+    function mode(m){
+      mbs.forEach(function(b){ b.setAttribute('aria-pressed', b.getAttribute('data-mode') === m); });
+      fig.setAttribute('data-mode', m);
+      chips.forEach(function(c){
+        var f = c.getAttribute('data-f') || '', k = c.getAttribute('data-k') || '', g = c.getAttribute('data-c');
+        var on = m === 'full' || (m === 'a' || m === 'r' ? f.indexOf(m) >= 0 : m === 'k' ? !!k : m === 'c' ? !!g : true);
+        c.classList.toggle('va-dim', !on);
+        var rect = c.querySelector('rect');
+        if (rect) rect.style.fill = m === 'c' && g ? GROUP[(+g - 1) % 5] + '55' : m === 'k' && k ? COA[k.split(' ')[0]][0] + '44' : m === 'a' && on ? '#b07a0033' : m === 'r' && on ? '#9c2f4533' : '';
+      });
+      var list = m === 'a' || m === 'r' ? (ribbons[m] || []) : [];
+      rib.innerHTML = list.map(function(s, i){ return '<span>' + (i ? '<i aria-hidden="true">></i>' : '') + esc(s) + '</span>'; }).join('');
+      rib.className = 'va-ribbon' + (list.length ? ' on ' + m : '');
+      legend.innerHTML = m === 'k' ? Object.keys(COA).map(function(k){ return '<span><i style="background:' + COA[k][0] + '"></i>' + COA[k][1] + '</span>'; }).join('')
+        : m === 'c' ? groups.map(function(g, i){ return '<span><i style="background:' + GROUP[i % 5] + '"></i>' + (i + 1) + ' ' + esc(g.name) + (g.platform ? ' <em>' + esc(g.platform) + '</em>' : '') + '</span>'; }).join('') : '';
+    }
+    mbs.forEach(function(b){ b.addEventListener('click', function(){ stop(); reset(); mode(b.getAttribute('data-mode')); }); });
+    function show(c){
+      var name = (c.querySelector('title') || {}).textContent || c.getAttribute('data-n');
+      var k = (c.getAttribute('data-k') || '').split(' ').filter(Boolean).map(function(v){ return COA[v] ? COA[v][1] : v; }).join(', ');
+      var g = c.getAttribute('data-c'), f = c.getAttribute('data-f');
+      var row = function(a, b){ return b ? '<div><dt>' + a + '</dt><dd>' + esc(b) + '</dd></div>' : ''; };
+      var label = $$('text', c).map(function(n){ return n.textContent; }).join(' ');
+      detail.innerHTML = '<h4>' + esc(label || name) + '</h4>' + row('Layer', c.getAttribute('data-l')) + row('Status', { new: 'New', keep: 'Kept', retire: 'Retire' }[c.getAttribute('data-s')]) + row('Flow', f === 'ar' ? 'Accounting and risk' : f === 'a' ? 'Accounting and financial reporting' : f === 'r' ? 'Risk, performance and regulatory' : '') + row('Chart of accounts', k) + row('Solution component', g && groups[+g - 1] ? g + '. ' + groups[+g - 1].name + (groups[+g - 1].platform ? ' (' + groups[+g - 1].platform + ')' : '') : '') + '<div class="wide"><dt>Role</dt><dd>' + esc(c.getAttribute('data-d') || 'No role given.') + '</dd></div>';
+      detail.classList.add('show');
+      chips.forEach(function(o){ o.classList.toggle('va-sel', o === c); });
+    }
+    chips.forEach(function(c){
+      c.setAttribute('tabindex', '0'); c.setAttribute('role', 'button');
+      c.addEventListener('click', function(){ stop(); show(c); });
+      c.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); stop(); show(c); } });
+    });
+    function reset(){ cur = -1; fig.classList.remove('walk'); chips.forEach(function(c){ c.classList.remove('on', 'seen'); }); flows.concat(tags).forEach(function(f){ f.classList.remove('seen', 'draw'); }); if (cap) { t.textContent = 'Guided walkthrough'; x.textContent = data.length + ' steps. Press Play, or click any system for its detail.'; sn.textContent = ''; dotEls.forEach(function(d){ d.classList.remove('done'); d.removeAttribute('aria-current'); }); } }
+    function go(i){
+      if (!data.length) return;
+      if (i >= data.length) { stop(); reset(); x.textContent = 'Explore: click any system for its detail, or switch view.'; return; }
+      var prev = cur; cur = Math.max(0, i); mode('full'); fig.classList.add('walk');
+      var seen = {}, before = {};
+      data.forEach(function(s, j){ if (j <= cur) s.on.forEach(function(n){ seen[n] = 1; }); if (j < cur) s.on.forEach(function(n){ before[n] = 1; }); });
+      var now = {}; data[cur].on.forEach(function(n){ now[n] = 1; });
+      chips.forEach(function(c){ var n = c.getAttribute('data-n'); c.classList.toggle('on', !!now[n]); c.classList.toggle('seen', !!seen[n]); });
+      flows.concat(tags).forEach(function(f){
+        var a = f.getAttribute('data-a'), b = f.getAttribute('data-b'), vis = !!(seen[a] && seen[b]), was = !!(before[a] && before[b]);
+        f.classList.toggle('seen', vis);
+        f.classList.toggle('draw', vis && !was && cur === prev + 1 && !still());
+      });
+      dotEls.forEach(function(d, j){ d.classList.toggle('done', j < cur); if (j === cur) d.setAttribute('aria-current', 'step'); else d.removeAttribute('aria-current'); });
+      t.textContent = (cur + 1) + '. ' + data[cur].t; x.textContent = data[cur].x; sn.textContent = 'Step ' + (cur + 1) + ' / ' + data.length;
+    }
+    function stop(){ clearInterval(timer); timer = 0; if (play) play.textContent = 'Play'; }
+    function toggle(){
+      if (timer) return stop();
+      if (cur >= data.length - 1) cur = -1;
+      go(cur + 1); play.textContent = 'Pause';
+      timer = setInterval(function(){ if (cur >= data.length - 1) return stop(); go(cur + 1); }, 4000);
+    }
+    if (cap) {
+      play.addEventListener('click', toggle);
+      pb.addEventListener('click', function(){ stop(); cur = -1; toggle(); });
+      cap.querySelector('.next').addEventListener('click', function(){ stop(); go(cur + 1); });
+      cap.querySelector('.back').addEventListener('click', function(){ stop(); if (cur > 0) go(cur - 1); else reset(); });
+      cap.querySelector('.first').addEventListener('click', function(){ stop(); go(0); });
+      fig.addEventListener('keydown', function(e){
+        if (e.target.tagName === 'INPUT') return;
+        if (e.key === 'ArrowRight') { e.preventDefault(); e.stopPropagation(); stop(); go(cur + 1); }
+        else if (e.key === 'ArrowLeft') { e.preventDefault(); e.stopPropagation(); stop(); if (cur > 0) go(cur - 1); else reset(); }
+        else if (e.key === ' ' && !/BUTTON/.test(e.target.tagName)) { e.preventDefault(); e.stopPropagation(); toggle(); }
+        else if (e.key === 'Home') { e.preventDefault(); e.stopPropagation(); stop(); go(0); }
+      });
+    }
+    fig.setAttribute('tabindex', '0');
+    mode('full'); reset();
+  }
+
+  /*
+   * The process taxonomy, filtered and searched in place: impact buttons (High, Moderate, Limited) and a search box dim
+   * every activity that does not match, and the count says how many do. Activities carry data-i (impact) and data-t.
+   */
+  function tax(fig){
+    var svg = fig.querySelector('svg.vt'); if (!svg || fig.__tax) return; fig.__tax = 1;
+    var acts = $$('.vt-act', svg), procs = $$('.vt-proc', svg); if (!acts.length) return;
+    var bar = el('div', 'vt-bar', '<span class="vt-lab">Show</span><button type="button" data-i="high" aria-pressed="true">High</button><button type="button" data-i="moderate" aria-pressed="true">Moderate</button><button type="button" data-i="low" aria-pressed="true">Limited</button><input type="search" placeholder="Search activities" aria-label="Search the taxonomy"><span class="vt-n" aria-live="polite"></span>');
+    fig.insertBefore(bar, svg);
+    var on = { high: 1, moderate: 1, low: 1 }, q = '', n = bar.querySelector('.vt-n'), input = bar.querySelector('input');
+    function apply(){
+      var hit = 0;
+      acts.forEach(function(a){ var ok = on[a.getAttribute('data-i')] && (!q || a.getAttribute('data-t').indexOf(q) >= 0 || (a.closest('.vt-proc') && a.closest('.vt-proc').getAttribute('data-t').indexOf(q) >= 0)); a.classList.toggle('va-dim', !ok); if (ok) hit++; });
+      procs.forEach(function(p){ p.classList.toggle('va-dim', !$$('.vt-act', p).some(function(a){ return !a.classList.contains('va-dim'); }) && $$('.vt-act', p).length > 0); });
+      n.textContent = hit + ' of ' + acts.length + ' activities';
+    }
+    $$('button', bar).forEach(function(b){ b.addEventListener('click', function(){ var i = b.getAttribute('data-i'); on[i] = on[i] ? 0 : 1; b.setAttribute('aria-pressed', !!on[i]); apply(); }); });
+    input.addEventListener('input', function(){ q = input.value.trim().toLowerCase(); apply(); });
+    apply();
+  }
+
+  window.voltViz = { chart: chart, flow: flow, arch: arch, tax: tax };
 })();
 `;
 
@@ -340,7 +477,7 @@ export const VIZ_CSS = `
 .sn{font-size:12px;color:var(--vv-muted);margin-left:6px}
 .detail{display:none;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px 18px;margin:0;padding:14px;background:var(--vv-panel);border-top:1px solid var(--vv-line)}
 .detail.show{display:grid}
-.detail{font-size:12.5px}.detail h4{grid-column:1/-1;margin:0;color:var(--vv-ink);font-weight:600;font-size:14px}
+.detail{font-size:12.5px}.detail h4{grid-column:1/-1;margin:0;font-family:inherit;color:var(--vv-ink);font-weight:600;font-size:14px}
 .detail dt{color:var(--vv-muted);font-size:11.5px;text-transform:uppercase;letter-spacing:.08em}
 .detail dd{margin:2px 0 0;color:var(--vv-ink)}
 .detail .issue dd{color:var(--vv-bad);font-weight:600}
@@ -348,6 +485,38 @@ export const VIZ_CSS = `
 @media (max-width:700px){.cap{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){.vp-link.on path{animation:none}.vv .vm,.vv .vs,.vp-step{transition:none}}
 @media print{.vv-bar,.vv-tip,.ctl,.dots{display:none!important}}
+.va-x{position:relative}
+.va-modes{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 8px}
+.va-modes button,.vt-bar button{border:1px solid var(--vv-line);background:var(--vv-tip-bg);color:var(--vv-ink);padding:4px 10px;font-size:12px;border-radius:4px;cursor:pointer}
+.va-modes button[aria-pressed=true]{background:var(--vv-accent);border-color:var(--vv-accent);color:var(--vv-on-accent);font-weight:700}
+.va-modes .va-play{border-color:var(--vv-accent);color:var(--vv-accent);font-weight:700}
+.va-ribbon{display:none;flex-wrap:wrap;gap:4px;margin:0 0 8px;font-size:12px}
+.va-ribbon.on{display:flex}
+.va-ribbon span{padding:3px 8px;border-radius:3px;background:#b07a0033;color:var(--vv-ink)}
+.va-ribbon.r span{background:#9c2f4533}
+.va-ribbon i{font-style:normal;color:var(--vv-muted);margin:0 6px 0 0}
+.va-legend{display:flex;flex-wrap:wrap;gap:12px;font-size:12px;color:var(--vv-ink);margin:0 0 6px}
+.va-legend:empty{display:none}
+.va-legend i{display:inline-block;inline-size:11px;block-size:9px;border-radius:2px;margin-right:6px}
+.va-legend em{color:var(--vv-muted);font-style:normal}
+.va-chip{cursor:pointer;transition:opacity .3s}
+.va-chip:hover rect:first-child,.va-chip:focus rect:first-child,.va-chip.va-sel rect:first-child{stroke:var(--vv-accent);stroke-width:2.2}
+.va-chip.va-dim,.vt-act.va-dim,.vt-proc.va-dim{opacity:.18}
+.walk .va-chip{opacity:.18}.walk .va-chip.seen{opacity:.5}.walk .va-chip.on{opacity:1}
+.walk .va-chip.on rect:first-child{stroke:var(--vv-accent);stroke-width:2.6}
+.walk .va-flow,.walk .va-tag{opacity:0;transition:opacity .3s}.walk .va-flow.seen,.walk .va-tag.seen{opacity:1}
+.va-flow.draw path{stroke-dasharray:1;stroke-dashoffset:1;animation:vadraw .6s ease-out forwards}
+@keyframes vadraw{to{stroke-dashoffset:0}}
+.va-x ol.va-list{display:none;margin:8px 0 0;padding-inline-start:1.4em;font-size:12.5px;color:var(--vv-ink);columns:2;column-gap:28px}
+.va-x ol.va-list li{margin:0 0 4px;break-inside:avoid}
+.vt-bar{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px;font-size:12px;color:var(--vv-muted)}
+.vt-bar button[aria-pressed=false]{opacity:.45;text-decoration:line-through}
+.vt-bar input{background:var(--vv-tip-bg);border:1px solid var(--vv-line);color:var(--vv-ink);border-radius:4px;padding:4px 8px;font:inherit;min-inline-size:180px}
+.vt-act,.vt-proc{transition:opacity .2s}
+.static .va-x ol.va-list{display:block}
+.static .va-modes .va-play,.static .va-x .cap{display:none}
+@media print{.va-modes,.vt-bar,.va-x .cap{display:none!important}.va-x ol.va-list{display:block}}
+@media (prefers-reduced-motion:reduce){.va-flow.draw path{animation:none;stroke-dasharray:none}.va-chip,.walk .va-flow{transition:none}}
 `;
 
 declare global {
@@ -355,6 +524,8 @@ declare global {
     voltViz?: {
       chart(fig: HTMLElement, spec: unknown, o?: { render?: (spec: unknown) => string }): void;
       flow(fig: HTMLElement, steps: unknown[]): void;
+      arch(fig: HTMLElement): void;
+      tax(fig: HTMLElement): void;
     };
   }
 }
