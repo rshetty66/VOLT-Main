@@ -36,4 +36,21 @@ describe("generateDiagram", () => {
     expect(r.spec.title).toBe("T");
     expect(r.outputTokens).toBe(7);
   });
+  it("drops stray references instead of failing the build, and gives the call room to finish", async () => {
+    let opts: { timeout?: number; maxRetries?: number } = {};
+    const messy = {
+      title: "M",
+      nodes: [...Array.from({ length: 16 }, (_, i) => ({ id: `n${i}`, label: `N${i}` }))],
+      edges: [{ from: "n0", to: "n1" }, { from: "n1", to: "ghost" }, { from: "n0", to: "n15" }],
+      scenarios: [{ name: "happy", steps: [{ edge: "n0>n1", note: "ok" }, { edge: "n1>n0", note: "missing" }] }, { name: "empty", steps: [{ edge: "x>y", note: "bad" }] }],
+    };
+    const client = { messages: { create: async (_b: unknown, o: typeof opts) => { opts = o; return { content: [{ type: "text", text: JSON.stringify(messy) }], usage: { input_tokens: 1, output_tokens: 1 } }; } } };
+    const r = await generateDiagram("some system to draw", true, new AbortController().signal, client as never);
+    expect(r.spec.nodes).toHaveLength(14);
+    expect(r.spec.edges).toHaveLength(1);
+    expect(r.spec.scenarios).toHaveLength(1);
+    expect(r.spec.scenarios?.[0].steps).toHaveLength(1);
+    expect(opts.timeout).toBeGreaterThanOrEqual(120_000);
+    expect(opts.maxRetries).toBe(0);
+  });
 });

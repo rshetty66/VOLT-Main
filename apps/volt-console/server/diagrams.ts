@@ -17,10 +17,39 @@ export async function generateDiagram(
   if (!live) return { spec: financeDiagram("p2p_ap_3way_match"), demo: true };
   const model = modelFor("sonnet");
   const msg = await client.messages.create(
-    { model, max_tokens: 8000, system: SYSTEM + "\nNarrate a business decision, not a tour of components. Reflect named systems and mandatory business requirements in nodes, conditions and handoffs. Label any assumption as an assumption; do not imply a live integration. For each scenario use a recurring fictional record ID with labeled synthetic source fields and units, explain what the evidence supports at each handoff, and end with a named owner and next action. Include a materially different evidence-failure path. Keep each note within 160 characters. Never invent client metrics or calculate financial results; show source values and decision criteria only unless results came from a deterministic tool.", messages: [{ role: "user", content: `<description>\n${description}\n</description>` }] },
-    { signal, timeout: 60_000, maxRetries: 1 },
+    { model, max_tokens: 6000, system: SYSTEM + "\nNarrate a business decision, not a tour of components. Reflect named systems and mandatory business requirements in nodes, conditions and handoffs. Label any assumption as an assumption; do not imply a live integration. For each scenario use a recurring fictional record ID with labeled synthetic source fields and units, explain what the evidence supports at each handoff, and end with a named owner and next action. Include a materially different evidence-failure path. Keep each note within 160 characters. Never invent client metrics or calculate financial results; show source values and decision criteria only unless results came from a deterministic tool.", messages: [{ role: "user", content: `<description>\n${description}\n</description>` }] },
+    // A full diagram is several thousand output tokens, which takes Sonnet well over a minute; a 60s timeout with a
+    // retry made long builds fail after two minutes. One attempt with room to finish.
+    { signal, timeout: 180_000, maxRetries: 0 },
   );
   const text = msg.content.map((b) => (b.type === "text" ? b.text : "")).join("");
   if (msg.stop_reason === "max_tokens") throw new Error("That diagram was too large to finish. Describe one subsystem at a time.");
-  return { spec: validateSpec(extractJson(text)), demo: false, model, inputTokens: msg.usage.input_tokens, outputTokens: msg.usage.output_tokens };
+  return { spec: validateSpec(repairSpec(extractJson(text))), demo: false, model, inputTokens: msg.usage.input_tokens, outputTokens: msg.usage.output_tokens };
+}
+
+/**
+ * Model output often has one stray reference (an edge to a renamed node, a step on an edge it never drew, a node over
+ * the limit). Drop those parts instead of failing the whole build; validateSpec still checks everything that is left.
+ */
+export function repairSpec(raw: unknown): unknown {
+  if (!raw || typeof raw !== "object") return raw;
+  const r = raw as Record<string, unknown>;
+  if (!Array.isArray(r.nodes)) return raw;
+  const nodes = r.nodes.slice(0, MAX_NODES);
+  const ids = new Set(nodes.map((n) => String((n as Record<string, unknown>)?.id ?? "").replace(/[<>`]/g, "").slice(0, 40).replace(/[^\w-]/g, "")));
+  const edges = (Array.isArray(r.edges) ? r.edges : []).filter((e) => {
+    const o = (e ?? {}) as Record<string, unknown>;
+    return ids.has(String(o.from)) && ids.has(String(o.to));
+  });
+  const keys = new Set(edges.map((e) => `${(e as Record<string, unknown>).from}>${(e as Record<string, unknown>).to}`));
+  const scenarios = (Array.isArray(r.scenarios) ? r.scenarios : []).map((s) => {
+    const o = (s ?? {}) as Record<string, unknown>;
+    const steps = (Array.isArray(o.steps) ? o.steps : []).filter((st) => {
+      const p = (st ?? {}) as Record<string, unknown>;
+      const list = (Array.isArray(p.edges) ? p.edges : [p.edge]).map(String);
+      return list.length > 0 && list.every((k) => keys.has(k));
+    });
+    return { ...o, steps };
+  }).filter((s) => s.steps.length > 0);
+  return { ...r, nodes, edges, scenarios };
 }
