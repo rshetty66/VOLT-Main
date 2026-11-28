@@ -1,10 +1,11 @@
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { type DiagramSpec } from "../../shared/diagram";
 import {financeStories,financeDiagram,type FinanceProfile} from "../../shared/financeStories";
 import {optimizeDiagramBrief} from "../../shared/diagramBrief";
 import template from "../diagrams/template.html?raw";
 import { downloadText, voltFileName } from "../download";
-import { REFERENCE_MODEL } from "../../shared/financeReference";
+import { REFERENCE_MODEL, validateFinanceModel, type FinanceModel } from "../../shared/financeReference";
+import type { ChatLink } from "../../shared/financeChat";
 import { financeViewsHtml } from "../diagrams/financeViews";
 import { toast } from "../ui";
 
@@ -25,7 +26,7 @@ export function Diagrams() {
     <div className="stack">
       <div>
         <h2 className="page-title">Diagram builder</h2>
-        <p className="page-sub">{tab === "views" ? "One future-state model in three linked views. Press Tour for a one-minute guide." : "Follow a business record from source to decision. Select a narrated synthetic case or describe your own process."}</p>
+        <p className="page-sub">{tab === "views" ? "Talk through a future-state scenario; the reference architecture, process taxonomy and business architecture update with each turn. Press Tour for a one-minute guide." : "Follow a business record from source to decision. Select a narrated synthetic case or describe your own process."}</p>
       </div>
       <div className="run-tabs" role="tablist">
         <button role="tab" aria-selected={tab === "views"} onClick={() => setTab("views")}>Finance views</button>
@@ -36,15 +37,105 @@ export function Diagrams() {
   );
 }
 
+type Turn = { role: "user" | "assistant"; text: string; bullets?: string[]; links?: ChatLink[]; applied?: string[]; rejected?: string[] };
+const SAVED = "volt.financeViews.v1";
+const STARTERS = [
+  "Mid-size Canadian bank, IFRS main ledger with a US GAAP difference ledger, close takes 9 days. Where do agents fit?",
+  "What if we add an agent that drafts accrual estimates from contract data?",
+  "Intercompany is our biggest pain. What changes in the future state?",
+  "Which capabilities should move first, and why?",
+];
+
+function loadSaved(): { model: FinanceModel; turns: Turn[] } {
+  try {
+    const s = JSON.parse(localStorage.getItem(SAVED) ?? "null") as { model: FinanceModel; turns: Turn[] } | null;
+    if (s && Array.isArray(s.turns) && validateFinanceModel(s.model).length === 0) return s;
+  } catch {
+    /* blocked storage or an old shape: start from the reference model */
+  }
+  return { model: REFERENCE_MODEL, turns: [] };
+}
+
+/** Scenario chat on the left, the three linked views on the right. Each turn can change the model; the views redraw. */
 function FinanceViews() {
-  const html = useMemo(() => financeViewsHtml(REFERENCE_MODEL), []);
+  const [state, setState] = useState(loadSaved);
+  const [text, setText] = useState("");
+  const [busy, setBusy] = useState(false);
+  const frame = useRef<HTMLIFrameElement>(null);
+  const pending = useRef<string | null>(null);
+  const { model, turns } = state;
+  const html = useMemo(() => financeViewsHtml(model), [model]);
+  const changed = model !== REFERENCE_MODEL;
+
+  function save(next: { model: FinanceModel; turns: Turn[] }) {
+    setState(next);
+    try {
+      localStorage.setItem(SAVED, JSON.stringify({ model: next.model, turns: next.turns.slice(-30) }));
+    } catch {
+      /* private window: keep it for this visit only */
+    }
+  }
+  const goTo = (target: string) => frame.current?.contentWindow?.postMessage({ type: "volt-go", target }, "*");
+
+  async function send(message: string) {
+    const msg = message.trim();
+    if (msg.length < 3 || busy) return;
+    const asked: Turn[] = [...turns, { role: "user", text: msg }];
+    setState({ model, turns: asked });
+    setText("");
+    setBusy(true);
+    try {
+      const history = turns.map((t) => ({ role: t.role, text: t.role === "user" ? t.text : (t.bullets ?? []).join("\n") }));
+      const r = await fetch("/api/finance-model/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ model, history, message: msg }) });
+      const body = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(body.error ?? `The assistant could not answer (${r.status})`);
+      const reply: Turn = { role: "assistant", text: "", bullets: body.bullets, links: body.links, applied: body.applied, rejected: body.rejected };
+      if (body.applied?.length) pending.current = body.links?.[0]?.target ?? null;
+      else if (body.links?.[0]) goTo(body.links[0].target);
+      save({ model: body.applied?.length ? body.model : model, turns: [...asked, reply] });
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "The assistant could not answer.", "error");
+      setState({ model, turns });
+      setText(msg);
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <>
       <div className="row">
-        <button className="btn" onClick={() => downloadText(voltFileName(REFERENCE_MODEL.title, "html", html), html, "text/html")}>Download HTML</button>
-        <span className="usage">Illustrative reference model. Agent placement and maturity are hypotheses until a design workshop confirms them.</span>
+        <button className="btn" onClick={() => downloadText(voltFileName(model.title, "html", html), html, "text/html")}>Download HTML</button>
+        {(changed || turns.length > 0) && <button className="btn" disabled={busy} onClick={() => save({ model: REFERENCE_MODEL, turns: [] })}>Reset to reference model</button>}
+        <span className="usage">Illustrative model. Agent placement, ratings and maturity are hypotheses until a design workshop confirms them.</span>
       </div>
-      <iframe title={REFERENCE_MODEL.title} srcDoc={html} sandbox="allow-scripts allow-modals" style={{ ...FRAME, height: "calc(100vh - 210px)", minHeight: 560 }} />
+      <div className="fv-wrap">
+        <aside className="fv-chat" aria-label="Scenario assistant">
+          <div className="fv-msgs">
+            <div className="fv-h">Scenario assistant</div>
+            {turns.length === 0 && <p className="usage">Describe a business scenario or ask a what-if. Answers link into the views, and changes redraw them.</p>}
+            {turns.map((t, i) =>
+              t.role === "user" ? (
+                <div key={i} className="fv-m fv-u">{t.text}</div>
+              ) : (
+                <div key={i} className="fv-m">
+                  <ul>{(t.bullets ?? []).map((b, j) => <li key={j}>{b}</li>)}</ul>
+                  {!!t.links?.length && <div className="fv-links">{t.links.map((l) => <button key={l.target} className="fv-lk" onClick={() => goTo(l.target)}>{l.label}</button>)}</div>}
+                  {!!t.applied?.length && <div className="fv-upd">Model updated: {t.applied.join("; ")}</div>}
+                  {!!t.rejected?.length && <div className="fv-rej">Not applied: {t.rejected.join("; ")}</div>}
+                </div>
+              ),
+            )}
+            {busy && <div className="usage">Thinking...</div>}
+            {turns.length === 0 && <div className="fv-sugg">{STARTERS.map((q) => <button key={q} className="fv-lk" disabled={busy} onClick={() => send(q)}>{q}</button>)}</div>}
+          </div>
+          <div className="fv-box">
+            <textarea className="input" rows={3} maxLength={4000} disabled={busy} value={text} placeholder="Describe a business scenario, or ask about a component, agent or activity" onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); void send(text); } }} />
+            <button className="btn primary" disabled={busy || text.trim().length < 3} onClick={() => send(text)}>{busy ? "Working..." : "Send"}</button>
+          </div>
+        </aside>
+        <iframe ref={frame} title={model.title} srcDoc={html} sandbox="allow-scripts allow-modals" onLoad={() => { if (pending.current) { goTo(pending.current); pending.current = null; } }} style={{ ...FRAME, height: "calc(100vh - 210px)", minHeight: 560 }} />
+      </div>
     </>
   );
 }

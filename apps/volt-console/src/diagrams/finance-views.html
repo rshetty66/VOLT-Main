@@ -173,7 +173,15 @@ svg.ov text{font-size:9px;fill:#fff;paint-order:stroke;stroke:#000;stroke-width:
 .tour .row .mu{margin-right:auto;font-size:10px}
 .tour .nx{background:var(--agent);border-color:var(--agent);color:#000;font-weight:600}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
-@media (max-width:900px){
+@media (max-width:1100px){
+  .app{grid-template-columns:minmax(0,1fr) 196px}
+  .arch{grid-template-columns:94px 104px minmax(0,1fr) 124px 22px 18px;gap:4px}
+  .cmp{font-size:9.5px;padding:3px 4px}
+  .crband{grid-template-columns:repeat(2,1fr)}
+  .kpis span{font-size:9px}
+  .tour{right:206px}
+}
+@media (max-width:760px){
   .app{grid-template-columns:1fr;height:auto}
   #p-canvas{border-right:0;border-bottom:1px solid var(--line)}
   .arch{grid-template-columns:1fr}
@@ -385,7 +393,7 @@ function markSel(){all().forEach(b=>b.classList.toggle("sel",sel.k==="cmp"&&b.da
 function pick(s){sel=s;
   if(s.k==="agent"){agentSel=s.id;renderAgbar();if(!$("v-arch").classList.contains("on"))view("arch");setMode("agents")}
   if(s.k==="cmp")markSel();
-  renderTax();renderBiz();inspector();if(innerWidth<=900&&s.k!=="agent")$("p-insp").scrollIntoView({behavior:reduced()?"auto":"smooth"})}
+  renderTax();renderBiz();inspector();if(innerWidth<=760&&s.k!=="agent")$("p-insp").scrollIntoView({behavior:reduced()?"auto":"smooth"})}
 function go(target){const i=target.indexOf(":"),k=target.slice(0,i),id=target.slice(i+1);if(k==="cmp"){view("arch");if(mode==="walk")setMode("full")}if(k==="l4"){const a=L4s.find(x=>x.n===id);if(a){l1i=TAX.findIndex(t=>t.l1===a.l1);open.add(a.l3);renderL1();view("tax")}}if(k==="cap")view("biz");pick({k,id})}
 function L(text,target){return h("button",{class:"lk",text,onclick:()=>go(target)})}
 function inspector(){const out=[];
@@ -434,6 +442,8 @@ $("tourn2").addEventListener("click",()=>ti>=TOUR.length-1?endTour():tourAt(ti+1
 $("tourb2").addEventListener("click",()=>ti>0&&tourAt(ti-1));
 $("tourc").addEventListener("click",endTour);
 
+/* Links from the scenario chat in the parent page (Diagram Builder): the same targets as the details panel. */
+addEventListener("message",e=>{const d=e.data;if(e.source===parent&&d&&d.type==="volt-go"&&typeof d.target==="string"&&/^(cmp|agent|l4|cap):./.test(d.target))go(d.target)});
 let lastW=0;new ResizeObserver(()=>{const w=$("archwrap").clientWidth;if(w&&w!==lastW){lastW=w;if($("v-arch").classList.contains("on")&&mode==="walk")applyStep(step)}}).observe($("archwrap"));
 addEventListener("beforeprint",()=>{stop();applyStep(NS)});
 renderL1();renderTax();renderBiz();inspector();applyStep(1);
