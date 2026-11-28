@@ -797,3 +797,6 @@ button.chip { font: inherit; font-size: var(--fs-3); }
 .console.is-home .recent-list { max-width: none; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--sp-2); align-content: start; }
 .console.is-home .recent-list > .micro { grid-column: 1 / -1; }
 @media (max-width: 760px) { .console.is-home .recent-list { grid-template-columns: 1fr; } }
+.pr-bp-bar { gap: var(--sp-2); }
+.pr-q { display: grid; gap: 2px; font-size: var(--fs-3); color: var(--body); }
+.pr-q .input { padding: 4px 8px; font-size: var(--fs-4); }

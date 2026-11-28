@@ -244,7 +244,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
             onText={(text) => setOptimizing({ ...optimizing, text })}
             files={files.map((f) => f.name)}
             disabled={running || reading > 0}
-            onSend={() => confirmReview(optimizing.text)}
+            onSend={(text) => confirmReview(text)}
             onSendOriginal={() => confirmReview(optimizing.original)}
             onCancel={cancelReview}
           />

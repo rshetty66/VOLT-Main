@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { DELIVERABLE_CHOICES, PROMPT_SECTIONS, deliverablesOf, joinSections, splitSections, withDeliverables, type Optimized, type SectionKey, type Sections } from "../../shared/optimize";
+import { BLUEPRINT, blueprintBlock, isBlueprintAsk } from "../../shared/blueprint";
 import { Icon } from "./Icon";
 
 interface Props {
@@ -9,7 +10,8 @@ interface Props {
   onText: (text: string) => void;
   files: string[];
   disabled: boolean;
-  onSend: () => void;
+  /** Sends the final prompt: the sections plus, when included, the blueprint inputs. */
+  onSend: (text: string) => void;
   onSendOriginal: () => void;
   onCancel: () => void;
 }
@@ -21,7 +23,15 @@ interface Props {
  */
 export function PromptReview({ result, text, onText, files, disabled, onSend, onSendOriginal, onCancel }: Props) {
   const sections = splitSections(text);
-  const [plain, setPlain] = useState(!sections);
+  const [view, setView] = useState<"form" | "text" | "blueprint">(() => (isBlueprintAsk(`${result.ask}\n${text}`) ? "blueprint" : sections ? "form" : "text"));
+  const plain = view === "text";
+  const [bpOn, setBpOn] = useState(view === "blueprint");
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [bpSkipped, setBpSkipped] = useState<Set<string>>(new Set());
+  const answered = Object.values(answers).filter((a) => a.trim()).length;
+  const total = BLUEPRINT.reduce((n, b) => n + b.questions.length, 0);
+  const finalText = bpOn ? `${text.trim()}\n\n${blueprintBlock(answers, bpSkipped, files)}` : text;
+  const toggleBp = (id: string) => setBpSkipped((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const [skipped, setSkipped] = useState<Sections>({});
   const [other, setOther] = useState<string | null>(null);
   const write = (next: Sections) => onText(joinSections(next));
@@ -52,15 +62,47 @@ export function PromptReview({ result, text, onText, files, disabled, onSend, on
           <h2>{result.ask}</h2>
         </div>
         <div className="pr-mode" role="radiogroup" aria-label="View">
-          <button type="button" role="radio" aria-checked={!plain} className={`chip click intake-chip${!plain ? " on" : ""}`} disabled={!sections} onClick={() => setPlain(false)}>Form</button>
-          <button type="button" role="radio" aria-checked={plain} className={`chip click intake-chip${plain ? " on" : ""}`} onClick={() => setPlain(true)}>Plain text</button>
+          <button type="button" role="radio" aria-checked={view === "form"} className={`chip click intake-chip${view === "form" ? " on" : ""}`} disabled={!sections} onClick={() => setView("form")}>Form</button>
+          <button type="button" role="radio" aria-checked={view === "blueprint"} className={`chip click intake-chip${view === "blueprint" ? " on" : ""}`} onClick={() => { setView("blueprint"); setBpOn(true); }}>Blueprint inputs</button>
+          <button type="button" role="radio" aria-checked={plain} className={`chip click intake-chip${plain ? " on" : ""}`} onClick={() => setView("text")}>Plain text</button>
         </div>
       </div>
       {result.assumptions.length > 0 && (
         <div className="pr-assume"><span className="micro">Assumed</span>{result.assumptions.map((a) => <span key={a} className="chip">{a}</span>)}</div>
       )}
 
-      {plain || !sections ? (
+      {view === "blueprint" ? (
+        <>
+          <div className="row pr-bp-bar">
+            <span className="muted pr-note">Accounting Rule Engine Blueprint · {answered} of {total} answered. Blanks go as [to confirm], never invented; attached files can stand in for a section.</span>
+            <button type="button" className="btn ghost sm" disabled={bpSkipped.size === 0} onClick={() => setBpSkipped(new Set())}>Select all</button>
+            <button type="button" className="btn ghost sm" onClick={() => setBpSkipped(new Set(BLUEPRINT.filter((b) => b.optional).map((b) => b.id)))}>Skip optional</button>
+            <button type="button" className="btn ghost sm" onClick={() => { setBpOn(false); setView(sections ? "form" : "text"); }}>Leave out</button>
+          </div>
+          <div className="pr-grid">
+            {BLUEPRINT.map((b) => {
+              const off = bpSkipped.has(b.id);
+              const done = b.questions.filter((q) => answers[q.n]?.trim()).length;
+              return (
+                <div key={b.id} className={`pr-field${off ? " off" : ""}`}>
+                  <div className="pr-label">
+                    <span className="pr-num">{b.id}</span>
+                    <b>{b.title}</b>
+                    <span className="pr-hint">{b.optional ? "optional · " : ""}{done}/{b.questions.length}</span>
+                    <button type="button" className="btn ghost sm" aria-label={`${off ? "Answer" : "Skip"}: ${b.title}`} onClick={() => toggleBp(b.id)}>{off ? "Undo" : "Skip"}</button>
+                  </div>
+                  {off ? <div className="muted pr-skipped">Skipped. Labelled defaults or [to confirm] are used.</div> : b.questions.map((q) => (
+                    <label key={q.n} className="pr-q">
+                      <span>{q.n}. {q.q}</span>
+                      <input className="input" value={answers[q.n] ?? ""} placeholder={`[${q.field}]`} onChange={(e) => setAnswers((a) => ({ ...a, [q.n]: e.target.value }))} />
+                    </label>
+                  ))}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : plain || !sections ? (
         <textarea className="textarea pr-plain" aria-label="Optimized prompt" value={text} onChange={(e) => onText(e.target.value)} />
       ) : (
         <div className="pr-grid">
@@ -105,12 +147,12 @@ export function PromptReview({ result, text, onText, files, disabled, onSend, on
 
       <div className="row pr-foot">
         <span className="muted pr-note">
-          {files.length > 0 ? `Attached: ${files.join(", ")} · ` : ""}Nothing runs until you send.
+          {files.length > 0 ? `Attached: ${files.join(", ")} · ` : ""}{bpOn ? `Blueprint inputs included (${answered}/${total}) · ` : ""}Nothing runs until you send.
           {!plain && sections && skippedKeys.length > 0 && <> · <button type="button" className="btn ghost sm" onClick={() => undo(skippedKeys)}>Select all</button></>}
         </span>
         <button className="btn ghost" onClick={onCancel}>Cancel</button>
         <button className="btn" disabled={disabled} onClick={onSendOriginal}>Skip all, send my original</button>
-        <button className="btn primary" disabled={disabled || !text.trim()} onClick={onSend}><Icon name="send" size={14} /> Send prompt</button>
+        <button className="btn primary" disabled={disabled || !text.trim()} onClick={() => onSend(finalText)}><Icon name="send" size={14} /> Send prompt</button>
       </div>
     </div>
   );
