@@ -758,3 +758,24 @@ button.chip { font: inherit; font-size: var(--fs-3); }
 .gyan-modes .btn[aria-pressed=true] {border-color:#78bcaa}
 .gyan-table {overflow:auto}.gyan-table table {border-collapse:collapse;width:100%}.gyan-table th,.gyan-table td {text-align:left;padding:6px;border-bottom:1px solid var(--line)}.gyan-table caption {text-align:left}.gyan-table code {display:block;overflow-wrap:anywhere;max-width:25ch}
 @media(max-width:760px){.gyan-workbench{grid-template-columns:1fr;padding:8px}.gyan-inspector{border-left:0;border-top:1px solid #333;padding:8px 0 0}.gyan-head{grid-template-columns:1fr}.gyan-badge{justify-self:start}.gyan-table{max-width:100%}}
+
+/* Diagram builder: scenario assistant beside the finance views */
+.fv-wrap { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 10px; }
+.fv-chat { display: grid; grid-template-rows: 1fr auto; border: 1px solid var(--line); border-radius: 10px; background: #000; height: calc(100vh - 210px); min-height: 560px; font-size: 12px; }
+.fv-msgs { overflow: auto; padding: 10px; display: grid; gap: 7px; align-content: start; }
+.fv-h { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted, #8f8f8f); font-weight: 600; }
+.fv-m { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
+.fv-m ul { padding-left: 14px; margin: 0; display: grid; gap: 2px; }
+.fv-u { background: #121212; }
+.fv-links, .fv-sugg { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.fv-sugg { flex-direction: column; }
+.fv-lk { border: 1px solid #123a55; background: #0d2333; color: #4fb3ff; border-radius: 4px; padding: 1px 6px; font: inherit; font-size: 11px; cursor: pointer; text-align: left; }
+.fv-lk:disabled { opacity: .5; cursor: default; }
+.fv-upd { margin-top: 5px; font-size: 11px; color: #4fb3ff; }
+.fv-rej { margin-top: 3px; font-size: 11px; color: #ff9a9a; }
+.fv-box { border-top: 1px solid var(--line); padding: 8px; display: grid; gap: 6px; }
+.fv-box textarea { resize: none; font-size: 12px; }
+@media (max-width: 1000px) {
+  .fv-wrap { grid-template-columns: 1fr; }
+  .fv-chat { height: auto; min-height: 0; max-height: 420px; }
+}
