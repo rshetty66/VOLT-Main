@@ -13,6 +13,7 @@
  *   POST /api/export               build a Word, PowerPoint or Excel download from a deliverable
  *   POST /api/optimize             rough request in, executive prompt out (the user confirms it before it runs)
  *   POST /api/diagrams             description in, validated diagram spec out
+ *   POST /api/finance-model/chat   scenario turn: finance model + message in, answer + validated model changes out
  *   GET  /api/healthz
  *   GET  /api/ledger/review        VOLT Ledger review queue (people only; never a model tool)
  *   POST /api/ledger/review        record an engagement-lead or client decision
@@ -31,6 +32,7 @@ import crypto from "node:crypto";
 import { fileURLToPath } from "node:url";
 import express from "express";
 import { gyanRouter } from "./gyan.js";
+import { checkClientModel, scenarioTurn } from "./financeChat.js";
 import { z } from "zod";
 import { optimizePrompt } from "./optimize.js";
 import { loadCatalog, loadSkillBody, rankSkills } from "./catalog.js";
@@ -517,6 +519,23 @@ app.post("/api/diagrams", express.json({ limit: "64kb" }), async (req, res) => {
     res.json(await generateDiagram(description, mode === "live", controller.signal));
   } catch (err) {
     res.status(502).json({ error: err instanceof Error ? err.message : "Could not build the diagram." });
+  }
+});
+
+app.post("/api/finance-model/chat", express.json({ limit: "512kb" }), async (req, res) => {
+  const message = typeof req.body?.message === "string" ? req.body.message.trim() : "";
+  if (message.length < 3 || message.length > 4000) return void res.status(400).json({ error: "Describe the scenario in up to 4,000 characters." });
+  const model = checkClientModel(req.body?.model);
+  if (!model) return void res.status(400).json({ error: "The finance model is not valid. Reset the views and try again." });
+  const history = (Array.isArray(req.body?.history) ? req.body.history : [])
+    .filter((t: { role?: unknown; text?: unknown }) => (t?.role === "user" || t?.role === "assistant") && typeof t.text === "string")
+    .slice(-8);
+  const controller = new AbortController();
+  res.on("close", () => controller.abort());
+  try {
+    res.json(await scenarioTurn(model, history, message, mode === "live", controller.signal));
+  } catch (err) {
+    res.status(502).json({ error: err instanceof Error ? err.message : "The scenario assistant could not answer." });
   }
 });
 
