@@ -13,7 +13,7 @@ export function gyanRouter(security:SecurityConfig){
     const paths=/^(catalog|definitions|drafts|simulate|simulate-stream|sources|knowledge|import-knowledge|sources\/[a-f0-9]{64}|template\/(close|variance|match)|confirmed-draft|remote-snapshot|tools\/[A-Za-z0-9_-]+|runs|runs\/[0-9a-f-]{36}\/(trace|decision))$/;
     if(!paths.test(route)||!["GET","POST"].includes(req.method))return void res.sendStatus(404);
     const url=process.env.GYAN_INTERNAL_URL,secret=process.env.GYAN_INTERNAL_TOKEN;
-    if(!url||!secret||secret.length<32)return void res.status(503).json({error:"Gyan runtime is not connected. Visual design is available; simulations are disabled."});
+    if(!url||!secret||secret.length<32)return void res.status(503).json({error:"Gyan runtime is not connected. Architecture walkthroughs are available; simulations are disabled."});
     const actor=security.authMode==="password"?requestUser(security,req):undefined;
     if(!actor)return void res.status(403).json({error:"Simulation requires a verified password session and project membership."});
     const project=req.get("x-volt-project")??"";

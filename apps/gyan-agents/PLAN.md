@@ -1,5 +1,7 @@
 # From a chat question to a Gyan Agents workflow
 
+Historical design plan. The console builder and creator described below have been retired; see [the current walkthrough and simulation guide](RUNTIME.md).
+
 The user can bring a question, choose a proven template, or start with a blank canvas. All three paths produce the same editable, versioned workflow document. Nothing runs just because a prompt or a graph was generated.
 
 | Phase | What ships | Gate before starting the next phase |

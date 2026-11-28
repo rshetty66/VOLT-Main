@@ -1,4 +1,5 @@
 import {useEffect,useState} from "react";
+import {financeStories} from "../../shared/financeStories";
 
 const cases={
   r2r_reconciler:{name:"Bank reconciliation",inputs:["Bank statement","Cash GL"],job:"match bank and ledger entries by reference and currency",issue:"A deposit can be present on the statement but missing from the ledger.",output:"Matched items and cash exceptions"},
@@ -18,7 +19,8 @@ export function FinanceArchitecture({profile}:{profile?:string}){
     {label:"Independent critic",type:"Verification",icon:"04",nodes:["Reperform","Check provenance"],title:"Check the answer before handing it to a human",story:"A separate verifier recomputes the result from the pinned rows and checks its evidence. A failed check stops the run. A verified exception is still an exception; verification does not resolve it.",handoff:"Verified result and evidence, or a failed run"},
     {label:"Controller",type:"Accountability",icon:"05",nodes:["Review decision"],title:"Keep judgment and posting authority separate",story:"An authenticated controller, distinct from the builder, reviews the simulation artifact. Approval records a decision about that artifact. It does not clear an exception, post a journal, or update an ERP.",handoff:"Recorded decision and immutable event history"}
   ];
-  const current=layers[stage];
+  const story=financeStories[example];
+  const current={...layers[stage],story:story.chapters[stage]};
   function jump(n:number){play(false);select(n)}
   useEffect(()=>{
     if(!playing)return;
@@ -37,6 +39,7 @@ export function FinanceArchitecture({profile}:{profile?:string}){
     <div className="gyan-kicker">Finance architecture · narrated walkthrough</div><h2>Why this workflow is agentic</h2>
     <label>Finance scenario <select value={example} onChange={e=>{jump(0);pick(e.target.value as Profile)}}>{Object.entries(cases).map(([id,c])=><option key={id} value={id}>{c.name}</option>)}</select></label>
     <p>A script is enough to compare two amounts. The agentic workflow earns its place around that calculation: it coordinates inputs, verification, exceptions and a handoff to the person accountable for the decision. This walkthrough illustrates the design; it does not connect to a source system or start a run.</p>
+    <div className="card"><strong>Synthetic source records · {story.ref}</strong><dl>{Object.entries(story.records).map(([k,v])=><div key={k}><dt>{k.replace(/([A-Z]+)/g," $1")}</dt><dd>{v}</dd></div>)}</dl></div>
     <div className="gyan-layers" aria-label="Architecture layers">{layers.map((l,i)=><button key={l.label} className="gyan-layer" aria-pressed={i===stage} onClick={()=>jump(i)}><small>{l.icon} / {l.type}</small><strong>{l.label}</strong>{l.nodes.map(n=><span key={n}>{n}</span>)}</button>)}</div>
     <article aria-live="polite" className="gyan-caption"><small>Chapter {stage+1} of 5</small><h3>{current.title}</h3><p>{current.story}</p><small>Handoff: {current.handoff}</small></article>
     <div className="row gyan-wrap"><button className="btn" disabled={!stage} onClick={()=>jump(stage-1)}>Previous chapter</button><button className="btn primary" onClick={()=>{if(!playing&&stage===4)select(0);play(!playing)}}>{playing?"Pause walkthrough":"Play walkthrough"}</button><button className="btn" disabled={stage===4} onClick={()=>jump(stage+1)}>Next chapter</button><label><input type="checkbox" checked={audio} disabled={!hasVoice} onChange={e=>speak(e.target.checked)}/> {hasVoice?"Speak narration":"Text narration · no local English voice"}</label></div>
