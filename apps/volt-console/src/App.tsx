@@ -414,7 +414,7 @@ export function App() {
       <TemplateContext.Provider value={activeTemplate}>
       <main className="main">
         {view === "console" && (
-          <Console setup={steps} onNavigate={(v) => setView(v as View)} recent={history.slice(0, 3)} onOpenRecent={openRun} catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} userName={me} />
+          <Console setup={steps} onNavigate={(v) => setView(v as View)} recent={history.slice(0, 8)} onOpenRecent={openRun} catalog={catalog} runs={runs} target={target} setTarget={setTarget} live={live} onStart={start} onStop={stop} onOpenAgent={setOpenAgent} userName={me} />
         )}
         {view === "diagrams" && <Diagrams/>}
         {view === "workflows" && <Workflows key={projectId} projectId={projectId} catalog={catalog} live={live} onLaunch={start} onOpenAgent={setOpenAgent} />}

@@ -15,7 +15,3 @@ export const ATTACH_MAX_CHARS_FILE = 40_000;
 export const ATTACH_MAX_CHARS_TOTAL = 100_000;
 
 export const ATTACH_EXTENSIONS = ["txt", "md", "csv", "tsv", "json", "xlsx", "docx", "pptx", "pdf", "jpg", "jpeg", "png"] as const;
-
-/** The knowledge base keeps any file type, each up to this size (the Render disk is 1 GB; see VOLT_UPLOADS_MAX_MB for the total). */
-export const KB_MAX_FILE_MB = 100;
-export const KB_MAX_BYTES = KB_MAX_FILE_MB * 1024 * 1024;

@@ -36,12 +36,12 @@ describe("create_file tool", () => {
   });
 
   it("returns the file spec for the console and a short reply for the model", () => {
-    const input = schemas.create_file.parse({ format: "pptx", title: "Market entry is worth CAD 4M", markdown: "## 1. Situation\n\nText" });
+    const input = schemas.create_file.parse({ format: "pptx", title: "Close can fall to 5 days", markdown: "## 1. Situation\n\nText" });
     const r = runLocalTool(catalog, "create_file", input);
     expect(r.ok).toBe(true);
     if (!r.ok) return;
     expect((r.data as FileSpec).format).toBe("pptx");
-    expect(r.summary).toBe("PowerPoint deck: Market entry is worth CAD 4M");
+    expect(r.summary).toBe("PowerPoint deck: Close can fall to 5 days");
     expect(r.reply).toMatch(/download card/);
     expect(r.reply).not.toContain("Situation");
   });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseOptimized, shouldOptimize } from "../shared/optimize";
+import { OPTIMIZER_SYSTEM, PROMPT_SECTIONS, deliverablesOf, joinSections, parseOptimized, shouldOptimize, splitSections, withDeliverables } from "../shared/optimize";
 import { optimizePrompt } from "../server/optimize";
 
 const REPLY = `ASK: Get board approval for a finance platform.
@@ -45,5 +45,31 @@ describe("prompt optimizer", () => {
     const r = await optimizePrompt("rough", new AbortController().signal, ok);
     expect(r?.prompt).toContain("Key Questions");
     expect(seen.thinking).toBeUndefined();
+  });
+});
+
+describe("prompt sections", () => {
+  const FULL = PROMPT_SECTIONS.map((s) => `## ${s.title}\n- about ${s.key}`).join("\n\n");
+  it("splits a sectioned prompt and writes it back unchanged", () => {
+    const s = splitSections(FULL);
+    expect(s?.questions).toBe("- about questions");
+    expect(joinSections(s!)).toBe(FULL);
+  });
+  it("accepts bold headings and leaves out empty sections", () => {
+    const s = splitSections("Lead line\n**Context & Business Ask**\nctx\n**Persona & Standard:**\nCFO\n### Output Format\nmemo");
+    expect(s?.context).toBe("Lead line\nctx");
+    expect(joinSections({ ...s!, persona: "" })).not.toContain("Persona");
+  });
+  it("returns null without enough known headings, so the plain text view is used", () => {
+    expect(splitSections("Context & Business Ask\njust text")).toBeNull();
+  });
+  it("keeps picked deliverables on one first line", () => {
+    const out = withDeliverables("- Two pages", ["Decision memo", "Risk matrix"]);
+    expect(out).toBe("- Deliverables: Decision memo, Risk matrix.\n- Two pages");
+    expect(deliverablesOf(out)).toEqual(["Decision memo", "Risk matrix"]);
+    expect(withDeliverables(out, [])).toBe("- Two pages");
+  });
+  it("asks the model for every section heading", () => {
+    for (const s of PROMPT_SECTIONS) expect(OPTIMIZER_SYSTEM).toContain(s.title);
   });
 });

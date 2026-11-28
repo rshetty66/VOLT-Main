@@ -17,7 +17,7 @@ describe("HTML slide deck", () => {
 
   it("opens with a cover, then one numbered slide per section with the answer in the So what panel", () => {
     expect(html.match(/<section class="cover">/g)).toHaveLength(1);
-    expect(html.match(/<section class="slide" data-key=/g)).toHaveLength(2);
+    expect(html.match(/<section class="slide">/g)).toHaveLength(2);
     expect(html).toContain("<h1>Close &lt;plan&gt;</h1>");
     expect(html).toContain('<span class="no">02</span><div><h2>Plan</h2></div>');
     expect(html).toContain('<aside class="sowhat" aria-label="So what"><b>So what</b><p>Close in five days.</p></aside>');
@@ -31,7 +31,7 @@ describe("HTML slide deck", () => {
   });
 
   it("fits slides instead of scrolling them: a measuring pass paginates before reveal.js starts", () => {
-    expect(html).toContain(".reveal .slides>section{block-size:100%;padding:34px 52px 28px;overflow:hidden}");
+    expect(html).toContain(".reveal .slides>section{block-size:100%;padding:40px 56px 32px;overflow:hidden}");
     expect(html.indexOf("classList.add('measuring')")).toBeLessThan(html.lastIndexOf("Reveal.initialize({"));
     expect(html).toContain('<div class="body">');
   });

@@ -18,6 +18,7 @@ import { getUpload, listUploads, uploadAttachment, type UploadMeta } from "../ap
 import { shouldOptimize, type Optimized } from "../../shared/optimize";
 import { recentChatLabel } from "../recentChatLabel";
 import { AgentPicker } from "./AgentPicker";
+import { PromptReview } from "./PromptReview";
 import { GetStarted } from "./GetStarted";
 import { Icon } from "./Icon";
 import { STARTERS } from "../starters";
@@ -190,7 +191,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
 
   const versions = chatVersions(runs);
   return (
-    <div className="console">
+    <div className={`console${runs.length === 0 ? " is-home" : ""}`}>
       {runs.length === 0 && (
         <>
           <h1 className="home-greeting">{greeting()}{userName ? `, ${userName}` : ""}</h1>
@@ -206,9 +207,10 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
             </div>
             {recent.length > 0 && (
               <section className="recent-list" aria-label="Recent chats">
-                <div className="micro">Recent chats</div>
+                <div className="micro"><Icon name="history" size={14} /> Recent chats</div>
                 {recent.map((r) => (
                   <button key={r.id} className="recent" onClick={() => onOpenRecent?.(r)}>
+                    <span className="recent-icon" aria-hidden="true"><Icon name="console" size={14} /></span>
                     <span className="recent-title">{recentChatLabel(r.prompt)}</span>
                     <time className="muted" dateTime={new Date(r.startedAt).toISOString()}>
                       <span className="recent-full-date">{new Date(r.startedAt).toLocaleDateString(undefined, { dateStyle: "medium" })}</span>
@@ -235,7 +237,19 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
         <RunView key={run.id} run={run} versions={versions} onStop={() => onStop(run.id)} onRegenerate={running ? undefined : () => regenerate(run.prompt)} />
       ))}
       <div ref={composer} className={`composer ${runs.length === 0 ? "home" : ""}`}>
-        {optimizing && (
+        {optimizing?.status === "ready" && optimizing.result && (
+          <PromptReview
+            result={optimizing.result}
+            text={optimizing.text}
+            onText={(text) => setOptimizing({ ...optimizing, text })}
+            files={files.map((f) => f.name)}
+            disabled={running || reading > 0}
+            onSend={(text) => confirmReview(text)}
+            onSendOriginal={() => confirmReview(optimizing.original)}
+            onCancel={cancelReview}
+          />
+        )}
+        {optimizing && !(optimizing.status === "ready" && optimizing.result) && (
           <div className="card optimize-card" role="region" aria-label="Optimized prompt">
             <div className="micro">Review your prompt</div>
             {optimizing.status === "loading" ? (
@@ -268,7 +282,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
         {!optimizing && (
         <div className="card">
           <div className="row">
-            <span className="micro">Talk to</span>
+            <span className="micro talk-to"><Icon name="agents" size={14} /> Talk to</span>
             <AgentPicker agents={catalog.agents} value={target} onChange={setTarget} />
             {target !== "rudra" && (
               <button className="btn ghost sm" onClick={() => onOpenAgent(target)}>
@@ -332,7 +346,7 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
             <div className="row">
               <div className="ideas">
                 <button className="btn ghost" aria-haspopup="menu" aria-expanded={ideas} onClick={() => setIdeas((o) => !o)}>
-                  Prompt ideas
+                  <Icon name="spark" size={14} /> Prompt ideas
                 </button>
                 {ideas && (
                   <div className="ideas-pop" role="menu" onKeyDown={(e) => e.key === "Escape" && setIdeas(false)}>
@@ -351,13 +365,13 @@ export function Console({ catalog, runs, target, setTarget, live, onStart, onSto
               </div>
               <input ref={fileInput} type="file" multiple hidden accept={ATTACH_EXTENSIONS.map((e) => `.${e}`).join(",")} onChange={(e) => void attach(e.target.files)} />
               <button className="btn" disabled={running} onClick={openLibrary} title="Reuse a file you uploaded in any chat">
-                From uploads
+                <Icon name="uploads" size={14} /> From uploads
               </button>
               <button className="btn" disabled={running || files.length >= ATTACH_MAX_FILES} onClick={() => fileInput.current?.click()} title="PDF, JPEG, PNG, Word, Excel, PowerPoint, CSV, text, Markdown or JSON, up to 4 MB each. Kept in Uploads for other chats.">
-                Attach files
+                <Icon name="clip" size={14} /> Attach files
               </button>
               <button className="btn primary" disabled={!prompt.trim() || running || reading > 0 || Boolean(optimizing)} onClick={() => submit()}>
-                {running ? "Working…" : "Run"}
+                {running ? "Working…" : <><Icon name="send" size={14} /> Run</>}
               </button>
             </div>
           </div>

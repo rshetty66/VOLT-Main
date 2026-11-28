@@ -12,7 +12,7 @@ export async function optimizePrompt(
   const model = modelFor("sonnet");
   try {
     const msg = await client.messages.create(
-      { model, max_tokens: 2500, system: OPTIMIZER_SYSTEM + (workflow
+      { model, max_tokens: 3500, system: OPTIMIZER_SYSTEM + (workflow
         ? `\nSelected workflow: ${workflow.name}. Internal scoping topics from the workflow definition: ${JSON.stringify(workflow.topics)}. Incorporate relevant answers or labeled unknowns in PROMPT; do not display a user questionnaire.`
         : ""), messages: [{ role: "user", content: prompt }] },
       { signal, timeout: 40_000, maxRetries: 1 },

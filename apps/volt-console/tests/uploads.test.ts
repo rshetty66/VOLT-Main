@@ -5,7 +5,7 @@ import path from "node:path";
 import type { AddressInfo } from "node:net";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { AttachmentError, extractAttachment } from "../server/attachments";
-import { UploadsFullError, listUploads, originalPath, readUpload, removeUpload, saveUpload, touchUploads, updateUpload, uploadMeta } from "../server/uploads";
+import { listUploads, originalPath, readUpload, removeUpload, saveUpload, uploadMeta } from "../server/uploads";
 
 const PDF = (text: string) =>
   new TextEncoder().encode(
@@ -66,7 +66,6 @@ describe("uploads library", () => {
   afterEach(() => {
     delete process.env.VOLT_DATA_DIR;
     delete process.env.VOLT_UPLOADS_MAX_FILES;
-    delete process.env.VOLT_UPLOADS_MAX_MB;
     fs.rmSync(dir, { recursive: true, force: true });
   });
   const ex = (name: string, text = "body") => ({ name, text, chars: text.length, truncated: false });
@@ -100,48 +99,12 @@ describe("uploads library", () => {
     expect(uploadMeta("../x")).toBeUndefined();
   });
 
-  it("refuses ids that are not library ids (no path traversal), and refuses a new file over the limits instead of dropping old ones", () => {
+  it("refuses ids that are not library ids (no path traversal) and prunes the oldest beyond the file limit", () => {
     expect(readUpload("../../etc/passwd")).toBeUndefined();
     expect(originalPath("../x")).toBeUndefined();
     expect(removeUpload("../x")).toBe(false);
     process.env.VOLT_UPLOADS_MAX_FILES = "2";
-    for (const n of ["1", "2"]) saveUpload(ex(`f${n}.txt`), new Uint8Array([1]));
-    expect(() => saveUpload(ex("f3.txt"), new Uint8Array([1]))).toThrow(UploadsFullError);
-    // Replacing a file of the same name still fits.
-    saveUpload(ex("f2.txt", "v2"), new Uint8Array([1]));
-    expect(listUploads().map((m) => m.name)).toEqual(["f2.txt", "f1.txt"]);
-    process.env.VOLT_UPLOADS_MAX_FILES = "10";
-    process.env.VOLT_UPLOADS_MAX_MB = "1";
-    expect(() => saveUpload(ex("big.mov"), new Uint8Array(1024 * 1024))).toThrow(/full/);
-  });
-
-  it("archives by hand and after 30 days unused: kept, out of the project list, restorable", () => {
-    const a = saveUpload(ex("a.pdf"), new Uint8Array([1]), { projectId: "p1" });
-    const b = saveUpload(ex("b.pdf"), new Uint8Array([1]), { projectId: "p1" });
-    updateUpload(a.id, { archived: true });
-    expect(listUploads("p1").map((m) => m.name)).toEqual(["b.pdf"]);
-    expect(listUploads("p1", { archived: true }).map((m) => m.name)).toEqual(["a.pdf"]);
-    const later = Date.now() + 31 * 86_400_000;
-    expect(listUploads("p1", { now: later })).toEqual([]);
-    expect(listUploads("p1", { archived: true, now: later }).map((m) => m.name).sort()).toEqual(["a.pdf", "b.pdf"]);
-    touchUploads([b.id]);
-    expect(updateUpload(a.id, { archived: false })).toMatchObject({ archived: false });
-    expect(listUploads("p1").map((m) => m.name)).toEqual(["b.pdf", "a.pdf"]);
-    expect(listUploads()).toHaveLength(2);
-  });
-
-  it("puts files in folders and shares a file with every project", () => {
-    const a = saveUpload(ex("ifrs17.pdf"), new Uint8Array([1]), { projectId: "p1", folder: "Standards" });
-    expect(a.folder).toBe("Standards");
-    expect(updateUpload(a.id, { folder: "  IFRS / Insurance  " })?.folder).toBe("IFRS Insurance");
-    expect(listUploads("p2")).toEqual([]);
-    updateUpload(a.id, { allProjects: true });
-    expect(listUploads("p2").map((m) => m.name)).toEqual(["ifrs17.pdf"]);
-    // A new version keeps its folder and sharing.
-    const v2 = saveUpload(ex("ifrs17.pdf", "v2"), new Uint8Array([2]), { projectId: "p1" });
-    expect(v2).toMatchObject({ folder: "IFRS Insurance", allProjects: true });
-    expect(updateUpload(v2.id, { folder: null, allProjects: false })).not.toHaveProperty("folder");
-    expect(listUploads("p2")).toEqual([]);
-    expect(updateUpload("../x", { archived: true })).toBeUndefined();
+    for (const n of ["1", "2", "3"]) saveUpload(ex(`f${n}.txt`), new Uint8Array([1]));
+    expect(listUploads().map((m) => m.name)).toEqual(["f3.txt", "f2.txt"]);
   });
 });

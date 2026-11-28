@@ -4,8 +4,6 @@ import { renderMermaid } from "./mermaid";
 import { parseArchSpec, parseChartSpec, parseProcessSpec } from "../../shared/viz";
 import { processSvg } from "./specProcess";
 import { archSvg } from "./specArch";
-import { viewSvg } from "./specViews";
-import { parseView } from "../../shared/views";
 import { specSvg } from "./specChart";
 import { voltFileName, downloadBlob, downloadText, svgToPng } from "../download";
 import { chartGif } from "./gif";
@@ -186,34 +184,6 @@ export function SpecChart({ code }: { code: string }) {
     <figure ref={fig} className="visual spec-chart">
       <ChartHost spec={spec} svg={specSvg(spec, screenPalette(), { t, interactive: true })} />
       <DownloadButtons name={spec.title || "chart"} svg={async () => specSvg(spec, LIGHT)} gif={() => chartGif((f) => specSvg(spec, LIGHT, { t: f }))} onReplay={() => setReplay((n) => n + 1)} />
-    </figure>
-  );
-}
-
-/** A ```taxonomy or ```lifecycle block from agent output: the process taxonomy or a product lifecycle view. */
-export function SpecView({ kind, code }: { kind: string; code: string }) {
-  const [spec, setSpec] = useState(() => parseView(kind, code));
-  const [waited, setWaited] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => {
-      setSpec(parseView(kind, code));
-      setWaited(true);
-    }, 300);
-    return () => clearTimeout(t);
-  }, [kind, code]);
-  if (!spec)
-    return waited ? (
-      <figure className="visual">
-        <pre><code>{code}</code></pre>
-        <figcaption className="muted" style={{ fontSize: "var(--fs-2)" }}>This view could not be drawn: the data is not valid.</figcaption>
-      </figure>
-    ) : (
-      <span className="muted"><span className="spinner" /> drawing {kind}</span>
-    );
-  return (
-    <figure className="visual spec-arch">
-      <div className="mermaid-svg" dangerouslySetInnerHTML={{ __html: viewSvg(spec, screenPalette()) }} />
-      <DownloadButtons name={spec.spec.title || kind} svg={async () => viewSvg(spec, LIGHT)} />
     </figure>
   );
 }

@@ -556,7 +556,6 @@ html, body, #root { height: 100%; }
 .as-ticker { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; border-top: 1px solid rgba(255, 255, 255, 0.08); }
 .as-hand { font-size: 11px; color: #a9b1c7; background: #1a1e2e; border: 1px solid #3a4262; border-radius: 999px; padding: 2px 9px; animation: as-pop 0.35s ease-out; }
 .as-hand b { color: #e6eaf2; font-weight: 600; }
-.as-hand .as-count { color: #00e5ff; font-weight: 700; }
 @keyframes as-pop { from { opacity: 0; transform: translateY(4px); } }
 .agent-stage .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); margin: 0; padding: 0; border: 0; }
 .agent-stage.paused * { animation-play-state: paused !important; }
@@ -759,23 +758,45 @@ button.chip { font: inherit; font-size: var(--fs-3); }
 .gyan-table {overflow:auto}.gyan-table table {border-collapse:collapse;width:100%}.gyan-table th,.gyan-table td {text-align:left;padding:6px;border-bottom:1px solid var(--line)}.gyan-table caption {text-align:left}.gyan-table code {display:block;overflow-wrap:anywhere;max-width:25ch}
 @media(max-width:760px){.gyan-workbench{grid-template-columns:1fr;padding:8px}.gyan-inspector{border-left:0;border-top:1px solid #333;padding:8px 0 0}.gyan-head{grid-template-columns:1fr}.gyan-badge{justify-self:start}.gyan-table{max-width:100%}}
 
-/* Diagram builder: scenario assistant beside the finance views */
-.fv-wrap { display: grid; grid-template-columns: 280px minmax(0, 1fr); gap: 10px; }
-.fv-chat { display: grid; grid-template-rows: 1fr auto; border: 1px solid var(--line); border-radius: 10px; background: #000; height: calc(100vh - 210px); min-height: 560px; font-size: 12px; }
-.fv-msgs { overflow: auto; padding: 10px; display: grid; gap: 7px; align-content: start; }
-.fv-h { font-size: 10px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted, #8f8f8f); font-weight: 600; }
-.fv-m { border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; }
-.fv-m ul { padding-left: 14px; margin: 0; display: grid; gap: 2px; }
-.fv-u { background: #121212; }
-.fv-links, .fv-sugg { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
-.fv-sugg { flex-direction: column; }
-.fv-lk { border: 1px solid #123a55; background: #0d2333; color: #4fb3ff; border-radius: 4px; padding: 1px 6px; font: inherit; font-size: 11px; cursor: pointer; text-align: left; }
-.fv-lk:disabled { opacity: .5; cursor: default; }
-.fv-upd { margin-top: 5px; font-size: 11px; color: #4fb3ff; }
-.fv-rej { margin-top: 3px; font-size: 11px; color: #ff9a9a; }
-.fv-box { border-top: 1px solid var(--line); padding: 8px; display: grid; gap: 6px; }
-.fv-box textarea { resize: none; font-size: 12px; }
-@media (max-width: 1000px) {
-  .fv-wrap { grid-template-columns: 1fr; }
-  .fv-chat { height: auto; min-height: 0; max-height: 420px; }
-}
+/* Prompt review as an input screen: business ask on top, one field per section, fits the page. */
+.pr { gap: var(--sp-2); max-height: calc(100vh - 120px); overflow: hidden; display: flex; flex-direction: column; }
+.pr-head { display: flex; align-items: flex-start; gap: var(--sp-3); }
+.pr-badge { flex: none; display: grid; place-items: center; width: 28px; height: 28px; border-radius: 8px; color: var(--accent); background: rgba(0, 229, 255, 0.1); }
+.pr-ask { flex: 1; min-width: 0; }
+.pr-ask h2 { margin: 2px 0 0; font-size: var(--fs-6); font-weight: 600; line-height: 1.35; color: var(--heading); }
+.pr-mode { display: inline-flex; gap: 4px; }
+.pr-assume { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: var(--fs-3); }
+.pr-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-2); }
+.pr-field { display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--surface); }
+.pr-field.wide { grid-column: 1 / -1; }
+.pr-field.off { opacity: 0.6; }
+.pr-label { display: flex; align-items: baseline; gap: 6px; font-size: var(--fs-3); }
+.pr-label b { font-weight: 600; color: var(--heading); white-space: nowrap; }
+.pr-hint { color: var(--muted); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pr-num { flex: none; display: grid; place-items: center; width: 16px; height: 16px; border-radius: 50%; font-size: 10px; color: var(--void); background: var(--accent); }
+.optimize-card.pr .pr-input.textarea { min-height: 44px; height: 62px; padding: 6px 8px; font-size: var(--fs-4); line-height: 1.45; resize: vertical; }
+.optimize-card.pr .pr-field.wide .pr-input.textarea { height: 48px; }
+.console:has(.pr) :is(.home-greeting, .home-below) { display: none; }
+.optimize-card.pr .pr-plain.textarea { flex: 1; min-height: 260px; font-size: var(--fs-4); line-height: 1.5; }
+.pr-chips { gap: 4px; }
+.pr-chips .chip.intake-chip { padding: 2px 9px; }
+.pr-skipped { font-size: var(--fs-3); }
+.pr-foot { justify-content: flex-end; }
+.pr-note { flex: 1; min-width: 180px; font-size: var(--fs-3); }
+@media (max-width: 760px) { .pr-grid { grid-template-columns: minmax(0, 1fr); } .pr-field { min-width: 0; } .pr { max-height: none; } .pr-head { flex-wrap: wrap; } .pr-ask { flex-basis: calc(100% - 44px); } .pr-hint { display: none; } }
+
+/* Friendlier home: icons in buttons and rows, and the page fills its height instead of ending in empty space. */
+.btn > svg { vertical-align: -2px; margin-right: 4px; }
+.talk-to, .recent-list > .micro { display: inline-flex; align-items: center; gap: 6px; }
+.recent-icon { flex: none; color: var(--accent); display: inline-flex; }
+.recent:has(.recent-icon) { grid-template-columns: auto minmax(0, 1fr) auto; }
+.recent-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.console.is-home { min-height: 100%; }
+.console.is-home .composer.home > .card:not(.optimize-card) > .textarea { min-height: 150px; }
+.console.is-home .home-below { flex: 1; }
+.console.is-home .recent-list { max-width: none; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: var(--sp-2); align-content: start; }
+.console.is-home .recent-list > .micro { grid-column: 1 / -1; }
+@media (max-width: 760px) { .console.is-home .recent-list { grid-template-columns: 1fr; } }
+.pr-bp-bar { gap: var(--sp-2); }
+.pr-q { display: grid; gap: 2px; font-size: var(--fs-3); color: var(--body); }
+.pr-q .input { padding: 4px 8px; font-size: var(--fs-4); }

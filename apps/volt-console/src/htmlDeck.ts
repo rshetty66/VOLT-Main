@@ -29,9 +29,9 @@ export function speakerNotes(html: string): { html: string; notes: string } {
 
 const DECK_CSS = `
 html,body,.reveal-viewport{background:var(--bg);color:var(--tx)}
-.reveal{font:16px/1.45 Inter,"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;color:var(--tx);font-variant-numeric:tabular-nums}
+.reveal{font:20px/1.45 Inter,"Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;color:var(--tx);font-variant-numeric:tabular-nums}
 .reveal .slides{text-align:left}
-.reveal .slides>section{block-size:100%;padding:34px 52px 28px;overflow:hidden}
+.reveal .slides>section{block-size:100%;padding:40px 56px 32px;overflow:hidden}
 /* Measuring pass (before reveal.js starts): every slide laid out at 1280 x 720 so the fit script can paginate it. */
 .measuring .reveal .slides{position:static;inline-size:1280px;block-size:auto;transform:none}
 .measuring .reveal .slides>section{display:block!important;position:relative!important;inset:auto!important;inline-size:1280px;block-size:720px;transform:none!important;opacity:1!important;visibility:visible!important}
@@ -39,30 +39,30 @@ html,body,.reveal-viewport{background:var(--bg);color:var(--tx)}
 /* One sans family for titles and text (Rakesh, 2026-11-27); the PowerPoint export keeps its own fonts. */
 .reveal h1,.reveal h2{font-family:inherit;color:var(--tx);text-transform:none;letter-spacing:-.01em;text-wrap:balance;margin:0}
 .reveal .detail h4{font-family:inherit;font-weight:650}
-.reveal h1{font-size:46px;font-weight:750;line-height:1.08;max-inline-size:1040px}
-.reveal h2{font-size:23px;font-weight:650;line-height:1.22;max-inline-size:1100px}
+.reveal h1{font-size:54px;font-weight:750;line-height:1.08;max-inline-size:1040px}
+.reveal h2{font-size:29px;font-weight:650;line-height:1.22;max-inline-size:1100px}
 .reveal .slide>p,.reveal .slide>blockquote{max-inline-size:1000px}
-.reveal p.cap{font-weight:600;color:var(--mu);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:18px 0 8px}
-.reveal .head{display:flex;gap:14px;align-items:baseline;border-bottom:1px solid var(--bd);padding-bottom:10px;margin-bottom:16px}
-.reveal .head .kick{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:var(--cyan);font-weight:700;margin-bottom:6px}
+.reveal p.cap{font-weight:600;color:var(--mu);font-size:14px;text-transform:uppercase;letter-spacing:.08em;margin:18px 0 8px}
+.reveal .head{display:flex;gap:16px;align-items:baseline;border-bottom:1px solid var(--bd);padding-bottom:12px;margin-bottom:22px}
+.reveal .head .kick{display:block;font-size:12.5px;text-transform:uppercase;letter-spacing:.12em;color:var(--cyan);font-weight:700;margin-bottom:6px}
 .reveal .head .cont{color:var(--dim);font-weight:400;text-transform:none;letter-spacing:0}
-.reveal .head .no{color:var(--gold);font-weight:700;font-size:14px;letter-spacing:.08em}
-.reveal .lede{font-size:19px;color:var(--cyan);margin:16px 0 6px}
+.reveal .head .no{color:var(--gold);font-weight:700;font-size:16px;letter-spacing:.08em}
+.reveal .lede{font-size:22px;color:var(--cyan);margin:16px 0 6px}
 .reveal .brand{margin-bottom:26px}
 .reveal .meta{color:var(--dim);font-size:14px;margin:0}
 .reveal ul,.reveal ol{display:block;margin:0 0 14px;padding-inline-start:1.2em}
-.reveal li{margin:0 0 6px}
+.reveal li{margin:0 0 8px}
 .reveal li::marker{color:var(--cyan)}
 .reveal strong,.reveal b{color:#fff}
-.reveal table{font-size:13px}
-.reveal .sowhat p{font-size:16px}
-.reveal .kpi .v{font-size:34px}
-.reveal .kpi .l{font-size:13px}
-.reveal .card b{font-size:15px}
-.reveal .card p{font-size:13px}
+.reveal table{font-size:16px}
+.reveal .sowhat p{font-size:20px}
+.reveal .kpi .v{font-size:44px}
+.reveal .kpi .l{font-size:16px}
+.reveal .card b{font-size:19px}
+.reveal .card p{font-size:16px}
 /* Exhibits use the full slide width; the drawing keeps its shape and is capped in height so labels stay readable. */
 .reveal figure{margin:6px 0;overflow:hidden}
-.reveal figure.chart,.reveal figure.arch,.reveal figure.diagram,.reveal figure.flow,.reveal figure.view{max-inline-size:none}
+.reveal figure.chart,.reveal figure.arch,.reveal figure.diagram,.reveal figure.flow{max-inline-size:none}
 .reveal figure svg{inline-size:100%;block-size:auto;max-block-size:var(--fig-h,470px)}
 .reveal .flow svg{min-inline-size:0}
 .reveal .flow .dots{display:none}
@@ -71,46 +71,26 @@ html,body,.reveal-viewport{background:var(--bg);color:var(--tx)}
 .reveal .figs svg{--fig-h:440px}
 /* A hero figure: the number a list leads with, shown large beside it. */
 .reveal .herosplit{display:grid;grid-template-columns:330px 1fr;gap:44px;align-items:center;margin:6px 0 10px}
-.reveal .hero .hv{display:block;font-size:88px;font-weight:800;line-height:1;letter-spacing:-.03em;color:var(--cyan)}
+.reveal .hero .hv{display:block;font-size:104px;font-weight:800;line-height:1;letter-spacing:-.03em;color:var(--cyan)}
 .reveal .hero .hv small{font-size:26px;font-weight:600;color:var(--mu);letter-spacing:0;margin-left:8px}
-.reveal .hero .hl{display:block;color:var(--mu);font-size:16px;margin-top:12px}
+.reveal .hero .hl{display:block;color:var(--mu);font-size:19px;margin-top:12px}
 .reveal .herosplit ul,.reveal .herosplit ol{margin:0}
-.reveal .kpi{padding:14px 16px;border-top-width:3px}
-/* Headline numbers lead the slide they sit on. */
-.reveal .body>.kpi-slot{margin:0 0 14px}
+.reveal .kpi{padding:18px 18px;border-top-width:4px}
 .reveal .nb{padding-block-end:6px;background-size:var(--w) 4px}
 /* Diagrams build in when their slide opens: layers from the top, process steps stage by stage. */
-.reveal .present .va-band,.reveal .present .vp-step,.reveal .present .vt-col,.reveal .present .vl-stage,.reveal .present .vf-col{animation:build .6s var(--ease) both}
+.reveal .present .va-band,.reveal .present .vp-step{animation:build .6s var(--ease) both}
 .reveal .present .va-band{animation-delay:calc(var(--va-i,0) * 110ms)}
-.reveal .present .vp-step,.reveal .present .vt-col,.reveal .present .vl-stage,.reveal .present .vf-col{animation-delay:calc(var(--vp-i,0) * 90ms)}
-@media (prefers-reduced-motion:reduce){.reveal .present .va-band,.reveal .present .vp-step,.reveal .present .vt-col,.reveal .present .vl-stage,.reveal .present .vf-col{animation:none}}
-/* Contents slide: every section, and the slides under it, one click away. */
-.reveal .toc .body{columns:2;column-gap:44px}
-.reveal .toc .sec{break-inside:avoid;margin:0 0 12px}
-.reveal .toc .sec>a{display:flex;gap:10px;align-items:baseline;color:var(--tx);text-decoration:none;font-size:15px;font-weight:650}
-.reveal .toc .sec>a span{color:var(--gold);font-size:12px;font-weight:700;min-inline-size:20px}
-.reveal .toc .sec>a:hover,.reveal .toc li a:hover{color:var(--cyan)}
-.reveal .toc ul{margin:4px 0 0 30px;padding:0;list-style:none}
-.reveal .toc li{margin:0 0 2px;font-size:12px;line-height:1.35}
-.reveal .toc li a{color:var(--mu);text-decoration:none}
-/* The deck toolbar: contents, animation on or off, read as a page, PDF. Hidden in print. */
-.deck-bar{position:fixed;top:10px;right:14px;z-index:40;display:flex;gap:6px;font:12px/1 Inter,"Segoe UI",system-ui,sans-serif}
-.deck-bar a,.deck-bar button{border:1px solid var(--bd);background:#000;color:var(--mu);padding:5px 9px;border-radius:4px;text-decoration:none;cursor:pointer;font:inherit}
-.deck-bar a:hover,.deck-bar button:hover{color:var(--tx);border-color:var(--cyan)}
-.deck-bar button[aria-pressed=true]{color:var(--cyan);border-color:var(--cyan)}
-.print-pdf .deck-bar{display:none}
+.reveal .present .vp-step{animation-delay:calc(var(--vp-i,0) * 90ms)}
+@media (prefers-reduced-motion:reduce){.reveal .present .va-band,.reveal .present .vp-step{animation:none}}
 .reveal .progress{color:var(--cyan);block-size:4px}
 .reveal .slide-number{background:transparent;color:var(--dim);font-size:12px}
 .reveal .controls{color:var(--cyan)}
-@media print{.reveal .slides>section{overflow:hidden}.deck-bar{display:none}}
+@media print{.reveal .slides>section{overflow:hidden}}
 `;
 
 const DECK_SCRIPT = `
 (function(){
-  var reduce0 = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
-  // Static view (the toolbar's Animation button, or ?static in the address): no transitions, builds or count-ups.
-  function still(){ return reduce0 || document.documentElement.classList.contains('static'); }
-  var reduce = still();
+  var reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
   /*
    * Fit every slide to 16:9 with no scrolling. Each slide is measured at 1280 x 720; what does not fit moves to a
    * "continued" slide after it. Lists, tables, card grids and KPI strips split between items (a table repeats its
@@ -123,10 +103,10 @@ const DECK_SCRIPT = `
   function items(el){ return el.tagName === 'TABLE' ? Array.prototype.slice.call(el.tBodies[0] ? el.tBodies[0].rows : []) : /^(UL|OL)$/.test(el.tagName) || el.classList.contains('cards') || el.classList.contains('kgrid') ? Array.prototype.slice.call(el.children) : []; }
   function isLead(el){ return el && el.tagName === 'P' && el.children.length === 1 && el.firstElementChild.tagName === 'STRONG' && el.textContent.trim() === el.firstElementChild.textContent.trim(); }
   function shell(el){ var c = el.cloneNode(false); if (el.tagName === 'TABLE') { if (el.tHead) c.appendChild(el.tHead.cloneNode(true)); c.appendChild(document.createElement('tbody')); } if (el.tagName === 'OL') c.start = (el.start || 1) + items(el).length; return c; }
-  function next(slide, same){
+  function next(slide){
     var s = document.createElement('section'); s.className = 'slide';
     var head = slide.querySelector('.head').cloneNode(true), k = head.querySelector('.kick');
-    if (!same && !head.querySelector('.cont')) { var m = document.createElement('span'); m.className = 'cont'; m.textContent = ' (continued)'; (k || head.querySelector('h2')).appendChild(m); }
+    if (!head.querySelector('.cont')) { var m = document.createElement('span'); m.className = 'cont'; m.textContent = ' (continued)'; (k || head.querySelector('h2')).appendChild(m); }
     var b = document.createElement('div'); b.className = 'body';
     s.appendChild(head); s.appendChild(b); slide.parentNode.insertBefore(s, slide.nextSibling); return s;
   }
@@ -136,7 +116,7 @@ const DECK_SCRIPT = `
       var limit = slide.getBoundingClientRect().top + slide.clientHeight - parseFloat(getComputedStyle(slide).paddingBottom);
       var box = slide.querySelector('.body'), room = limit - box.getBoundingClientRect().top, need = box.scrollHeight;
       // A slight overflow shrinks the slide's text a little rather than leaving a near-empty continued slide.
-      if (need > room && room / need >= 0.7) { box.style.zoom = (room / need).toFixed(3); return; }
+      if (need > room && room / need >= 0.78) { box.style.zoom = (room / need).toFixed(3); return; }
       var body = kids(slide), i = 0;
       while (i < body.length && bottom(body[i]) <= limit + 1) i++;
       if (i >= body.length) return;
@@ -184,42 +164,11 @@ const DECK_SCRIPT = `
       svg.style.maxBlockSize = Math.max(240, Math.floor(limit - svg.getBoundingClientRect().top - after - 4)) + 'px';
     });
   }
-  // A diagram that would be squeezed under text (less height than it needs to read at full width) gets a slide of its
-  // own under the same headline, with its read-out, instead of being drawn small beside empty space.
-  var BIG = /(^|\\s)(flow|arch|view|diagram)(\\s|$)/;
-  function own(slide){
-    var limit = slide.getBoundingClientRect().top + slide.clientHeight - parseFloat(getComputedStyle(slide).paddingBottom);
-    var body = kids(slide);
-    for (var i = 1; i < body.length; i++) {
-      var f = body[i], svg = f.tagName === 'FIGURE' && BIG.test(f.className) && f.querySelector('svg');
-      if (!svg || !svg.viewBox || !svg.viewBox.baseVal || !svg.viewBox.baseVal.width) continue;
-      var vb = svg.viewBox.baseVal, natural = slide.clientHeight > 0 ? (slide.querySelector('.body').clientWidth * vb.height / vb.width) : 0;
-      var extra = f.getBoundingClientRect().height - svg.getBoundingClientRect().height;
-      var room = limit - f.getBoundingClientRect().top - extra;
-      if (room >= Math.min(natural, 420) * 0.85) continue;
-      var k = i;
-      while (k > 0 && isLead(body[k - 1])) k--;
-      if (k === 0) return null;
-      var ns = next(slide, true), nb = ns.querySelector('.body');
-      body.slice(k).forEach(function(n){ nb.appendChild(n); });
-      return ns;
-    }
-    return null;
-  }
-  Array.prototype.slice.call(document.querySelectorAll('.reveal .slides > section.slide')).forEach(function(s){
-    for (var guard = 0; s && guard < 6; guard++) { var n = own(s); grow(s); fit(s); s = n; }
-  });
-  // The contents slide links each section and each slide headline to the slide it now sits on (after pagination).
-  var all = Array.prototype.slice.call(document.querySelectorAll('.reveal .slides > section'));
-  Array.prototype.forEach.call(document.querySelectorAll('.toc a[data-go]'), function(a){
-    var at = -1; all.some(function(s, i){ if (s.getAttribute('data-key') === a.getAttribute('data-go')) { at = i; return true; } return false; });
-    if (at < 0) { a.removeAttribute('href'); return; }
-    a.setAttribute('href', '#/' + at);
-    a.addEventListener('click', function(e){ e.preventDefault(); Reveal.slide(at); });
-  });
+  Array.prototype.slice.call(document.querySelectorAll('.reveal .slides > section.slide')).forEach(function(s){ grow(s); fit(s); });
   root.classList.remove('measuring');
-  // No click-by-click builds: an executive reads every slide whole, in the deck and in its PDF. Numbers still count up.
-  function draw(slide){ reduce = still(); Array.prototype.forEach.call(slide.querySelectorAll('figure.chart'), function(f, i){ setTimeout(function(){ f.classList.add('in'); }, reduce ? 0 : 120 * i); }); count(slide); }
+  var build = '.slide .body > ul > li, .slide .body > ol > li, .slide .body > .cards > .card, .slide .kgrid > .kpi';
+  if (!/print-pdf/.test(location.search)) Array.prototype.forEach.call(document.querySelectorAll(build), function(el){ el.classList.add('fragment', 'fade-up'); });
+  function draw(slide){ Array.prototype.forEach.call(slide.querySelectorAll('figure.chart'), function(f, i){ setTimeout(function(){ f.classList.add('in'); }, reduce ? 0 : 120 * i); }); count(slide); }
   // Big numbers count up to their value when their slide opens (KPI tiles and hero figures).
   function count(slide){
     Array.prototype.forEach.call(slide.querySelectorAll('.kpi .v, .hero .hv'), function(el){
@@ -233,13 +182,8 @@ const DECK_SCRIPT = `
     });
   }
   // The address tracks the slide, except in a sandboxed preview (an about:srcdoc frame), which forbids replaceState.
-  // "Read as page" is reveal.js's scroll view: every slide one under the other, nothing animated.
-  var scroll = /[?&]view=scroll\\b/.test(location.search);
-  Reveal.initialize({ hash: !/^about:/.test(location.href), width: 1280, height: 720, margin: 0.04, center: false, slideNumber: 'c/t', transition: reduce || scroll ? 'none' : 'fade',
-    view: scroll ? 'scroll' : null, pdfSeparateFragments: false, plugins: [RevealNotes] });
-  document.addEventListener('voltstatic', function(){ reduce = still(); Reveal.configure({ transition: reduce || scroll ? 'none' : 'fade' }); });
-  var toc = document.querySelector('.deck-bar .vt-toc');
-  if (toc) toc.addEventListener('click', function(e){ var t = document.querySelector('.reveal .slides > section.toc'); if (!t) return; e.preventDefault(); Reveal.slide(all.indexOf(t)); });
+  Reveal.initialize({ hash: !/^about:/.test(location.href), width: 1280, height: 720, margin: 0.04, center: false, slideNumber: 'c/t', transition: reduce ? 'none' : 'fade',
+    pdfSeparateFragments: false, plugins: [RevealNotes] });
   Reveal.on('ready', function(e){ draw(e.currentSlide); });
   Reveal.on('slidechanged', function(e){ draw(e.currentSlide); });
 })();
@@ -251,8 +195,7 @@ const DECK_SCRIPT = `
  * the section and subsection names above it as a kicker.
  */
 export function sectionSlides(title: string, html: string): { kicker: string; headline: string; html: string }[] {
-  // Page titles arrive as rendered HTML text ("don&#x27;t"), so they are decoded once before being escaped again.
-  const section = esc(decode(plain(title)));
+  const section = esc(plain(title));
   return html
     .split(/(?=<h3[\s>])/)
     .map((part) => {
@@ -260,40 +203,14 @@ export function sectionSlides(title: string, html: string): { kicker: string; he
       const sub = h3 ? h3[1].trim() : "";
       let body = h3 ? part.slice(h3[0].length) : part;
       const lead = /^\s*<p><strong>((?:(?!<\/?strong>)[\s\S])*?)<\/strong><\/p>\s*/.exec(body);
-      const headline = lead && actionTitle(lead[1]) ? tidy(lead[1]) : "";
+      const headline = lead && !/^Exhibit\b/i.test(lead[1]) ? lead[1].trim() : "";
       if (headline) body = body.slice(lead![0].length);
       return headline
         ? { kicker: sub ? `${section} | ${sub}` : section, headline, html: body }
-        : { kicker: sub ? section : "", headline: tidy(sub) || section, html: body };
+        : { kicker: sub ? section : "", headline: sub || section, html: body };
     })
     .filter((s) => s.html.trim() || s.headline !== section);
 }
-
-/**
- * Whether a bold opening line reads as an action title. A label that introduces what follows ("Design principles:",
- * "The method.", "Exhibit 3: ...") stays in the body above its content, and the subsection name stays the headline.
- */
-export const actionTitle = (lead: string): boolean => {
-  const t = lead.replace(/<[^>]+>/g, "").trim();
-  return !/^Exhibit\b/i.test(t) && !/:\s*$/.test(t) && t.split(/\s+/).length > 3;
-};
-
-const decode = (s: string) => s.replace(/&#x27;|&#39;/g, "'").replace(/&quot;/g, '"').replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&amp;/g, "&");
-
-/** A headline is a statement, so a trailing colon ("Decisions needed in the next 30 days:") is dropped. */
-const tidy = (s: string) => s.trim().replace(/\s*:$/, "");
-
-/** KPI tiles lead the slide they sit on: the headline numbers come before the prose that explains them. */
-export function kpisFirst(html: string): string {
-  const m = /<div class="kpi-slot">[\s\S]*?<\/figure><\/div>/.exec(html);
-  return m && m.index > 0 ? m[0] + html.slice(0, m.index) + html.slice(m.index + m[0].length) : html;
-}
-
-/**
- * A lead-in before the first section that talks about the chat rather than the client ("the interactive page is in
- * the download card above") is not a slide.
- */
-export const chatLeadIn = (html: string) => !/<(figure|table|div class="kpi-slot")/.test(html) && /\b(download card|card above|interactive page|in this chat|attached file)\b/i.test(html);
 
 const HERO = /^((?:USD|CAD|EUR|GBP)\s?)?([-\u2212]?\d[\d,]*(?:\.\d+)?)\s?(%|[MBK]\b|bn\b|x\b|days?\b|hours?\b|weeks?\b|months?\b|FTEs?\b|pts?\b|bps\b)?\s*([\s\S]*)$/i;
 
@@ -311,43 +228,24 @@ export function heroes(html: string): string {
   });
 }
 
-/**
- * The contents slide: each section and the headline of each of its slides, linked to the slide it lands on once the
- * deck is paginated (the deck script fills the links). Subsections are listed while the slide stays readable.
- */
-export function tocSlide(sections: { title: string; slides: { headline: string }[] }[]): string {
-  if (sections.length < 3) return "";
-  const subs = sections.reduce((n, s) => n + (s.slides.length > 1 ? s.slides.length : 0), 0);
-  const items = sections.map((sec, i) => {
-    const title = esc(decode(plain(sec.title)));
-    const list = subs <= 30 && sec.slides.length > 1 ? `<ul>${sec.slides.map((s, j) => (esc(decode(plain(s.headline))) === title ? "" : `<li><a data-go="${i}-${j}">${s.headline}</a></li>`)).join("")}</ul>` : "";
-    return `<div class="sec"><a data-go="${i}-0"><span>${String(i + 1).padStart(2, "0")}</span>${title}</a>${list}</div>`;
-  });
-  return `<section class="slide toc"><div class="head"><div><h2>Contents</h2></div></div><div class="body">${items.join("")}</div></section>`;
-}
-
 /** The full deck: a cover, then each section's slides. Pages carry trusted, already-rendered HTML, as in voltHtml. */
 export function voltDeck(d: HtmlDeliverable, assets: RevealAssets): string {
-  const pages = d.pages.filter((p, i) => !(i === 0 && chatLeadIn(p.html)));
-  const sections = pages.map((p, i) => ({ title: p.title, slides: sectionSlides(p.title, i === 0 ? withSoWhat(p.html) : p.html) }));
-  const slides = sections.flatMap((sec, i) =>
-    sec.slides.map((s, j) => {
+  const slides = d.pages.flatMap((p, i) =>
+    sectionSlides(p.title, i === 0 ? withSoWhat(p.html) : p.html).map((s) => {
       const { html, notes } = speakerNotes(s.html);
       const head = `<div class="head"><span class="no">${String(i + 1).padStart(2, "0")}</span><div>${s.kicker ? `<span class="kick">${s.kicker}</span>` : ""}<h2>${s.headline}</h2></div></div>`;
-      return `<section class="slide" data-key="${i}-${j}">${head}<div class="body">${kpisFirst(heroes(referenceLayout(html)))}</div>${notes ? `<aside class="notes">${notes}</aside>` : ""}</section>`;
+      return `<section class="slide">${head}<div class="body">${heroes(referenceLayout(html))}</div>${notes ? `<aside class="notes">${notes}</aside>` : ""}</section>`;
     }),
   );
   const cover = `<section class="cover"><div class="brand"><span class="mark" aria-hidden="true">V</span><b>VOLT</b></div><h1>${esc(d.title)}</h1>${d.subtitle ? `<p class="lede">${esc(d.subtitle)}</p>` : ""}<p class="meta">Prepared with VOLT</p></section>`;
-  const contents = tocSlide(sections);
   return `<!doctype html>
 <html lang="en" class="js"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="generator" content="VOLT Console">
 <title>${esc(d.title)}</title>
 <style>${inline(assets.css)}</style><style>${CSS}${DECK_CSS}</style></head><body>
 <div class="reveal"><div class="slides">
-${[cover, contents, ...slides].filter(Boolean).join("\n")}
+${[cover, ...slides].join("\n")}
 </div></div>
-<nav class="deck-bar" aria-label="Deck"><a class="vt-toc" href="#/1">Contents</a><button type="button" data-static-toggle aria-pressed="false">Animation on</button><a href="?view=scroll" title="Every slide one under the other">Read as page</a><a href="?print-pdf" title="Open the print layout, then save as PDF">PDF</a></nav>
 <script>${inline(assets.js)}</script><script>${inline(assets.notes)}</script>
 <script>${SCRIPT}</script><script>${DECK_SCRIPT}</script>
 </body></html>

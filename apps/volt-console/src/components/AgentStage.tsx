@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { Run } from "../runState";
-import { COLUMNS, FLOW_H, FLOW_W, clip, edgeEnds, edgePath, flowScene, mergeHandoffs, toolCalls, type FlowNode, type HandoffChip, type IconId } from "../agentStage";
+import { COLUMNS, FLOW_H, FLOW_W, edgeEnds, edgePath, flowScene, toolCalls, type FlowNode, type IconId } from "../agentStage";
 
 /**
  * The Agent Stage: a compact agent-flow graph under a running chat. Each agent lights up in its own colour when it is
@@ -45,7 +45,7 @@ export function AgentStage({ run, gates }: { run: Run; gates?: { passed: number;
   const shell = useRef<HTMLDivElement>(null);
   const paths = useRef(new Map<string, SVGPathElement>());
   const [inView, setInView] = useState(true);
-  const [ticker, setTicker] = useState<HandoffChip[]>([]);
+  const [ticker, setTicker] = useState<Handoff[]>([]);
   const [packets, setPackets] = useState<Packet[]>([]);
   const seen = useRef<Set<string> | null>(null);
 
@@ -79,7 +79,7 @@ export function AgentStage({ run, gates }: { run: Run; gates?: { passed: number;
     fresh.forEach((e) => seen.current!.add(e.key));
     const named = (e: Handoff) => ({ ...e, from: byId.get(e.from)?.name ?? "Rudra", to: byId.get(e.to)?.name ?? e.to });
     const said = fresh.filter((e) => !e.back && e.label);
-    if (said.length) setTicker((t) => mergeHandoffs(t, said.map(named)));
+    if (said.length) setTicker((t) => [...said.reverse().map(named), ...t].slice(0, 4));
     if (reducedMotion()) return;
     const add = fresh
       .map((e) => {
@@ -131,8 +131,7 @@ export function AgentStage({ run, gates }: { run: Run; gates?: { passed: number;
         <div className="as-ticker" aria-hidden="true">
           {ticker.map((h) => (
             <span key={h.key} className="as-hand">
-              <b>{h.from}</b> {"→"} <b>{h.to}</b>: {clip(h.label, 40)}
-              {h.count > 1 && <b className="as-count"> ×{h.count}</b>}
+              <b>{h.from}</b> {"→"} <b>{h.to}</b>: {h.label.length > 40 ? `${h.label.slice(0, 39)}…` : h.label}
             </span>
           ))}
         </div>

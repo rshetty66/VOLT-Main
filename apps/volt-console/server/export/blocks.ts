@@ -54,7 +54,6 @@ export function markdownBlocks(markdown: string): Block[] {
   let vizCharts = 0;
   let archs = 0;
   let procs = 0;
-  let views = 0;
   const visit = (node: RootContent) => {
     switch (node.type) {
       case "heading":
@@ -75,7 +74,6 @@ export function markdownBlocks(markdown: string): Block[] {
         if ((node.lang ?? "").toLowerCase() === "mermaid") out.push({ type: "image", ref: `diagram-${diagrams++}` });
         else if ((node.lang ?? "").toLowerCase() === "architecture") out.push({ type: "image", ref: `arch-${archs++}` });
         else if ((node.lang ?? "").toLowerCase() === "process") out.push({ type: "image", ref: `proc-${procs++}` });
-        else if (/^(taxonomy|lifecycle|fim)$/i.test(node.lang ?? "")) out.push({ type: "image", ref: `view-${views++}` });
         else if ((node.lang ?? "").toLowerCase() === "chart") out.push({ type: "image", ref: `viz-${vizCharts++}` });
         else out.push({ type: "code", lang: node.lang ?? "", text: node.value });
         break;

@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vitest";
-import { VIEWS_MD } from "./fixtures/views";
 import { DEPTH_STANDARD, assessDepth, deliverableStandards, deliverableStructure, leadDeliverableGuide, specialistDeliverableGuide, strengthenPrompt, wantsDeliverable, directAsk } from "../server/deliverable";
 
 describe("client deliverable guide", () => {
@@ -118,7 +117,7 @@ describe("depth check", () => {
   });
 
   it("passes a full deliverable", () => {
-    const r = assessDepth(RICH + VIEWS_MD);
+    const r = assessDepth(RICH);
     expect(r.gaps).toEqual([]);
     expect(r.ok).toBe(true);
   });
