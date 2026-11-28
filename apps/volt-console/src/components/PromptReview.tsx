@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { DELIVERABLE_CHOICES, PROMPT_SECTIONS, deliverablesOf, joinSections, splitSections, withDeliverables, type Optimized, type SectionKey, type Sections } from "../../shared/optimize";
-import { BLUEPRINT, blueprintBlock, isBlueprintAsk } from "../../shared/blueprint";
+import { BLUEPRINT, GYAN_AGENTS, blueprintBlock, isBlueprintAsk } from "../../shared/blueprint";
 import { Icon } from "./Icon";
 
 interface Props {
@@ -30,7 +30,8 @@ export function PromptReview({ result, text, onText, files, disabled, onSend, on
   const [bpSkipped, setBpSkipped] = useState<Set<string>>(new Set());
   const answered = Object.values(answers).filter((a) => a.trim()).length;
   const total = BLUEPRINT.reduce((n, b) => n + b.questions.length, 0);
-  const finalText = bpOn ? `${text.trim()}\n\n${blueprintBlock(answers, bpSkipped, files)}` : text;
+  const [team, setTeam] = useState<string[]>(() => GYAN_AGENTS.map((a) => a.id));
+  const finalText = bpOn ? `${text.trim()}\n\n${blueprintBlock(answers, bpSkipped, files, team)}` : text;
   const toggleBp = (id: string) => setBpSkipped((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const [skipped, setSkipped] = useState<Sections>({});
   const [other, setOther] = useState<string | null>(null);
@@ -63,7 +64,7 @@ export function PromptReview({ result, text, onText, files, disabled, onSend, on
         </div>
         <div className="pr-mode" role="radiogroup" aria-label="View">
           <button type="button" role="radio" aria-checked={view === "form"} className={`chip click intake-chip${view === "form" ? " on" : ""}`} disabled={!sections} onClick={() => setView("form")}>Form</button>
-          <button type="button" role="radio" aria-checked={view === "blueprint"} className={`chip click intake-chip${view === "blueprint" ? " on" : ""}`} onClick={() => { setView("blueprint"); setBpOn(true); }}>Blueprint inputs</button>
+          <button type="button" role="radio" aria-checked={view === "blueprint"} className={`chip click intake-chip${view === "blueprint" ? " on" : ""}`} onClick={() => { setView("blueprint"); setBpOn(true); }}><Icon name="spark" size={12} /> Intelligence Brain</button>
           <button type="button" role="radio" aria-checked={plain} className={`chip click intake-chip${plain ? " on" : ""}`} onClick={() => setView("text")}>Plain text</button>
         </div>
       </div>
@@ -74,12 +75,26 @@ export function PromptReview({ result, text, onText, files, disabled, onSend, on
       {view === "blueprint" ? (
         <>
           <div className="row pr-bp-bar">
-            <span className="muted pr-note">Accounting Rule Engine Blueprint · {answered} of {total} answered. Blanks go as [to confirm], never invented; attached files can stand in for a section.</span>
+            <span className="muted pr-note">Intelligence Brain · Accounting Rule Engine Blueprint · {answered} of {total} answered · {team.length} agents. Blanks go as [to confirm], never invented; attached files can stand in for a section.</span>
             <button type="button" className="btn ghost sm" disabled={bpSkipped.size === 0} onClick={() => setBpSkipped(new Set())}>Select all</button>
             <button type="button" className="btn ghost sm" onClick={() => setBpSkipped(new Set(BLUEPRINT.filter((b) => b.optional).map((b) => b.id)))}>Skip optional</button>
             <button type="button" className="btn ghost sm" onClick={() => { setBpOn(false); setView(sections ? "form" : "text"); }}>Leave out</button>
           </div>
           <div className="pr-grid">
+            <div className="pr-field wide">
+              <div className="pr-label">
+                <span className="pr-num"><Icon name="agents" size={10} /></span>
+                <b>Agent team</b>
+                <span className="pr-hint">Gyan finance agents · deep research narrative on how they run the engine</span>
+                <button type="button" className="btn ghost sm" onClick={() => setTeam(team.length === GYAN_AGENTS.length ? [] : GYAN_AGENTS.map((a) => a.id))}>{team.length === GYAN_AGENTS.length ? "Clear" : "Select all"}</button>
+              </div>
+              <div className="intake-chips pr-chips">
+                {GYAN_AGENTS.map((a) => {
+                  const on = team.includes(a.id);
+                  return <button key={a.id} type="button" role="checkbox" aria-checked={on} title={`${a.role} (VOLT: ${a.volt})`} className={`chip click intake-chip${on ? " on" : ""}`} onClick={() => setTeam(on ? team.filter((t) => t !== a.id) : [...team, a.id])}>{a.name}</button>;
+                })}
+              </div>
+            </div>
             {BLUEPRINT.map((b) => {
               const off = bpSkipped.has(b.id);
               const done = b.questions.filter((q) => answers[q.n]?.trim()).length;
@@ -147,7 +162,7 @@ export function PromptReview({ result, text, onText, files, disabled, onSend, on
 
       <div className="row pr-foot">
         <span className="muted pr-note">
-          {files.length > 0 ? `Attached: ${files.join(", ")} · ` : ""}{bpOn ? `Blueprint inputs included (${answered}/${total}) · ` : ""}Nothing runs until you send.
+          {files.length > 0 ? `Attached: ${files.join(", ")} · ` : ""}{bpOn ? `Intelligence Brain on (${answered}/${total}, ${team.length} agents) · ends in the blueprint, client_config.json and agent operating model · ` : ""}Nothing runs until you send.
           {!plain && sections && skippedKeys.length > 0 && <> · <button type="button" className="btn ghost sm" onClick={() => undo(skippedKeys)}>Select all</button></>}
         </span>
         <button className="btn ghost" onClick={onCancel}>Cancel</button>

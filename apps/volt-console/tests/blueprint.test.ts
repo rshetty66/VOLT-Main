@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { BLUEPRINT, blueprintBlock, isBlueprintAsk } from "../shared/blueprint";
 
-describe("accounting rule engine blueprint questionnaire", () => {
+describe("intelligence brain for the accounting rule engine blueprint", () => {
   it("has sections A to H and 28 numbered questions, each with a config field", () => {
     expect(BLUEPRINT.map((s) => s.id).join("")).toBe("ABCDEFGH");
     const qs = BLUEPRINT.flatMap((s) => s.questions);
@@ -21,5 +21,22 @@ describe("accounting rule engine blueprint questionnaire", () => {
   it("opens for accounting rule engine and hub asks only", () => {
     expect(isBlueprintAsk("Design an accounting rule engine blueprint for our card book")).toBe(true);
     expect(isBlueprintAsk("Plan a 5-day close")).toBe(false);
+  });
+});
+
+describe("gyan agent team", () => {
+  it("lists every Gyan finance agent with its VOLT binding, and asks for the narrative and the full deliverable", async () => {
+    const { readFileSync } = await import("node:fs");
+    const { GYAN_AGENTS } = await import("../shared/blueprint");
+    const seeds = JSON.parse(readFileSync(new URL("../../gyan-agents/backend/gyan_agents/seeds/catalog.json", import.meta.url), "utf8")) as { id: string }[];
+    const bind = JSON.parse(readFileSync(new URL("../../../plugins/volt/data/finance-workflow-bindings.json", import.meta.url), "utf8")) as Record<string, string>;
+    expect(GYAN_AGENTS.map((a) => a.id).sort()).toEqual(seeds.map((a) => a.id).sort());
+    for (const a of GYAN_AGENTS) expect(a.volt).toBe(bind[a.id]);
+    const out = blueprintBlock({}, new Set(), [], ["ctrl_finance_critic"]);
+    expect(out).toContain("## Agent Team & Deep Research Narrative");
+    expect(out).toContain("Finance Critic Verification Agent (internal-audit-agent)");
+    expect(out).not.toContain("Month-End Close Conductor");
+    expect(out).toContain("## Final Deliverable");
+    expect(out).toContain("client_config.json");
   });
 });
