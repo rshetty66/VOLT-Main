@@ -13,7 +13,7 @@ import https from "node:https";
 import net from "node:net";
 import type Anthropic from "@anthropic-ai/sdk";
 import { z } from "zod";
-import { listUploads, readUploadText, type UploadMeta } from "./uploads.js";
+import { listUploads, readUploadText, touchUploads, type UploadMeta } from "./uploads.js";
 import type { SourceRegistry } from "./research.js";
 import type { SourceRecord } from "../shared/research.js";
 
@@ -140,6 +140,7 @@ export function runKnowledgeTool(projectId: string, input: unknown, registry: So
   const parsed = KnowledgeInput.safeParse(input);
   if (!parsed.success) return { ok: false, error: `Invalid input for ${KNOWLEDGE_TOOL}: ${parsed.error.message}` };
   const hits = searchKnowledge(projectId, parsed.data.query, parsed.data.limit);
+  touchUploads(hits.map((h) => h.uploadId));
   if (!hits.length) return { ok: true, reply: "No passage in the project's knowledge base matches. Try other words, or say the documents do not cover it.", summary: "no match", added: [] };
   const added: SourceRecord[] = [];
   const blocks = hits.map((h) => {

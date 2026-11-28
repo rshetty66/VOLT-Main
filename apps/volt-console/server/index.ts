@@ -47,7 +47,7 @@ import { exportRouter } from "./export/route.js";
 import { ORCHESTRATOR_LANE, type CatalogResponse, type RunMode, type VoltEvent } from "../shared/events.js";
 import { MAX_TEMPLATE_BYTES } from "../shared/templates.js";
 import { AttachmentError, extractAttachment, extractForLibrary, limitText } from "./attachments.js";
-import { listUploads, originalPath, readUpload, removeUpload, saveUpload, uploadMeta } from "./uploads.js";
+import { UploadsFullError, listUploads, originalPath, readUpload, removeUpload, saveUpload, updateUpload, uploadMeta } from "./uploads.js";
 import { createProject, deleteChat, isProjectId, listChats, listProjects, restoreChat, saveChat, updateProject } from "./projects.js";
 import { WEB_MAX_BYTES, WebSourceError, checkUrl, fetchPublic, htmlText, renderPage, renderingEnabled, shouldRender } from "./knowledge.js";
 import { DEFAULT_PROJECT_ID, MEMORY_KINDS } from "../shared/projects.js";
@@ -229,10 +229,17 @@ app.post("/api/uploads", express.raw({ type: () => true, limit: KB_MAX_BYTES }),
     const library = req.get("x-knowledge-base") === "1";
     if (!library && data.length > WEB_MAX_BYTES) return void res.status(413).json({ error: "That upload or request is larger than this endpoint allows." });
     const extracted = library ? await extractForLibrary(name, data, KB_MAX_CHARS) : await extractAttachment(name, data, KB_MAX_CHARS);
-    const meta = saveUpload(extracted, data, { projectId: projectParam(req.get("x-project-id")) });
+    let folder: string | undefined;
+    try {
+      folder = decodeURIComponent(req.get("x-folder") ?? "") || undefined;
+    } catch {
+      /* no folder */
+    }
+    const meta = saveUpload(extracted, data, { projectId: projectParam(req.get("x-project-id")), folder });
     res.json({ ...limitText(extracted.name, extracted.text), id: meta.id, ...(meta.note ? { note: meta.note } : {}) });
   } catch (err) {
     if (err instanceof AttachmentError) return void res.status(err.code === "unsupported_type" ? 415 : 422).json({ error: err.message, code: err.code });
+    if (err instanceof UploadsFullError) return void res.status(507).json({ error: err.message, code: "full" });
     console.error("Upload failed", err);
     res.status(500).json({ error: "That file could not be read.", code: "unreadable" });
   }
@@ -273,6 +280,7 @@ async function readUrlSource(url: string): Promise<{ extracted: Awaited<ReturnTy
 
 function urlSourceFailed(res: express.Response, err: unknown) {
   if (err instanceof UrlSourceError) return void res.status(err.status).json({ error: err.message });
+  if (err instanceof UploadsFullError) return void res.status(507).json({ error: err.message });
   if (err instanceof WebSourceError || err instanceof AttachmentError) return void res.status(422).json({ error: err.message });
   console.error("URL source failed", err);
   res.status(500).json({ error: "That page could not be read." });
@@ -301,8 +309,18 @@ app.post("/api/uploads/:id/refresh", async (req, res) => {
   }
 });
 
+// With a project: its knowledge base (own files plus those shared with all projects), active or with archived=1 archived.
 app.get("/api/uploads", (req, res) => {
-  res.json(listUploads(typeof req.query.projectId === "string" ? projectParam(req.query.projectId) : undefined));
+  res.json(listUploads(typeof req.query.projectId === "string" ? projectParam(req.query.projectId) : undefined, { archived: req.query.archived === "1" }));
+});
+
+// Folder, "use in all projects" and archive or restore.
+app.patch("/api/uploads/:id", express.json({ limit: "2kb" }), (req, res) => {
+  const body = z.object({ folder: z.string().max(200).nullable().optional(), allProjects: z.boolean().optional(), archived: z.boolean().optional() }).strict().safeParse(req.body);
+  if (!body.success) return void res.status(400).json({ error: "Send folder, allProjects or archived." });
+  const meta = updateUpload(req.params.id, body.data);
+  if (!meta) return void res.status(404).json({ error: "unknown upload" });
+  res.json(meta);
 });
 
 app.get("/api/uploads/:id", (req, res) => {
