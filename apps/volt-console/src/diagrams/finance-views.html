@@ -1,0 +1,442 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<title>__TITLE__</title>
+<style>
+:root{--bg:#000;--p1:#0b0b0b;--p2:#141414;--line:#262626;--tx:#ececec;--mu:#8f8f8f;--dim:#5a5a5a;
+--ac:#f5c518;--rust:#e0662a;--tan:#eb8c00;--rose:#db536a;--teal:#1f5563;--slate:#2b3b40;
+--t:#5f8a54;--k:#c99a2e;--n:#d9cfb0;--agent:#4fb3ff;--ok:#3ecf8e}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:var(--bg);color:var(--tx);font:12px/1.4 "Segoe UI",system-ui,-apple-system,Roboto,sans-serif}
+button{font:inherit;color:inherit;background:none;border:1px solid var(--line);border-radius:5px;padding:2px 7px;cursor:pointer}
+button:hover{border-color:#555}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 240px;height:100vh}
+.pane{min-height:0;overflow:auto}
+#p-canvas{padding:8px 12px;display:flex;flex-direction:column;gap:6px;border-right:1px solid var(--line)}
+#p-insp{padding:9px 11px}
+h3{font-size:10px;text-transform:uppercase;letter-spacing:.08em;color:var(--mu);font-weight:600;margin:0 0 6px}
+.mu{color:var(--mu)}
+.vtabs{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.vtabs button.on{border-color:var(--ac);color:var(--ac)}
+.vtabs .r{margin-left:auto;display:flex;gap:4px}
+#tourb{border-color:var(--agent);color:var(--agent)}
+.eyebrow{font-size:10px;letter-spacing:.1em;color:var(--tan);text-transform:uppercase;font-weight:600}
+.h1{font-family:Georgia,serif;font-size:16px;line-height:1.25;margin:1px 0 0}
+.kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:5px}
+.kpis div{border-top:2px solid var(--rust);background:var(--p1);padding:3px 6px}
+.kpis strong{font-size:14px;display:block}
+.kpis span{font-size:9.5px;color:var(--mu)}
+.view{display:none;flex-direction:column;gap:6px;min-height:0}.view.on{display:flex}
+.so{border-left:3px solid var(--rust);background:#140e0a;padding:5px 8px;font-size:11px}
+.so b{color:var(--tan)}
+.srcl{font-size:9.5px;color:var(--dim)}
+/* architecture */
+.modes{display:flex;gap:4px;flex-wrap:wrap;align-items:center}
+.modes button{font-size:10.5px}
+.modes button.on{background:var(--rust);border-color:var(--rust);color:#000;font-weight:600}
+.modes button.ag.on{background:var(--agent);border-color:var(--agent)}
+.modes label{font-size:10.5px;color:var(--mu);margin-left:auto;display:flex;gap:4px;align-items:center}
+.archwrap{position:relative}
+.arch{display:grid;grid-template-columns:112px 122px minmax(0,1fr) 150px 26px 22px;gap:5px;position:relative}
+.col{border:1px solid var(--line);border-radius:6px;padding:4px;background:#050505;display:flex;flex-direction:column;gap:3px;min-width:0}
+.ch{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--mu);font-weight:600;padding:1px 2px 2px;position:relative}
+.cmp{position:relative;display:block;width:100%;text-align:left;font-size:10px;line-height:1.2;padding:3px 5px;border:1px solid #333;border-radius:4px;background:var(--slate);color:#e9eef0;transition:opacity .25s,background .25s,border-color .25s}
+.cmp:hover{border-color:#888}
+.grp{border:1px dashed #3a3a3a;border-radius:5px;padding:3px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.grp>.gl{font-size:9px;color:var(--mu);padding:0 2px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.eng{display:grid;gap:4px;align-content:start}
+.opgrid,.angrid{display:grid;grid-template-columns:1fr 1fr;gap:3px}
+.crband{border:1.5px solid var(--tan);border-radius:5px;padding:3px;display:grid;grid-template-columns:repeat(4,1fr);gap:3px}
+.crband .gl{grid-column:1/-1;font-size:9px;color:var(--tan)}
+.sub{font-size:9px;color:var(--mu);text-transform:uppercase;letter-spacing:.05em}
+.col.cn{padding:3px 2px}
+.col.cn,.col.e2e{height:0;min-height:100%}
+.col.cn .cmp{writing-mode:vertical-rl;transform:rotate(180deg);text-align:center;padding:4px 1px;flex:1 1 0;min-height:0;overflow:hidden}
+.col.e2e{background:var(--teal);border-color:var(--teal);padding:0}
+.col.e2e .cmp{background:var(--teal);border:0;flex:1 1 0;min-height:0;overflow:hidden;writing-mode:vertical-rl;transform:rotate(180deg);text-align:center}
+.bars{display:grid;gap:4px;margin-top:5px}
+.bars .cmp{background:var(--teal);border-color:var(--teal);text-align:center;padding:3px}
+.cmp.on{outline:2px solid var(--ac);outline-offset:-1px}
+.cmp.sel{box-shadow:0 0 0 2px #fff inset}
+.dim{opacity:.25}.dim18{opacity:.18}
+.cmp.mc{background:var(--mcol);border-color:var(--mcol);color:#000}
+.cmp.mc.light{color:#fff}
+.cmp.pre{visibility:hidden}
+.cmp.pulse{animation:pl 1s ease-out 2}
+@keyframes pl{0%{box-shadow:0 0 0 0 #f5c518aa}100%{box-shadow:0 0 0 8px #f5c51800}}
+.chipc{position:absolute;top:-4px;right:-2px;display:flex;gap:1px;animation:pop .15s ease-out}
+.chipc i{display:block;width:10px;height:8px;border:1px solid #000}
+.chipc i.t{background:var(--t)}.chipc i.k{background:var(--k)}.chipc i.n{background:var(--n)}
+@keyframes pop{from{transform:scale(.3)}to{transform:scale(1)}}
+.agb{position:absolute;bottom:-4px;right:-3px;min-width:13px;height:13px;border-radius:7px;background:var(--agent);color:#000;font-size:8.5px;font-weight:700;display:none;align-items:center;justify-content:center;padding:0 2px;border:1px solid #000}
+.showag .agb{display:flex}
+.col.cn .agb,.col.e2e .agb{display:none}
+svg.ov{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;overflow:visible}
+svg.ov path{fill:none;stroke-width:1.6}
+svg.ov path.old{opacity:.5}
+svg.ov path.draw{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);animation:dr .6s ease-out forwards}
+@keyframes dr{to{stroke-dashoffset:0}}
+svg.ov text{font-size:9px;fill:#fff;paint-order:stroke;stroke:#000;stroke-width:3px}
+.overlay{position:absolute;inset:0;border-radius:6px;display:none;z-index:4}
+.overlay.on{display:flex}
+#principles{background:var(--teal);flex-direction:column;justify-content:center;padding:30px 40px;gap:12px}
+#principles h4{font-family:Georgia,serif;font-size:20px}
+#principles p{font-size:14px}#principles b{color:#ffb600}
+#flows{flex-direction:column;justify-content:space-around;padding:30px 10px;pointer-events:none}
+#flows div{height:70px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:13px;clip-path:polygon(0 0,95% 0,100% 50%,95% 100%,0 100%)}
+#flows .fa{background:#b07a0066;color:#ffd27a}#flows .fr{background:#9c2f4566;color:#ffb3c1}
+.cap{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:6px;padding:4px 8px;background:var(--p1);min-height:30px}
+.cap .ctl{display:flex;gap:3px}
+.cap .dots{display:flex;gap:4px}
+.cap .dots button{width:9px;height:9px;padding:0;border-radius:50%;background:#333;border:0}
+.cap .dots button.on{background:var(--ac)}
+.cap .cpt{font-size:11px}.cap .cpt b{color:var(--ac)}
+.agbar{display:none;flex-wrap:wrap;gap:4px}
+.agbar.on{display:flex}
+.agbar button{font-size:10px;border-color:#123a55;color:var(--agent)}
+.agbar button.on{background:var(--agent);color:#000}
+.legend{display:flex;gap:9px;font-size:9.5px;color:var(--mu);flex-wrap:wrap;align-items:center}
+.legend b{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:3px;vertical-align:-1px}
+/* taxonomy */
+.l1s{display:grid;grid-template-columns:repeat(5,1fr);gap:5px}
+.l1{border:1px solid var(--line);border-radius:6px;padding:5px 7px;text-align:left;background:var(--p1)}
+.l1.on{border-color:var(--rust)}
+.l1 strong{display:block;font-size:11.5px}
+.l1 small{color:var(--mu);font-size:9.5px}
+.sbar{display:flex;height:5px;border-radius:2px;overflow:hidden;background:#222;margin-top:4px}
+.sbar i{display:block}
+.tool{display:flex;gap:4px;align-items:center;flex-wrap:wrap}
+.tool button.on{border-color:var(--ac);color:var(--ac)}
+.tool input{background:var(--p1);border:1px solid var(--line);border-radius:5px;color:var(--tx);padding:2px 7px;font:inherit;width:170px}
+.tgrid{display:grid;gap:6px;grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+.l2{border:1px solid var(--line);border-radius:6px;background:#050505;min-width:0}
+.l2h{background:#000;border-bottom:2px solid var(--rust);padding:4px 7px;font-weight:600;font-size:11px}
+.l3{padding:4px 7px;border-bottom:1px solid var(--line);cursor:pointer}
+.l3 .t{display:flex;justify-content:space-between;gap:4px;font-size:11px}
+.l3 .t span{color:var(--mu);font-size:9.5px;white-space:nowrap}
+.l3 .pcf{font-size:9.5px;color:var(--mu)}
+.l3 .pcf.no{color:#a05050}
+.dots2{display:flex;gap:2px;margin-top:3px}
+.dots2 i{width:6px;height:6px;border-radius:50%;background:#444}
+.dots2 i.H{background:#ffb600}.dots2 i.M{background:#8a6d1a}
+.l4s{display:none;margin-top:4px;gap:2px;flex-direction:column}
+.l3.open .l4s{display:flex}
+.l4{font-size:10.5px;padding:2px 5px;border-left:3px solid #444;background:var(--p1);display:flex;justify-content:space-between;gap:4px;cursor:pointer}
+.l4.H{border-left-color:#ffb600}.l4.M{border-left-color:#8a6d1a}
+.l4 em{font-style:normal;font-size:9px;color:var(--agent);white-space:nowrap}
+.l4.sel{background:#1a1500}
+.l3.fade{opacity:.35}
+.l4.hit{outline:1px solid var(--ac)}
+/* business architecture */
+.vis{background:var(--p2);border:1px solid var(--line);border-radius:6px;padding:4px 8px;font-size:11px;text-align:center}
+.vis b{color:var(--ac)}
+.bgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.bcol{border:1px solid var(--line);border-radius:6px;padding:5px;background:#050505;display:flex;flex-direction:column;gap:4px;min-width:0}
+.bcol h4{font-size:11px;color:var(--tan);font-weight:600}
+.bcap{border:1px solid #2e2e2e;border-radius:5px;padding:4px 6px;cursor:pointer;background:var(--p1);text-align:left;width:100%}
+.bcap strong{display:block;font-size:10.5px;font-weight:600}
+.bcap .meta{display:flex;gap:4px;flex-wrap:wrap;margin-top:2px;font-size:9px}
+.mat{padding:0 3px;border-radius:3px}
+.m1{background:#3a0f0f;color:#ff9a9a}.m2{background:#3a2e00;color:#f5c518}.m3{background:#0f2e1f;color:#3ecf8e}
+.gen{color:#ffb600}.agc{color:var(--agent)}
+.bcap.hot{border-color:var(--ac);background:#1a1500}
+.enab{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+.enab button{background:var(--teal);border-color:var(--teal);font-size:10.5px;text-align:left;padding:4px 7px}
+.enab button small{display:block;font-size:9px;color:#b9d4da}
+.pill3{display:grid;grid-template-columns:repeat(3,1fr);gap:5px}
+.pill3 div{border-top:2px solid;padding:3px 7px;background:var(--p1);font-size:10.5px}
+/* inspector */
+.it{font-size:13px;font-weight:600;margin:2px 0 6px}
+.kv{display:grid;grid-template-columns:70px 1fr;gap:3px 6px;font-size:10.5px;margin-bottom:7px}
+.kv dt{color:var(--mu)}
+.box{border:1px solid var(--line);border-radius:5px;padding:6px 7px;margin-bottom:6px;background:var(--p1);font-size:10.5px}
+.box>b{display:block;font-size:9.5px;color:var(--mu);font-weight:600;margin-bottom:2px;text-transform:uppercase;letter-spacing:.06em}
+.box.ag{border-color:#123a55}
+.badge{display:inline-block;font-size:9.5px;border-radius:3px;padding:0 4px;border:1px solid}
+.b-hyp{color:var(--ac);border-color:#5a4800}
+.tags{display:flex;gap:3px;flex-wrap:wrap}
+.tags span{font-size:9.5px;border:1px solid var(--line);border-radius:3px;padding:0 4px}
+.lk{border:0;padding:0 3px;border-radius:3px;background:#0d2333;color:var(--agent);font-size:10.5px;text-align:left}
+.kprin{background:var(--teal);border-radius:6px;padding:7px 8px;font-size:10.5px;margin-top:8px}
+.kprin b{color:#ffb600}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:12px;background:#111;border:1px solid var(--ac);border-radius:6px;padding:5px 10px;font-size:11px;display:none;z-index:20}
+/* tour */
+.tour-on{outline:2px solid var(--agent)!important;outline-offset:2px;border-radius:6px}
+.tour{position:fixed;right:252px;bottom:12px;width:300px;background:#060d14;border:1px solid var(--agent);border-radius:8px;padding:9px 11px;z-index:30;display:none;font-size:11.5px}
+.tour.on{display:block}
+.tour h5{font-size:12px;color:var(--agent);margin-bottom:3px}
+.tour .row{display:flex;gap:4px;align-items:center;margin-top:7px}
+.tour .row .mu{margin-right:auto;font-size:10px}
+.tour .nx{background:var(--agent);border-color:var(--agent);color:#000;font-weight:600}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media (max-width:900px){
+  .app{grid-template-columns:1fr;height:auto}
+  #p-canvas{border-right:0;border-bottom:1px solid var(--line)}
+  .arch{grid-template-columns:1fr}
+  .col.cn,.col.e2e{flex-direction:row;flex-wrap:wrap;height:auto;min-height:0}
+  .col.cn .cmp,.col.e2e .cmp{writing-mode:horizontal-tb;transform:none;flex:1 1 auto;padding:3px}
+  .col.e2e{padding:2px}
+  .kpis{grid-template-columns:repeat(3,1fr)}
+  .l1s,.bgrid,.enab{grid-template-columns:1fr 1fr}
+  .pill3{grid-template-columns:1fr}
+  .modes label{margin-left:0}
+  .tour{right:8px;left:8px;width:auto}
+}
+@media print{#p-insp,.modes,.cap .ctl,.vtabs,.tour{display:none!important}.app{grid-template-columns:1fr;height:auto}.view{display:flex!important;break-after:page}}
+</style>
+</head>
+<body>
+<div class="app">
+  <section class="pane" id="p-canvas">
+    <div class="vtabs" id="vtabs"><button data-v="arch" class="on">01 Reference architecture</button><button data-v="tax">02 Process taxonomy</button><button data-v="biz">03 Business architecture</button><span class="r"><button id="tourb">Tour</button></span></div>
+
+    <div class="view on" id="v-arch">
+      <div><div class="eyebrow">Finance reference architecture · agents in the future state</div>
+      <div class="h1">Apply accounting rules once, at source-transaction level, and let agents work the exceptions on balances that are reconciled by design</div></div>
+      <div class="kpis" id="kpiA"></div>
+      <div class="modes" id="modes"><button data-m="walk" class="on">Guided walkthrough</button><button data-m="full">Full architecture</button><button data-m="acc">Accounting flow</button><button data-m="risk">Risk flow</button><button data-m="coa">COA layers</button><button data-m="sol">Solution components</button><button data-m="agents" class="ag" id="m-agents">Agents</button><label><input type="checkbox" id="showag" checked> Agent badges</label></div>
+      <div class="agbar" id="agbar"></div>
+      <div class="archwrap" id="archwrap">
+        <div class="arch" id="arch"></div>
+        <div class="bars" id="bars"></div>
+        <svg class="ov" id="ov"><defs id="defs"></defs></svg>
+        <div class="overlay" id="principles"><h4>Two principles shape the whole architecture</h4><p>1. Apply <b>accounting rules once</b>, at source-transaction level, to create detailed balances.</p><p>2. Enrich <b>reconciled balances</b> into <b>one golden source</b> that finance, risk and regulatory reporting all share.</p></div>
+        <div class="overlay" id="flows"><div class="fa">Accounting &amp; Financial Reporting Flow</div><div class="fr">Risk, Performance &amp; Regulatory Reporting Flow</div></div>
+      </div>
+      <div class="cap" id="capbar"><div class="ctl"><button id="w0" title="Restart">Restart</button><button id="wb">Back</button><button id="wp">Play</button><button id="wn">Next</button></div><div class="cpt" id="cpt" aria-live="polite"></div><div class="dots" id="wdots"></div></div>
+      <div class="legend"><span><b style="background:var(--t)"></b>Thin GL segment</span><span><b style="background:var(--k)"></b>Thick sub-ledger</span><span><b style="background:var(--n)"></b>Analytical</span><span><b style="background:var(--agent);border-radius:50%"></b>Agents on a component</span><span>Vendor-neutral: map platforms per client</span></div>
+    </div>
+
+    <div class="view" id="v-tax">
+      <div><div class="eyebrow">Finance process taxonomy · L1 to L4 · GenAI impact · APQC PCF</div>
+      <div class="h1" id="taxh1"></div></div>
+      <div class="kpis" id="kpiT"></div>
+      <div class="l1s" id="l1s"></div>
+      <div class="tool" id="ttool"><button data-f="all" class="on">All</button><button data-f="H">High only</button><button data-f="HM">High + Moderate</button><input id="tq" placeholder="Search activities" aria-label="Search activities"><button id="texp">Expand all</button><span class="mu" id="tcount"></span><span class="legend" style="margin-left:auto"><span><b style="background:#ffb600"></b>High</span><span><b style="background:#8a6d1a"></b>Moderate</span><span><b style="background:#444"></b>Limited</span></span></div>
+      <div class="tgrid" id="tgrid"></div>
+      <div class="so" id="taxso"></div>
+      <div class="srcl">Illustrative data, structure only, not source-validated. GenAI ratings to be validated with the client's AI governance team. PCF: APQC PCF v8.0 Cross-Industry, ©2026 APQC. ALL RIGHTS RESERVED, used under APQC's licence.</div>
+    </div>
+
+    <div class="view" id="v-biz">
+      <div><div class="eyebrow">Business architecture · capabilities · Talent, Operations, Value</div>
+      <div class="h1" id="bizh1"></div></div>
+      <div class="vis"><b>Vision and strategy:</b> finance moves from scorekeeper to insight-led partner</div>
+      <div class="pill3"><div style="border-color:var(--rose)"><b>Lead with Talent</b> · new roles: agent supervisor, data steward, controller of exceptions</div><div style="border-color:var(--rust)"><b>Lead with Operations</b> · rules once, reconciled by design, agents on exceptions</div><div style="border-color:#ffb600"><b>Lead with Value</b> · insight, performance and partnering from one golden source</div></div>
+      <div class="bgrid" id="bgrid"></div>
+      <h3 style="margin:2px 0 0">Shared enablers (map to the reference architecture)</h3>
+      <div class="enab" id="enab"></div>
+      <div class="so"><b>So what:</b> capability gains come from the shared enablers first; agents only pay off on reconciled data. <b>Trade-off:</b> the data foundation and accounting hub must land before most agents can go live.</div>
+      <div class="srcl">Maturity today and target are hypotheses until confirmed in workshops. GenAI share is computed from the taxonomy.</div>
+    </div>
+  </section>
+  <section class="pane" id="p-insp"><div id="insp"></div></section>
+</div>
+<div class="tour" id="tour" role="dialog" aria-label="Tour"><h5 id="tourt"></h5><div id="tourx"></div><div class="row"><span class="mu" id="tourn"></span><button id="tourc">Close</button><button id="tourb2">Back</button><button class="nx" id="tourn2">Next</button></div></div>
+<div class="toast" id="toast"></div>
+<script>
+"use strict";
+const DATA=__MODEL__;
+const $=id=>document.getElementById(id);
+function h(tag,attrs,...kids){const e=document.createElement(tag);if(attrs)for(const[k,v]of Object.entries(attrs)){if(k==="class")e.className=v;else if(k==="text")e.textContent=v;else if(k.startsWith("on"))e.addEventListener(k.slice(2),v);else if(v!==undefined&&v!==null)e.setAttribute(k,v)}for(const c of kids.flat(Infinity))if(c!=null)e.append(c.nodeType?c:document.createTextNode(c));return e}
+function toast(t){const n=$("toast");n.textContent=t;n.style.display="block";clearTimeout(n._t);n._t=setTimeout(()=>n.style.display="none",1800)}
+const reduced=()=>matchMedia("(prefers-reduced-motion:reduce)").matches;
+
+/* ---------- Model ---------- */
+const INFO=DATA.components,SOLG=DATA.groups,AGENTS=DATA.agents,STEPS=DATA.steps;
+const AGON={};AGENTS.forEach(a=>a.on.forEach(c=>(AGON[c]=AGON[c]||[]).push(a.id)));
+const RATE={high:"H",moderate:"M",low:"L"};
+const TAX=DATA.taxonomy.map(t=>({l1:t.l1,l3s:t.groups.flatMap(g=>g.processes.map(p=>({l2:g.name,l3:p.name,pcf:p.pcf||"",acts:p.activities.map(a=>({n:a.name,r:RATE[a.impact]||"L"}))})))}));
+const CAPS={};DATA.capabilities.forEach(c=>CAPS[c.name]=c);
+const L4AG={};AGENTS.forEach(a=>a.activities.forEach(n=>(L4AG[n]=L4AG[n]||[]).push(a)));
+const L4s=TAX.flatMap(t=>t.l3s.flatMap(r=>r.acts.map(a=>({...a,l1:t.l1,l2:r.l2,l3:r.l3}))));
+const rateName=r=>r==="H"?"High":r==="M"?"Moderate":"Limited";
+document.title=DATA.title;
+
+/* ---------- Architecture DOM (Master Prompt v3, Appendix E ids) ---------- */
+const C=k=>{if(!INFO[k])return null;const b=h("button",{class:"cmp",id:"a-"+k,"data-i":k,"data-f":INFO[k][2],"data-k":INFO[k][3],"data-c":INFO[k][4],text:INFO[k][0]});if(AGON[k])b.append(h("span",{class:"agb",text:String(AGON[k].length)}));b.addEventListener("click",()=>pick({k:"cmp",id:k}));return b};
+const G=(id,label,keys,cls)=>h("div",{class:"grp",id},h("div",{class:"gl",text:label}),cls?h("div",{class:cls},keys.map(C)):keys.map(C));
+const arch=$("arch");
+arch.append(
+ h("div",{class:"col",id:"L_src"},h("div",{class:"ch",id:"H_src",text:"Source Systems"}),["src_mort","src_dep","src_sec","src_der","src_cc","src_oth","src_mkt","src_ref","src_cap","src_cust"].map(C)),
+ h("div",{class:"col",id:"L_pv"},h("div",{class:"ch",id:"H_pv",text:"Provisioning Area"}),["pv_cust","pv_txn","pv_acc","pv_bal","pv_dim","pv_ver","pv_dq","pv_rec","pv_adj"].map(C)),
+ h("div",{class:"col eng",id:"L_eng"},
+   h("div",{id:"L_op",class:"eng"},h("div",{class:"sub",text:"Operational engines"}),
+     h("div",{class:"opgrid"},G("G_are","Accounting Rules Engine",["op_rules","op_detbal"]),G("G_gl","General Ledger",["op_glbal","op_adb"])),
+     h("div",{class:"opgrid"},C("op_reccons"),C("op_finadj")),C("op_cost")),
+   h("div",{class:"crband",id:"L_cr"},h("div",{class:"gl",text:"Common Results Area"}),["cr_price","cr_cust","cr_prof","cr_recbal"].map(C)),
+   h("div",{id:"L_an",class:"eng"},h("div",{class:"sub",text:"Analytical engines"}),
+     h("div",{class:"angrid"},G("G_risk","Risk Engines",["an_mkt","an_cred","an_liq","an_stress"]),h("div",{class:"eng"},G("G_reg","Regulatory calcs",["an_ftp","an_ifrs"]),G("G_fm","Financial Management",["an_rapm","an_solv"]))),
+     G("G_sandbox","Sandbox",["an_stat","an_corp"],"g2"))),
+ h("div",{class:"col",id:"L_rp"},h("div",{class:"ch",id:"H_rp",text:"Analysis & Reporting"}),["rp_close","rp_stat","rp_reg","rp_plan","rp_fa","rp_mis","rp_dash","rp_alert","rp_oprisk","rp_aml"].map(C)),
+ h("div",{class:"col cn",id:"L_cn"},h("span",{id:"H_cn",style:"display:none"}),["cn_sh","cn_dir","cn_cust","cn_an","cn_reg"].map(C)),
+ h("div",{class:"col e2e",id:"L_e2e"},C("x_e2e")));
+$("bars").append(...["x_gov","x_mdm"].map(C).filter(Boolean));
+
+/* ---------- Walkthrough (Appendix D) ---------- */
+const RUST="#e0662a",RED="#E0301E",NS=STEPS.length;
+let mode="walk",step=1,timer=null,agentSel=null,sel={k:"cmp",id:"op_rules"};
+const all=()=>[...arch.querySelectorAll(".cmp"),...$("bars").querySelectorAll(".cmp")];
+const el=id=>$("a-"+id)||$(id);
+function cmpsOf(id){const e=el(id);if(!e)return[];return e.classList.contains("cmp")?[e]:[...e.querySelectorAll(".cmp")]}
+function clearState(){all().forEach(b=>{b.classList.remove("on","dim","dim18","mc","light","pre","pulse","sel");b.style.removeProperty("--mcol");b.querySelectorAll(".chipc").forEach(c=>c.remove())});
+  document.querySelectorAll("#archwrap .ch .chipc").forEach(c=>c.remove());$("ov").querySelectorAll(":scope>path,:scope>text").forEach(n=>n.remove());$("principles").classList.remove("on");$("flows").classList.remove("on");arch.style.visibility="";$("bars").style.visibility=""}
+function svgEl(t,a,...k){const e=document.createElementNS("http://www.w3.org/2000/svg",t);for(const[x,v]of Object.entries(a||{}))e.setAttribute(x,v);k.forEach(c=>e.append(c));return e}
+function marker(col){const id="mk"+col.replace("#","");if(!$(id))$("defs").append(svgEl("marker",{id,viewBox:"0 0 10 10",refX:"9",refY:"5",markerWidth:"6",markerHeight:"6",orient:"auto-start-reverse"},svgEl("path",{d:"M0,0 L10,5 L0,10 z",fill:col,stroke:"none"})));return"url(#"+id+")"}
+function connect(a,cur){
+  const fa=el(a.from),fb=el(a.to);if(!fa||!fb)return;
+  const w=$("archwrap").getBoundingClientRect(),A=fa.getBoundingClientRect(),B=fb.getBoundingClientRect(),col=a.red?RED:RUST,vert=!!a.red;
+  const hg=Math.max(B.left-A.right,A.left-B.right),vg=Math.max(B.top-A.bottom,A.top-B.bottom);let d,mx,my;
+  if(!vert&&hg>=vg){const l2r=A.right<=B.left;const x1=(l2r?A.right:A.left)-w.left,y1=A.top+A.height/2-w.top,x2=(l2r?B.left:B.right)-w.left,y2=B.top+B.height/2-w.top,c=(x2-x1)/2;d=`M${x1},${y1} C${x1+c},${y1} ${x2-c},${y2} ${x2},${y2}`;mx=(x1+x2)/2;my=(y1+y2)/2}
+  else{const t2b=A.bottom<=B.top;const x1=A.left+A.width/2-w.left,y1=(t2b?A.bottom:A.top)-w.top,x2=B.left+B.width/2-w.left,y2=(t2b?B.top:B.bottom)-w.top,c=(y2-y1)/2;d=`M${x1},${y1} C${x1},${y1+c} ${x2},${y2-c} ${x2},${y2}`;mx=(x1+x2)/2+4;my=(y1+y2)/2}
+  const p=svgEl("path",{d,stroke:col,"marker-end":marker(col)});if(a.red){p.setAttribute("marker-start",marker(col));p.setAttribute("stroke-dasharray","5 3")}
+  $("ov").append(p);if(cur&&!a.red&&!reduced()){p.style.setProperty("--len",p.getTotalLength());p.classList.add("draw")}else if(!cur)p.classList.add("old");
+  if(a.label){const t=svgEl("text",{x:mx,y:my-3,"text-anchor":"middle"});t.textContent=a.label;$("ov").append(t)}}
+function chip(target,segs){const e=el(target);if(!e)return;e.querySelectorAll(":scope>.chipc").forEach(c=>c.remove());e.append(h("span",{class:"chipc"},[...segs].map(s=>h("i",{class:s}))))}
+const pulseStep=STEPS.findIndex(s=>s.pulse)+1;
+function applyStep(n){
+  clearState();step=n;const s=STEPS[n-1];
+  if(pulseStep&&n<pulseStep&&el(STEPS[pulseStep-1].pulse))el(STEPS[pulseStep-1].pulse).classList.add("pre");
+  if(s.overlay==="principles"){$("principles").classList.add("on");arch.style.visibility="hidden";$("bars").style.visibility="hidden"}
+  if(s.overlay==="flows")$("flows").classList.add("on");
+  for(let i=1;i<=n;i++){const st=STEPS[i-1];(st.arrows||[]).forEach(a=>connect(a,i===n));(st.chips||[]).forEach(c=>chip(c.target,c.segments))}
+  if(Array.isArray(s.on)){const onS=new Set(s.on.flatMap(cmpsOf));all().forEach(b=>b.classList.add(onS.has(b)?"on":"dim"))}
+  if(s.reveal&&!reduced())["L_src","L_pv","L_op","L_cr","L_an","L_rp","L_cn","L_e2e","bars"].forEach((id,i)=>$(id).animate([{opacity:0},{opacity:1}],{duration:300,delay:i*60,fill:"backwards"}));
+  if(s.pulse&&el(s.pulse))el(s.pulse).classList.add("pulse");
+  $("cpt").replaceChildren(h("b",{text:"Step "+n+" / "+NS+" · "+s.title+": "}),s.text);
+  [...$("wdots").children].forEach((d,i)=>d.classList.toggle("on",i===n-1));
+  markSel()}
+STEPS.forEach((_,i)=>$("wdots").append(h("button",{title:"Step "+(i+1),"aria-label":"Step "+(i+1),onclick:()=>{stop();setMode("walk",i+1)}})));
+function stop(){if(timer){clearInterval(timer);timer=null;$("wp").textContent="Play"}}
+$("w0").addEventListener("click",()=>{stop();setMode("walk",1)});
+$("wb").addEventListener("click",()=>{stop();setMode("walk",Math.max(1,(mode==="walk"?step:NS+1)-1))});
+$("wn").addEventListener("click",()=>{stop();setMode("walk",Math.min(NS,(mode==="walk"?step:0)+1))});
+$("wp").addEventListener("click",()=>{if(timer)return stop();if(mode!=="walk"||step>=NS)setMode("walk",1);$("wp").textContent="Pause";timer=setInterval(()=>{if(step>=NS)return stop();applyStep(step+1)},2600)});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")endTour();if(e.target.tagName==="INPUT"||!$("v-arch").classList.contains("on"))return;if(e.key==="ArrowRight")$("wn").click();if(e.key==="ArrowLeft")$("wb").click();if(e.key===" "){e.preventDefault();$("wp").click()}if(e.key==="Home")$("w0").click()});
+
+/* ---------- Explore modes + Agents mode ---------- */
+const RIB={full:"All layers, engines and reports; click any component for its role.",
+acc:"Source transactions > Provision & verify > Rules applied once > Detailed (thick) balances > Thin GL > Reconcile & consolidate > Adjust > Close & disclose > Statutory, MIS & analytics",
+risk:"Source + market & capital data > Provision & verify > Risk, FTP/Basel, IFRS 9/17 > Stress & RAPM > Common results > Reg reporting & XBRL > Dashboards, alerts, compliance",
+coa:"Where thin GL segments, thick sub-ledger dimensions and analytical dimensions live.",sol:"Five solution groups a platform mapping would cover. Vendor-neutral: map platforms per client.",
+agents:AGENTS.length+" agents on the architecture. Each drafts or matches; a named person approves; the independent verifier re-performs every result."};
+const MODEN={full:"Full architecture",acc:"Accounting flow",risk:"Risk flow",coa:"Chart of accounts layers",sol:"Key solution components",agents:"Agents"};
+function paint(b,col,light){b.classList.add("mc");if(light)b.classList.add("light");b.style.setProperty("--mcol",col)}
+function setMode(m,n){mode=m;document.querySelectorAll("#modes button").forEach(b=>b.classList.toggle("on",b.dataset.m===m));$("agbar").classList.toggle("on",m==="agents");
+  if(m==="walk"){applyStep(n||1);return}
+  stop();clearState();[...$("wdots").children].forEach(d=>d.classList.remove("on"));
+  const bs=all();
+  if(m==="acc"||m==="risk"){const f=m==="acc"?"a":"r",col=m==="acc"?"#B07A00":"#9C2F45";bs.forEach(b=>(b.dataset.f||"").includes(f)?paint(b,col):b.classList.add("dim18"))}
+  if(m==="coa"){const cm={t:"#5F8A54",k:"#C99A2E",n:"#D9CFB0"};bs.forEach(b=>b.dataset.k?paint(b,cm[b.dataset.k]):b.classList.add("dim"))}
+  if(m==="sol")bs.forEach(b=>SOLG[b.dataset.c]?paint(b,SOLG[b.dataset.c][1],true):b.classList.add("dim"));
+  if(m==="agents"){const a=agentSel&&AGENTS.find(x=>x.id===agentSel),on=new Set(a?a.on:Object.keys(AGON));bs.forEach(b=>on.has(b.dataset.i)?paint(b,"#4fb3ff"):b.classList.add("dim"))}
+  $("cpt").replaceChildren(h("b",{text:MODEN[m]+": "}),RIB[m]);
+  markSel()}
+document.querySelectorAll("#modes button").forEach(b=>b.addEventListener("click",()=>{agentSel=null;renderAgbar();setMode(b.dataset.m,1)}));
+$("showag").addEventListener("change",e=>$("archwrap").classList.toggle("showag",e.target.checked));$("archwrap").classList.add("showag");
+function renderAgbar(){$("agbar").replaceChildren(...AGENTS.map(a=>h("button",{class:agentSel===a.id?"on":"",text:a.name,onclick:()=>pick({k:"agent",id:a.id})})))}
+renderAgbar();
+
+/* ---------- KPI strips (computed from the model) ---------- */
+function kpis(id,items){$(id).replaceChildren(...items.map(([v,l])=>h("div",null,h("strong",{text:String(v)}),h("span",{text:l}))))}
+const inv=Object.keys(INFO);
+kpis("kpiA",[[new Set(inv.map(k=>INFO[k][1])).size-1,"Architecture layers"],[inv.length,"Components"],[inv.filter(k=>INFO[k][2].includes("a")).length,"On the accounting flow"],[inv.filter(k=>INFO[k][2].includes("r")).length,"On the risk flow"],[NS,"Walkthrough steps"],[AGENTS.length+" / "+Object.keys(AGON).length,"Agents / components with agents"]]);
+
+/* ---------- Taxonomy (L1-L4) + APQC PCF ---------- */
+const hi=L4s.filter(a=>a.r==="H").length,mo=L4s.filter(a=>a.r==="M").length,pct=x=>L4s.length?Math.round(x/L4s.length*100):0;
+const top3=TAX.flatMap(t=>t.l3s).map(r=>[r.l3,r.acts.filter(a=>a.r==="H").length]).sort((a,b)=>b[1]-a[1]).slice(0,3).map(x=>x[0]);
+$("taxh1").textContent="A four-level finance process taxonomy shows where GenAI and agents pay off: "+pct(hi+mo)+"% of activities are GenAI candidates, concentrated in "+top3.join(", ");
+kpis("kpiT",[[TAX.length,"L1 cycles"],[new Set(TAX.flatMap(t=>t.l3s.map(r=>t.l1+r.l2))).size,"L2 process groups"],[TAX.flatMap(t=>t.l3s).length,"L3 processes"],[L4s.length,"L4 activities"],[hi+" ("+pct(hi)+"%)","High"],[L4s.filter(a=>L4AG[a.n]).length,"Covered by an agent"]]);
+$("taxso").replaceChildren(h("b",{text:"So what: "}),"Start where High activities cluster: "+top3.join(", ")+". Coverage gap: Treasury, Tax and Regulatory Capital are not yet broken down. ",h("b",{text:"Trade-off: "}),"matching- and narrative-heavy work gives early wins but leaves judgement-heavy work, and its controls, for later waves.");
+let l1i=0,tf="all",tq="",texp=false;const open=new Set(["Balance Sheet Reconciliation"]);
+function renderL1(){$("l1s").replaceChildren(...TAX.map((t,i)=>{const a=t.l3s.flatMap(r=>r.acts),H=a.filter(x=>x.r==="H").length,M=a.filter(x=>x.r==="M").length,n=a.length||1;
+  return h("button",{class:"l1"+(i===l1i?" on":""),onclick:()=>{l1i=i;renderL1();renderTax()}},h("strong",{text:t.l1}),h("small",{text:a.length+" activities · "+Math.round((H+M)/n*100)+"% GenAI"}),h("div",{class:"sbar"},h("i",{style:"width:"+H/n*100+"%;background:#ffb600"}),h("i",{style:"width:"+M/n*100+"%;background:#8a6d1a"})))}))}
+const hitq=a=>a.n.toLowerCase().includes(tq);
+function match(a){return(tf==="all"||(tf==="H"&&a.r==="H")||(tf==="HM"&&a.r!=="L"))&&(!tq||hitq(a))}
+function renderTax(){const t=TAX[l1i];if(!t)return;const by={};t.l3s.forEach(r=>(by[r.l2]=by[r.l2]||[]).push(r));let hits=0;
+  $("tgrid").replaceChildren(...Object.entries(by).map(([l2,rows])=>h("div",{class:"l2"},h("div",{class:"l2h",text:l2}),rows.map(r=>{
+    const m=r.acts.filter(match);if(tq)hits+=r.acts.filter(hitq).length;const isOpen=texp||open.has(r.l3)||(tq&&m.length);
+    const row=h("div",{class:"l3"+(isOpen?" open":"")+((tf!=="all"||tq)&&!m.length?" fade":"")},
+      h("div",{class:"t"},h("b",{text:r.l3}),h("span",{text:r.acts.length+" act · "+r.acts.filter(a=>a.r==="H").length+" high"})),
+      h("div",{class:"pcf"+(r.pcf?"":" no"),text:r.pcf?"APQC PCF "+r.pcf:"PCF mapping to confirm"}),
+      h("div",{class:"dots2"},r.acts.map(a=>h("i",{class:a.r}))),
+      h("div",{class:"l4s"},r.acts.map(a=>h("div",{class:"l4 "+a.r+(sel.k==="l4"&&sel.id===a.n?" sel":"")+(tq&&hitq(a)?" hit":""),onclick:e=>{e.stopPropagation();pick({k:"l4",id:a.n})}},h("span",{text:a.n}),L4AG[a.n]?h("em",{text:L4AG[a.n][0].name.replace(" agent","")}):null))));
+    row.addEventListener("click",()=>{if(texp){texp=false;$("texp").textContent="Expand all";t.l3s.forEach(x=>open.add(x.l3))}open.has(r.l3)?open.delete(r.l3):open.add(r.l3);renderTax()});return row}))));
+  $("tcount").textContent=tq?hits+" matching "+(hits===1?"activity":"activities")+" in "+t.l1:""}
+document.querySelectorAll("#ttool [data-f]").forEach(b=>b.addEventListener("click",()=>{tf=b.dataset.f;document.querySelectorAll("#ttool [data-f]").forEach(x=>x.classList.toggle("on",x===b));renderTax()}));
+$("tq").addEventListener("input",e=>{tq=e.target.value.trim().toLowerCase();if(tq){let best=l1i,bn=-1;TAX.forEach((t,i)=>{const n=t.l3s.flatMap(r=>r.acts).filter(hitq).length;if(n>bn){bn=n;best=i}});l1i=best;renderL1()}renderTax()});
+$("texp").addEventListener("click",()=>{texp=!texp;$("texp").textContent=texp?"Collapse all":"Expand all";renderTax()});
+
+/* ---------- Business architecture (capabilities = L2 groups) ---------- */
+const capActs=l2=>L4s.filter(a=>a.l2===l2);
+const moved=DATA.capabilities.filter(c=>c.target-c.today>=2).length;
+$("bizh1").textContent=(moved===1?"One":String(moved))+" of "+DATA.capabilities.length+" finance capabilities move two maturity levels, and agents carry most of that lift in reconciliation, close and commentary";
+function renderBiz(){const hot=sel.k==="cap"?sel.id:null;
+  $("bgrid").replaceChildren(...TAX.map(t=>h("div",{class:"bcol"},h("h4",{text:t.l1}),[...new Set(t.l3s.map(r=>r.l2))].map(l2=>{const a=capActs(l2),c=CAPS[l2],g=a.length?Math.round(a.filter(x=>x.r!=="L").length/a.length*100):0,ag=new Set(a.flatMap(x=>(L4AG[x.n]||[]).map(y=>y.id))).size;
+    return h("button",{class:"bcap"+(hot===l2?" hot":""),onclick:()=>pick({k:"cap",id:l2})},h("strong",{text:l2}),h("div",{class:"meta"},c?h("span",{class:"mat m"+c.today,text:"today "+c.today}):null,c?h("span",{class:"mat m"+c.target,text:"target "+c.target}):null,h("span",{class:"gen",text:g+"% GenAI"}),ag?h("span",{class:"agc",text:ag+" agent"+(ag>1?"s":"")}):null))}))));
+  $("enab").replaceChildren(...[["Data foundation","Provisioning Area","L_pv"],["Accounting hub & ledger","Operational engines","L_op"],["Finance & risk analytics","Analytical engines","L_an"],["Reporting & disclosure","Analysis & Reporting","L_rp"],["Governance & MDM","Cross-cutting bars","bars"]].map(([n,s,id])=>h("button",{onclick:()=>{view("arch");setMode("full");cmpsOf(id).forEach(b=>b.classList.add("on"));toast("Shown on the reference architecture")}},n,h("small",{text:s}))))}
+
+/* ---------- Selection + inspector (links across all three views) ---------- */
+function markSel(){all().forEach(b=>b.classList.toggle("sel",sel.k==="cmp"&&b.dataset.i===sel.id))}
+function pick(s){sel=s;
+  if(s.k==="agent"){agentSel=s.id;renderAgbar();if(!$("v-arch").classList.contains("on"))view("arch");setMode("agents")}
+  if(s.k==="cmp")markSel();
+  renderTax();renderBiz();inspector();if(innerWidth<=900&&s.k!=="agent")$("p-insp").scrollIntoView({behavior:reduced()?"auto":"smooth"})}
+function go(target){const i=target.indexOf(":"),k=target.slice(0,i),id=target.slice(i+1);if(k==="cmp"){view("arch");if(mode==="walk")setMode("full")}if(k==="l4"){const a=L4s.find(x=>x.n===id);if(a){l1i=TAX.findIndex(t=>t.l1===a.l1);open.add(a.l3);renderL1();view("tax")}}if(k==="cap")view("biz");pick({k,id})}
+function L(text,target){return h("button",{class:"lk",text,onclick:()=>go(target)})}
+function inspector(){const out=[];
+  if(sel.k==="cmp"&&INFO[sel.id]){const i=INFO[sel.id],caps=DATA.capabilities.filter(c=>c.components.includes(sel.id)).map(c=>c.name),ags=(AGON[sel.id]||[]).map(id=>AGENTS.find(a=>a.id===id));
+    const steps=STEPS.map((s,n)=>Array.isArray(s.on)&&s.on.flatMap(cmpsOf).some(b=>b.dataset.i===sel.id)?n+1:0).filter(Boolean);
+    out.push(h("h3",{text:"Component"}),h("div",{class:"it",text:i[0]}),h("dl",{class:"kv"},h("dt",{text:"Layer"}),h("dd",{text:i[1]}),h("dt",{text:"Role"}),h("dd",{text:i[5]})),
+      h("div",{class:"tags"},i[2]?h("span",{text:i[2]==="ar"?"Accounting + risk flow":i[2]==="a"?"Accounting flow":"Risk flow"}):null,i[3]?h("span",{text:{t:"Thin GL",k:"Thick sub-ledger",n:"Analytical"}[i[3]]}):null,SOLG[i[4]]?h("span",{text:"Group "+i[4]+": "+SOLG[i[4]][0]}):null,steps.length?h("span",{text:"Walkthrough steps "+steps.join(", ")}):null),
+      h("div",{class:"box ag",style:"margin-top:7px"},h("b",{text:"Agents here"}),ags.length?ags.map(a=>h("div",null,L(a.name,"agent:"+a.id))):"None in the future state"),
+      h("div",{class:"box"},h("b",{text:"Capabilities served"}),caps.length?caps.map(c=>h("div",null,L(c,"cap:"+c))):"Shared foundation for all capabilities"))}
+  if(sel.k==="agent"){const a=AGENTS.find(x=>x.id===sel.id);if(a)
+    out.push(h("h3",{text:"Agent"}),h("div",{class:"it",text:a.name}),h("div",{class:"box ag"},h("b",{text:"What it does"}),a.does),
+      h("dl",{class:"kv"},h("dt",{text:"Sits on"}),h("dd",null,a.on.filter(c=>INFO[c]).map((c,i)=>[i?", ":"",L(INFO[c][0],"cmp:"+c)])),h("dt",{text:"Approver"}),h("dd",{text:a.approver})),
+      h("div",{class:"box"},h("b",{text:"Guardrail"}),a.guardrail),
+      h("div",{class:"box"},h("b",{text:"L4 activities ("+a.activities.length+")"}),a.activities.length?a.activities.map(n=>{const x=L4s.find(y=>y.n===n);return h("div",null,L(n,"l4:"+n)," ",h("span",{class:"mu",text:x?rateName(x.r):""}))}):"Checks other agents' results"),
+      h("div",{class:"box"},h("b",{text:"Evidence"}),h("span",{class:"badge b-hyp",text:"hypothesis"})," placement proposed by VOLT; confirm in design workshop"))}
+  if(sel.k==="l4"){const a=L4s.find(x=>x.n===sel.id);if(a){const r=TAX.flatMap(t=>t.l3s).find(x=>x.l3===a.l3),ags=L4AG[a.n]||[];
+    out.push(h("h3",{text:"L4 activity"}),h("div",{class:"it",text:a.n}),h("dl",{class:"kv"},h("dt",{text:"Path"}),h("dd",{text:a.l1+" > "+a.l2+" > "+a.l3}),h("dt",{text:"APQC PCF"}),h("dd",{text:r&&r.pcf||"to confirm"}),h("dt",{text:"GenAI"}),h("dd",{text:rateName(a.r)})),
+      h("div",{class:"box ag"},h("b",{text:"Agent"}),ags.length?ags.map(g=>h("div",null,L(g.name,"agent:"+g.id))):"No agent proposed"),
+      h("div",{class:"box"},h("b",{text:"Capability"}),L(a.l2,"cap:"+a.l2)))}}
+  if(sel.k==="cap"){const t=TAX.find(x=>x.l3s.some(r=>r.l2===sel.id)),c=CAPS[sel.id],acts=capActs(sel.id);if(t)
+    out.push(h("h3",{text:"Capability"}),h("div",{class:"it",text:sel.id}),h("dl",{class:"kv"},h("dt",{text:"Cycle"}),h("dd",{text:t.l1}),h("dt",{text:"Maturity"}),h("dd",null,c?c.today+" today, "+c.target+" target ":"not rated ",h("span",{class:"badge b-hyp",text:"hypothesis"})),h("dt",{text:"Processes"}),h("dd",{text:t.l3s.filter(r=>r.l2===sel.id).map(r=>r.l3+(r.pcf?" ("+r.pcf+")":"")).join("; ")})),
+      h("div",{class:"box"},h("b",{text:"Architecture components"}),c&&c.components.length?c.components.filter(k=>INFO[k]).map(k=>h("div",null,L(INFO[k][0],"cmp:"+k))):"None mapped"),
+      h("div",{class:"box ag"},h("b",{text:"Activities with agents"}),acts.some(x=>L4AG[x.n])?acts.filter(x=>L4AG[x.n]).map(x=>h("div",null,L(x.n,"l4:"+x.n))):"None yet"))}
+  out.push(h("div",{class:"kprin"},"1. Apply ",h("b",{text:"accounting rules once"}),", at source-transaction level. 2. Keep a ",h("b",{text:"thin GL"})," and a ",h("b",{text:"thick sub-ledger"}),". 3. Enrich ",h("b",{text:"reconciled balances"})," into ",h("b",{text:"one golden source"}),". 4. ",h("b",{text:"Agents draft, people approve"}),", and a verifier re-performs."));
+  $("insp").replaceChildren(...out)}
+
+/* ---------- Views ---------- */
+function view(v){document.querySelectorAll("#vtabs [data-v]").forEach(b=>b.classList.toggle("on",b.dataset.v===v));["arch","tax","biz"].forEach(x=>$("v-"+x).classList.toggle("on",x===v));if(v==="arch")requestAnimationFrame(()=>mode==="walk"?applyStep(step):setMode(mode))}
+document.querySelectorAll("#vtabs [data-v]").forEach(b=>b.addEventListener("click",()=>view(b.dataset.v)));
+
+/* ---------- Tour: six steps for a first-time user ---------- */
+const TOUR=[
+ ["Watch it build","Press Play to see the architecture build step by step, from the principles to \"reconciled by design\". Back, Next and the arrow keys stop on any step.",()=>{view("arch");stop();setMode("walk",1)},"capbar"],
+ ["Switch the view","These buttons show the accounting flow, the risk flow, the chart-of-accounts layers or the solution components. Each one recolours the architecture.",()=>{view("arch");setMode("acc")},"modes"],
+ ["See the agents","Agents lights up every component an agent works on. Click an agent's name to see what it does, who approves its work, its guardrail and its activities.",()=>{view("arch");pick({k:"agent",id:AGENTS[0]&&AGENTS[0].id})},"agbar"],
+ ["Click any box","This panel explains whatever you click. The blue links jump to the related item in another view.",()=>{view("arch");setMode("full");pick({k:"cmp",id:"op_rules"})},"p-insp"],
+ ["Find where GenAI pays off","Pick a cycle, choose High only or search, then open a process. Each activity shows its GenAI rating and its agent; each process shows its APQC PCF code.",()=>{view("tax")},"ttool"],
+ ["See what changes in the business","Click a capability for its maturity today and target, its systems and its agents. The teal enablers jump back to the architecture.",()=>{view("biz")},"bgrid"]];
+let ti=-1;
+function tourAt(i){document.querySelectorAll(".tour-on").forEach(x=>x.classList.remove("tour-on"));ti=i;const[t,x,run,target]=TOUR[i];run();
+  requestAnimationFrame(()=>{const e=$(target);if(e){e.classList.add("tour-on");e.scrollIntoView({block:"nearest",behavior:reduced()?"auto":"smooth"})}});
+  $("tourt").textContent=t;$("tourx").textContent=x;$("tourn").textContent=(i+1)+" of "+TOUR.length;$("tourb2").disabled=i===0;$("tourn2").textContent=i===TOUR.length-1?"Done":"Next";$("tour").classList.add("on")}
+function endTour(){if(ti<0)return;ti=-1;document.querySelectorAll(".tour-on").forEach(x=>x.classList.remove("tour-on"));$("tour").classList.remove("on");$("tourb").focus()}
+$("tourb").addEventListener("click",()=>tourAt(0));
+$("tourn2").addEventListener("click",()=>ti>=TOUR.length-1?endTour():tourAt(ti+1));
+$("tourb2").addEventListener("click",()=>ti>0&&tourAt(ti-1));
+$("tourc").addEventListener("click",endTour);
+
+let lastW=0;new ResizeObserver(()=>{const w=$("archwrap").clientWidth;if(w&&w!==lastW){lastW=w;if($("v-arch").classList.contains("on")&&mode==="walk")applyStep(step)}}).observe($("archwrap"));
+addEventListener("beforeprint",()=>{stop();applyStep(NS)});
+renderL1();renderTax();renderBiz();inspector();applyStep(1);
+</script>
+</body>
+</html>

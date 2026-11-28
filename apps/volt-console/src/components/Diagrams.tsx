@@ -3,7 +3,9 @@ import { type DiagramSpec } from "../../shared/diagram";
 import {financeStories,financeDiagram,type FinanceProfile} from "../../shared/financeStories";
 import {optimizeDiagramBrief} from "../../shared/diagramBrief";
 import template from "../diagrams/template.html?raw";
-import { downloadText } from "../download";
+import { downloadText, voltFileName } from "../download";
+import { REFERENCE_MODEL } from "../../shared/financeReference";
+import { financeViewsHtml } from "../diagrams/financeViews";
 import { toast } from "../ui";
 
 /** Builds the standalone HTML for a spec: the same file the agentic-diagrams skill produces. */
@@ -14,8 +16,41 @@ export function diagramHtml(spec: DiagramSpec): string {
 
 const EXAMPLES = ["Show how bank statements and cash ledger extracts flow through reconciliation, independent verification and controller review."];
 
-/** Describe a system, get an interactive animated diagram. Runs in a sandboxed frame; exports as HTML or JSON. */
+const FRAME = { width: "100%", border: "1px solid var(--line, #2a3550)", borderRadius: 10, background: "#000" } as const;
+
+/** Two tabs: the linked finance views (reference architecture, process taxonomy, business architecture) and the scenario flow builder. */
 export function Diagrams() {
+  const [tab, setTab] = useState<"views" | "flow">("views");
+  return (
+    <div className="stack">
+      <div>
+        <h2 className="page-title">Diagram builder</h2>
+        <p className="page-sub">{tab === "views" ? "One future-state model in three linked views. Press Tour for a one-minute guide." : "Follow a business record from source to decision. Select a narrated synthetic case or describe your own process."}</p>
+      </div>
+      <div className="run-tabs" role="tablist">
+        <button role="tab" aria-selected={tab === "views"} onClick={() => setTab("views")}>Finance views</button>
+        <button role="tab" aria-selected={tab === "flow"} onClick={() => setTab("flow")}>Scenario flow</button>
+      </div>
+      {tab === "views" ? <FinanceViews /> : <ScenarioFlow />}
+    </div>
+  );
+}
+
+function FinanceViews() {
+  const html = useMemo(() => financeViewsHtml(REFERENCE_MODEL), []);
+  return (
+    <>
+      <div className="row">
+        <button className="btn" onClick={() => downloadText(voltFileName(REFERENCE_MODEL.title, "html", html), html, "text/html")}>Download HTML</button>
+        <span className="usage">Illustrative reference model. Agent placement and maturity are hypotheses until a design workshop confirms them.</span>
+      </div>
+      <iframe title={REFERENCE_MODEL.title} srcDoc={html} sandbox="allow-scripts allow-modals" style={{ ...FRAME, height: "calc(100vh - 210px)", minHeight: 560 }} />
+    </>
+  );
+}
+
+/** Describe a system, get an interactive animated diagram. Runs in a sandboxed frame; exports as HTML or JSON. */
+function ScenarioFlow() {
   const [text, setText] = useState("");
   const [systems,setSystems]=useState(""),[requirements,setRequirements]=useState(""),[review,setReview]=useState<string|null>(null);
   const [spec, setSpec] = useState<DiagramSpec>(()=>financeDiagram("p2p_ap_3way_match"));
@@ -42,11 +77,7 @@ export function Diagrams() {
   const slug = spec.title.toLowerCase().replace(/\W+/g, "-").replace(/^-|-$/g, "") || "diagram";
 
   return (
-    <div className="stack">
-      <div>
-        <h2 className="page-title">Diagram builder</h2>
-        <p className="page-sub">Follow a business record from source to decision. Select a narrated synthetic case or describe your own process.</p>
-      </div>
+    <>
       <div className="card" style={{ display: "grid", gap: 8 }}>
         <div className="row gyan-wrap" aria-label="Synthetic business scenarios">{(Object.keys(financeStories) as FinanceProfile[]).map(k=><button className="btn" key={k} disabled={busy} onClick={()=>{setSpec(financeDiagram(k));setNote("Synthetic example · no operational action. Use Play or Next to follow the record.")}}>{financeStories[k].title}</button>)}</div>
         <label>Business decision or process<textarea className="input" rows={3} maxLength={4000} disabled={busy} value={text} onChange={(e) => {setText(e.target.value);setReview(null)}} placeholder={EXAMPLES[0]} /></label>
@@ -60,7 +91,7 @@ export function Diagrams() {
           <span className="usage">{note}</span>
         </div>
       </div>
-      <iframe title={spec.title} srcDoc={html} sandbox="allow-scripts allow-downloads allow-modals" style={{ width: "100%", height: "70vh", minHeight: 420, border: "1px solid var(--line, #2a3550)", borderRadius: 10, background: "#0b0f17" }} />
-    </div>
+      <iframe title={spec.title} srcDoc={html} sandbox="allow-scripts allow-downloads allow-modals" style={{ ...FRAME, height: "70vh", minHeight: 420, background: "#0b0f17" }} />
+    </>
   );
 }
